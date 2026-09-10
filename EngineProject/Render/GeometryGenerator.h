@@ -9,7 +9,7 @@ struct FMeshData
 
 	void GetAABB(FVector& OutBoxMin, FVector& OutBoxMax) const
 	{
-		if (Vertices.size() == 0)
+		if (Vertices.Num() == 0)
 		{
 			OutBoxMax = { 0.0f, 0.0f, 0.0f };
 			OutBoxMin = { 0.0f, 0.0f, 0.0f };
@@ -74,10 +74,13 @@ struct FMeshData
 
 	void Append(const FMeshData& Other)
 	{
-		uint32 Base = (uint32)Vertices.size();
-		Vertices.insert(Vertices.end(), Other.Vertices.begin(), Other.Vertices.end());
+		uint32 Base = (uint32)Vertices.Num();
+		//Vertices.insert(Vertices.end(), Other.Vertices.begin(), Other.Vertices.end());
+		
+		Vertices.Append(Other.Vertices);
+
 		for (uint32 i : Other.Indices)
-			Indices.push_back(Base + i);
+			Indices.Add(Base + i);
 	}
 
 	void Translate(const FVector& Offset)

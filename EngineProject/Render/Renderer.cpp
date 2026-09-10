@@ -200,8 +200,8 @@ TSharedPtr<FMesh> FRenderer::CreateMesh(const FMeshData& InMeshData)
 {
 	TSharedPtr<FMesh> Mesh = MakeShared<FMesh>();
 
-	Mesh->VertexBuffer = CreateVertexBuffer(InMeshData.Vertices.data(), sizeof(FVertex) * InMeshData.Vertices.size(), sizeof(FVertex));
-	Mesh->IndexBuffer = CreateIndexBuffer(InMeshData.Indices.data(), InMeshData.Indices.size());
+	Mesh->VertexBuffer = CreateVertexBuffer(InMeshData.Vertices.GetData(), sizeof(FVertex) * InMeshData.Vertices.Num(), sizeof(FVertex));
+	Mesh->IndexBuffer = CreateIndexBuffer(InMeshData.Indices.GetData(), InMeshData.Indices.Num());
 	
 	return Mesh;
 }
@@ -349,12 +349,12 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 
 	while (true)
 	{
-		if (InQueue.empty())
+		if (InQueue.IsEmpty())
 		{
 			return;
 		}
 
-		FRenderPacket rp = InQueue.front();
+		FRenderPacket rp = InQueue.Peek();
 
 		BindShader(rp.shader);
 		BindMesh(rp.mesh);
@@ -367,7 +367,7 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 		SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		DrawIndexed(rp.mesh->IndexBuffer->GetIndexCount());
 
-		InQueue.pop();
+		InQueue.Dequeue();
 	}
 }
 

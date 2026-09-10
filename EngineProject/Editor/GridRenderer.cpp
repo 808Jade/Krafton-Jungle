@@ -34,8 +34,8 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 		0,1,2,3,4,5
 	};
 
-	VB = Renderer->CreateVertexBuffer(Vertices.data(), sizeof(FVertex) * Vertices.size(), sizeof(FVertex));
-	IB = Renderer->CreateIndexBuffer(Indices.data(), sizeof(uint32) * Indices.size());
+	VB = Renderer->CreateVertexBuffer(Vertices.GetData(), sizeof(FVertex) * Vertices.Num(), sizeof(FVertex));
+	IB = Renderer->CreateIndexBuffer(Indices.GetData(), sizeof(uint32) * Indices.Num());
 	CB = Renderer->CreateConstantBuffer(sizeof(GridData));
 
 	D3D11_RASTERIZER_DESC RasterizerDesc = {};

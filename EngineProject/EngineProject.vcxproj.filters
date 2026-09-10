@@ -191,9 +191,6 @@
     <ClInclude Include="Component\ActorComponent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Containers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Core\EngineLog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -384,6 +381,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Math\TVector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Container\Array.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Container\Map.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Container\Queue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Container\Set.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Container\SparseArray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Container\Containers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

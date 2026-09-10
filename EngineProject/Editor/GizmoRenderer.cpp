@@ -13,34 +13,34 @@ bool FGizmoRenderer::Init(FRenderer* InRenderer)
 	Renderer = InRenderer;
 	FMeshData LocMeshData = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	LocationMesh = MakeShared<FMesh>();
-	LocationMesh->VertexBuffer = Renderer->CreateVertexBuffer(LocMeshData.Vertices.data(), sizeof(FVertex) * (UINT)LocMeshData.Vertices.size(), sizeof(FVertex));
-	LocationMesh->IndexBuffer = Renderer->CreateIndexBuffer(LocMeshData.Indices.data(), LocMeshData.Indices.size());
+	LocationMesh->VertexBuffer = Renderer->CreateVertexBuffer(LocMeshData.Vertices.GetData(), sizeof(FVertex) * (UINT)LocMeshData.Vertices.Num(), sizeof(FVertex));
+	LocationMesh->IndexBuffer = Renderer->CreateIndexBuffer(LocMeshData.Indices.GetData(), LocMeshData.Indices.Num());
 
 	FMeshData RotMeshData = FGeometryGenerator::CreateRing(1.0f, 0.03f, 32, 16, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	RotationMesh = MakeShared<FMesh>();
-	RotationMesh->VertexBuffer = Renderer->CreateVertexBuffer(RotMeshData.Vertices.data(), sizeof(FVertex) * (UINT)RotMeshData.Vertices.size(), sizeof(FVertex));
-	RotationMesh->IndexBuffer = Renderer->CreateIndexBuffer(RotMeshData.Indices.data(), RotMeshData.Indices.size());
+	RotationMesh->VertexBuffer = Renderer->CreateVertexBuffer(RotMeshData.Vertices.GetData(), sizeof(FVertex) * (UINT)RotMeshData.Vertices.Num(), sizeof(FVertex));
+	RotationMesh->IndexBuffer = Renderer->CreateIndexBuffer(RotMeshData.Indices.GetData(), RotMeshData.Indices.Num());
 
 	FMeshData ScaleMeshData = FGeometryGenerator::CreateScaleBar(0.1f, 1.0f, 0.4f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	ScaleMesh = MakeShared<FMesh>();
-	ScaleMesh->VertexBuffer = Renderer->CreateVertexBuffer(ScaleMeshData.Vertices.data(), sizeof(FVertex) * (UINT)ScaleMeshData.Vertices.size(), sizeof(FVertex));
-	ScaleMesh->IndexBuffer = Renderer->CreateIndexBuffer(ScaleMeshData.Indices.data(), ScaleMeshData.Indices.size());
+	ScaleMesh->VertexBuffer = Renderer->CreateVertexBuffer(ScaleMeshData.Vertices.GetData(), sizeof(FVertex) * (UINT)ScaleMeshData.Vertices.Num(), sizeof(FVertex));
+	ScaleMesh->IndexBuffer = Renderer->CreateIndexBuffer(ScaleMeshData.Indices.GetData(), ScaleMeshData.Indices.Num());
 
 	FMeshData SphereData = FGeometryGenerator::CreateSphere(0.2f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	SphereMesh = MakeShared<FMesh>();
-	SphereMesh->VertexBuffer = Renderer->CreateVertexBuffer(SphereData.Vertices.data(), sizeof(FVertex) * (UINT)SphereData.Vertices.size(), sizeof(FVertex));
-	SphereMesh->IndexBuffer = Renderer->CreateIndexBuffer(SphereData.Indices.data(), SphereData.Indices.size());
+	SphereMesh->VertexBuffer = Renderer->CreateVertexBuffer(SphereData.Vertices.GetData(), sizeof(FVertex) * (UINT)SphereData.Vertices.Num(), sizeof(FVertex));
+	SphereMesh->IndexBuffer = Renderer->CreateIndexBuffer(SphereData.Indices.GetData(), SphereData.Indices.Num());
 
 	CB = Renderer->CreateConstantBuffer(sizeof(FGizmoData));
 
-	AxisDataArray.push_back({ FRotator(90.0f, 0.0f, 0.0f) ,FVector4(1.0f, 0.0f, 0.0f, 1.0f) });
-	AxisDataArray.push_back({ FRotator(0.0f, 0.0f, -90.0f) ,FVector4(0.0f, 1.0f, 0.0f, 1.0f) });
-	AxisDataArray.push_back({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(0.0f, 0.4f, 1.0f, 1.0f) });
+	AxisDataArray.Add({ FRotator(90.0f, 0.0f, 0.0f) ,FVector4(1.0f, 0.0f, 0.0f, 1.0f) });
+	AxisDataArray.Add({ FRotator(0.0f, 0.0f, -90.0f) ,FVector4(0.0f, 1.0f, 0.0f, 1.0f) });
+	AxisDataArray.Add({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(0.0f, 0.4f, 1.0f, 1.0f) });
 
-	AxisDataArray.push_back({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(0.0f, 0.0f, 1.0f, 1.0f) });
-	AxisDataArray.push_back({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(0.0f, 0.0f, 1.0f, 1.0f) });
-	AxisDataArray.push_back({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(0.0f, 0.0f, 1.0f, 1.0f) });
-	AxisDataArray.push_back({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(1.0f, 1.0f, 1.0f, 1.0f) }); // ScreenAxis
+	AxisDataArray.Add({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(0.0f, 0.0f, 1.0f, 1.0f) });
+	AxisDataArray.Add({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(0.0f, 0.0f, 1.0f, 1.0f) });
+	AxisDataArray.Add({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(0.0f, 0.0f, 1.0f, 1.0f) });
+	AxisDataArray.Add({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(1.0f, 1.0f, 1.0f, 1.0f) }); // ScreenAxis
 
 	Shader = Renderer->CreateShader(L"Shader/GizmoShader.hlsl", FVertex::GetLayout());
 

@@ -98,17 +98,17 @@ AActor* UWorld::SpawnActor(UClass* Class, const FTransform* UserTransformPtr)
 		NewActor->SetRootComponent(DefaultRoot);
 	}
 
-	Actors.push_back(NewActor);
-	BeginPlayList.push(NewActor);
+	Actors.Add(NewActor);
+	BeginPlayList.Enqueue(NewActor);
 	return NewActor;
 }
 
 void UWorld::Tick(float DeltaTime)
 {
-	while (!BeginPlayList.empty())
+	while (!BeginPlayList.IsEmpty())
 	{
-		BeginPlayList.front()->BeginPlay();
-		BeginPlayList.pop();
+		BeginPlayList.Peek()->BeginPlay();
+		BeginPlayList.Dequeue();
 	}
 
 	for (AActor* Actor : Actors)
@@ -124,11 +124,11 @@ void UWorld::OnRender(FRenderer* Renderer)
 
 void UWorld::ClearScene()
 {
-	PrimitiveComponents.clear();
-	while (!BeginPlayList.empty()) BeginPlayList.pop();
+	PrimitiveComponents.Reset();
+	while (!BeginPlayList.IsEmpty()) BeginPlayList.Dequeue();
 
 	for (AActor* Actor : Actors) delete Actor;
-	Actors.clear();
+	Actors.Reset();
 	MainCamera = nullptr;
 }
 
@@ -380,7 +380,7 @@ UPrimitiveComponent* UWorld::GetPickingPrimitive(uint32 ScreenW, uint32 ScreenH)
 		}
 
 		// Broad Phase 통과하면 뮐러-트럼보르 알고리즘 수행
-		for (uint32 i = 0; i + 2 < mesh.Indices.size(); i += 3)
+		for (uint32 i = 0; i + 2 < mesh.Indices.Num(); i += 3)
 		{
 			FVector vertices[3]{};	// 3 vertex
 			for (uint32 j = 0; j < 3; ++j)

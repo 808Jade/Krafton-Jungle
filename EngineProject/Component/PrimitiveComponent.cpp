@@ -17,7 +17,7 @@ void UPrimitiveComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue
 		rp.mesh = Mesh;
 		rp.shader = Shader;
 		rp.model = GetWorldMatrix();
-		RenderQueue.push(rp);
+		RenderQueue.Enqueue(rp);
 	}
 }
 

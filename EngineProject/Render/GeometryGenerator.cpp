@@ -15,18 +15,18 @@ FMeshData FGeometryGenerator::CreatePlane(float Size, const FVector4& Color)
 		FVector(-HalfSize, -HalfSize, 0.0f),
 	};
 
-	for (int32 i = 0; i < positions.size(); i++)
+	for (int32 i = 0; i < positions.Num(); i++)
 	{
-		PlaneMeshData.Vertices.push_back({ positions[i], Color });
+		PlaneMeshData.Vertices.Add({ positions[i], Color });
 	}
 
-	PlaneMeshData.Indices.push_back(0);
-	PlaneMeshData.Indices.push_back(2);
-	PlaneMeshData.Indices.push_back(1);
+	PlaneMeshData.Indices.Add(0);
+	PlaneMeshData.Indices.Add(2);
+	PlaneMeshData.Indices.Add(1);
 
-	PlaneMeshData.Indices.push_back(0);
-	PlaneMeshData.Indices.push_back(3);
-	PlaneMeshData.Indices.push_back(2);
+	PlaneMeshData.Indices.Add(0);
+	PlaneMeshData.Indices.Add(3);
+	PlaneMeshData.Indices.Add(2);
 
 	return PlaneMeshData;
 }
@@ -38,7 +38,7 @@ FMeshData FGeometryGenerator::CreateCone(float Radius, float Height, int Segment
 	TArray<FVertex>& Vertices = ConeMeshData.Vertices;
 	TArray<uint32>& Indices = ConeMeshData.Indices;
 
-	Vertices.push_back({ { 0.0f, 0.0f, Height }, Color });
+	Vertices.Add({ { 0.0f, 0.0f, Height }, Color });
 
 	float Slice = PI * 2.0f / Segments;
 
@@ -48,7 +48,7 @@ FMeshData FGeometryGenerator::CreateCone(float Radius, float Height, int Segment
 		float x = -Radius * cosf(angle);
 		float y = -Radius * sinf(angle);
 
-		Vertices.push_back({ { x, y, 0.0f }, Color });
+		Vertices.Add({ { x, y, 0.0f }, Color });
 	}
 
 
@@ -57,28 +57,30 @@ FMeshData FGeometryGenerator::CreateCone(float Radius, float Height, int Segment
 		uint32 bottomA = 1 + i;
 		uint32 bottomB = 1 + i + 1;
 
-		Indices.push_back(0); Indices.push_back(bottomA); Indices.push_back(bottomB);
+		Indices.Add(0); 
+		Indices.Add(bottomA); 
+		Indices.Add(bottomB);
 	}
 
-	uint32 baseIndex = static_cast<uint32>(Vertices.size());
+	uint32 baseIndex = static_cast<uint32>(Vertices.Num());
 
 	uint32 bottomCenterIdx = baseIndex;
-	Vertices.push_back({ { 0.0f, 0.0f, 0.0f }, Color });
+	Vertices.Add({ { 0.0f, 0.0f, 0.0f }, Color });
 
-	uint32 bottomRingStart = static_cast<uint32>(Vertices.size());
+	uint32 bottomRingStart = static_cast<uint32>(Vertices.Num());
 	for (int32 i = 0; i <= Segments; i++)
 	{
 		float angle = i * Slice;
 		float x = Radius * cosf(angle);
 		float y = Radius * sinf(angle);
-		Vertices.push_back({ { x, y, 0.0f }, Color });
+		Vertices.Add({ { x, y, 0.0f }, Color });
 	}
 
 	for (int32 i = 0; i < Segments; i++)
 	{
-		Indices.push_back(bottomCenterIdx);
-		Indices.push_back(bottomRingStart + i + 1);
-		Indices.push_back(bottomRingStart + i);
+		Indices.Add(bottomCenterIdx);
+		Indices.Add(bottomRingStart + i + 1);
+		Indices.Add(bottomRingStart + i);
 	}
 
 	return ConeMeshData;
@@ -100,8 +102,8 @@ FMeshData FGeometryGenerator::CreateCylinder(float Radius, float Height, int Seg
 		float x = -Radius * cosf(angle);
 		float y = -Radius * sinf(angle);
 
-		Vertices.push_back({ { x, y, -HalfHeight }, Color });
-		Vertices.push_back({ { x, y,  HalfHeight }, Color });
+		Vertices.Add({ { x, y, -HalfHeight }, Color });
+		Vertices.Add({ { x, y,  HalfHeight }, Color });
 	}
 
 	for (uint32 i = 0; i < Segments; i++)
@@ -111,48 +113,48 @@ FMeshData FGeometryGenerator::CreateCylinder(float Radius, float Height, int Seg
 		uint32 bottomB = (i + 1) * 2;
 		uint32 topB = (i + 1) * 2 + 1;
 
-		Indices.push_back(bottomA); Indices.push_back(bottomB); Indices.push_back(topA);
-		Indices.push_back(topA);    Indices.push_back(bottomB); Indices.push_back(topB);
+		Indices.Add(bottomA); Indices.Add(bottomB); Indices.Add(topA);
+		Indices.Add(topA);    Indices.Add(bottomB); Indices.Add(topB);
 	}
 
-	uint32 baseIndex = static_cast<uint32>(Vertices.size());
+	uint32 baseIndex = static_cast<uint32>(Vertices.Num());
 
 	uint32 bottomCenterIdx = baseIndex;
-	Vertices.push_back({ { 0.0f, 0.0f, -HalfHeight }, Color });
+	Vertices.Add({ { 0.0f, 0.0f, -HalfHeight }, Color });
 
 	uint32 topCenterIdx = baseIndex + 1;
-	Vertices.push_back({ { 0.0f, 0.0f, HalfHeight }, Color });
+	Vertices.Add({ { 0.0f, 0.0f, HalfHeight }, Color });
 
-	uint32 bottomRingStart = static_cast<uint32>(Vertices.size());
+	uint32 bottomRingStart = static_cast<uint32>(Vertices.Num());
 	for (uint32 i = 0; i <= Segments; i++)
 	{
 		float angle = i * Slice;
 		float x = Radius * cosf(angle);
 		float y = Radius * sinf(angle);
-		Vertices.push_back({ { x, y, -HalfHeight }, Color });
+		Vertices.Add({ { x, y, -HalfHeight }, Color });
 	}
 
-	uint32 topRingStart = static_cast<uint32>(Vertices.size());
+	uint32 topRingStart = static_cast<uint32>(Vertices.Num());
 	for (uint32 i = 0; i <= Segments; i++)
 	{
 		float angle = i * Slice;
 		float x = Radius * cosf(angle);
 		float y = Radius * sinf(angle);
-		Vertices.push_back({ { x, y, HalfHeight }, Color });
+		Vertices.Add({ { x, y, HalfHeight }, Color });
 	}
 
 	for (uint32 i = 0; i < Segments; i++)
 	{
-		Indices.push_back(bottomCenterIdx);
-		Indices.push_back(bottomRingStart + i);
-		Indices.push_back(bottomRingStart + i + 1);
+		Indices.Add(bottomCenterIdx);
+		Indices.Add(bottomRingStart + i);
+		Indices.Add(bottomRingStart + i + 1);
 	}
 
 	for (uint32 i = 0; i < Segments; i++)
 	{
-		Indices.push_back(topCenterIdx);
-		Indices.push_back(topRingStart + i + 1);
-		Indices.push_back(topRingStart + i);
+		Indices.Add(topCenterIdx);
+		Indices.Add(topRingStart + i + 1);
+		Indices.Add(topRingStart + i);
 	}
 
 	return CylinderMeshData;
@@ -205,7 +207,7 @@ FMeshData FGeometryGenerator::CreateRing(float Radius, float TubeRadius, int Seg
 			v.Position.Y = (Radius + TubeRadius * cosPhi) * sinTheta;
 			v.Position.Z = TubeRadius * sinPhi;
 			v.Color = Color;
-			Data.Vertices.push_back(v);
+			Data.Vertices.Add(v);
 		}
 	}
 
@@ -219,13 +221,13 @@ FMeshData FGeometryGenerator::CreateRing(float Radius, float TubeRadius, int Seg
 			int c = (i + 1) * stride + j;
 			int d = c + 1;
 
-			Data.Indices.push_back(a);
-			Data.Indices.push_back(c);
-			Data.Indices.push_back(b);
+			Data.Indices.Add(a);
+			Data.Indices.Add(c);
+			Data.Indices.Add(b);
 
-			Data.Indices.push_back(b);
-			Data.Indices.push_back(c);
-			Data.Indices.push_back(d);
+			Data.Indices.Add(b);
+			Data.Indices.Add(c);
+			Data.Indices.Add(d);
 		}
 	}
 
@@ -291,18 +293,18 @@ FMeshData FGeometryGenerator::CreateCube(float Size, const FVector4& Color)
 			FVertex Vertex;
 			Vertex.Position = positions[cubeFaces[i][j]];
 			Vertex.Color = FVector4(colors[i], 1.0f);
-			CubeMeshData.Vertices.push_back(Vertex);
+			CubeMeshData.Vertices.Add(Vertex);
 		}
 
 		uint32 BaseVertexIndex = i * 4;
 
-		CubeMeshData.Indices.push_back(BaseVertexIndex + 0);
-		CubeMeshData.Indices.push_back(BaseVertexIndex + 1);
-		CubeMeshData.Indices.push_back(BaseVertexIndex + 2);
+		CubeMeshData.Indices.Add(BaseVertexIndex + 0);
+		CubeMeshData.Indices.Add(BaseVertexIndex + 1);
+		CubeMeshData.Indices.Add(BaseVertexIndex + 2);
 
-		CubeMeshData.Indices.push_back(BaseVertexIndex + 0);
-		CubeMeshData.Indices.push_back(BaseVertexIndex + 2);
-		CubeMeshData.Indices.push_back(BaseVertexIndex + 3);
+		CubeMeshData.Indices.Add(BaseVertexIndex + 0);
+		CubeMeshData.Indices.Add(BaseVertexIndex + 2);
+		CubeMeshData.Indices.Add(BaseVertexIndex + 3);
 	}
 	return CubeMeshData;
 }
@@ -331,7 +333,7 @@ FMeshData FGeometryGenerator::CreateSphere(float Radius, uint32 NumSlices, uint3
 			// vertex.Normal = Normalize(vertex.Position);
 			// vertex.UV     = FVector2(float(j) / NumSlices, float(i) / NumStacks);
 
-			SphereMeshData.Vertices.push_back(vertex);
+			SphereMeshData.Vertices.Add(vertex);
 		}
 	}
 
@@ -346,13 +348,13 @@ FMeshData FGeometryGenerator::CreateSphere(float Radius, uint32 NumSlices, uint3
 			const uint32 BotR = offset + NumSlices + 1 + j + 1;
 
 			// CW (바깥에서 봤을 때)
-			SphereMeshData.Indices.push_back(TopL);
-			SphereMeshData.Indices.push_back(BotL);
-			SphereMeshData.Indices.push_back(BotR);
+			SphereMeshData.Indices.Add(TopL);
+			SphereMeshData.Indices.Add(BotL);
+			SphereMeshData.Indices.Add(BotR);
 
-			SphereMeshData.Indices.push_back(TopL);
-			SphereMeshData.Indices.push_back(BotR);
-			SphereMeshData.Indices.push_back(TopR);
+			SphereMeshData.Indices.Add(TopL);
+			SphereMeshData.Indices.Add(BotR);
+			SphereMeshData.Indices.Add(TopR);
 		}
 	}
 	return SphereMeshData;

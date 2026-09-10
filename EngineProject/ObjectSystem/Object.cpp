@@ -10,8 +10,8 @@ TArray<UObject*> GUObjectArray;
 UObject::UObject()
 {
 	UUID = FEngineStatics::GetUUID();
-	InternalIndex = GUObjectArray.size();
-	GUObjectArray.push_back(this);
+	InternalIndex = GUObjectArray.Num();
+	GUObjectArray.Add(this);
 	LOG(Info, "UUID : {}", UUID);
 }
 

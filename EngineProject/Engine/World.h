@@ -34,7 +34,7 @@ public:
 	bool SaveScene(const FString& Path);
 	bool LoadScene(const FString& Path);
 
-	inline void AddPrimitive(UPrimitiveComponent* Primitive) { PrimitiveComponents.push_back(Primitive); }
+	inline void AddPrimitive(UPrimitiveComponent* Primitive) { PrimitiveComponents.Add(Primitive); }
 
 	void GatherRenderPackets(TQueue<FRenderPacket>& RenderQueue);
 	UPrimitiveComponent* GetPickingPrimitive(uint32 ScreenW, uint32 ScreenH);
@@ -43,7 +43,7 @@ public:
 	void SetMainCamera(ACameraActor* Camera);
 	ACameraActor* GetMainCamera() const;
 
-	int32 GetActorNum() const { return (int32)Actors.size(); }
+	int32 GetActorNum() const { return (int32)Actors.Num(); }
 
 private:
 	TArray<AActor*> Actors;

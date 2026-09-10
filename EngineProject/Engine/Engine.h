@@ -3,7 +3,6 @@
 #include "Core/Window.h"
 #include "String.h"
 #include "Core/Types.h"
-#include "Core/Containers.h"
 
 #include "World.h"
 #include "Render/Renderer.h"

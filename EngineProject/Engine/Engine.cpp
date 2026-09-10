@@ -94,8 +94,8 @@ bool Engine::Init(HINSTANCE hInstance)
 	//FMeshData Data = FGeometryGenerator::CreateCylinder(1.0f, 3.0f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	//FMeshData Data = FGeometryGenerator::CreateCone(1.0f, 3.0f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	//FMeshData Data = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	vb = Renderer->CreateVertexBuffer(Data.Vertices.data(), sizeof(FVertex) * (UINT)Data.Vertices.size(), sizeof(FVertex));
-	ib = Renderer->CreateIndexBuffer(Data.Indices.data(), Data.Indices.size());
+	vb = Renderer->CreateVertexBuffer(Data.Vertices.GetData(), sizeof(FVertex) * (UINT)Data.Vertices.Num(), sizeof(FVertex));
+	ib = Renderer->CreateIndexBuffer(Data.Indices.GetData(), Data.Indices.Num());
 
 	Mesh = MakeShared<FMesh>();
 	Mesh->VertexBuffer = vb;

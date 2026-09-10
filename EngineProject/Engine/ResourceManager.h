@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Containers.h"
+
 #include "ObjectSystem/Property.h"
 #include "Render/Renderer.h"
 

@@ -31,7 +31,7 @@ public:
 	template <typename T>
 	void AddProperty(const FString& InName, uint64 InOffset)
 	{
-		Properties.push_back({ InName, GetPropertyType<T>(), InOffset, sizeof(T) });
+		Properties.Add({ InName, GetPropertyType<T>(), InOffset, sizeof(T) });
 	}
 };
 

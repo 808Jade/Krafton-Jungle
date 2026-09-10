@@ -236,7 +236,12 @@
     <ClInclude Include="Camera\CameraComponent.h" />
     <ClInclude Include="Collision\Ray.h" />
     <ClInclude Include="Component\ActorComponent.h" />
-    <ClInclude Include="Core\Containers.h" />
+    <ClInclude Include="Container\Array.h" />
+    <ClInclude Include="Container\Containers.h" />
+    <ClInclude Include="Container\Map.h" />
+    <ClInclude Include="Container\Queue.h" />
+    <ClInclude Include="Container\Set.h" />
+    <ClInclude Include="Container\SparseArray.h" />
     <ClInclude Include="Core\EngineLog.h" />
     <ClInclude Include="Core\EngineStatics.h" />
     <ClInclude Include="Core\EngineString.h" />

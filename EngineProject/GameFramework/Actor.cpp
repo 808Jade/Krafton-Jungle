@@ -72,7 +72,7 @@ void AActor::AddPrimitiveComponent(EPrimitiveType Type, FTransform Transform)
 	break;
 	}
 	RootComponent->SetTransform(Transform);
-	Components.push_back(RootComponent);
+	Components.Add(RootComponent);
 }
 
 void AActor::SetRootComponent(USceneComponent* SceneComponent)

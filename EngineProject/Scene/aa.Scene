@@ -1,0 +1,42 @@
+{
+    "Version": 1,
+    "NextUUID": 7,
+    "Primitives": {
+        "3": {
+            "Location": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "Rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "Scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "Type": "Camera"
+        },
+        "6": {
+            "Location": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "Rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "Scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "Type": "Cube"
+        }
+    }
+}

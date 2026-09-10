@@ -11,10 +11,10 @@ static int   Strnicmp(const char* s1, const char* s2, int n) { int d = 0; while 
 
 bool FConsolePanel::Init()
 {
-	Commands.push_back("HELP");
-	Commands.push_back("HISTORY");
-	Commands.push_back("CLEAR");
-	Commands.push_back("CLASSIFY");
+	Commands.Add("HELP");
+	Commands.Add("HISTORY");
+	Commands.Add("CLEAR");
+	Commands.Add("CLASSIFY");
 
 	AutoScroll = true;       // 추가
 	ScrollToBottom = false;  // 추가
@@ -94,7 +94,7 @@ void FConsolePanel::OnRender()
 
 void FConsolePanel::ClearLog()
 {
-	Items.clear();
+	Items.Reset();
 }
 
 void FConsolePanel::ExecCommand(const FString& CommandLine)
@@ -104,13 +104,14 @@ void FConsolePanel::ExecCommand(const FString& CommandLine)
 	// Insert into history. First find match and delete it so it can be pushed to the back.
 	// This isn't trying to be smart or optimal.
 	HistoryPos = -1;
-	for (int i = History.size() - 1; i >= 0; i--)
+	for (int i = History.Num() - 1; i >= 0; i--)
 		if (History[i] == CommandLine)
 		{
-			History.erase(History.begin() + i);
+			//History.erase(History.begin() + i);
+			History.RemoveAt(i, 1);
 			break;
 		}
-	History.push_back(CommandLine);
+	History.Add(CommandLine);
 
 	// Process command
 	if (CommandLine == "CLEAR")
@@ -125,8 +126,8 @@ void FConsolePanel::ExecCommand(const FString& CommandLine)
 	}
 	else if (CommandLine == "HISTORY")
 	{
-		int first = History.size() - 10;
-		for (int i = first > 0 ? first : 0; i < History.size(); i++)
+		int first = History.Num() - 10;
+		for (int i = first > 0 ? first : 0; i < History.Num(); i++)
 			AddLog(ELogVerbosity::Info, "{:03d}: %s\n", i, History[i]);
 	}
 	else
@@ -160,7 +161,7 @@ int FConsolePanel::TextEditCallback(ImGuiInputTextCallbackData* data)
 
 		// Build a list of candidates
 		ImVector<FString> candidates;
-		for (int i = 0; i < Commands.size(); i++)
+		for (int i = 0; i < Commands.Num(); i++)
 			if (Strnicmp(Commands[i].c_str(), word_start, (int)(word_end - word_start)) == 0)
 				candidates.push_back(Commands[i]);
 
@@ -216,14 +217,14 @@ int FConsolePanel::TextEditCallback(ImGuiInputTextCallbackData* data)
 		if (data->EventKey == ImGuiKey_UpArrow)
 		{
 			if (HistoryPos == -1)
-				HistoryPos = History.size() - 1;
+				HistoryPos = History.Num() - 1;
 			else if (HistoryPos > 0)
 				HistoryPos--;
 		}
 		else if (data->EventKey == ImGuiKey_DownArrow)
 		{
 			if (HistoryPos != -1)
-				if (++HistoryPos >= History.size())
+				if (++HistoryPos >= History.Num())
 					HistoryPos = -1;
 		}
 

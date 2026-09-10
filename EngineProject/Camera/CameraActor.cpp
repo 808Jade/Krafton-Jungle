@@ -9,7 +9,7 @@ ACameraActor::ACameraActor()
 {
 	UCameraComponent* CameraComponent = FObjectFactory::ConstructObject<UCameraComponent>();
 	SetRootComponent(Cast<USceneComponent>(CameraComponent));
-	Components.push_back(Cast<UActorComponent>(CameraComponent));
+	Components.Add(Cast<UActorComponent>(CameraComponent));
 }
 
 ACameraActor::~ACameraActor()

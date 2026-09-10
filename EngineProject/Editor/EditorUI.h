@@ -15,7 +15,7 @@ public:
 		TUniquePtr<T> newPanel = MakeUnique<T>();
 		T* Ret = newPanel.get();
 		Ret->Init();
-		Panels.push_back(std::move(newPanel));
+		Panels.Add(std::move(newPanel));
 		
 		return Ret;
 	}

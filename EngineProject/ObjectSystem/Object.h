@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/Types.h"
-#include "Core/Containers.h"
 #include "Core/EngineStatics.h"
 
 class UClass;

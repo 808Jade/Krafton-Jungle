@@ -51,7 +51,7 @@ public:
 
 		LogData.message = std::format(fmt, std::forward<Args>(args)...);
 
-		Items.push_back(LogData);
+		Items.Add(LogData);
 
 		ScrollToBottom = true;  
 	}

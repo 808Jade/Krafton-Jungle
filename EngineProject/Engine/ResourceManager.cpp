@@ -44,12 +44,14 @@ FMesh* FResourceManager::GetMesh(FString InName)
         return nullptr;
     }
 
-    auto it = MeshMap.find(InName);
-    if (it == MeshMap.end())
+    ///auto it = MeshMap.find(InName);
+    auto* foundMeshOrNull = MeshMap.FindOrNull(InName);
+    //if (it == MeshMap.end())
+    if (foundMeshOrNull == nullptr)
     {
         FMeshData Data = FGeometryGenerator::GetMeshData(InName);
-        TSharedPtr<FVertexBuffer> vb = Renderer->CreateVertexBuffer(Data.Vertices.data(), sizeof(FVertex) * (UINT)Data.Vertices.size(), sizeof(FVertex));
-        TSharedPtr<FIndexBuffer> ib = Renderer->CreateIndexBuffer(Data.Indices.data(), Data.Indices.size());
+        TSharedPtr<FVertexBuffer> vb = Renderer->CreateVertexBuffer(Data.Vertices.GetData(), sizeof(FVertex) * (UINT)Data.Vertices.Num(), sizeof(FVertex));
+        TSharedPtr<FIndexBuffer> ib = Renderer->CreateIndexBuffer(Data.Indices.GetData(), Data.Indices.Num());
 
         VertexBufferMap[InName] = vb;
         indexBufferMap[InName] = ib;
@@ -67,8 +69,11 @@ FShader* FResourceManager::GetShader(FString InName)
         return nullptr;
     }
 
-    auto it = ShaderMap.find(InName);
-    if (it == ShaderMap.end())
+    //auto it = ShaderMap.find(InName);
+    auto* foundShaderOrNull = ShaderMap.FindOrNull(InName);
+
+    //if (it == ShaderMap.end())
+    if (foundShaderOrNull == nullptr)
     {
         std::wstring wstr(InName.begin(), InName.end());
 
