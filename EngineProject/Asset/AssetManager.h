@@ -4,7 +4,7 @@
 #include "ObjectSystem/Property.h"
 #include "Render/Renderer.h"
 
-struct UStaticMesh;
+class UStaticMesh;
 struct FShader;
 
 class UAssetManager : public UObject
@@ -26,7 +26,7 @@ public:
 	UStaticMesh* GetMesh(FString InName);
 	FShader* GetShader(FString InName);
 private:
-	TMap<FString, TSharedPtr<UStaticMesh>> MeshMap;	// KEY: FILE NAME OR 쉐입 첫글자 대문자
+	TMap<FString, UStaticMesh*> MeshMap;	// KEY: FILE NAME OR 쉐입 첫글자 대문자
 	TMap<FString, TSharedPtr<FShader>> ShaderMap;	// KEY: FILE NAME
 
 	TMap<FString, TSharedPtr<FVertexBuffer>> VertexBufferMap;

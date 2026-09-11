@@ -41,9 +41,9 @@ public:
 
 	TSharedPtr<FShader> CreateShader(const wchar_t* FileName, D3D11_INPUT_ELEMENT_DESC* InLayoutDesc, size_t InLayoutSize);
 	TSharedPtr<FShader> CreateShader(const wchar_t* FileName, std::vector<D3D11_INPUT_ELEMENT_DESC> Layouts);
-	TSharedPtr<UStaticMesh> CreateMesh(const UStaticMeshData& InMeshData);
-	TSharedPtr<UStaticMesh> CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer);
-
+	UStaticMesh* CreateMesh(const UStaticMeshData& InMeshData);
+	UStaticMesh* CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer);
+	
 	TSharedPtr<FVertexBuffer> CreateVertexBuffer(const void* InVertices, uint32 InSize, uint32 Stride);
 	TSharedPtr<FIndexBuffer> CreateIndexBuffer(const uint32* InIndices, uint32 IndexCount);
 	TSharedPtr<FConstantBuffer> CreateConstantBuffer(uint32 BufferSize);

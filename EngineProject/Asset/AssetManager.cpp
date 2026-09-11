@@ -57,13 +57,9 @@ UStaticMesh* UAssetManager::GetMesh(FString InName)
         TSharedPtr<FVertexBuffer> vb = Renderer->CreateVertexBuffer(Data.Vertices.GetData(), sizeof(FVertex) * (UINT)Data.Vertices.Num(), sizeof(FVertex));
         TSharedPtr<FIndexBuffer> ib = Renderer->CreateIndexBuffer(Data.Indices.GetData(), Data.Indices.Num());
 
-        VertexBufferMap[InName] = vb;
-        indexBufferMap[InName] = ib;
-
-        TSharedPtr<UStaticMesh> mesh = Renderer->CreateMesh(vb, ib);
-        MeshMap[InName] = mesh;
+        MeshMap[InName] = Renderer->CreateMesh(vb, ib);
     }
-    return MeshMap[InName].get();
+    return MeshMap[InName];
 }
 
 FShader* UAssetManager::GetShader(FString InName)

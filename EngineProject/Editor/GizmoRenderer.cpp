@@ -12,22 +12,22 @@ bool FGizmoRenderer::Init(FRenderer* InRenderer)
 {
 	Renderer = InRenderer;
 	UStaticMeshData LocMeshData = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	LocationMesh = MakeShared<UStaticMesh>();
+	LocationMesh = Renderer->CreateMesh(LocMeshData);
 	LocationMesh->VertexBuffer = Renderer->CreateVertexBuffer(LocMeshData.Vertices.GetData(), sizeof(FVertex) * (UINT)LocMeshData.Vertices.Num(), sizeof(FVertex));
 	LocationMesh->IndexBuffer = Renderer->CreateIndexBuffer(LocMeshData.Indices.GetData(), LocMeshData.Indices.Num());
 
 	UStaticMeshData RotMeshData = FGeometryGenerator::CreateRing(1.0f, 0.03f, 32, 16, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	RotationMesh = MakeShared<UStaticMesh>();
+	RotationMesh = Renderer->CreateMesh(RotMeshData);
 	RotationMesh->VertexBuffer = Renderer->CreateVertexBuffer(RotMeshData.Vertices.GetData(), sizeof(FVertex) * (UINT)RotMeshData.Vertices.Num(), sizeof(FVertex));
 	RotationMesh->IndexBuffer = Renderer->CreateIndexBuffer(RotMeshData.Indices.GetData(), RotMeshData.Indices.Num());
 
 	UStaticMeshData ScaleMeshData = FGeometryGenerator::CreateScaleBar(0.1f, 1.0f, 0.4f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	ScaleMesh = MakeShared<UStaticMesh>();
+	ScaleMesh = Renderer->CreateMesh(ScaleMeshData);
 	ScaleMesh->VertexBuffer = Renderer->CreateVertexBuffer(ScaleMeshData.Vertices.GetData(), sizeof(FVertex) * (UINT)ScaleMeshData.Vertices.Num(), sizeof(FVertex));
 	ScaleMesh->IndexBuffer = Renderer->CreateIndexBuffer(ScaleMeshData.Indices.GetData(), ScaleMeshData.Indices.Num());
 
 	UStaticMeshData SphereData = FGeometryGenerator::CreateSphere(0.2f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
-	SphereMesh = MakeShared<UStaticMesh>();
+	SphereMesh = Renderer->CreateMesh(SphereData);
 	SphereMesh->VertexBuffer = Renderer->CreateVertexBuffer(SphereData.Vertices.GetData(), sizeof(FVertex) * (UINT)SphereData.Vertices.Num(), sizeof(FVertex));
 	SphereMesh->IndexBuffer = Renderer->CreateIndexBuffer(SphereData.Indices.GetData(), SphereData.Indices.Num());
 
@@ -55,9 +55,9 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 	UStaticMesh* AxisMesh = nullptr;
 	switch (Gizmo.GetMode())
 	{
-	case EGizmoMode::Location: AxisMesh = LocationMesh.get(); break;
-	case EGizmoMode::Rotation: AxisMesh = RotationMesh.get(); break;
-	case EGizmoMode::Scale:    AxisMesh = ScaleMesh.get();    break;
+	case EGizmoMode::Location: AxisMesh = LocationMesh; break;
+	case EGizmoMode::Rotation: AxisMesh = RotationMesh; break;
+	case EGizmoMode::Scale:    AxisMesh = ScaleMesh;    break;
 	default: return;
 	}
 
@@ -113,7 +113,7 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 			? FVector4(1.0f, 1.0f, 0.0f, 1.0f)     // hover 시 노랑
 			: AxisDataArray[6].Color;
 
-		DrawMesh(SphereMesh.get(), SphereData);
+		DrawMesh(SphereMesh, SphereData);
 	}
 	else
 	{
@@ -140,7 +140,7 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 			: AxisDataArray[6].Color;
 
 
-		DrawMesh(RotationMesh.get(), Data);
+		DrawMesh(RotationMesh, Data);
 	}
 }
 

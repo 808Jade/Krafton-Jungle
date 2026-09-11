@@ -5,8 +5,9 @@
 
 class UStaticMesh : public URenderAsset
 {
+	DECLARE_CLASS(UStaticMesh, URenderAsset)
 public:
-	virtual ~UStaticMesh() override {}
+	virtual ~UStaticMesh() override;
 
 
 	TSharedPtr<FVertexBuffer> VertexBuffer;

@@ -21,7 +21,6 @@ public:
 	UWorld* World; // SpawnActor MainCamera
 	char SceneName[128] = "";
 
-	TSharedPtr<UStaticMesh> Mesh;
 	FShader* Shader;
 
 	void AddActor(EPrimitiveType Type);

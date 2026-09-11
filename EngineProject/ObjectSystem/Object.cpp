@@ -17,18 +17,22 @@ UObject::UObject()
 
 UObject::UObject(bool bRegister)
 {
+	bIsRegistered = bRegister;
 }
 
 UObject::~UObject()
 {
-	int32 LastIndex = GUObjectArray.Num() - 1;
-	if (InternalIndex != LastIndex)
+	if (bIsRegistered)
 	{
-		UObject* MovedObject = GUObjectArray[LastIndex];
-		GUObjectArray[InternalIndex] = MovedObject;
-		MovedObject->InternalIndex = InternalIndex; // 옮겨간 오브젝트 인덱스 갱신
+		int32 LastIndex = GUObjectArray.Num() - 1;
+		if (InternalIndex != LastIndex)
+		{
+			UObject* MovedObject = GUObjectArray[LastIndex];
+			GUObjectArray[InternalIndex] = MovedObject;
+			MovedObject->InternalIndex = InternalIndex; // 옮겨간 오브젝트 인덱스 갱신
+		}
+		GUObjectArray.RemoveLast();
 	}
-	GUObjectArray.RemoveLast();
 }
 
 UClass* UObject::StaticClass()

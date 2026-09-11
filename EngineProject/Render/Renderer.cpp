@@ -190,9 +190,9 @@ TSharedPtr<FShader> FRenderer::CreateShader(const wchar_t* FileName, std::vector
 	return CreateShader(FileName, Layouts.data(), Layouts.size());
 }
 
-TSharedPtr<UStaticMesh> FRenderer::CreateMesh(const UStaticMeshData& InMeshData)
+UStaticMesh* FRenderer::CreateMesh(const UStaticMeshData& InMeshData)
 {
-	TSharedPtr<UStaticMesh> Mesh = MakeShared<UStaticMesh>();
+	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
 
 	Mesh->VertexBuffer = CreateVertexBuffer(InMeshData.Vertices.GetData(), sizeof(FVertex) * InMeshData.Vertices.Num(), sizeof(FVertex));
 	Mesh->IndexBuffer = CreateIndexBuffer(InMeshData.Indices.GetData(), InMeshData.Indices.Num());
@@ -200,9 +200,9 @@ TSharedPtr<UStaticMesh> FRenderer::CreateMesh(const UStaticMeshData& InMeshData)
 	return Mesh;
 }
 
-TSharedPtr<UStaticMesh> FRenderer::CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer)
+UStaticMesh* FRenderer::CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer)
 {
-	TSharedPtr<UStaticMesh> Mesh = MakeShared<UStaticMesh>();
+	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
 
 	Mesh->VertexBuffer = VertexBuffer;
 	Mesh->IndexBuffer = IndexBuffer;

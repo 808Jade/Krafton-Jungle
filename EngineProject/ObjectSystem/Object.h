@@ -83,6 +83,8 @@ public:
 private:
 	uint32 UUID;
 	uint32 InternalIndex;
+
+	bool bIsRegistered = true;
 };
 
 extern TArray<UObject*> GUObjectArray;

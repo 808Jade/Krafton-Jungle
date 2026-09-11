@@ -37,10 +37,10 @@ private:
 	TArray<FAxisData> AxisDataArray;
 
 	TSharedPtr<FShader> Shader;
-	TSharedPtr<UStaticMesh> LocationMesh;
-	TSharedPtr<UStaticMesh> RotationMesh;
-	TSharedPtr<UStaticMesh> ScaleMesh;
-	TSharedPtr<UStaticMesh> SphereMesh;
+	UStaticMesh* LocationMesh;
+	UStaticMesh* RotationMesh;
+	UStaticMesh* ScaleMesh;
+	UStaticMesh* SphereMesh;
 	TSharedPtr<FConstantBuffer> CB;
 
 	//EGizmoMode Mode = EGizmoMode::Scale;
