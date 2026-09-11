@@ -151,10 +151,8 @@
     <ClCompile Include="Camera\CameraComponent.cpp" />
     <ClCompile Include="Collision\Ray.cpp" />
     <ClCompile Include="Component\ActorComponent.cpp" />
-    <ClCompile Include="Component\CubeComponent.cpp" />
     <ClCompile Include="Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Component\SceneComponent.cpp" />
-    <ClCompile Include="Component\SphereComponent.cpp" />
     <ClCompile Include="Core\EngineTimer.cpp" />
     <ClCompile Include="Core\Window.cpp" />
     <ClCompile Include="Editor\ConsolePanel.cpp" />
@@ -172,7 +170,7 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">EnginePCH.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="Engine\Engine.cpp" />
-    <ClCompile Include="Engine\ResourceManager.cpp" />
+    <ClCompile Include="Asset\AssetManager.cpp" />
     <ClCompile Include="Engine\World.cpp" />
     <ClCompile Include="GameFramework\Actor.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
@@ -204,7 +202,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="GameFramework\Actor\StaticMeshActor.cpp" />
-    <ClCompile Include="Texture2D.cpp" />
+    <ClCompile Include="Render\Texture2D.cpp" />
     <ClCompile Include="ThirdParty\ImGui\backends\imgui_impl_dx11.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -235,7 +233,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Asset\Asset.h" />
+    <ClInclude Include="Asset\RenderAsset.h" />
     <ClInclude Include="Camera\CameraActor.h" />
     <ClInclude Include="Camera\CameraComponent.h" />
     <ClInclude Include="Collision\Ray.h" />
@@ -264,7 +262,7 @@
     <ClInclude Include="Editor\OutLineRenderer.h" />
     <ClInclude Include="Editor\PropertyPanel.h" />
     <ClInclude Include="Engine\Engine.h" />
-    <ClInclude Include="Engine\ResourceManager.h" />
+    <ClInclude Include="Asset\AssetManager.h" />
     <ClInclude Include="Engine\World.h" />
     <ClInclude Include="GameFramework\Actor.h" />
     <ClInclude Include="ImGuiRenderer.h" />
@@ -291,10 +289,8 @@
     <ClInclude Include="ObjectSystem\Object.h" />
     <ClInclude Include="ObjectSystem\ObjectFactory.h" />
     <ClInclude Include="ObjectSystem\Property.h" />
-    <ClInclude Include="Component\CubeComponent.h" />
     <ClInclude Include="Component\PrimitiveComponent.h" />
     <ClInclude Include="Component\SceneComponent.h" />
-    <ClInclude Include="Component\SphereComponent.h" />
     <ClInclude Include="EnginePCH.h" />
     <ClInclude Include="ThirdParty\json\json.hpp" />
     <ClInclude Include="Render\Buffer.h" />
@@ -306,7 +302,7 @@
     <ClInclude Include="Render\Shader.h" />
     <ClInclude Include="Render\Vertex.h" />
     <ClInclude Include="GameFramework\Actor\StaticMeshActor.h" />
-    <ClInclude Include="Texture2D.h" />
+    <ClInclude Include="Render\Texture2D.h" />
     <ClInclude Include="ThirdParty\ImGui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="ThirdParty\ImGui\backends\imgui_impl_win32.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h" />

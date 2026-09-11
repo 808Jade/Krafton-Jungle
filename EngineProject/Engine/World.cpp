@@ -340,7 +340,7 @@ void UWorld::GatherRenderPackets(TQueue<FRenderPacket>& RenderQueue)
 	}
 }
 
-UPrimitiveComponent* UWorld::GetPickingPrimitive(uint32 ScreenW, uint32 ScreenH)
+UPrimitiveComponent* UWorld::TryPicking(uint32 ScreenW, uint32 ScreenH)
 {
 	FRay ray = MainCamera->GetCameraComponent()->DeProjection(FInputSystem::GetMouseX(), FInputSystem::GetMouseY(), ScreenW, ScreenH);
 
@@ -364,7 +364,7 @@ UPrimitiveComponent* UWorld::GetPickingPrimitive(uint32 ScreenW, uint32 ScreenH)
 		LocalRay.Direction.Z = LocalRayDir.Z;
 
 		if (!Primitive) continue;
-		const FMeshData& mesh = Primitive->GetMeshData();
+		const UStaticMeshData& mesh = Primitive->GetMeshData();
 
 		FVector BoxMin, BoxMax;
 		mesh.GetAABB(BoxMin, BoxMax);

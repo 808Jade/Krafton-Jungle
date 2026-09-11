@@ -1,9 +1,14 @@
 #pragma once
 
+#include "Asset/RenderAsset.h"
 #include "Render/Buffer.h"
 
-struct FMesh
+class UStaticMesh : public URenderAsset
 {
+public:
+	virtual ~UStaticMesh() override {}
+
+
 	TSharedPtr<FVertexBuffer> VertexBuffer;
 	TSharedPtr<FIndexBuffer> IndexBuffer;
 };

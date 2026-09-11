@@ -1,29 +1,31 @@
 #pragma once
 
+#include "ObjectSystem/Object.h"
 #include "ObjectSystem/Property.h"
 #include "Render/Renderer.h"
 
-struct FMesh;
+struct UStaticMesh;
 struct FShader;
 
-class FResourceManager
+class UAssetManager : public UObject
 {
+	DECLARE_CLASS(UAssetManager, UObject)
 private:
-	FResourceManager() = default;
+	UAssetManager() = default;
 
-	FResourceManager(const FResourceManager& src) = delete;
-	FResourceManager& operator= (const FResourceManager& src) = delete;
+	UAssetManager(const UAssetManager& src) = delete;
+	UAssetManager& operator= (const UAssetManager& src) = delete;
 public:
-	static FResourceManager& GetInstance();
+	static UAssetManager& Get();
 
 	void Init(FRenderer* renderer);
 	
 	void SetRenderer(FRenderer* InRenderer);
 	
-	FMesh* GetMesh(FString InName);
+	UStaticMesh* GetMesh(FString InName);
 	FShader* GetShader(FString InName);
 private:
-	TMap<FString, TSharedPtr<FMesh>> MeshMap;	// KEY: FILE NAME OR 쉐입 첫글자 대문자
+	TMap<FString, TSharedPtr<UStaticMesh>> MeshMap;	// KEY: FILE NAME OR 쉐입 첫글자 대문자
 	TMap<FString, TSharedPtr<FShader>> ShaderMap;	// KEY: FILE NAME
 
 	TMap<FString, TSharedPtr<FVertexBuffer>> VertexBufferMap;

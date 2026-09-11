@@ -14,11 +14,13 @@ public:
 	bool Init() override;
 	void Tick(float DeltaTime)override;
 	void OnRender() override;
-	
-	void SetTarget(USceneComponent* InTarget) { Target = InTarget; }
 
+	void SetTarget(USceneComponent* InTargetOrNull) { Target = InTargetOrNull; }
+
+	void SetWorld(UWorld* InWorld) { World = InWorld; }
+
+private:
 	UWorld* World;
-
 	USceneComponent* Target;
 };
 

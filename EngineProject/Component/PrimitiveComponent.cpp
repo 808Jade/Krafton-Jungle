@@ -1,12 +1,12 @@
 #include "EnginePCH.h"
 #include "PrimitiveComponent.h"
 #include "../Render/Renderer.h"
-#include "../Engine/ResourceManager.h"
+#include "Asset/AssetManager.h"
 
 void UPrimitiveComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	Shader = FResourceManager::GetInstance().GetShader("Shader/DefaultShader.hlsl");
+	Shader = UAssetManager::Get().GetShader("Shader/DefaultShader.hlsl");
 }
 
 void UPrimitiveComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue)
@@ -21,7 +21,7 @@ void UPrimitiveComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue
 	}
 }
 
-void UPrimitiveComponent::SetMesh(FMesh* InMesh)
+void UPrimitiveComponent::SetMesh(UStaticMesh* InMesh)
 {
 	Mesh = InMesh;
 }

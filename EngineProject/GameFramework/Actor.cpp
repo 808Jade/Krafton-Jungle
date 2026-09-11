@@ -4,10 +4,6 @@
 #include "ObjectSystem/ObjectFactory.h"
 #include "Engine/World.h"
 
-#include "Component/CubeComponent.h"
-#include "Component/SphereComponent.h"
-#include "Engine/ResourceManager.h"
-
 AActor::AActor()
 {
 	
@@ -32,7 +28,6 @@ void AActor::BeginPlay()
 	{
 		Component->BeginPlay();
 	}
-
 }
 
 void AActor::Tick(float DeltaTime)

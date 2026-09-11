@@ -15,9 +15,8 @@
 
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
-#include "Engine/ResourceManager.h"
 
-
+#include "Asset/AssetManager.h"
 
 bool Engine::Init(HINSTANCE hInstance)
 {
@@ -27,7 +26,7 @@ bool Engine::Init(HINSTANCE hInstance)
 	ConsolePanel = EditorUI->AddEditorPanel<FConsolePanel>();
 	ConsolePanel->AddLog(ELogVerbosity::Info, "Engine Initialize...");
 
-		// Create Main Window
+	// Create Main Window
 	LOG(Info, "Create Main Window...");
 	MainWindow = MakeUnique<Window>();
 	if (!MainWindow->Create(hInstance, 1280, 720, L"Engine"))
@@ -47,10 +46,9 @@ bool Engine::Init(HINSTANCE hInstance)
 	LOG(Info, "Success!");
 
 
-	LOG(Info, "Initialize ResourceManager...");
-	FResourceManager::GetInstance().Init(Renderer.get());
+	LOG(Info, "Initialize AssetManager...");
+	UAssetManager::Get().Init(Renderer.get());
 	LOG(Info, "Success!");
-
 
 
 	LOG(Info, "Initialize ImGui...");
@@ -70,11 +68,9 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	Gizmo = MakeUnique<FGizmo>();
 
-	// PropertyPanel Add
+	// 필요한 Panel들 추가후 raw pointer 반환(소유권 = EditorUI)
 	PropertyPanel = EditorUI->AddEditorPanel<FPropertyPanel>();
 	ControlPanel = EditorUI->AddEditorPanel<FControlPanel>();
-
-	// Resource Manager 
 
 	// OutLine
 	OutlineRenderer = MakeUnique<FOutlineRenderer>();
@@ -82,39 +78,12 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	Outline = MakeUnique<FOutline>();
 
-	// Do Sth
+	// Scene
 	World = FObjectFactory::ConstructObject<UWorld>();
-	World->Init();	//return bool
+	World->Init();	
 
-	//FTransform Transform;
-	//AActor* Actor = World->SpawnActor(AActor::StaticClass(), &Transform);
-	//Actor->AddPrimitiveComponent(EPrimitiveType::Cube, Transform);
-
-	//FMeshData Data = FGeometryGenerator::CreateCube(1.0f);
-	////FMeshData Data = FGeometryGenerator::CreateCylinder(1.0f, 3.0f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	////FMeshData Data = FGeometryGenerator::CreateCone(1.0f, 3.0f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	////FMeshData Data = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	//vb = Renderer->CreateVertexBuffer(Data.Vertices.data(), sizeof(FVertex) * (UINT)Data.Vertices.size(), sizeof(FVertex));
-	//ib = Renderer->CreateIndexBuffer(Data.Indices.data(), Data.Indices.size());
-
-	//Mesh = MakeShared<FMesh>();
-	//Mesh->VertexBuffer = vb;
-	//Mesh->IndexBuffer = ib;
-
-	//D3D11_INPUT_ELEMENT_DESC layout[] =
-	//{
-	//	{ "POSITION" , 0 , DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	//	{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	//};
-	//Shader = Renderer->CreateShader(L"Shader/DefaultShader.hlsl", layout, 2);
-
-	//Actor->GetPrimitiveComponent()->SetMeshShader(Mesh.get(), Shader.get());
-	//Actor->GetPrimitiveComponent()->SetMeshData(Data);
-
-	PropertyPanel->FPropertyPanel::World = World;
+	PropertyPanel->SetWorld(World);
 	ControlPanel->FControlPanel::World = World;
-	ControlPanel->FControlPanel::Mesh = Mesh;
-	ControlPanel->FControlPanel::Shader = Shader.get();
 	ControlPanel->SetGizmo(Gizmo.get());
 
 	ControlPanel->SetSceneClearCallback([&]() {
@@ -150,61 +119,65 @@ void Engine::Run()
 
 		//Check Swapchain Resize
 		MainWindow->ProcessMessage(bIsRunning);
-		if (MainWindow->CheckResized())
-		{
-			Renderer->Resize(MainWindow->GetWidth(), MainWindow->GetHeight());
-			World->GetMainCamera()->GetCameraComponent()->SetAspectRatio((float)MainWindow->GetWidth() / MainWindow->GetHeight());
-		}
+
+		//메시지 처리 직후 리사이즈 검사
+		HandleWindowResize();
 
 		//Update World
 		World->Tick(DeltaTime);
-
+		//Update Editor
 		EditorUI->Tick(DeltaTime);
 
 		FMatrix VP = World->GetMainCamera()->GetCameraComponent()->GetViewProjectionMatrix();
 
-		FRay ray = World->GetMainCamera()->GetCameraComponent()->DeProjection(FInputSystem::GetMouseX(), FInputSystem::GetMouseY(), MainWindow->GetWidth(), MainWindow->GetHeight());
-		FVector2 mousePos(FInputSystem::GetMouseX(), FInputSystem::GetMouseY());
-		bool bMouseDown = FInputSystem::IsMouseDown(EMouseButton::Left);
-
-		Gizmo->Update(ray, mousePos, VP, MainWindow->GetWidth(), MainWindow->GetHeight(), bMouseDown, World->GetMainCamera()->GetCameraComponent());
-
-		if (FInputSystem::IsMousePressed(EMouseButton::Left) && !Gizmo->IsUsing() && Gizmo->GetHoveredAxis() < 0 && !ImGui::GetIO().WantCaptureMouse)
-		{
-			UPrimitiveComponent* PickedComponent = World->GetPickingPrimitive(MainWindow->GetWidth(), MainWindow->GetHeight());
-			OutlineComponent = PickedComponent;
-			Gizmo->SetTarget(PickedComponent);
-			Outline->SetTarget(OutlineComponent);
-			PropertyPanel->SetTarget(PickedComponent);
-		}
-
-
+		UpdateGizmoAndPicking(VP);
 
 		TQueue<FRenderPacket> RenderQueue;
 		World->GatherRenderPackets(RenderQueue);
 
 		//BeginRendering
-		Renderer->BeginFrame();
-		GridRenderer->OnRender(VP, World->GetMainCamera()->GetCameraComponent()->GetLocation());
-		Renderer->RenderAll(RenderQueue, VP);
-		FVector4 CamLoc = World->GetMainCamera()->GetCameraComponent()->GetLocation();
-		if (Outline->GetTarget())
-			OutlineRenderer->OnRender(*Outline, VP, CamLoc);
-
-		if (Gizmo->GetTarget())
-		{
-			Renderer->SetDepthStencilEnabled(false);
-			GizmoRenderer->OnRender(*Gizmo, VP);
-		}
-
-		ImGuiRenderer->Begin();
-
-		EditorUI->OnRender();
-
-		ImGuiRenderer->End();
-
-		Renderer->EndFrame();
+		RenderFrame(VP, RenderQueue);
 	}
+}
+
+void Engine::UpdateGizmoAndPicking(FMatrix& ViewProj)
+{
+	FRay ray = World->GetMainCamera()->GetCameraComponent()->DeProjection(FInputSystem::GetMouseX(), FInputSystem::GetMouseY(), MainWindow->GetWidth(), MainWindow->GetHeight());
+	FVector2 mousePos(FInputSystem::GetMouseX(), FInputSystem::GetMouseY());
+	bool bMouseDown = FInputSystem::IsMouseDown(EMouseButton::Left);
+
+	Gizmo->Update(ray, mousePos, ViewProj, MainWindow->GetWidth(), MainWindow->GetHeight(), bMouseDown, World->GetMainCamera()->GetCameraComponent());
+
+	if (FInputSystem::IsMousePressed(EMouseButton::Left) && !Gizmo->IsUsing() && Gizmo->GetHoveredAxis() < 0 && !ImGui::GetIO().WantCaptureMouse)
+	{
+		UPrimitiveComponent* PickedComponent = World->TryPicking(MainWindow->GetWidth(), MainWindow->GetHeight());
+		Gizmo->SetTarget(PickedComponent);
+		Outline->SetTarget(PickedComponent);
+		PropertyPanel->SetTarget(PickedComponent);
+	}
+}
+
+void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
+{
+	Renderer->BeginFrame();
+
+	GridRenderer->OnRender(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation());
+	Renderer->RenderAll(RenderQueue, ViewProj);
+	FVector4 CamLoc = World->GetMainCamera()->GetCameraComponent()->GetLocation();
+	if (Outline->GetTarget())
+		OutlineRenderer->OnRender(*Outline, ViewProj, CamLoc);
+
+	if (Gizmo->GetTarget())
+	{
+		Renderer->SetDepthStencilEnabled(false);
+		GizmoRenderer->OnRender(*Gizmo, ViewProj);
+	}
+
+	ImGuiRenderer->Begin();
+	EditorUI->OnRender();
+	ImGuiRenderer->End();
+
+	Renderer->EndFrame();
 }
 
 void Engine::Shutdown()
@@ -215,7 +188,11 @@ void Engine::Shutdown()
 	Renderer->Shutdown();
 }
 
-void Engine::OnWindowResized(uint32 Width, uint32 Height)
+void Engine::HandleWindowResize()
 {
-	bIsResized = true;
+	if (MainWindow->CheckResized())
+	{
+		Renderer->Resize(MainWindow->GetWidth(), MainWindow->GetHeight());
+		World->GetMainCamera()->GetCameraComponent()->SetAspectRatio((float)MainWindow->GetWidth() / MainWindow->GetHeight());
+	}
 }

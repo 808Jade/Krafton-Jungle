@@ -11,23 +11,23 @@ FGizmoRenderer::FGizmoRenderer()
 bool FGizmoRenderer::Init(FRenderer* InRenderer)
 {
 	Renderer = InRenderer;
-	FMeshData LocMeshData = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	LocationMesh = MakeShared<FMesh>();
+	UStaticMeshData LocMeshData = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	LocationMesh = MakeShared<UStaticMesh>();
 	LocationMesh->VertexBuffer = Renderer->CreateVertexBuffer(LocMeshData.Vertices.GetData(), sizeof(FVertex) * (UINT)LocMeshData.Vertices.Num(), sizeof(FVertex));
 	LocationMesh->IndexBuffer = Renderer->CreateIndexBuffer(LocMeshData.Indices.GetData(), LocMeshData.Indices.Num());
 
-	FMeshData RotMeshData = FGeometryGenerator::CreateRing(1.0f, 0.03f, 32, 16, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	RotationMesh = MakeShared<FMesh>();
+	UStaticMeshData RotMeshData = FGeometryGenerator::CreateRing(1.0f, 0.03f, 32, 16, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	RotationMesh = MakeShared<UStaticMesh>();
 	RotationMesh->VertexBuffer = Renderer->CreateVertexBuffer(RotMeshData.Vertices.GetData(), sizeof(FVertex) * (UINT)RotMeshData.Vertices.Num(), sizeof(FVertex));
 	RotationMesh->IndexBuffer = Renderer->CreateIndexBuffer(RotMeshData.Indices.GetData(), RotMeshData.Indices.Num());
 
-	FMeshData ScaleMeshData = FGeometryGenerator::CreateScaleBar(0.1f, 1.0f, 0.4f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	ScaleMesh = MakeShared<FMesh>();
+	UStaticMeshData ScaleMeshData = FGeometryGenerator::CreateScaleBar(0.1f, 1.0f, 0.4f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	ScaleMesh = MakeShared<UStaticMesh>();
 	ScaleMesh->VertexBuffer = Renderer->CreateVertexBuffer(ScaleMeshData.Vertices.GetData(), sizeof(FVertex) * (UINT)ScaleMeshData.Vertices.Num(), sizeof(FVertex));
 	ScaleMesh->IndexBuffer = Renderer->CreateIndexBuffer(ScaleMeshData.Indices.GetData(), ScaleMeshData.Indices.Num());
 
-	FMeshData SphereData = FGeometryGenerator::CreateSphere(0.2f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
-	SphereMesh = MakeShared<FMesh>();
+	UStaticMeshData SphereData = FGeometryGenerator::CreateSphere(0.2f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+	SphereMesh = MakeShared<UStaticMesh>();
 	SphereMesh->VertexBuffer = Renderer->CreateVertexBuffer(SphereData.Vertices.GetData(), sizeof(FVertex) * (UINT)SphereData.Vertices.Num(), sizeof(FVertex));
 	SphereMesh->IndexBuffer = Renderer->CreateIndexBuffer(SphereData.Indices.GetData(), SphereData.Indices.Num());
 
@@ -52,7 +52,7 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 	if (!Gizmo.GetTarget())
 		return;
 
-	FMesh* AxisMesh = nullptr;
+	UStaticMesh* AxisMesh = nullptr;
 	switch (Gizmo.GetMode())
 	{
 	case EGizmoMode::Location: AxisMesh = LocationMesh.get(); break;
@@ -68,7 +68,6 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 	// const FVector GizmoLocation = Gizmo.GetLocation();
 	const int HoveredAxis = Gizmo.GetHoveredAxis();
 
-	//const FVector GizmoLocation = (Gizmo.GetTarget()->GetTransform()->Location - CameraComponent->GetTransform()->Location).Normalized() * 10.0f + CameraComponent->GetTransform()->Location;
 	const FVector GizmoLocation = Gizmo.GetRenderLocation();
 	// 축 3개
 	Renderer->BindMesh(AxisMesh);
@@ -145,7 +144,7 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 	}
 }
 
-void FGizmoRenderer::DrawMesh(FMesh* Mesh, const FGizmoData& Data)
+void FGizmoRenderer::DrawMesh(UStaticMesh* Mesh, const FGizmoData& Data)
 {
 	Renderer->BindMesh(Mesh);
 	Renderer->UpdateConstantBufferData(CB.get(), &Data, sizeof(FGizmoData));

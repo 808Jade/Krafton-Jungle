@@ -14,7 +14,7 @@ public:
 	//virtual USceneComponent* GetDefaultAttachComponent(); // override ? <- Need to override Actors one in UE
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
-	UCameraComponent* GetCameraComponent(); // return CameraComponent subobject
+	UCameraComponent* GetCameraComponent();
 
 private:
 private:

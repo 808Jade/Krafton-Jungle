@@ -1,13 +1,13 @@
 #pragma once
 
 #include <d3d11.h>
-#include "Asset/Asset.h"
+#include "Asset/RenderAsset.h"
 
-class FTexture2D :public Asset
+class UTexture2D : public URenderAsset
 {
 public:
-	FTexture2D(ID3D11Device* Device, const D3D11_TEXTURE2D_DESC& Desc);
-	~FTexture2D();
+	UTexture2D(ID3D11Device* Device, const D3D11_TEXTURE2D_DESC& Desc);
+	~UTexture2D();
 
 	uint32 GetWidth() const { return Width; }
 	uint32 GetHeight() const { return Height; }

@@ -8,7 +8,7 @@ class RenderCommand
 
 	inline static void BindPipelineState();
 
-	inline static void BindMesh(FMesh* Mesh);
+	inline static void BindMesh(UStaticMesh* Mesh);
 
 	inline static void Draw();
 	inline static void DrawIndexed();

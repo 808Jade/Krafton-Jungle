@@ -4,8 +4,6 @@
 #include "Component/PrimitiveComponent.h"
 #include "ObjectSystem/ObjectFactory.h"
 
-
-
 AStaticMeshActor::AStaticMeshActor()
 {
 	PrimitiveComponent = CreateDefaultSubobject<UPrimitiveComponent>();

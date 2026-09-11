@@ -15,12 +15,13 @@ public:
 
 	inline void SetGizmo(FGizmo* InGizmo) { Gizmo = InGizmo; }
 	inline void SetSceneClearCallback(SceneClearCallback InCallback) { Callback = InCallback; }
+	inline void SetWorld(UWorld* InWorld) { World = InWorld; }
 
 	float DeltaTime = 1.0f;
 	UWorld* World; // SpawnActor MainCamera
 	char SceneName[128] = "";
 
-	TSharedPtr<FMesh> Mesh;
+	TSharedPtr<UStaticMesh> Mesh;
 	FShader* Shader;
 
 	void AddActor(EPrimitiveType Type);
@@ -56,6 +57,6 @@ public:
 	};
 
 	SceneClearCallback Callback = nullptr;
-	
+
 };
 

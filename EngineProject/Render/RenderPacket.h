@@ -5,6 +5,6 @@
 
 struct FRenderPacket {
 	FMatrix model;
-	FMesh* mesh;
+	UStaticMesh* mesh;
 	FShader* shader;
 };

@@ -4,7 +4,7 @@
 #include "../Camera/CameraComponent.h"
 
 #include "GameFramework/Actor/StaticMeshActor.h"
-#include "Engine/ResourceManager.h"
+#include "Asset/AssetManager.h"
 
 #include "Input/InputSystem.h"
 
@@ -54,7 +54,7 @@ void FControlPanel::AddActor(EPrimitiveType Type)
 	AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>(&Transform);
 	UPrimitiveComponent* Component = Actor->GetPrimitiveComponent();
 	Component->SetType(Type);
-	Component->SetMesh(FResourceManager::GetInstance().GetMesh(PrimitiveTypeToString(Type)));
+	Component->SetMesh(UAssetManager::Get().GetMesh(PrimitiveTypeToString(Type)));
 	Component->SetMeshData(FGeometryGenerator::GetMeshData(PrimitiveTypeToString(Type)));
 
 	ActorNum = World->GetActorNum() - 1;

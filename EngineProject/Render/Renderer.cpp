@@ -145,12 +145,6 @@ void FRenderer::CreateConstantBuffer()
 	Device->CreateBuffer(&constantbufferdesc, nullptr, &ConstantBuffer);
 }
 
-ID3D11DeviceContext* FRenderer::GetDeviceContext()
-{
-	return DeviceContext.Get();
-}
-
-
 TSharedPtr<FShader> FRenderer::CreateShader(const wchar_t* FileName, D3D11_INPUT_ELEMENT_DESC* InLayoutDesc, size_t InLayoutSize)
 {
 
@@ -196,9 +190,9 @@ TSharedPtr<FShader> FRenderer::CreateShader(const wchar_t* FileName, std::vector
 	return CreateShader(FileName, Layouts.data(), Layouts.size());
 }
 
-TSharedPtr<FMesh> FRenderer::CreateMesh(const FMeshData& InMeshData)
+TSharedPtr<UStaticMesh> FRenderer::CreateMesh(const UStaticMeshData& InMeshData)
 {
-	TSharedPtr<FMesh> Mesh = MakeShared<FMesh>();
+	TSharedPtr<UStaticMesh> Mesh = MakeShared<UStaticMesh>();
 
 	Mesh->VertexBuffer = CreateVertexBuffer(InMeshData.Vertices.GetData(), sizeof(FVertex) * InMeshData.Vertices.Num(), sizeof(FVertex));
 	Mesh->IndexBuffer = CreateIndexBuffer(InMeshData.Indices.GetData(), InMeshData.Indices.Num());
@@ -206,9 +200,9 @@ TSharedPtr<FMesh> FRenderer::CreateMesh(const FMeshData& InMeshData)
 	return Mesh;
 }
 
-TSharedPtr<FMesh> FRenderer::CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer)
+TSharedPtr<UStaticMesh> FRenderer::CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer)
 {
-	TSharedPtr<FMesh> Mesh = MakeShared<FMesh>();
+	TSharedPtr<UStaticMesh> Mesh = MakeShared<UStaticMesh>();
 
 	Mesh->VertexBuffer = VertexBuffer;
 	Mesh->IndexBuffer = IndexBuffer;
@@ -314,7 +308,7 @@ void FRenderer::BindShader(FShader* InShader)
 	DeviceContext->IASetInputLayout(InShader->InputLayout.Get());
 }
 
-void FRenderer::BindMesh(FMesh* InMesh)
+void FRenderer::BindMesh(UStaticMesh* InMesh)
 {
 	BindVertexBuffer(InMesh->VertexBuffer.get());
 	BindIndexBuffer(InMesh->IndexBuffer.get());

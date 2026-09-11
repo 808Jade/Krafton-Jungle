@@ -2,7 +2,12 @@
 
 #include "Render/Vertex.h"
 
-struct FMeshData
+struct FBoundingBox
+{
+
+};
+
+struct UStaticMeshData
 {
 	TArray<FVertex> Vertices;
 	TArray<uint32> Indices;
@@ -72,7 +77,7 @@ struct FMeshData
 		OutBoxMax = Max;
 	}
 
-	void Append(const FMeshData& Other)
+	void Append(const UStaticMeshData& Other)
 	{
 		uint32 Base = (uint32)Vertices.Num();
 		//Vertices.insert(Vertices.end(), Other.Vertices.begin(), Other.Vertices.end());
@@ -93,18 +98,18 @@ struct FMeshData
 class FGeometryGenerator
 {
 public:
-	static FMeshData CreateLine(const FVector& Start, const FVector& End, const FVector4& Color);
-	static FMeshData CreatePlane(float Size, const FVector4& Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f));
-	static FMeshData CreateAxis();
+	static UStaticMeshData CreateLine(const FVector& Start, const FVector& End, const FVector4& Color);
+	static UStaticMeshData CreatePlane(float Size, const FVector4& Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+	static UStaticMeshData CreateAxis();
 
-	static FMeshData CreateCone(float Radius, float Height, int Segments, const FVector4& Color);
-	static FMeshData CreateCylinder(float Radius, float Height, int Segments, const FVector4& Color);
-	static FMeshData CreateArrow(float BodyRadius, float BodyHeight, float HeadRadius, float HeadHeight, int Segments, const FVector4& Color); // Cylinder + Cone 합성
-	static FMeshData CreateScaleBar(float BodyRadius, float BodyLength, float HeadSize, float Segments, const FVector4& Color); // Cylinder + Cone 합성
-	static FMeshData CreateRing(float Radius, float TubeRadius, int Segments, int TubeSegments, const FVector4& Color);
-	static FMeshData CreateCube(float Size, const FVector4& Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+	static UStaticMeshData CreateCone(float Radius, float Height, int Segments, const FVector4& Color);
+	static UStaticMeshData CreateCylinder(float Radius, float Height, int Segments, const FVector4& Color);
+	static UStaticMeshData CreateArrow(float BodyRadius, float BodyHeight, float HeadRadius, float HeadHeight, int Segments, const FVector4& Color); // Cylinder + Cone 합성
+	static UStaticMeshData CreateScaleBar(float BodyRadius, float BodyLength, float HeadSize, float Segments, const FVector4& Color); // Cylinder + Cone 합성
+	static UStaticMeshData CreateRing(float Radius, float TubeRadius, int Segments, int TubeSegments, const FVector4& Color);
+	static UStaticMeshData CreateCube(float Size, const FVector4& Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 
-	static FMeshData CreateSphere(float _radius, uint32 _numSlices, uint32 _numStacks, const FVector4& Color);
+	static UStaticMeshData CreateSphere(float _radius, uint32 _numSlices, uint32 _numStacks, const FVector4& Color);
 
-	static FMeshData GetMeshData(const FString& InName);
+	static UStaticMeshData GetMeshData(const FString& InName);
 };

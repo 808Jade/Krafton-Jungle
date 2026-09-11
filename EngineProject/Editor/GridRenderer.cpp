@@ -2,7 +2,7 @@
 #include "GridRenderer.h"
 
 #include "Render/Vertex.h"
-#include "Engine/ResourceManager.h"
+#include "Asset/AssetManager.h"
 
 FGridRenderer::~FGridRenderer()
 {
@@ -13,7 +13,7 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 	Renderer = InRenderer;
 
 	GridShader = Renderer->CreateShader(L"Shader/GridShader.hlsl", nullptr, 0);
-	AxisShader = FResourceManager::GetInstance().GetShader("Shader/DefaultShader.hlsl");
+	AxisShader = UAssetManager::Get().GetShader("Shader/DefaultShader.hlsl");
 	TArray<FVertex> Vertices =
 	{
 		// X Axis
@@ -43,7 +43,6 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 	RasterizerDesc.CullMode = D3D11_CULL_NONE;
 	RasterizerDesc.FrontCounterClockwise = FALSE;
 	Renderer->GetDevice()->CreateRasterizerState(&RasterizerDesc, &RasterizerState);
-
 
 	return false;
 }

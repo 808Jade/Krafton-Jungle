@@ -37,17 +37,18 @@ public:
 	void CreateConstantBuffer();
 
 	inline ID3D11Device* GetDevice() const { return Device.Get(); }
-	ID3D11DeviceContext* GetDeviceContext();
+	inline ID3D11DeviceContext* GetDeviceContext() const { return DeviceContext.Get(); }
 
 	TSharedPtr<FShader> CreateShader(const wchar_t* FileName, D3D11_INPUT_ELEMENT_DESC* InLayoutDesc, size_t InLayoutSize);
 	TSharedPtr<FShader> CreateShader(const wchar_t* FileName, std::vector<D3D11_INPUT_ELEMENT_DESC> Layouts);
-	TSharedPtr<FMesh> CreateMesh(const FMeshData& InMeshData);
-	TSharedPtr<FMesh> CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer);
+	TSharedPtr<UStaticMesh> CreateMesh(const UStaticMeshData& InMeshData);
+	TSharedPtr<UStaticMesh> CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer);
 
 	TSharedPtr<FVertexBuffer> CreateVertexBuffer(const void* InVertices, uint32 InSize, uint32 Stride);
 	TSharedPtr<FIndexBuffer> CreateIndexBuffer(const uint32* InIndices, uint32 IndexCount);
 	TSharedPtr<FConstantBuffer> CreateConstantBuffer(uint32 BufferSize);
 
+	//상수 버퍼의 데이터 업데이트. 바인딩 X
 	void UpdateConstantBufferData(FConstantBuffer* Buffer, const void* Data, uint32 DataSize);
 
 	void UpdateConstantBuffer(const FMatrix& MVP);
@@ -57,9 +58,9 @@ public:
 	void SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topology);
 	void SetDepthStencilEnabled(bool bEnabled);
 	void BindShader(FShader* InShader);
-	void BindMesh(FMesh* InMesh);
+	void BindMesh(UStaticMesh* InMesh);
 
-	void Draw(uint32 VertexCount, uint32 StartIndexLocation =0);
+	void Draw(uint32 VertexCount, uint32 StartIndexLocation = 0);
 	void DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation = 0, int32 BaseVertexLocation = 0);
 
 	// 윈도우 사이즈 변경

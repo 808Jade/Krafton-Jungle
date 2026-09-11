@@ -37,7 +37,7 @@ public:
 	inline void AddPrimitive(UPrimitiveComponent* Primitive) { PrimitiveComponents.Add(Primitive); }
 
 	void GatherRenderPackets(TQueue<FRenderPacket>& RenderQueue);
-	UPrimitiveComponent* GetPickingPrimitive(uint32 ScreenW, uint32 ScreenH);
+	UPrimitiveComponent* TryPicking(uint32 ScreenW, uint32 ScreenH);
 
 	// 카메라 세터, 게터
 	void SetMainCamera(ACameraActor* Camera);

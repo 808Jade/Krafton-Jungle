@@ -1,11 +1,11 @@
 #include "EnginePCH.h"
 #include "OutLineRenderer.h"
-#include "Engine/ResourceManager.h"
+#include "Asset/AssetManager.h"
 
 void FOutlineRenderer::Init(FRenderer* InRenderer)
 {
 	Renderer = InRenderer;
-	Shader = FResourceManager::GetInstance().GetShader("Shader/OutlineShader.hlsl");
+	Shader = UAssetManager::Get().GetShader("Shader/OutlineShader.hlsl");
 	D3D11_RASTERIZER_DESC RasterizerDesc = {};
 	RasterizerDesc.FillMode = D3D11_FILL_SOLID;
 	RasterizerDesc.CullMode = D3D11_CULL_FRONT;
@@ -14,7 +14,7 @@ void FOutlineRenderer::Init(FRenderer* InRenderer)
 	ConstantBuffer = Renderer->CreateConstantBuffer(sizeof(FOutlineData));
 }
 
-void FOutlineRenderer::SetMesh(FMesh* InMesh)
+void FOutlineRenderer::SetMesh(UStaticMesh* InMesh)
 {
 	Mesh = InMesh;
 }

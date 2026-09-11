@@ -28,7 +28,7 @@ public:
 	void OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj);
 
 private:
-	void DrawMesh(FMesh* Mesh, const FGizmoData& Data);
+	void DrawMesh(UStaticMesh* Mesh, const FGizmoData& Data);
 
 	FRenderer* Renderer;
 
@@ -37,10 +37,10 @@ private:
 	TArray<FAxisData> AxisDataArray;
 
 	TSharedPtr<FShader> Shader;
-	TSharedPtr<FMesh> LocationMesh;
-	TSharedPtr<FMesh> RotationMesh;
-	TSharedPtr<FMesh> ScaleMesh;
-	TSharedPtr<FMesh> SphereMesh;
+	TSharedPtr<UStaticMesh> LocationMesh;
+	TSharedPtr<UStaticMesh> RotationMesh;
+	TSharedPtr<UStaticMesh> ScaleMesh;
+	TSharedPtr<UStaticMesh> SphereMesh;
 	TSharedPtr<FConstantBuffer> CB;
 
 	//EGizmoMode Mode = EGizmoMode::Scale;

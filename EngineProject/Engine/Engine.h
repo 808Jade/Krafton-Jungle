@@ -23,11 +23,14 @@ class Engine
 public:
 	bool Init(HINSTANCE hInstance);
 	void Run();
+	void UpdateGizmoAndPicking(FMatrix& ViewProj);
+	void RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue);
 	void Shutdown();
 
 	static FConsolePanel* GetConsolePanel() { return ConsolePanel; }
 
-	void OnWindowResized(uint32 Width, uint32 Height);
+	//윈도우 크기 변경 처리
+	void HandleWindowResize();
 
 private:
 	bool bIsRunning = false;
@@ -38,22 +41,19 @@ private:
 	UWorld* World;
 
 	TUniquePtr<FEditorUI> EditorUI;
+
 	TUniquePtr<FRenderer> Renderer;
 	TUniquePtr<FImGuiRenderer> ImGuiRenderer;
 	TUniquePtr<FGridRenderer> GridRenderer;
 	TUniquePtr<FGizmoRenderer> GizmoRenderer;
 	//TUniquePtr<FGizmo> Gizmo;
-	TSharedPtr<FGizmo> Gizmo;
+	TUniquePtr<FGizmo> Gizmo;
 	TUniquePtr<FOutline> Outline;
 	TUniquePtr<FOutlineRenderer> OutlineRenderer;
 
+	// UE_LOG 매크로용 전역 콘솔
 	inline static FConsolePanel* ConsolePanel = nullptr;
-	inline static FPropertyPanel* PropertyPanel = nullptr;
-	inline static FControlPanel* ControlPanel = nullptr;
-
-	TSharedPtr<FVertexBuffer> vb;
-	TSharedPtr<FIndexBuffer> ib;
-	TSharedPtr<FMesh> Mesh;
-	TSharedPtr<FShader> Shader;
+	FPropertyPanel* PropertyPanel = nullptr;
+	FControlPanel* ControlPanel = nullptr;
 };
 

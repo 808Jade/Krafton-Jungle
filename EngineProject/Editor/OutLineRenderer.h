@@ -16,14 +16,14 @@ class FOutlineRenderer
 public:
 
 	void Init(FRenderer* InRenderer);
-	void SetMesh(FMesh* InMesh);
+	void SetMesh(UStaticMesh* InMesh);
 	void OnRender(const FOutline& InOutline, const FMatrix& ViewProj, const FVector4& CameraPos);
 	
 private:
 	FRenderer* Renderer;
 
 	FShader* Shader;
-	FMesh* Mesh;
+	UStaticMesh* Mesh;
 
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;
 	TSharedPtr<FConstantBuffer> ConstantBuffer;
