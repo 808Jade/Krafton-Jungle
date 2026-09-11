@@ -68,7 +68,7 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 	// const FVector GizmoLocation = Gizmo.GetLocation();
 	const int HoveredAxis = Gizmo.GetHoveredAxis();
 
-	//const FVector GizmoLocation = (Gizmo.GetTarget()->GetTransform()->Location - CameraComponent->GetTransform()->Location).Normalize() * 10.0f + CameraComponent->GetTransform()->Location;
+	//const FVector GizmoLocation = (Gizmo.GetTarget()->GetTransform()->Location - CameraComponent->GetTransform()->Location).Normalized() * 10.0f + CameraComponent->GetTransform()->Location;
 	const FVector GizmoLocation = Gizmo.GetRenderLocation();
 	// 축 3개
 	Renderer->BindMesh(AxisMesh);
@@ -119,8 +119,8 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 	else
 	{
 		FVector CamPos = Gizmo.GetCameraLocation();
-		FVector Forward = (GizmoLocation - CamPos).Normalize();
-		FVector Right = FVector(0, 0, 1).Cross(Forward).Normalize();
+		FVector Forward = (GizmoLocation - CamPos).Normalized();
+		FVector Right = FVector(0, 0, 1).Cross(Forward).Normalized();
 		FVector Up = Forward.Cross(Right);
 
 		FMatrix Rot = Identity;

@@ -152,9 +152,9 @@ void FMatrix::SetAxis(int32 i, const FVector& Axis)
 
 void FMatrix::GetUnitAxis(FVector4& X, FVector4& Y, FVector4& Z) const
 {
-	X = X.Normalize();
-	Y = Y.Normalize();
-	Z = Z.Normalize();
+	X = X.Normalized();
+	Y = Y.Normalized();
+	Z = Z.Normalized();
 }
 
 FMatrix FMatrix::Multiply(const FMatrix& Other) const

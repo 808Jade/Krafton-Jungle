@@ -17,7 +17,7 @@ void UCameraComponent::TickComponent(float DeltaTime)
 {
     Super::TickComponent(DeltaTime);
 
-    FQuat Q = transform.Rotation.Quaternion().Normalize();
+    FQuat Q = transform.Rotation.Quaternion().Normalized();
 
     if (FInputSystem::IsKeyDown(EKeyCode::W))
     {
@@ -46,8 +46,8 @@ void UCameraComponent::TickComponent(float DeltaTime)
 
     if (FInputSystem::IsMouseDown(EMouseButton::Right))
     {
-        float DeltaPitch = -FInputSystem::GetMouseDeltaY() * MouseSensitivity;
-        float DeltaYaw = -FInputSystem::GetMouseDeltaX() * MouseSensitivity;
+        float DeltaPitch = FInputSystem::GetMouseDeltaY() * MouseSensitivity;
+        float DeltaYaw = FInputSystem::GetMouseDeltaX() * MouseSensitivity;
 
         transform.Rotation.Pitch += DeltaPitch;
         transform.Rotation.Yaw += DeltaYaw;
@@ -154,7 +154,7 @@ FRay UCameraComponent::DeProjection(int32 MouseX, int32 MouseY, uint32 ScreenW, 
 
     FRay ray;
     ray.Origin = transform.Location;
-    ray.Direction = (FVector(WorldPoint.X, WorldPoint.Y, WorldPoint.Z) - ray.Origin).Normalize();
+    ray.Direction = (FVector(WorldPoint.X, WorldPoint.Y, WorldPoint.Z) - ray.Origin).Normalized();
 
     if (bIsOrthogonal) 
     {
@@ -175,7 +175,7 @@ FRay UCameraComponent::DeProjection(int32 MouseX, int32 MouseY, uint32 ScreenW, 
         FRay ray;
         ray.Origin = FVector(NearPoint.X, NearPoint.Y, NearPoint.Z);
         FVector4 Direction4 = (FarPoint - NearPoint);
-        ray.Direction = FVector(Direction4.X, Direction4.Y, Direction4.Z).Normalize();
+        ray.Direction = FVector(Direction4.X, Direction4.Y, Direction4.Z).Normalized();
 
         std::cout << "Orthogonal\n";
         std::cout << GetOrthogonalMatrix() << '\n';

@@ -84,11 +84,11 @@ FQuat FQuat::Inverse() const
 	return Result;
 }
 
-FQuat FQuat::Normalize() const
+FQuat FQuat::Normalized() const
 {
 	FQuatRegister Reg = VectorSIMD::Load(V);
 	FQuat Result;
-	VectorSIMD::Store(Result.V, VectorSIMD::Normalize(Reg));
+	VectorSIMD::Store(Result.V, VectorSIMD::Normalized(Reg));
 	return Result;
 }
 
@@ -199,7 +199,7 @@ FQuat FQuat::Identity()
 
 FQuat FQuat::MakeFromAxisAngle(const FVector& Axis, float AngleRadians)
 {
-	FVector NormalizedAxis = Axis.Normalize();
+	FVector NormalizeddAxis = Axis.Normalized();
 
 	const float HalfAngle = AngleRadians * 0.5f;
 
@@ -207,9 +207,9 @@ FQuat FQuat::MakeFromAxisAngle(const FVector& Axis, float AngleRadians)
 	const float C = cosf(HalfAngle);
 
 	return FQuat(
-		NormalizedAxis.X * S,
-		NormalizedAxis.Y * S,
-		NormalizedAxis.Z * S,
+		NormalizeddAxis.X * S,
+		NormalizeddAxis.Y * S,
+		NormalizeddAxis.Z * S,
 		C
 	);
 }

@@ -1,8 +1,9 @@
 #pragma once
 
 #include <d3d11.h>
+#include "Asset/Asset.h"
 
-class FTexture2D
+class FTexture2D :public Asset
 {
 public:
 	FTexture2D(ID3D11Device* Device, const D3D11_TEXTURE2D_DESC& Desc);

@@ -90,7 +90,7 @@
     <ClCompile Include="Engine\World.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GameFramework\Actor.cpp">
+    <ClCompile Include="GameFramework\Actor\Actor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ImGuiRenderer.cpp">
@@ -118,9 +118,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Math\Vector.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Math\Vector4.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ObjectSystem\Class.cpp">
@@ -175,6 +172,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Editor\OutLineRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Math\Vector4.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -245,7 +245,7 @@
     <ClInclude Include="Engine\World.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GameFramework\Actor.h">
+    <ClInclude Include="GameFramework\Actor\Actor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ImGuiRenderer.h">
@@ -380,7 +380,22 @@
     <ClInclude Include="Editor\OutLineRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Math\TVector.h">
+    <ClInclude Include="Asset\Asset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Fwd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\Vector4Impl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\VectorMath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\SIMD.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\RenderCommand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Container\Array.h">

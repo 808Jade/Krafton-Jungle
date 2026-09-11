@@ -1,7 +1,9 @@
 #pragma once
 
-#include "../ObjectSystem/Object.h"
+#include "ObjectSystem/Object.h"
 #include "ObjectSystem/Class.h"
+
+class AActor;
 
 class UActorComponent : public UObject
 {
@@ -12,6 +14,8 @@ class UActorComponent : public UObject
 public:
 	virtual void BeginPlay() {};
 	virtual void TickComponent(float DeltaTime) {};
-private:
 
+	void SetOwner(AActor* InOwner);
+private:
+	AActor* Owner;
 };

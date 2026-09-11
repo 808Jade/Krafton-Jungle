@@ -120,8 +120,8 @@ int FGizmo::PickRotationAxis(const FVector2& MousePos, const FMatrix& ViewProj, 
 	}
 
 	FVector CamPos = GetCameraLocation();
-	FVector Forward = (Origin - CamPos).Normalize();
-	FVector u = FVector(0, 0, 1).Cross(Forward).Normalize();
+	FVector Forward = (Origin - CamPos).Normalized();
+	FVector u = FVector(0, 0, 1).Cross(Forward).Normalized();
 	FVector v = Forward.Cross(u);
 
 	const float ScreenRingRadius = RingRadius * 1.3f;  
@@ -171,7 +171,7 @@ void FGizmo::BeginDrag(int Axis, const FRay& MouseRay, const FVector2& MousePos)
 	{
 		if (Mode == EGizmoMode::Rotation)
 		{
-			DragAxisDirection = (GetRenderLocation() - GetCameraLocation()).Normalize();
+			DragAxisDirection = (GetRenderLocation() - GetCameraLocation()).Normalized();
 			DragPlaneNormal = DragAxisDirection;
 		}
 		else
@@ -181,7 +181,7 @@ void FGizmo::BeginDrag(int Axis, const FRay& MouseRay, const FVector2& MousePos)
 	}
 	else if (Mode == EGizmoMode::Rotation)
 	{
-		FVector ToCamera = (GetCameraLocation() - GetRenderLocation()).Normalize();
+		FVector ToCamera = (GetCameraLocation() - GetRenderLocation()).Normalized();
 		if (DragAxisDirection.Dot(ToCamera) < 0.0f)
 			DragAxisDirection = -DragAxisDirection;
 
@@ -191,7 +191,7 @@ void FGizmo::BeginDrag(int Axis, const FRay& MouseRay, const FVector2& MousePos)
 	{
 		FVector ToCamera = -MouseRay.Direction;
 		FVector Ortho = axis.Cross(ToCamera);
-		DragPlaneNormal = Ortho.Cross(axis).Normalize();
+		DragPlaneNormal = Ortho.Cross(axis).Normalized();
 	}
 
 	float t;
@@ -275,13 +275,13 @@ float FGizmo::ComputeAngleOnPlane(const FVector& Point, int Axis) const
 	if (DraggingAxis >= 0)
 	{
 		FVector Ref = (fabsf(DragAxisDirection.Z) > 0.9f) ? FVector(1, 0, 0) : FVector(0, 0, 1);
-		u = Ref.Cross(DragAxisDirection).Normalize();
+		u = Ref.Cross(DragAxisDirection).Normalized();
 		v = DragAxisDirection.Cross(u);
 	}
 	else if (Axis == AXIS_SCREEN)
 	{
-		FVector Forward = (GetRenderLocation() - GetCameraLocation()).Normalize();
-		u = FVector(0, 0, 1).Cross(Forward).Normalize();
+		FVector Forward = (GetRenderLocation() - GetCameraLocation()).Normalized();
+		u = FVector(0, 0, 1).Cross(Forward).Normalized();
 		v = Forward.Cross(u);
 	}
 	else
@@ -303,7 +303,7 @@ FVector FGizmo::GetAxisDirection(int Axis) const
 	{
 		FMatrix rot = Target->GetTransform()->Rotation.Quaternion().ToFMatrix();
 		FVector4 v = rot.TransformVector(AxisDirs[Axis]);
-		return FVector(v.X, v.Y, v.Z).Normalize();
+		return FVector(v.X, v.Y, v.Z).Normalized();
 	}
 	return AxisDirs[Axis];
 }
@@ -314,7 +314,7 @@ FVector FGizmo::GetRenderLocation() const
 
 	if (CameraComponent->bIsOrthogonal) return GetLocation();
 
-	return (Target->GetTransform()->Location - CameraComponent->GetTransform()->Location).Normalize() * 10.0f + CameraComponent->GetTransform()->Location;
+	return (Target->GetTransform()->Location - CameraComponent->GetTransform()->Location).Normalized() * 10.0f + CameraComponent->GetTransform()->Location;
 
 	// return Target ? Target->GetTransform()->Location: FVector(0, 0, 0); 
 }

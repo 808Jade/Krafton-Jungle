@@ -31,7 +31,7 @@ struct FQuat
 	FQuat Conjugate() const;
 	FQuat UnitInverse() const;
 	FQuat Inverse() const;
-	FQuat Normalize() const;
+	FQuat Normalized() const;
 	FVector RotateVector(const FVector& V) const;
 	FMatrix ToFMatrix() const;
 	FRotator ToFRotator() const;

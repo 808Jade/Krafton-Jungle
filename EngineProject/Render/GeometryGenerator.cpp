@@ -330,7 +330,7 @@ FMeshData FGeometryGenerator::CreateSphere(float Radius, uint32 NumSlices, uint3
 			FVertex vertex;
 			vertex.Position = FVector(r * cosf(Theta), r * sinf(Theta), z);
 			vertex.Color = Color;
-			// vertex.Normal = Normalize(vertex.Position);
+			// vertex.Normal = Normalized(vertex.Position);
 			// vertex.UV     = FVector2(float(j) / NumSlices, float(i) / NumStacks);
 
 			SphereMeshData.Vertices.Add(vertex);

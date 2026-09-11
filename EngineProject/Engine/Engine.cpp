@@ -27,7 +27,7 @@ bool Engine::Init(HINSTANCE hInstance)
 	ConsolePanel = EditorUI->AddEditorPanel<FConsolePanel>();
 	ConsolePanel->AddLog(ELogVerbosity::Info, "Engine Initialize...");
 
-	// Create Main Window
+		// Create Main Window
 	LOG(Info, "Create Main Window...");
 	MainWindow = MakeUnique<Window>();
 	if (!MainWindow->Create(hInstance, 1280, 720, L"Engine"))
@@ -86,30 +86,30 @@ bool Engine::Init(HINSTANCE hInstance)
 	World = FObjectFactory::ConstructObject<UWorld>();
 	World->Init();	//return bool
 
-	FTransform Transform;
-	AActor* Actor = World->SpawnActor(AActor::StaticClass(), &Transform);
-	Actor->AddPrimitiveComponent(EPrimitiveType::Cube, Transform);
+	//FTransform Transform;
+	//AActor* Actor = World->SpawnActor(AActor::StaticClass(), &Transform);
+	//Actor->AddPrimitiveComponent(EPrimitiveType::Cube, Transform);
 
-	FMeshData Data = FGeometryGenerator::CreateCube(1.0f);
-	//FMeshData Data = FGeometryGenerator::CreateCylinder(1.0f, 3.0f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	//FMeshData Data = FGeometryGenerator::CreateCone(1.0f, 3.0f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	//FMeshData Data = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	vb = Renderer->CreateVertexBuffer(Data.Vertices.GetData(), sizeof(FVertex) * (UINT)Data.Vertices.Num(), sizeof(FVertex));
-	ib = Renderer->CreateIndexBuffer(Data.Indices.GetData(), Data.Indices.Num());
+	//FMeshData Data = FGeometryGenerator::CreateCube(1.0f);
+	////FMeshData Data = FGeometryGenerator::CreateCylinder(1.0f, 3.0f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	////FMeshData Data = FGeometryGenerator::CreateCone(1.0f, 3.0f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	////FMeshData Data = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	//vb = Renderer->CreateVertexBuffer(Data.Vertices.data(), sizeof(FVertex) * (UINT)Data.Vertices.size(), sizeof(FVertex));
+	//ib = Renderer->CreateIndexBuffer(Data.Indices.data(), Data.Indices.size());
 
-	Mesh = MakeShared<FMesh>();
-	Mesh->VertexBuffer = vb;
-	Mesh->IndexBuffer = ib;
+	//Mesh = MakeShared<FMesh>();
+	//Mesh->VertexBuffer = vb;
+	//Mesh->IndexBuffer = ib;
 
-	D3D11_INPUT_ELEMENT_DESC layout[] =
-	{
-		{ "POSITION" , 0 , DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
-	Shader = Renderer->CreateShader(L"Shader/DefaultShader.hlsl", layout, 2);
+	//D3D11_INPUT_ELEMENT_DESC layout[] =
+	//{
+	//	{ "POSITION" , 0 , DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	//	{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	//};
+	//Shader = Renderer->CreateShader(L"Shader/DefaultShader.hlsl", layout, 2);
 
-	Actor->GetPrimitiveComponent()->SetMeshShader(Mesh.get(), Shader.get());
-	Actor->GetPrimitiveComponent()->SetMeshData(Data);
+	//Actor->GetPrimitiveComponent()->SetMeshShader(Mesh.get(), Shader.get());
+	//Actor->GetPrimitiveComponent()->SetMeshData(Data);
 
 	PropertyPanel->FPropertyPanel::World = World;
 	ControlPanel->FControlPanel::World = World;
@@ -146,6 +146,8 @@ void Engine::Run()
 		float DeltaTime = EngineTimer::GetDeltaTime();
 		ControlPanel->FControlPanel::DeltaTime = DeltaTime;
 
+		FInputSystem::UpdateInputStates();
+
 		//Check Swapchain Resize
 		MainWindow->ProcessMessage(bIsRunning);
 		if (MainWindow->CheckResized())
@@ -180,11 +182,9 @@ void Engine::Run()
 
 		TQueue<FRenderPacket> RenderQueue;
 		World->GatherRenderPackets(RenderQueue);
-		FInputSystem::UpdateInputStates();
 
 		//BeginRendering
 		Renderer->BeginFrame();
-		Renderer->BindShader(Shader.get());
 		GridRenderer->OnRender(VP, World->GetMainCamera()->GetCameraComponent()->GetLocation());
 		Renderer->RenderAll(RenderQueue, VP);
 		FVector4 CamLoc = World->GetMainCamera()->GetCameraComponent()->GetLocation();

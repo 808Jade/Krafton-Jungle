@@ -167,7 +167,7 @@ namespace VectorSIMD
 
 	inline float LengthSquared(FVectorRegister A) { return Dot(A, A); }
 
-	inline FVectorRegister Normalize(FVectorRegister A)
+	inline FVectorRegister Normalized(FVectorRegister A)
 	{
 		FVectorRegister LenSq = Dot4(A, A);
 		FVectorRegister InvLen = Rsqrt(LenSq);

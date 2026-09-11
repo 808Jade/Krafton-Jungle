@@ -820,7 +820,7 @@ void ImDrawList::PrimQuadUV(const ImVec2& a, const ImVec2& b, const ImVec2& c, c
 // On AddPolyline() and AddConvexPolyFilled() we intentionally avoid using ImVec2 and superfluous function calls to optimize debug/non-inlined builds.
 // - Those macros expects l-values and need to be used as their own statement.
 // - Those macros are intentionally not surrounded by the 'do {} while (0)' idiom because even that translates to runtime with debug compilers.
-#define IM_NORMALIZE2F_OVER_ZERO(VX,VY)     { float d2 = VX*VX + VY*VY; if (d2 > 0.0f) { float inv_len = ImRsqrt(d2); VX *= inv_len; VY *= inv_len; } } (void)0
+#define IM_Normalized2F_OVER_ZERO(VX,VY)     { float d2 = VX*VX + VY*VY; if (d2 > 0.0f) { float inv_len = ImRsqrt(d2); VX *= inv_len; VY *= inv_len; } } (void)0
 #define IM_FIXNORMAL2F_MAX_INVLEN2          100.0f // 500.0f (see #4053, #3366)
 #define IM_FIXNORMAL2F(VX,VY)               { float d2 = VX*VX + VY*VY; if (d2 > 0.000001f) { float inv_len2 = 1.0f / d2; if (inv_len2 > IM_FIXNORMAL2F_MAX_INVLEN2) inv_len2 = IM_FIXNORMAL2F_MAX_INVLEN2; VX *= inv_len2; VY *= inv_len2; } } (void)0
 
@@ -877,7 +877,7 @@ void ImDrawList::AddPolyline(const ImVec2* points, const int points_count, ImU32
             const int i2 = (i1 + 1) == points_count ? 0 : i1 + 1;
             float dx = points[i2].x - points[i1].x;
             float dy = points[i2].y - points[i1].y;
-            IM_NORMALIZE2F_OVER_ZERO(dx, dy);
+            IM_Normalized2F_OVER_ZERO(dx, dy);
             temp_normals[i1].x = dy;
             temp_normals[i1].y = -dx;
         }
@@ -1070,7 +1070,7 @@ void ImDrawList::AddPolyline(const ImVec2* points, const int points_count, ImU32
 
             float dx = p2.x - p1.x;
             float dy = p2.y - p1.y;
-            IM_NORMALIZE2F_OVER_ZERO(dx, dy);
+            IM_Normalized2F_OVER_ZERO(dx, dy);
             dx *= (thickness * 0.5f);
             dy *= (thickness * 0.5f);
 
@@ -1124,7 +1124,7 @@ void ImDrawList::AddConvexPolyFilled(const ImVec2* points, const int points_coun
             const ImVec2& p1 = points[i1];
             float dx = p1.x - p0.x;
             float dy = p1.y - p0.y;
-            IM_NORMALIZE2F_OVER_ZERO(dx, dy);
+            IM_Normalized2F_OVER_ZERO(dx, dy);
             temp_normals[i0].x = dy;
             temp_normals[i0].y = -dx;
         }
@@ -1251,11 +1251,11 @@ void ImDrawList::_PathArcToFastEx(const ImVec2& center, float radius, int a_min_
 
     if (extra_max_sample)
     {
-        int normalized_max_sample = a_max_sample % IM_DRAWLIST_ARCFAST_SAMPLE_MAX;
-        if (normalized_max_sample < 0)
-            normalized_max_sample += IM_DRAWLIST_ARCFAST_SAMPLE_MAX;
+        int Normalizedd_max_sample = a_max_sample % IM_DRAWLIST_ARCFAST_SAMPLE_MAX;
+        if (Normalizedd_max_sample < 0)
+            Normalizedd_max_sample += IM_DRAWLIST_ARCFAST_SAMPLE_MAX;
 
-        const ImVec2 s = _Data->ArcFastVtx[normalized_max_sample];
+        const ImVec2 s = _Data->ArcFastVtx[Normalizedd_max_sample];
         out_ptr->x = center.x + s.x * radius;
         out_ptr->y = center.y + s.y * radius;
         out_ptr++;
@@ -2092,7 +2092,7 @@ void ImDrawList::AddConcavePolyFilled(const ImVec2* points, const int points_cou
             const ImVec2& p1 = points[i1];
             float dx = p1.x - p0.x;
             float dy = p1.y - p0.y;
-            IM_NORMALIZE2F_OVER_ZERO(dx, dy);
+            IM_Normalized2F_OVER_ZERO(dx, dy);
             temp_normals[i0].x = dy;
             temp_normals[i0].y = -dx;
         }
@@ -5264,7 +5264,7 @@ bool ImFont::IsGlyphRangeUnused(unsigned int c_begin, unsigned int c_last)
 }
 
 // x0/y0/x1/y1 are offset from the character upper-left layout position, in pixels. Therefore x0/y0 are often fairly close to zero.
-// Not to be mistaken with texture coordinates, which are held by u0/v0/u1/v1 in normalized format (0.0..1.0 on each texture axis).
+// Not to be mistaken with texture coordinates, which are held by u0/v0/u1/v1 in Normalizedd format (0.0..1.0 on each texture axis).
 // - 'src' is not necessarily == 'this->Sources' because multiple source fonts+configs can be used to build one target font.
 ImFontGlyph* ImFontAtlasBakedAddFontGlyph(ImFontAtlas* atlas, ImFontBaked* baked, ImFontConfig* src, const ImFontGlyph* in_glyph)
 {
@@ -6135,7 +6135,7 @@ static inline float ImAcos01(float x)
 }
 
 // FIXME: Cleanup and move code to ImDrawList.
-// - Before 2025-12-04: RenderRectFilledRangeH()   with 'float x_start_norm, float x_end_norm` <- normalized
+// - Before 2025-12-04: RenderRectFilledRangeH()   with 'float x_start_norm, float x_end_norm` <- Normalizedd
 // - After  2025-12-04: RenderRectFilledInRangeH() with 'float x1, float x2'                   <- absolute coords!!
 void ImGui::RenderRectFilledInRangeH(ImDrawList* draw_list, const ImRect& rect, ImU32 col, float fill_x0, float fill_x1, float rounding)
 {

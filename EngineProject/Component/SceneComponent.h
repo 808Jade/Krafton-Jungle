@@ -12,8 +12,11 @@ class USceneComponent :public UActorComponent
 	REFLECT_END()
 public:
 	FTransform* GetTransform();
-	FMatrix GetWorldMatrix() const;
 	void SetTransform(FTransform transform);
+
+	FMatrix GetWorldMatrix() const;
+
+	void SetupAttachment(USceneComponent* SceneComponent);
 private:
 	//FTransform transform;
 	bool bVisible = true;

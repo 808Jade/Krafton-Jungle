@@ -1,9 +1,10 @@
 #pragma once
 
-#include "../ObjectSystem/Object.h"
+#include "ObjectSystem/Object.h"
 #include "Component/PrimitiveComponent.h"
 
 #include "ObjectSystem/Class.h"
+#include "ObjectSystem/ObjectFactory.h"
 
 class UWorld;
 
@@ -22,15 +23,17 @@ public:
 	virtual void Tick(float DeltaTime);
 
 	UWorld* GetWorld() const { return World; }
+	
+	template <typename T>
+	T* CreateDefaultSubobject()
+	{
+		T* Component = FObjectFactory::ConstructObject<T>();
+		Component->SetOwner(this);
+		Components.Add(Component);
 
-	//template <typename T>
-	//T* AddComponent()
-	//{
-	//	T* newComponent = 
-	//}
+		return Component;
+	}
 
-	UPrimitiveComponent* GetPrimitiveComponent() const { return Cast<UPrimitiveComponent>(RootComponent); }
-	void AddPrimitiveComponent(EPrimitiveType Type, FTransform Transform);
 	void SetRootComponent(USceneComponent* SceneComponent);
 	USceneComponent* GetRootComponent();
 
@@ -42,7 +45,4 @@ private:
 	UWorld* World = nullptr;
 
 	USceneComponent* RootComponent = nullptr;
-
-	// 임시
-	//UPrimitiveComponent* Primitive = nullptr;
 };

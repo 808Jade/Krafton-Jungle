@@ -54,7 +54,7 @@ float FVector::Length() const
 	return sqrt(sum);
 }
 
-FVector FVector::Normalize() const
+FVector FVector::Normalized() const
 {
 	float size = Size();
 
@@ -256,12 +256,12 @@ std::ostream& operator << (std::ostream& OS, const FVector& V)
 
 
 /* Static Functions */
-float FVector::DotProduct(const FVector& V1, const FVector& V2)
+float FVector::Dot(const FVector& V1, const FVector& V2)
 {
 	return V1.Dot(V2);
 }
 
-FVector FVector::CrossProduct(const FVector& V1, const FVector& V2)
+FVector FVector::Cross(const FVector& V1, const FVector& V2)
 {
 	return V1.Cross(V2);
 }

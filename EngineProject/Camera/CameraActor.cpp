@@ -7,19 +7,12 @@
 
 ACameraActor::ACameraActor()
 {
-	UCameraComponent* CameraComponent = FObjectFactory::ConstructObject<UCameraComponent>();
-	SetRootComponent(Cast<USceneComponent>(CameraComponent));
-	Components.Add(Cast<UActorComponent>(CameraComponent));
+	CameraComponent = CreateDefaultSubobject<UCameraComponent>();
+	SetRootComponent(CameraComponent);
 }
 
 ACameraActor::~ACameraActor()
 {
-	// delete CameraComponent;
-
-	//for (auto& i : SceneComponents)
-	//{
-	//	delete i;
-	//}
 }
 
 void ACameraActor::BeginPlay()
@@ -30,23 +23,9 @@ void ACameraActor::BeginPlay()
 void ACameraActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	/*CameraComponent->TickComponent(DeltaTime);
-
-	for (auto& i : SceneComponents)
-	{
-		i->TickComponent(DeltaTime);
-	}*/
 }
 
 UCameraComponent* ACameraActor::GetCameraComponent()
 {
-	for (UActorComponent* Component : Components)
-	{
-		if (Cast<UCameraComponent>(Component))
-		{
-			return Cast<UCameraComponent>(Component);
-		}
-	}
-
-	return nullptr;
+	return CameraComponent;
 }

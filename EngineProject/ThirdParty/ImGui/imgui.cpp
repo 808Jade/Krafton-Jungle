@@ -7283,7 +7283,7 @@ static const ImGuiResizeGripDef resize_grip_def[4] =
 struct ImGuiResizeBorderDef
 {
     ImVec2  InnerDir;               // Normal toward inside
-    ImVec2  SegmentN1, SegmentN2;   // End positions, normalized (0,0: upper left)
+    ImVec2  SegmentN1, SegmentN2;   // End positions, Normalizedd (0,0: upper left)
     float   OuterAngle;             // Angle toward outside
 };
 static const ImGuiResizeBorderDef resize_border_def[4] =

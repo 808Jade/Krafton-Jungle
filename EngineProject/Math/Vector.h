@@ -40,7 +40,7 @@ public:
 
 	FVector Cross(const FVector& V1) const;
 	FVector GetAbs() const;
-	FVector Normalize() const;
+	FVector Normalized() const;
 
 
 	// float GetMax();
@@ -85,8 +85,8 @@ public:
 	float& operator[] (int32 Index);
 
 	/* Static */
-	static float DotProduct(const FVector& V1, const FVector& V2);
-	static FVector CrossProduct(const FVector& V1, const FVector& V2);
+	static float Dot(const FVector& V1, const FVector& V2);
+	static FVector Cross(const FVector& V1, const FVector& V2);
 	static float Distance(const FVector& V1, const FVector& V2); // == Dist()
 	/*static FVector DegreesToRadians(const FVector& V1);
 	static FVector RadiansToDegrees(const FVector& V1);

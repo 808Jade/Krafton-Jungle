@@ -1,12 +1,12 @@
 #include "EnginePCH.h"
 #include "Actor.h"
 
-#include "../ObjectSystem/ObjectFactory.h"
-#include "../Engine/World.h"
+#include "ObjectSystem/ObjectFactory.h"
+#include "Engine/World.h"
 
-#include "../Component/CubeComponent.h"
-#include "../Component/SphereComponent.h"
-#include "../Engine/ResourceManager.h"
+#include "Component/CubeComponent.h"
+#include "Component/SphereComponent.h"
+#include "Engine/ResourceManager.h"
 
 AActor::AActor()
 {
@@ -43,37 +43,7 @@ void AActor::Tick(float DeltaTime)
 	}
 }
 
-void AActor::AddPrimitiveComponent(EPrimitiveType Type, FTransform Transform)
-{
-	switch (Type)
-	{
-	case EPrimitiveType::Sphere:
-		RootComponent = FObjectFactory::ConstructObject<USphereComponent>();
-		Cast<UPrimitiveComponent>(RootComponent)->SetType(Type);
-		break;
-	case EPrimitiveType::Cube:
-		RootComponent = FObjectFactory::ConstructObject<UCubeComponent>();
-		Cast<UPrimitiveComponent>(RootComponent)->SetType(Type);
-		break;
-	case EPrimitiveType::Cone:
-		RootComponent = FObjectFactory::ConstructObject<UPrimitiveComponent>();
-		Cast<UPrimitiveComponent>(RootComponent)->SetMesh(FResourceManager::GetInstance().GetMesh("Cone"));
-		Cast<UPrimitiveComponent>(RootComponent)->SetMeshData(FGeometryGenerator::GetMeshData("Cone"));
-		Cast<UPrimitiveComponent>(RootComponent)->SetType(Type);
-		break;
-	case EPrimitiveType::Plane:
-		RootComponent = FObjectFactory::ConstructObject<UPrimitiveComponent>();
-		Cast<UPrimitiveComponent>(RootComponent)->SetMesh(FResourceManager::GetInstance().GetMesh("Plane"));
-		Cast<UPrimitiveComponent>(RootComponent)->SetMeshData(FGeometryGenerator::GetMeshData("Plane"));
-		Cast<UPrimitiveComponent>(RootComponent)->SetType(Type);
-		break;
-	default:
-		break;
-	break;
-	}
-	RootComponent->SetTransform(Transform);
-	Components.Add(RootComponent);
-}
+
 
 void AActor::SetRootComponent(USceneComponent* SceneComponent)
 {

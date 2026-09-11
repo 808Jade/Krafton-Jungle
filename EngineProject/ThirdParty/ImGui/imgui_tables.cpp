@@ -4518,7 +4518,7 @@ static const float COLUMNS_HIT_RECT_HALF_THICKNESS = 4.0f;
 static float GetDraggedColumnOffset(ImGuiOldColumns* columns, int column_index)
 {
     // Active (dragged) column always follow mouse. The reason we need this is that dragging a column to the right edge of an auto-resizing
-    // window creates a feedback loop because we store normalized positions. So while dragging we enforce absolute positioning.
+    // window creates a feedback loop because we store Normalizedd positions. So while dragging we enforce absolute positioning.
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
     IM_ASSERT(column_index > 0); // We are not supposed to drag column 0.

@@ -143,6 +143,26 @@ LRESULT Window::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		FInputSystem::OnKeyUp(wParam);
 		break;
 
+	// 포커스를 잃으면 이후의 KeyUp/ButtonUp 메시지가 이 창으로 오지 않으므로
+	// 눌린 상태가 그대로 남는다. 여기서 전부 비워준다.
+	case WM_KILLFOCUS:
+		FInputSystem::ClearAllStates();
+		break;
+
+	case WM_ACTIVATEAPP:
+		if (wParam == FALSE)
+			FInputSystem::ClearAllStates();
+		break;
+
+	// 포커스가 없는 동안 커서가 이동했어도 델타가 튀지 않도록 현재 위치로 맞춰준다.
+	case WM_SETFOCUS:
+	{
+		POINT Cursor;
+		if (GetCursorPos(&Cursor) && ScreenToClient(hWnd, &Cursor))
+			FInputSystem::SyncMousePosition(Cursor.x, Cursor.y);
+		break;
+	}
+
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;

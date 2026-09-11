@@ -59,8 +59,8 @@ public:
 	void BindShader(FShader* InShader);
 	void BindMesh(FMesh* InMesh);
 
-	void Draw(uint32 VertexCount);
-	void DrawIndexed(uint32 IndexCount);
+	void Draw(uint32 VertexCount, uint32 StartIndexLocation =0);
+	void DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation = 0, int32 BaseVertexLocation = 0);
 
 	// 윈도우 사이즈 변경
 	void Resize(int32 Width, int32 Height);

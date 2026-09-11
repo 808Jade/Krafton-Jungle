@@ -16,6 +16,8 @@ public:
     static bool IsMouseReleased(EMouseButton MouseButton);
 
     static void UpdateInputStates();
+    static void ClearAllStates();
+    static void SyncMousePosition(int32 x, int32 y);
     static void OnKeyUp(int VirtualKey);
     static void OnMouseUp(EMouseButton MouseButton);
     static void OnKeyDown(int VirtualKey);

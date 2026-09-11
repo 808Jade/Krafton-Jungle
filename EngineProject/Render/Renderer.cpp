@@ -320,15 +320,17 @@ void FRenderer::BindMesh(FMesh* InMesh)
 	BindIndexBuffer(InMesh->IndexBuffer.get());
 }
 
-void FRenderer::Draw(uint32 VertexCount)
+void FRenderer::Draw(uint32 VertexCount, uint32 StartIndexLocation)
 {
 	DeviceContext->Draw(VertexCount, 0);
 }
 
-void FRenderer::DrawIndexed(uint32 IndexCount)
+void FRenderer::DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation, int32 BaseVertexLocation)
 {
-	DeviceContext->DrawIndexed(IndexCount, 0, 0);
+	DeviceContext->DrawIndexed(IndexCount, StartIndexLocation, BaseVertexLocation);
 }
+
+
 
 //void FRenderer::Prepare()
 //{

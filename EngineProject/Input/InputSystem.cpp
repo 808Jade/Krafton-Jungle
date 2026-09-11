@@ -81,13 +81,35 @@ void FInputSystem::OnMouseWheelDelta(int32 Wheel)
     WheelDelta = Wheel;
 }
 
+void FInputSystem::SyncMousePosition(int32 x, int32 y)
+{
+    // 커서가 창 밖에서 움직인 뒤 돌아왔을 때 델타가 한 번 크게 튀는 것을 막는다.
+    MouseX = PrevMouseX = x;
+    MouseY = PrevMouseY = y;
+
+    DeltaX = 0;
+    DeltaY = 0;
+}
+
+void FInputSystem::ClearAllStates()
+{
+    // 포커스를 잃으면 WM_KEYUP / WM_*BUTTONUP 이 이 창으로 오지 않는다.
+    // 현재 상태만 비워서 다음 UpdateInputStates 에서 Released 가 한 번 발생하도록 한다.
+    std::memset(bKeyStates, 0, sizeof(bKeyStates));
+    std::memset(bMouseStates, 0, sizeof(bMouseStates));
+
+    WheelDelta = 0;
+    DeltaX = 0;
+    DeltaY = 0;
+}
+
 void FInputSystem::UpdateInputStates()
 {
     std::memcpy(bPrevKeyStates, bKeyStates, sizeof(bKeyStates));
     std::memcpy(bPrevMouseStates, bMouseStates, sizeof(bMouseStates));
     
-    DeltaX = PrevMouseX - MouseX;
-    DeltaY = PrevMouseY - MouseY;
+    DeltaX = MouseX - PrevMouseX;
+    DeltaY = MouseY - PrevMouseY;
 
     PrevMouseX = MouseX;
     PrevMouseY = MouseY;

@@ -4,6 +4,7 @@
 
 FResourceManager& FResourceManager::GetInstance()
 {   // 렌더러 생성되고 이후에
+
     static FResourceManager instance;
     
     return instance;

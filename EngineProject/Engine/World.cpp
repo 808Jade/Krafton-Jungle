@@ -3,6 +3,7 @@
 
 #include "ObjectSystem/ObjectFactory.h"
 #include "Core/EngineStatics.h"
+#include "GameFramework/Actor/StaticMeshActor.h"
 
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
@@ -254,7 +255,7 @@ bool UWorld::LoadScene(const FString& Path)
 
 	if (Json.contains("NextUUID"))
 	{
-		FEngineStatics::NextUUID = Json["NextUUID"].get<uint64>();
+		FEngineStatics::NextUUID = Json["NextUUID"].get<uint32>();
 	}
 
 	if (!Json.contains("Primitives"))
@@ -320,8 +321,8 @@ bool UWorld::LoadScene(const FString& Path)
 
 
 		// 액터 스폰
-		AActor* Actor = SpawnActor(AActor::StaticClass(), &Transform);
-		Actor->AddPrimitiveComponent(Type, Transform);
+		AStaticMeshActor* Actor = SpawnActor<AStaticMeshActor>(&Transform);
+		//Actor->AddPrimitiveComponent(Type, Transform);
 		Actor->SetUUID(UUID);
 
 

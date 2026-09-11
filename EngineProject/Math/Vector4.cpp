@@ -84,7 +84,7 @@ float FVector4::Length()
 	return sqrt(sum);
 }
 
-FVector4 FVector4::Normalize()
+FVector4 FVector4::Normalized()
 {
 	float size = Size();
 	

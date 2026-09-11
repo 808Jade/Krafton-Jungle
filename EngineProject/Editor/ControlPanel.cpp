@@ -3,13 +3,38 @@
 #include "../Camera/CameraActor.h"
 #include "../Camera/CameraComponent.h"
 
+#include "GameFramework/Actor/StaticMeshActor.h"
+#include "Engine/ResourceManager.h"
+
 #include "Input/InputSystem.h"
+
+namespace
+{
+	FString PrimitiveTypeToString(EPrimitiveType Type)
+	{
+		switch (Type)
+		{
+		case EPrimitiveType::Sphere:
+			return "Sphere";
+			break;
+		case EPrimitiveType::Cube:
+			return "Cube";
+			break;
+		case EPrimitiveType::Cone:
+			return "Cone";
+			break;
+		case EPrimitiveType::Plane:
+			return "Plane";
+			break;
+		default:
+			return "";
+			break;
+		}
+	}
+}
 
 bool FControlPanel::Init()
 {
-
-
-
 	return true;
 }
 
@@ -26,13 +51,14 @@ void FControlPanel::Tick(float DeltaTime)
 void FControlPanel::AddActor(EPrimitiveType Type)
 {
 	FTransform Transform;
-	AActor* Actor = World->SpawnActor(AActor::StaticClass(), &Transform);
-	Actor->AddPrimitiveComponent(Type, Transform);
-
+	AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>(&Transform);
+	UPrimitiveComponent* Component = Actor->GetPrimitiveComponent();
+	Component->SetType(Type);
+	Component->SetMesh(FResourceManager::GetInstance().GetMesh(PrimitiveTypeToString(Type)));
+	Component->SetMeshData(FGeometryGenerator::GetMeshData(PrimitiveTypeToString(Type)));
 
 	ActorNum = World->GetActorNum() - 1;
 }
-
 
 void FControlPanel::OnRender()
 {
@@ -59,17 +85,17 @@ void FControlPanel::OnRender()
 	// 씬 생성 세이브 로드
 	ImGui::SetNextItemWidth(165.0f);
 	ImGui::InputText("Scene Name", SceneName, IM_ARRAYSIZE(SceneName));
-	if (ImGui::Button("New Scene", ImVec2(80.0f, 19.0f))) 
+	if (ImGui::Button("New Scene", ImVec2(80.0f, 19.0f)))
 	{
 		World->ClearScene();
 		World->NewScene(SceneName);
-		ActorNum = World->GetActorNum() - 1; 
+		ActorNum = World->GetActorNum() - 1;
 		if (Callback) Callback();
 	}
 	if (ImGui::Button("Save Scene", ImVec2(80.0f, 19.0f))) { World->SaveScene(SceneName); ActorNum = World->GetActorNum() - 1; }
 	if (ImGui::Button("Load Scene", ImVec2(80.0f, 19.0f)))
 	{
-		
+
 		if (World->LoadScene(SceneName))
 		{
 			return;

@@ -1898,7 +1898,7 @@ enum ImGuiOldColumnFlags_
 
 struct ImGuiOldColumnData
 {
-    float               OffsetNorm;             // Column start offset, normalized 0.0 (far left) -> 1.0 (far right)
+    float               OffsetNorm;             // Column start offset, Normalizedd 0.0 (far left) -> 1.0 (far right)
     float               OffsetNormBeforeResize;
     ImGuiOldColumnFlags Flags;                  // Not exposed
     ImRect              ClipRect;
@@ -2752,7 +2752,7 @@ struct ImGuiContext
     ImRect                  WindowResizeBorderExpectedRect;     // Expected border rect, switch to relative edit if moving
     bool                    WindowResizeRelativeMode;
     short                   ScrollbarSeekMode;                  // 0: scroll to clicked location, -1/+1: prev/next page.
-    float                   ScrollbarClickDeltaToGrabCenter;    // When scrolling to mouse location: distance between mouse and center of grab box, normalized in parent space.
+    float                   ScrollbarClickDeltaToGrabCenter;    // When scrolling to mouse location: distance between mouse and center of grab box, Normalizedd in parent space.
     float                   SliderGrabClickOffset;
     float                   SliderCurrentAccum;                 // Accumulated slider delta when using navigation controls.
     bool                    SliderCurrentAccumDirty;            // Has the accumulated slider delta changed since last time we tried to apply it?

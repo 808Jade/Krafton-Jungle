@@ -42,7 +42,7 @@ public:
 	float Length(); // ==  size()
 	float Dot(const FVector4& V1) const;
 
-	FVector4 Normalize();
+	FVector4 Normalized();
 	FVector4 Cross(const FVector4& V1) const;
 	FVector4 GetAbs();
 

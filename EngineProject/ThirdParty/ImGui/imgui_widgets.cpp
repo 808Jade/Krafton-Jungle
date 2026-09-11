@@ -1025,7 +1025,7 @@ void ImGui::Scrollbar(ImGuiAxis axis)
 // Vertical/Horizontal scrollbar
 // The entire piece of code below is rather confusing because:
 // - We handle absolute seeking (when first clicking outside the grab) and relative manipulation (afterward or when clicking inside the grab)
-// - We store values as normalized ratio and in a form that allows the window content to change while we are holding on a scrollbar
+// - We store values as Normalizedd ratio and in a form that allows the window content to change while we are holding on a scrollbar
 // - We handle both horizontal and vertical scrollbars, which makes the terminology not ideal.
 // Still, the code should probably be made simpler..
 bool ImGui::ScrollbarEx(const ImRect& bb_frame, ImGuiID id, ImGuiAxis axis, ImS64* p_scroll_v, ImS64 size_visible_v, ImS64 size_contents_v, ImDrawFlags draw_rounding_flags)
@@ -1079,13 +1079,13 @@ bool ImGui::ScrollbarEx(const ImRect& bb_frame, ImGuiID id, ImGuiAxis axis, ImS6
 
     const ImS64 scroll_max = ImMax((ImS64)1, size_contents_v - size_visible_v);
     float scroll_ratio = ImSaturate((float)*p_scroll_v / (float)scroll_max);
-    float grab_v_norm = scroll_ratio * (scrollbar_size_v - grab_h_pixels) / scrollbar_size_v; // Grab position in normalized space
+    float grab_v_norm = scroll_ratio * (scrollbar_size_v - grab_h_pixels) / scrollbar_size_v; // Grab position in Normalizedd space
     if (held && allow_interaction && grab_h_norm < 1.0f)
     {
         const float scrollbar_pos_v = bb.Min[axis];
         const float mouse_pos_v = g.IO.MousePos[axis];
 
-        // Click position in scrollbar normalized space (0.0f->1.0f)
+        // Click position in scrollbar Normalizedd space (0.0f->1.0f)
         const float clicked_v_norm = ImSaturate((mouse_pos_v - scrollbar_pos_v) / scrollbar_size_v);
 
         const int held_dir = (clicked_v_norm < grab_v_norm) ? -1 : (clicked_v_norm > grab_v_norm + grab_h_norm) ? +1 : 0;
@@ -9039,7 +9039,7 @@ int ImGui::PlotEx(ImGuiPlotType plot_type, const char* label, float (*values_get
 
         float v0 = values_getter(data, (0 + values_offset) % values_count);
         float t0 = 0.0f;
-        ImVec2 tp0 = ImVec2( t0, 1.0f - ImSaturate((v0 - scale_min) * inv_scale) );                       // Point in the normalized space of our target rectangle
+        ImVec2 tp0 = ImVec2( t0, 1.0f - ImSaturate((v0 - scale_min) * inv_scale) );                       // Point in the Normalizedd space of our target rectangle
         float histogram_zero_line_t = (scale_min * scale_max < 0.0f) ? (1 + scale_min * inv_scale) : (scale_min < 0.0f ? 0.0f : 1.0f);   // Where does the zero line stands
 
         const ImU32 col_base = GetColorU32((plot_type == ImGuiPlotType_Lines) ? ImGuiCol_PlotLines : ImGuiCol_PlotHistogram);

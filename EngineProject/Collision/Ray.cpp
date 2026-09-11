@@ -47,15 +47,15 @@ bool RayIntersectsTriangle(const FRay& Ray, const FVector& v1, const FVector& v2
     FVector edge1 = v2 - v1;
     FVector edge2 = v3 - v1;
 
-    const FVector normal = FVector::CrossProduct(edge1, edge2);
+    const FVector normal = FVector::Cross(edge1, edge2);
     FVector RayVector = Ray.Direction;
     if (normal.Dot(RayVector) > 0.0f) // 내적의 결과가 양수면 뒷면임
     {
         return false;
     }
 
-    const FVector rayCrossVec = FVector::CrossProduct(RayVector, edge2);
-    float det = FVector::DotProduct(rayCrossVec, edge1);
+    const FVector rayCrossVec = FVector::Cross(RayVector, edge2);
+    float det = FVector::Dot(rayCrossVec, edge1);
     if (fabs(det) < epsilon)
     {   // 내적의 결과가 0에 가까우면 180도. 평행한 관계
         return false;
@@ -66,22 +66,22 @@ bool RayIntersectsTriangle(const FRay& Ray, const FVector& v1, const FVector& v2
     // 수식: Ray.Origin - v1 = u * edge1 + v * edge2 - t * Ray.Direction
     // 1. u 구하기
     FVector s = Ray.Origin - v1;
-    float u = invDet * FVector::DotProduct(s, rayCrossVec);
+    float u = invDet * FVector::Dot(s, rayCrossVec);
 
     if (-epsilon > u || epsilon < u - 1)
     {
         return false;
     }
 
-    FVector sCrossE1 = FVector::CrossProduct(s, edge1);
-    float v = invDet * FVector::DotProduct(RayVector, sCrossE1);
+    FVector sCrossE1 = FVector::Cross(s, edge1);
+    float v = invDet * FVector::Dot(RayVector, sCrossE1);
         
     if (-epsilon > v || epsilon < u + v - 1)
     {
         return false;
     }
 
-    float t = invDet * FVector::DotProduct(edge2, sCrossE1);
+    float t = invDet * FVector::Dot(edge2, sCrossE1);
 
     if (t > epsilon)
     {

@@ -19045,10 +19045,10 @@ struct diyfp // f * 2^e
     }
 
     /*!
-    @brief normalize x such that the significand is >= 2^(q-1)
+    @brief Normalized x such that the significand is >= 2^(q-1)
     @pre x.f != 0
     */
-    static diyfp normalize(diyfp x) noexcept
+    static diyfp Normalized(diyfp x) noexcept
     {
         JSON_ASSERT(x.f != 0);
 
@@ -19062,10 +19062,10 @@ struct diyfp // f * 2^e
     }
 
     /*!
-    @brief normalize x such that the result has the exponent E
+    @brief Normalized x such that the result has the exponent E
     @pre e >= x.e and the upper e - x.e bits of x.f must be zero.
     */
-    static diyfp normalize_to(const diyfp& x, const int target_exponent) noexcept
+    static diyfp Normalized_to(const diyfp& x, const int target_exponent) noexcept
     {
         const int delta = x.e - target_exponent;
 
@@ -19084,7 +19084,7 @@ struct boundaries
 };
 
 /*!
-Compute the (normalized) diyfp representing the input number 'value' and its
+Compute the (Normalizedd) diyfp representing the input number 'value' and its
 boundaries.
 
 @pre value must be finite and positive
@@ -19099,7 +19099,7 @@ boundaries compute_boundaries(FloatType value)
     //
     // If v is denormal:
     //      value = 0.F * 2^(1 - bias) = (          F) * 2^(1 - bias - (p-1))
-    // If v is normalized:
+    // If v is Normalizedd:
     //      value = 1.F * 2^(E - bias) = (2^(p-1) + F) * 2^(E - bias - (p-1))
 
     static_assert(std::numeric_limits<FloatType>::is_iec559,
@@ -19148,16 +19148,16 @@ boundaries compute_boundaries(FloatType value)
                           ? diyfp((4 * v.f) - 1, v.e - 2)  // (B)
                           : diyfp((2 * v.f) - 1, v.e - 1); // (A)
 
-    // Determine the normalized w+ = m+.
-    const diyfp w_plus = diyfp::normalize(m_plus);
+    // Determine the Normalizedd w+ = m+.
+    const diyfp w_plus = diyfp::Normalized(m_plus);
 
     // Determine w- = m- such that e_(w-) = e_(w+).
-    const diyfp w_minus = diyfp::normalize_to(m_minus, w_plus.e);
+    const diyfp w_minus = diyfp::Normalized_to(m_minus, w_plus.e);
 
-    return {diyfp::normalize(v), w_minus, w_plus};
+    return {diyfp::Normalized(v), w_minus, w_plus};
 }
 
-// Given normalized diyfp w, Grisu needs to find a (normalized) cached
+// Given Normalizedd diyfp w, Grisu needs to find a (Normalizedd) cached
 // power-of-ten c, such that the exponent of the product c * w = f * 2^e lies
 // within a certain range [alpha, gamma] (Definition 3.2 from [1])
 //
@@ -19168,7 +19168,7 @@ boundaries compute_boundaries(FloatType value)
 //      f_c * f_w * 2^alpha <= f_c 2^(e_c) * f_w 2^(e_w) * 2^q
 //                          <= f_c * f_w * 2^gamma
 //
-// Since c and w are normalized, i.e. 2^(q-1) <= f < 2^q, this implies
+// Since c and w are Normalizedd, i.e. 2^(q-1) <= f < 2^q, this implies
 //
 //      2^(q-1) * 2^(q-1) * 2^alpha <= c * w * 2^q < 2^q * 2^q * 2^gamma
 //
@@ -19223,7 +19223,7 @@ struct cached_power // c = f * 2^e ~= 10^k
 };
 
 /*!
-For a normalized diyfp w = f * 2^e, this function returns a (normalized) cached
+For a Normalizedd diyfp w = f * 2^e, this function returns a (Normalizedd) cached
 power-of-ten c = f_c * 2^e_c, such that the exponent of the product w * c
 satisfies (Definition 3.2 from [1])
 
@@ -19236,7 +19236,7 @@ inline cached_power get_cached_power_for_binary_exponent(int e)
     //      alpha <= e_c + e + q <= gamma                                    (1)
     //      ==> f_c * 2^alpha <= c * 2^e * 2^q
     //
-    // and since the c's are normalized, 2^(q-1) <= f_c,
+    // and since the c's are Normalizedd, 2^(q-1) <= f_c,
     //
     //      ==> 2^(q - 1 + alpha) <= c * 2^(e + q)
     //      ==> 2^(alpha - e - 1) <= c
@@ -19252,19 +19252,19 @@ inline cached_power get_cached_power_for_binary_exponent(int e)
     //  this simple function is sufficient."
     //
     // For IEEE double precision floating-point numbers converted into
-    // normalized diyfp's w = f * 2^e, with q = 64,
+    // Normalizedd diyfp's w = f * 2^e, with q = 64,
     //
     //      e >= -1022      (min IEEE exponent)
     //           -52        (p - 1)
-    //           -52        (p - 1, possibly normalize denormal IEEE numbers)
-    //           -11        (normalize the diyfp)
+    //           -52        (p - 1, possibly Normalized denormal IEEE numbers)
+    //           -11        (Normalized the diyfp)
     //         = -1137
     //
     // and
     //
     //      e <= +1023      (max IEEE exponent)
     //           -52        (p - 1)
-    //           -11        (normalize the diyfp)
+    //           -11        (Normalized the diyfp)
     //         = 960
     //
     // This binary exponent range [-1137,960] results in a decimal exponent
@@ -19486,7 +19486,7 @@ inline void grisu2_round(char* buf, int len, std::uint64_t dist, std::uint64_t d
 
 /*!
 Generates V = buffer * 10^decimal_exponent, such that M- <= V <= M+.
-M- and M+ must be normalized and share the same exponent -60 <= e <= -32.
+M- and M+ must be Normalizedd and share the same exponent -60 <= e <= -32.
 */
 inline void grisu2_digit_gen(char* buffer, int& length, int& decimal_exponent,
                              diyfp M_minus, diyfp w, diyfp M_plus)
