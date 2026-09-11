@@ -19,6 +19,7 @@ public:
 	static UAssetManager& Get();
 
 	void Init(FRenderer* renderer);
+	void Shutdown();
 	
 	void SetRenderer(FRenderer* InRenderer);
 	

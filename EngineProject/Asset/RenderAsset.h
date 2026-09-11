@@ -5,7 +5,7 @@
 class URenderAsset : public UObject
 {
 public:
-	URenderAsset();
-	virtual ~URenderAsset();
+	URenderAsset() = default;
+	virtual ~URenderAsset() = default;
 
 };

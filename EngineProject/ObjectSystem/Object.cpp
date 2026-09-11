@@ -21,6 +21,14 @@ UObject::UObject(bool bRegister)
 
 UObject::~UObject()
 {
+	int32 LastIndex = GUObjectArray.Num() - 1;
+	if (InternalIndex != LastIndex)
+	{
+		UObject* MovedObject = GUObjectArray[LastIndex];
+		GUObjectArray[InternalIndex] = MovedObject;
+		MovedObject->InternalIndex = InternalIndex; // 옮겨간 오브젝트 인덱스 갱신
+	}
+	GUObjectArray.RemoveLast();
 }
 
 UClass* UObject::StaticClass()

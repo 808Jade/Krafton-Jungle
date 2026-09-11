@@ -182,8 +182,9 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 
 void Engine::Shutdown()
 {
-	for (UObject* Object : GUObjectArray)
-		delete Object;
+	UAssetManager::Get().Shutdown();
+	for (int32 i = GUObjectArray.Num() - 1; i >= 0; --i)
+		delete GUObjectArray[i];
 	ImGuiRenderer->Shutdown();
 	Renderer->Shutdown();
 }

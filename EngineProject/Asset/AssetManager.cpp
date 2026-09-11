@@ -31,6 +31,11 @@ void UAssetManager::Init(FRenderer* InRenderer)
     MeshMap[FString("Plane")] = Renderer->CreateMesh(PlaneData);
 }
 
+void UAssetManager::Shutdown()
+{
+    MeshMap.Reset();
+}
+
 void UAssetManager::SetRenderer(FRenderer* InRenderer)
 {
     Renderer = InRenderer;
