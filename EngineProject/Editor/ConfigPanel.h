@@ -15,7 +15,7 @@ struct FEditorSettings
 	// Values
 	float CameraSpeed = 1.0f;
 	float MouseSensitivity = 1.0f;
-	float GridSpacing = 100.0f;
+	float GridSpacing = 1.0f;
 };
 
 

@@ -3,7 +3,7 @@
 #include <d3d11.h>
 #include "Render/Renderer.h"
 
-struct GridData
+struct FGridData
 {
 	FMatrix invViewProj;
 	FVector CameraPos;
@@ -17,16 +17,30 @@ public:
 
 	bool Init(FRenderer* InRenderer);
 	void OnRender(const FMatrix& ViewProj, const FVector& CameraPos);
-	
+
+	void SetGridSpace(float Value) { GridSpace = Value; }
+
 private:
 	FRenderer* Renderer;
 
-	TSharedPtr<FShader> GridShader;
-	FShader* AxisShader;
-
-	TSharedPtr<FVertexBuffer> VB;
-	TSharedPtr<FIndexBuffer> IB;
+	TSharedPtr<FShader> BatchGridShader;
+	FVertex* VertexBufferBase;
+	FVertex* VertexBufferPtr;
 	TSharedPtr<FConstantBuffer> CB;
+	uint32 VertexCount;
 
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;
+	uint32 MaxVertices = 0;
+	TSharedPtr<FVertexBuffer> VertexBuffer;
+
+	float GridSpace = 1.0f;
+
+	//PS Grid용(주석만 풀면 됨)
+	//TSharedPtr<FShader> GridShader;
+	//FShader* AxisShader;
+
+	//TSharedPtr<FVertexBuffer> VB;
+	//TSharedPtr<FIndexBuffer> IB;
+	//TSharedPtr<FConstantBuffer> CB;
+
+	//Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;
 };

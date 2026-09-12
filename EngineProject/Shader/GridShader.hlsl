@@ -14,16 +14,16 @@ static const float4 Positions[4] =
     float4(0.5, -0.5, 0.0, 1.0)
 };
 
-struct VSOut
+struct PS_INPUT
 {
     float4 pos : SV_POSITION;
     float2 coords : TEXCOORD0; // world space xz
     float3 camPos : TEXCOORD1;
 };
 
-VSOut mainVS(uint vid : SV_VertexID)
+PS_INPUT mainVS(uint vid : SV_VertexID)
 {
-    VSOut o;
+    PS_INPUT o;
     float4 worldPos = Positions[vid];
     worldPos.xyz *= GridSize;
     worldPos.xy += CameraPos.xy; 
@@ -47,14 +47,7 @@ static const float HeightToFadeRatio = 25.0f;
 static const float MinFadeDistance = 5.0f;
 static const float MaxFadeDistance = 150.0f;
 
-struct PSIn
-{
-    float4 pos : SV_POSITION;
-    float2 coords : TEXCOORD0;
-    float3 camPos : TEXCOORD1;
-};
-
-float4 mainPS(PSIn input) : SV_TARGET
+float4 mainPS(PS_INPUT input) : SV_TARGET
 {
     float2 cellCoords = MOD(input.coords + CellSize * 0.5, CellSize);
     float2 subCellCoords = MOD(input.coords + SubCellSize * 0.5, SubCellSize);

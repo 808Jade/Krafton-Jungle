@@ -142,6 +142,7 @@ void Engine::Run()
 		World->Tick(DeltaTime);
 		//Update Editor
 		EditorUI->Tick(DeltaTime);
+		GridRenderer->SetGridSpace(ConfigPanel->GetSettings().GridSpacing);
 
 		FMatrix VP = World->GetMainCamera()->GetCameraComponent()->GetViewProjectionMatrix();
 
@@ -176,6 +177,10 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 {
 	Renderer->BeginFrame();
 
+	if (ConfigPanel->GetSettings().bDrawBoundingBox)
+	{
+		DebugRenderer->OnRender(ViewProj);
+	}
 	GridRenderer->OnRender(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation());
 	Renderer->RenderAll(RenderQueue, ViewProj);
 	FVector4 CamLoc = World->GetMainCamera()->GetCameraComponent()->GetLocation();
@@ -185,10 +190,10 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 	if (Gizmo->GetTarget())
 	{ 
 		auto Target = Gizmo->GetTarget()->GetOwner();
-		//FString Text = "UUID : " + std::to_string(Target->GetName());
+		FString Text = "UUID : " + std::to_string(Target->GetUUID());
 		//FString Text = "FName : " + Target->GetName().ToString();
 		Renderer->SetDepthStencilEnabled(false);
-		TextRenderer->OnRender("안녕하세요", Gizmo->GetLocation(), 3.0f, *Atlas, World->GetMainCamera()->GetCameraComponent());
+		TextRenderer->OnRender(Text, Gizmo->GetLocation(), 1.0f, *Atlas, World->GetMainCamera()->GetCameraComponent());
 		Renderer->SetDepthStencilEnabled(true);
 		GizmoRenderer->OnRender(*Gizmo, ViewProj);
 	}
