@@ -26,7 +26,7 @@ struct PS_INPUT
 
 PS_INPUT mainVS(uint vid : SV_VertexID)
 {
-    VSOut o;
+    PS_INPUT o;
     float4 localPos = Positions[vid];
     float4 worldPos = float4(0, 0, 0, 1);
 
