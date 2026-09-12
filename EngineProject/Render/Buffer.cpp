@@ -1,50 +1,34 @@
 #include "EnginePCH.h"
 #include "Buffer.h"
 
-FIndexBuffer::FIndexBuffer(ID3D11Device* Device, const uint32* Indices, uint32 Count)
+FBuffer::FBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc)
 {
-	IndexCount = Count;
-
-	// Create a index buffer
-	D3D11_BUFFER_DESC Desc = {};
-	Desc.ByteWidth = sizeof(uint32) * Count;
-	Desc.Usage = D3D11_USAGE_DEFAULT;
-	Desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-	D3D11_SUBRESOURCE_DATA Data;
-	Data.pSysMem = Indices;
-
-	HRESULT hr = Device->CreateBuffer(&Desc, &Data, Buffer.GetAddressOf());
+	BufferSize = Desc.ByteWidth;
+	HRESULT hr = Device->CreateBuffer(&Desc, nullptr, Buffer.GetAddressOf());
+	if (FAILED(hr))
+	{
+		LOG(Warning, "Failed To Create Buffer!");
+	}
 }
 
-FVertexBuffer::FVertexBuffer(ID3D11Device* Device, const void* Vertices, uint32 TotalSize, uint32 InStride)
+FVertexBuffer::FVertexBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 InStride)
+	:FBuffer(Device, Desc)
 {
 	Stride = InStride;
 
-	// Create a index buffer
-	D3D11_BUFFER_DESC Desc = {};
-	Desc.ByteWidth = TotalSize;
-	Desc.Usage = D3D11_USAGE_DEFAULT;
-	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-	D3D11_SUBRESOURCE_DATA Data;
-	Data.pSysMem = Vertices;
-
-	HRESULT hr = Device->CreateBuffer(&Desc, &Data, Buffer.GetAddressOf());
 }
 
-FConstantBuffer::FConstantBuffer(ID3D11Device* Device, uint32 Size)
+
+FIndexBuffer::FIndexBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 Count)
+	:FBuffer(Device, Desc)
 {
-	D3D11_BUFFER_DESC Desc = {};
-	Desc.ByteWidth = Size;
-	Desc.Usage = D3D11_USAGE_DYNAMIC;
-	Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-	HRESULT hr = Device->CreateBuffer(&Desc, nullptr, Buffer.GetAddressOf());
+	IndexCount = Count;
 }
 
-void FConstantBuffer::UpdateData(const void* InData)
+FConstantBuffer::FConstantBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc)
+	:FBuffer(Device, Desc)
 {
-	
 }
+
+
+

@@ -78,6 +78,12 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	Outline = MakeUnique<FOutline>();
 
+	TextShader = Renderer->CreateShader(L"Shader/TextShader.hlsl", FTextVertex::GetLayout());
+	Atlas = Renderer->LoadFontAtlas("atlas.json", "atlas.png");
+
+	TextRenderer = MakeUnique<FTextRenderer>();
+	TextRenderer->Init(Renderer.get());
+
 	// Scene
 	World = FObjectFactory::ConstructObject<UWorld>();
 	World->Init();	
@@ -92,6 +98,9 @@ bool Engine::Init(HINSTANCE hInstance)
 		PropertyPanel->SetTarget(nullptr);
 		}
 	);
+
+
+
 
 	bIsRunning = true;
 
@@ -135,6 +144,7 @@ void Engine::Run()
 		TQueue<FRenderPacket> RenderQueue;
 		World->GatherRenderPackets(RenderQueue);
 
+
 		//BeginRendering
 		RenderFrame(VP, RenderQueue);
 	}
@@ -160,7 +170,7 @@ void Engine::UpdateGizmoAndPicking(FMatrix& ViewProj)
 void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 {
 	Renderer->BeginFrame();
-
+	
 	GridRenderer->OnRender(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation());
 	Renderer->RenderAll(RenderQueue, ViewProj);
 	FVector4 CamLoc = World->GetMainCamera()->GetCameraComponent()->GetLocation();
@@ -169,6 +179,7 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 
 	if (Gizmo->GetTarget())
 	{
+		TextRenderer->OnRender("크래프톤정글", Gizmo->GetLocation(), 3.0f, *Atlas, World->GetMainCamera()->GetCameraComponent());
 		Renderer->SetDepthStencilEnabled(false);
 		GizmoRenderer->OnRender(*Gizmo, ViewProj);
 	}

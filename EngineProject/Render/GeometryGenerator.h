@@ -98,6 +98,7 @@ struct UStaticMeshData
 class FGeometryGenerator
 {
 public:
+	static UStaticMeshData CreateTextQuad(const FVector& Start, const FVector& End, const FVector4& Color);
 	static UStaticMeshData CreateLine(const FVector& Start, const FVector& End, const FVector4& Color);
 	static UStaticMeshData CreatePlane(float Size, const FVector4& Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	static UStaticMeshData CreateAxis();

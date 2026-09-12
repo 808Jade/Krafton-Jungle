@@ -18,6 +18,10 @@
 #include "Editor/Outline.h"
 #include "Editor/OutLineRenderer.h"
 
+//Temp
+#include "Text/FontAtlas.h"
+#include "Text/TextRenderer.h"
+
 class Engine
 {
 public:
@@ -46,10 +50,14 @@ private:
 	TUniquePtr<FImGuiRenderer> ImGuiRenderer;
 	TUniquePtr<FGridRenderer> GridRenderer;
 	TUniquePtr<FGizmoRenderer> GizmoRenderer;
+	TUniquePtr<FTextRenderer> TextRenderer;
 	//TUniquePtr<FGizmo> Gizmo;
 	TUniquePtr<FGizmo> Gizmo;
 	TUniquePtr<FOutline> Outline;
 	TUniquePtr<FOutlineRenderer> OutlineRenderer;
+
+	TSharedPtr<FShader> TextShader;
+	TSharedPtr<FFontAtlas> Atlas;
 
 	// UE_LOG 매크로용 전역 콘솔
 	inline static FConsolePanel* ConsolePanel = nullptr;

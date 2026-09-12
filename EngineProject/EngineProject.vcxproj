@@ -116,6 +116,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)ThirdParty\ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -203,6 +204,8 @@
     </ClCompile>
     <ClCompile Include="GameFramework\Actor\StaticMeshActor.cpp" />
     <ClCompile Include="Render\Texture2D.cpp" />
+    <ClCompile Include="Text\FontAtlas.cpp" />
+    <ClCompile Include="Text\TextRenderer.cpp" />
     <ClCompile Include="ThirdParty\ImGui\backends\imgui_impl_dx11.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -238,6 +241,7 @@
     <ClInclude Include="Camera\CameraComponent.h" />
     <ClInclude Include="Collision\Ray.h" />
     <ClInclude Include="Component\ActorComponent.h" />
+    <ClInclude Include="Component\BillboardComponent.h" />
     <ClInclude Include="Container\Array.h" />
     <ClInclude Include="Container\Containers.h" />
     <ClInclude Include="Container\Map.h" />
@@ -292,6 +296,10 @@
     <ClInclude Include="Component\PrimitiveComponent.h" />
     <ClInclude Include="Component\SceneComponent.h" />
     <ClInclude Include="EnginePCH.h" />
+    <ClInclude Include="Render\ImageLoader.h" />
+    <ClInclude Include="Text\FontAtlas.h" />
+    <ClInclude Include="Text\ImageLoader.h" />
+    <ClInclude Include="Text\TextRenderer.h" />
     <ClInclude Include="ThirdParty\json\json.hpp" />
     <ClInclude Include="Render\Buffer.h" />
     <ClInclude Include="Render\GeometryGenerator.h" />
@@ -311,6 +319,7 @@
     <ClInclude Include="ThirdParty\ImGui\imstb_rectpack.h" />
     <ClInclude Include="ThirdParty\ImGui\imstb_textedit.h" />
     <ClInclude Include="ThirdParty\ImGui\imstb_truetype.h" />
+    <ClInclude Include="ThirdParty\stb\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\DefaultShader.hlsl">
@@ -328,6 +337,10 @@
     <FxCompile Include="Shader\OutlineShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shader\TextShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

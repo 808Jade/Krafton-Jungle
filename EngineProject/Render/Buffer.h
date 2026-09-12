@@ -5,48 +5,53 @@
 
 using namespace Microsoft::WRL;
 
-class FIndexBuffer
+class FBuffer
 {
 public:
-	FIndexBuffer(ID3D11Device* Device, const uint32* Indices, uint32 IndexCount);
-	~FIndexBuffer() = default;
+	FBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc);
+	virtual ~FBuffer() = default ;
 
-	inline uint32 GetIndexCount() const { return IndexCount; }
+	inline uint32 GetBufferSize() const { return BufferSize; }
 	inline ID3D11Buffer* GetBuffer() const { return Buffer.Get(); }
 
+protected:
+	uint32 BufferSize = 0;
+	ComPtr<ID3D11Buffer> Buffer = nullptr;
 private:
-	uint32 IndexCount;
-	ComPtr<ID3D11Buffer> Buffer;
-
 };
 
-class FVertexBuffer
+class FVertexBuffer : public FBuffer
 {
 public:
-	FVertexBuffer(ID3D11Device* Device, const void* Vertices, uint32 TotalSize, uint32 InStride);
-	~FVertexBuffer() = default;
-
+	//static
+	FVertexBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 InStride);
+	~FVertexBuffer() override = default;
+	 
 	inline uint32 GetStride() const { return Stride; }
-	inline ID3D11Buffer* GetBuffer() const { return Buffer.Get(); }
-
 private:
 	uint32 Stride = 0;
-	ComPtr<ID3D11Buffer> Buffer;
+};
+
+
+class FIndexBuffer : public FBuffer
+{
+public:
+	FIndexBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 Count);
+	~FIndexBuffer() override = default;
+
+	inline uint32 GetIndexCount() const { return IndexCount; }
+private:
+	uint32 IndexCount;
 
 };
 
-class FConstantBuffer
+
+class FConstantBuffer : public FBuffer
 {
 public:
-	FConstantBuffer(ID3D11Device* Device, uint32 Size);
-	~FConstantBuffer() = default;
-
-	void UpdateData(const void* InData);
-	inline ID3D11Buffer* GetBuffer() const { return Buffer.Get(); }
+	FConstantBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc);
+	~FConstantBuffer() override  = default;
 
 private:
-	ComPtr<ID3D11Buffer> Buffer;
-	void* DataPtr;
-	uint32 Size;
 
 };
