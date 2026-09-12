@@ -35,6 +35,8 @@ public:
 	void SetAspectRatio(float Ratio);
 	void SetNearClipPlane(float NearPlane);
 	void SetFarClipPlane(float FarPlane);
+	void SetCameraSpeed(float InSpeed);
+	void SetMouseSensitivity(float InSensitivity);
 
 	float* GetFOV();
 
@@ -50,8 +52,8 @@ public:
 	FMatrix GetViewProjectionMatrix() const;
 
 private:
-	const float CameraSpeed = 10.0f;
-	const float MouseSensitivity = 0.05f;
+	float CameraSpeed = 10.0f;
+	float MouseSensitivity = 0.05f;
 	const float WheelSpeed = 0.1f;
 };
 

@@ -190,6 +190,12 @@
     <ClCompile Include="Core\Name.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Editor\ConfigPanel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Render\DebugRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera\CameraActor.h">
@@ -441,10 +447,19 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Component\BillboardComponent.h">
+    <ClInclude Include="Core\Name.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Name.h">
+    <ClInclude Include="ConfigPanel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\DebugRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Render\StaticMeshData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Editor\ConfigPanel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

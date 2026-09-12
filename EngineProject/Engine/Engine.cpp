@@ -76,6 +76,8 @@ bool Engine::Init(HINSTANCE hInstance)
 	OutlineRenderer = MakeUnique<FOutlineRenderer>();
 	OutlineRenderer->Init(Renderer.get());
 
+	ConfigPanel = EditorUI->AddEditorPanel<FConfigPanel>();
+
 	Outline = MakeUnique<FOutline>();
 
 	TextShader = Renderer->CreateShader(L"Shader/TextShader.hlsl", FTextVertex::GetLayout());
@@ -94,6 +96,8 @@ bool Engine::Init(HINSTANCE hInstance)
 	PropertyPanel->SetWorld(World);
 	ControlPanel->FControlPanel::World = World;
 	ControlPanel->SetGizmo(Gizmo.get());
+
+	ConfigPanel->SetWorld(World);
 
 	ControlPanel->SetSceneClearCallback([&]() {
 		Gizmo->SetTarget(nullptr);
