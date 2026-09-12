@@ -17,14 +17,14 @@ static const float4 Positions[4] =
     float4(0.5, -0.5, 0.0, 1.0)
 };
 
-struct VSOut
+struct PS_INPUT
 {
     float4 pos : SV_POSITION;
     float2 coords : TEXCOORD0;
     float3 camPos : TEXCOORD1;
 };
 
-VSOut mainVS(uint vid : SV_VertexID)
+PS_INPUT mainVS(uint vid : SV_VertexID)
 {
     VSOut o;
     float4 localPos = Positions[vid];
@@ -73,14 +73,7 @@ static const float HeightToFadeRatio = 25.0f;
 static const float MinFadeDistance = 5.0f;
 static const float MaxFadeDistance = 50.0f;
 
-struct PSIn
-{
-    float4 pos : SV_POSITION;
-    float2 coords : TEXCOORD0;
-    float3 camPos : TEXCOORD1;
-};
-
-float4 mainPS(PSIn input) : SV_TARGET
+float4 mainPS(PS_INPUT input) : SV_TARGET
 {
     float fadeDist = clamp(abs(input.camPos.z) * HeightToFadeRatio, MinFadeDistance, MaxFadeDistance);
 
