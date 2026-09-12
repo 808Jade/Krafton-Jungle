@@ -18,16 +18,16 @@ void UAssetManager::Init(FRenderer* InRenderer)
     }
 
     // 메시 데이터 업로드
-    UStaticMeshData CubeData = FGeometryGenerator::CreateCube(1.0f);
+    FStaticMeshData CubeData = FGeometryGenerator::CreateCube(1.0f);
     MeshMap[FString("Cube")] = Renderer->CreateMesh(CubeData);
 
-    UStaticMeshData ConeData = FGeometryGenerator::CreateCone(1.0f, 1.0f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+    FStaticMeshData ConeData = FGeometryGenerator::CreateCone(1.0f, 1.0f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
     MeshMap[FString("Cone")] = Renderer->CreateMesh(ConeData);
 
-    UStaticMeshData SphereData = FGeometryGenerator::CreateSphere(1.0f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+    FStaticMeshData SphereData = FGeometryGenerator::CreateSphere(1.0f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
     MeshMap[FString("Sphere")] = Renderer->CreateMesh(SphereData);
 
-    UStaticMeshData PlaneData = FGeometryGenerator::CreatePlane(1.0f,FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+    FStaticMeshData PlaneData = FGeometryGenerator::CreatePlane(1.0f,FVector4(1.0f, 1.0f, 1.0f, 1.0f));
     MeshMap[FString("Plane")] = Renderer->CreateMesh(PlaneData);
 }
 
@@ -53,7 +53,7 @@ UStaticMesh* UAssetManager::GetMesh(FString InName)
     //if (it == MeshMap.end())
     if (foundMeshOrNull == nullptr)
     {
-        UStaticMeshData Data = FGeometryGenerator::GetMeshData(InName);
+        FStaticMeshData Data = FGeometryGenerator::GetMeshData(InName);
         TSharedPtr<FVertexBuffer> vb = Renderer->CreateVertexBuffer(Data.Vertices.GetData(), sizeof(FVertex) * (UINT)Data.Vertices.Num(), sizeof(FVertex));
         TSharedPtr<FIndexBuffer> ib = Renderer->CreateIndexBuffer(Data.Indices.GetData(), Data.Indices.Num());
 

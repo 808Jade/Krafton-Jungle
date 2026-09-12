@@ -78,9 +78,18 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	Outline = MakeUnique<FOutline>();
 
+	TextShader = Renderer->CreateShader(L"Shader/TextShader.hlsl", FTextVertex::GetLayout());
+	Atlas = Renderer->LoadFontAtlas("atlas.json", "atlas.png");
+
+	TextRenderer = MakeUnique<FTextRenderer>();
+	TextRenderer->Init(Renderer.get());
+	
 	// Scene
 	World = FObjectFactory::ConstructObject<UWorld>();
-	World->Init();	
+	World->Init();
+
+	DebugRenderer = MakeUnique<FDebugRenderer>();
+	DebugRenderer->Init(Renderer.get(), World);
 
 	PropertyPanel->SetWorld(World);
 	ControlPanel->FControlPanel::World = World;
@@ -103,11 +112,13 @@ void Engine::Run()
 	EngineTimer::Init();
 
 	LOG(Info, "{}", "Hello, World!");
+	LOG(Info, "{}", FName().ToString());
 
 	FMatrix Mat;
 	Mat.SetIdentity();
 
 	UPrimitiveComponent* OutlineComponent = nullptr;
+
 
 	while (bIsRunning)
 	{
@@ -168,8 +179,13 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 		OutlineRenderer->OnRender(*Outline, ViewProj, CamLoc);
 
 	if (Gizmo->GetTarget())
-	{
+	{ 
+		auto Target = Gizmo->GetTarget()->GetOwner();
+		//FString Text = "UUID : " + std::to_string(Target->GetName());
+		//FString Text = "FName : " + Target->GetName().ToString();
 		Renderer->SetDepthStencilEnabled(false);
+		TextRenderer->OnRender("안녕하세요", Gizmo->GetLocation(), 3.0f, *Atlas, World->GetMainCamera()->GetCameraComponent());
+		Renderer->SetDepthStencilEnabled(true);
 		GizmoRenderer->OnRender(*Gizmo, ViewProj);
 	}
 

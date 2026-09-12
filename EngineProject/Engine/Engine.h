@@ -9,6 +9,7 @@
 #include "ImGuiRenderer.h"
 #include "Editor/GridRenderer.h"
 #include "Editor/GizmoRenderer.h"
+#include "Render/DebugRenderer.h"
 
 #include "Editor/EditorUI.h"
 #include "Editor/ConsolePanel.h"
@@ -17,6 +18,10 @@
 
 #include "Editor/Outline.h"
 #include "Editor/OutLineRenderer.h"
+
+//Temp
+#include "Text/FontAtlas.h"
+#include "Text/TextRenderer.h"
 
 class Engine
 {
@@ -46,10 +51,15 @@ private:
 	TUniquePtr<FImGuiRenderer> ImGuiRenderer;
 	TUniquePtr<FGridRenderer> GridRenderer;
 	TUniquePtr<FGizmoRenderer> GizmoRenderer;
+	TUniquePtr<FTextRenderer> TextRenderer;
+	TUniquePtr<FDebugRenderer> DebugRenderer;
 	//TUniquePtr<FGizmo> Gizmo;
 	TUniquePtr<FGizmo> Gizmo;
 	TUniquePtr<FOutline> Outline;
 	TUniquePtr<FOutlineRenderer> OutlineRenderer;
+
+	TSharedPtr<FShader> TextShader;
+	TSharedPtr<FFontAtlas> Atlas;
 
 	// UE_LOG 매크로용 전역 콘솔
 	inline static FConsolePanel* ConsolePanel = nullptr;

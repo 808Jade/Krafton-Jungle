@@ -3,6 +3,12 @@
 #include "Shader.h"
 #include "Mesh.h"
 
+#include <WICTextureLoader.h>   // png, jpg, bmp 등
+#include <DDSTextureLoader.h>   // .dds 전용 (밉맵/압축 포맷 지원)
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "ThirdParty/stb/stb_image.h"
+
 void FRenderer::BeginFrame()
 {
 	DeviceContext->ClearRenderTargetView(FrameBufferRTV.Get(), ClearColor);
@@ -28,6 +34,19 @@ bool FRenderer::Init(HWND hWindow)
 	CreateRasterizerState();
 	CreateDepthStencilBufferAndState();
 	CreateConstantBuffer();
+
+	D3D11_SAMPLER_DESC Desc = {};
+	Desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	Desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	Desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	Desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	Desc.MipLODBias = 0.0f;
+	Desc.MaxAnisotropy = 1;
+	Desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	Desc.MinLOD = 0.0f;
+	Desc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	HRESULT hr = Device->CreateSamplerState(&Desc, &DefaultSamplerState);
 
 	// 임시 셰이더 프로그램 컴파일 로직
 	/*D3D11_INPUT_ELEMENT_DESC layout[] =
@@ -60,8 +79,13 @@ void FRenderer::CreateDeviceAndSwapChain(HWND hWindow)
 	SwapChainDesc.Windowed = TRUE;
 	SwapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 
+	UINT CreateFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;   // 기존 플래그 유지
+#if defined(_DEBUG)
+	CreateFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
 	D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-		D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+		CreateFlags,
 		FeatureLevels, ARRAYSIZE(FeatureLevels), D3D11_SDK_VERSION,
 		&SwapChainDesc, SwapChain.GetAddressOf(), Device.GetAddressOf(), nullptr, DeviceContext.GetAddressOf());
 
@@ -145,15 +169,31 @@ void FRenderer::CreateConstantBuffer()
 	Device->CreateBuffer(&constantbufferdesc, nullptr, &ConstantBuffer);
 }
 
+TSharedPtr<FFontAtlas> FRenderer::LoadFontAtlas(const FString& JsonPath, const FString& AtlasTexturePath)
+{
+	TSharedPtr<FFontAtlas> Atlas = MakeShared<FFontAtlas>();
+
+	if (!LoadFontAtlasJson(JsonPath, Atlas.get()))
+	{
+		return nullptr;
+	}
+
+	Atlas->AtlasTexture = CreateShaderResource(AtlasTexturePath);
+	if (!Atlas->AtlasTexture)
+	{
+		return nullptr;
+	}
+
+	return Atlas;
+}
+
 TSharedPtr<FShader> FRenderer::CreateShader(const wchar_t* FileName, D3D11_INPUT_ELEMENT_DESC* InLayoutDesc, size_t InLayoutSize)
 {
-
 	TSharedPtr<FShader> Shader = MakeShared<FShader>();
 
 	ID3DBlob* VertexShaderCSO;
 	ID3DBlob* ErrorBlob;
 	HRESULT hr = D3DCompileFromFile(FileName, nullptr, nullptr, "mainVS", "vs_5_0", 0, 0, &VertexShaderCSO, &ErrorBlob);
-
 
 	if (FAILED(hr))
 	{
@@ -165,7 +205,6 @@ TSharedPtr<FShader> FRenderer::CreateShader(const wchar_t* FileName, D3D11_INPUT
 		assert(false && "Vertex shader compile failed");
 		return nullptr; // 혹은 적절한 실패 처리
 	}
-
 
 	hr = Device->CreateVertexShader(VertexShaderCSO->GetBufferPointer(), VertexShaderCSO->GetBufferSize(), nullptr, Shader->VertexShader.GetAddressOf());
 
@@ -190,13 +229,13 @@ TSharedPtr<FShader> FRenderer::CreateShader(const wchar_t* FileName, std::vector
 	return CreateShader(FileName, Layouts.data(), Layouts.size());
 }
 
-UStaticMesh* FRenderer::CreateMesh(const UStaticMeshData& InMeshData)
+UStaticMesh* FRenderer::CreateMesh(const FStaticMeshData& InMeshData)
 {
 	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
 
 	Mesh->VertexBuffer = CreateVertexBuffer(InMeshData.Vertices.GetData(), sizeof(FVertex) * InMeshData.Vertices.Num(), sizeof(FVertex));
 	Mesh->IndexBuffer = CreateIndexBuffer(InMeshData.Indices.GetData(), InMeshData.Indices.Num());
-	
+
 	return Mesh;
 }
 
@@ -211,25 +250,170 @@ UStaticMesh* FRenderer::CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TShar
 }
 
 
-TSharedPtr<FVertexBuffer> FRenderer::CreateVertexBuffer(const void* InVertices, uint32 TotalSize, uint32 Stride)
+
+UTexture2D* FRenderer::CreateShaderResource(const FString& InPath)
 {
-	TSharedPtr<FVertexBuffer> Buffer = MakeShared<FVertexBuffer>(Device.Get(), InVertices, TotalSize, Stride);
+	//UTexture2D* Texture2D = FObjectFactory::ConstructObject<UTexture2D>();
+
+	//std::wstring WidePath(InPath.begin(), InPath.end());
+	//ComPtr<ID3D11Resource> Resource;
+	//HRESULT hr = DirectX::CreateWICTextureFromFile(Device.Get(), WidePath.c_str(), Resource.GetAddressOf(), Texture2D->ShaderResourceView.GetAddressOf());
+	//if (FAILED(hr))
+	//{
+	//	delete Texture2D;
+	//	return nullptr;
+	//}
+
+	//Resource.As(&Texture2D->Texture);
+
+	//return Texture2D;
+
+		// 1. 이미지 로드 (강제 RGBA 4채널)
+	stbi_set_flip_vertically_on_load(false); // D3D는 UV 원점이 좌상단 → 뒤집지 않음
+	int Width = 0, Height = 0, Channels = 0;
+	unsigned char* Pixels = stbi_load(InPath.c_str(), &Width, &Height, &Channels, 4);
+	if (!Pixels)
+	{
+		OutputDebugStringA(("[Texture] stbi_load failed: " + InPath + " (" + stbi_failure_reason() + ")\n").c_str());
+		return nullptr;
+	}
+
+	std::vector<uint8_t> PixelVec(Width * Height * Channels);
+
+	std::copy(Pixels, Pixels + Width * Height * Channels, PixelVec.data());
+
+	// 2. Texture2D 생성
+	D3D11_TEXTURE2D_DESC Desc = {};
+	Desc.Width = static_cast<UINT>(Width);
+	Desc.Height = static_cast<UINT>(Height);
+	Desc.MipLevels = 1;
+	Desc.ArraySize = 1;
+	Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // MSDF는 반드시 UNORM (sRGB 금지)
+	Desc.SampleDesc.Count = 1;
+	Desc.Usage = D3D11_USAGE_IMMUTABLE;
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	D3D11_SUBRESOURCE_DATA InitData = {};
+	InitData.pSysMem = Pixels;
+	InitData.SysMemPitch = static_cast<UINT>(Width) * 4;
+
+	ComPtr<ID3D11Texture2D> Texture;
+	HRESULT hr = Device->CreateTexture2D(&Desc, &InitData, Texture.GetAddressOf());
+	stbi_image_free(Pixels); // GPU로 복사 끝났으니 바로 해제
+	if (FAILED(hr))
+	{
+		return nullptr;
+	}
+
+	// 3. SRV 생성
+	ComPtr<ID3D11ShaderResourceView> SRV;
+	hr = Device->CreateShaderResourceView(Texture.Get(), nullptr, SRV.GetAddressOf());
+	if (FAILED(hr))
+	{
+		return nullptr;
+	}
+
+	// 4. 전부 성공한 뒤에 오브젝트 생성
+	UTexture2D* Texture2D = FObjectFactory::ConstructObject<UTexture2D>();
+	Texture2D->Texture = Texture;
+	Texture2D->ShaderResourceView = SRV;
+
+	return Texture2D;
+}
+
+UTexture2D* FRenderer::CreateRenderTarget(const FString& InPath)
+{
+	// TODO:
+	return nullptr;
+}
+
+TSharedPtr<FVertexBuffer> FRenderer::CreateVertexBuffer(const void* InVertices, uint32 InSize, uint32 Stride)
+{
+	D3D11_BUFFER_DESC Desc = {};
+	Desc.Usage = D3D11_USAGE_DYNAMIC;          // 나중에 규모 커지면 immutable
+	Desc.ByteWidth = InSize;
+	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+	TSharedPtr<FVertexBuffer> Buffer = MakeShared<FVertexBuffer>(Device.Get(), Desc, Stride);
+
+	UpdateVertexBufferData(Buffer.get(), InVertices, InSize);
 
 	return Buffer;
 }
 
 TSharedPtr<FIndexBuffer> FRenderer::CreateIndexBuffer(const uint32* InIndices, uint32 IndexCount)
 {
-	TSharedPtr<FIndexBuffer> Buffer = MakeShared<FIndexBuffer>(Device.Get(), InIndices, IndexCount);
+	D3D11_BUFFER_DESC Desc = {};
+	Desc.Usage = D3D11_USAGE_DYNAMIC;          // 나중에 규모 커지면 immutable
+	Desc.ByteWidth = sizeof(uint32) * IndexCount;
+	Desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+	TSharedPtr<FIndexBuffer> Buffer = MakeShared<FIndexBuffer>(Device.Get(), Desc, IndexCount);
+
+	UpdateIndexBufferData(Buffer.get(), InIndices, sizeof(uint32) * IndexCount);
+
+	return Buffer;
+}
+
+TSharedPtr<FVertexBuffer> FRenderer::CreateDynamicVertexBuffer(uint32 MaxSize, uint32 Stride)
+{
+	D3D11_BUFFER_DESC Desc = {};
+	Desc.Usage = D3D11_USAGE_DYNAMIC;
+	Desc.ByteWidth = MaxSize;
+	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+	TSharedPtr<FVertexBuffer> Buffer = MakeShared<FVertexBuffer>(Device.Get(), Desc, Stride);
+
+	return Buffer;
+}
+
+TSharedPtr<FIndexBuffer> FRenderer::CreateDynamicIndexBuffer(uint32 MaxIndexCount)
+{
+	D3D11_BUFFER_DESC Desc = {};
+	Desc.Usage = D3D11_USAGE_DYNAMIC;
+	Desc.ByteWidth = sizeof(uint32) * MaxIndexCount;
+	Desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+	TSharedPtr<FIndexBuffer> Buffer = MakeShared<FIndexBuffer>(Device.Get(), Desc, MaxIndexCount);
 
 	return Buffer;
 }
 
 TSharedPtr<FConstantBuffer> FRenderer::CreateConstantBuffer(uint32 BufferSize)
 {
-	TSharedPtr<FConstantBuffer> Buffer = MakeShared<FConstantBuffer>(Device.Get(), BufferSize);
+	D3D11_BUFFER_DESC Desc = {};
+	Desc.Usage = D3D11_USAGE_DYNAMIC;
+	Desc.ByteWidth = BufferSize;
+	Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+	TSharedPtr<FConstantBuffer> Buffer = MakeShared<FConstantBuffer>(Device.Get(), Desc);
 
 	return Buffer;
+}
+
+void FRenderer::UpdateVertexBufferData(FVertexBuffer* InBuffer, const void* Data, uint32 DataSize)
+{
+	ID3D11Buffer* Buffer = InBuffer->GetBuffer();
+
+	D3D11_MAPPED_SUBRESOURCE MappedResource;
+	DeviceContext->Map(Buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+	std::memcpy(MappedResource.pData, Data, DataSize);
+	DeviceContext->Unmap(Buffer, 0);
+}
+
+void FRenderer::UpdateIndexBufferData(FIndexBuffer* InBuffer, const void* Data, uint32 DataSize)
+{
+	ID3D11Buffer* Buffer = InBuffer->GetBuffer();
+
+	D3D11_MAPPED_SUBRESOURCE MappedResource;
+	DeviceContext->Map(Buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+	std::memcpy(MappedResource.pData, Data, DataSize);
+	DeviceContext->Unmap(Buffer, 0);
 }
 
 void FRenderer::UpdateConstantBufferData(FConstantBuffer* InBuffer, const void* Data, uint32 DataSize)
@@ -290,6 +474,20 @@ void FRenderer::BindConstantBuffer(uint32 Slot, FConstantBuffer* ConstantBuffer,
 		DeviceContext->PSSetConstantBuffers(Slot, 1, &Buffer);
 }
 
+void FRenderer::BindTexture(uint32 Slot, UTexture2D* Texture2D, EShaderBindFlagBits FlagBits)
+{
+	if (FlagBits & EShaderBindFlagBits::Vertex)
+	{
+		DeviceContext->VSSetShaderResources(Slot, 1, Texture2D->ShaderResourceView.GetAddressOf());
+		DeviceContext->VSSetSamplers(0, 1, DefaultSamplerState.GetAddressOf());
+	}
+
+	if (FlagBits & EShaderBindFlagBits::Pixel)
+	{
+		DeviceContext->PSSetShaderResources(Slot, 1, Texture2D->ShaderResourceView.GetAddressOf());
+		DeviceContext->PSSetSamplers(0, 1, DefaultSamplerState.GetAddressOf());
+	}
+}
 
 void FRenderer::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topology)
 {
@@ -299,6 +497,10 @@ void FRenderer::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topology)
 void FRenderer::SetDepthStencilEnabled(bool bEnabled)
 {
 	DeviceContext->OMSetDepthStencilState(bEnabled ? DepthStencilState.Get() : DepthDisabledState.Get(), 0);
+}
+
+void FRenderer::SetBlendStateEnabled(bool bEnabled)
+{
 }
 
 void FRenderer::BindShader(FShader* InShader)
@@ -340,9 +542,6 @@ void FRenderer::DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation, int32 
 
 void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 {
-	//DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffff'ffff);
-	//DeviceContext->OMSetDepthStencilState(nullptr, 0);
-
 	while (true)
 	{
 		if (InQueue.IsEmpty())

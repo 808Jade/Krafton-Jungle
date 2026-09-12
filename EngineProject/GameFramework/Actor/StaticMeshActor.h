@@ -9,6 +9,8 @@ public:
 	AStaticMeshActor();
 	virtual ~AStaticMeshActor() = default;
 
+	virtual void BeginPlay() override;
+
 	UPrimitiveComponent* GetPrimitiveComponent() const { return PrimitiveComponent; }
 
 private:

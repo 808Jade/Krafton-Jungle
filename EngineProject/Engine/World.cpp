@@ -364,13 +364,12 @@ UPrimitiveComponent* UWorld::TryPicking(uint32 ScreenW, uint32 ScreenH)
 		LocalRay.Direction.Z = LocalRayDir.Z;
 
 		if (!Primitive) continue;
-		const UStaticMeshData& mesh = Primitive->GetMeshData();
+		const FStaticMeshData& mesh = Primitive->GetMeshData();
 
-		FVector BoxMin, BoxMax;
-		mesh.GetAABB(BoxMin, BoxMax);
+		FBox Box = mesh.GetAABB();
 		float rayT{};
 
-		if (!RayIntersectsAABB(LocalRay, BoxMin, BoxMax, rayT))
+		if (!RayIntersectsAABB(LocalRay, Box.Min, Box.Max, rayT))
 		{
 			continue;
 		}

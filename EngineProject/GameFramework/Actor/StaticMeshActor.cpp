@@ -10,3 +10,9 @@ AStaticMeshActor::AStaticMeshActor()
 
 	SetRootComponent(PrimitiveComponent);
 }
+
+void AStaticMeshActor::BeginPlay()
+{
+	Super::BeginPlay();
+	GetWorld()->AddPrimitive(PrimitiveComponent);
+}
