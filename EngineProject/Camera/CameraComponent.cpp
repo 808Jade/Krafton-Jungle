@@ -118,6 +118,16 @@ void UCameraComponent::SetFarClipPlane(float FarPlane)
 	FarClipPlane = FarPlane;
 }
 
+void UCameraComponent::SetCameraSpeed(float InSpeed)
+{
+    CameraSpeed = InSpeed;
+}
+
+void UCameraComponent::SetMouseSensitivity(float InSensitivity)
+{
+    MouseSensitivity = InSensitivity;
+}
+
 FVector UCameraComponent::GetLocation() const
 {
 	return transform.Location;

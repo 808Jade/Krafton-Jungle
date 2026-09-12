@@ -154,6 +154,7 @@
     <ClCompile Include="Component\ActorComponent.cpp" />
     <ClCompile Include="Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Component\SceneComponent.cpp" />
+    <ClCompile Include="Editor\ConfigPanel.cpp" />
     <ClCompile Include="Core\EngineTimer.cpp" />
     <ClCompile Include="Core\Name.cpp" />
     <ClCompile Include="Core\Window.cpp" />
@@ -243,6 +244,7 @@
     <ClInclude Include="Camera\CameraComponent.h" />
     <ClInclude Include="Collision\Ray.h" />
     <ClInclude Include="Component\ActorComponent.h" />
+    <ClInclude Include="ConfigPanel.h" />
     <ClInclude Include="Container\Array.h" />
     <ClInclude Include="Container\Containers.h" />
     <ClInclude Include="Container\Map.h" />
@@ -256,6 +258,7 @@
     <ClInclude Include="Core\Name.h" />
     <ClInclude Include="Core\Types.h" />
     <ClInclude Include="Core\Window.h" />
+    <ClInclude Include="Editor\ConfigPanel.h" />
     <ClInclude Include="Editor\ConsolePanel.h" />
     <ClInclude Include="Editor\ControlPanel.h" />
     <ClInclude Include="Editor\EditorPanel.h" />

@@ -15,6 +15,7 @@
 #include "Editor/ConsolePanel.h"
 #include "Editor/PropertyPanel.h"
 #include "Editor/ControlPanel.h"
+#include "Editor/ConfigPanel.h"
 
 #include "Editor/Outline.h"
 #include "Editor/OutLineRenderer.h"
@@ -65,5 +66,6 @@ private:
 	inline static FConsolePanel* ConsolePanel = nullptr;
 	FPropertyPanel* PropertyPanel = nullptr;
 	FControlPanel* ControlPanel = nullptr;
+	FConfigPanel* ConfigPanel = nullptr;
 };
 
