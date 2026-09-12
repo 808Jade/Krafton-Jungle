@@ -47,27 +47,30 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 	return false;
 }
 
-void FGridRenderer::OnRender(const FMatrix& ViewProj, const FVector& CameraPos)
+void FGridRenderer::OnRender(const FMatrix& ViewProj, const FVector& CameraPos, const FEditorSettings& InEditorSettings)
 {
 	GridData Data;
 	Data.invViewProj = ViewProj.GetTransposed();
 	Data.CameraPos = CameraPos;
+	Data.CellSize = InEditorSettings.GridSpacing;
+	Data.SubCellSize = InEditorSettings.GridSpacing * 0.1f;
 
-	// 1. 무한 그리드 (바닥 격자) - 버텍스 버퍼 없음
 	Renderer->BindShader(GridShader.get());
 	Renderer->BindVertexBuffer(nullptr);
 	Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	Renderer->UpdateConstantBufferData(CB.get(), &Data, sizeof(GridData));
-	Renderer->BindConstantBuffer(0, CB.get(), EShaderBindFlagBits::Vertex); 
-	Renderer->BindConstantBuffer(0, CB.get(), EShaderBindFlagBits::Pixel);
 	Renderer->GetDeviceContext()->RSSetState(RasterizerState.Get());
-	Renderer->Draw(4);
-	Renderer->GetDeviceContext()->RSSetState(nullptr);
 
-	Renderer->BindShader(AxisShader);
-	Renderer->BindVertexBuffer(VB.get());
-	Renderer->BindIndexBuffer(IB.get());
-	Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-	Renderer->UpdateConstantBuffer(Identity * ViewProj);
-	Renderer->DrawIndexed(6);
+	Data.GridPlaneType = 0;
+	Renderer->UpdateConstantBufferData(CB.get(), &Data, sizeof(GridData));
+	Renderer->BindConstantBuffer(0, CB.get(), EShaderBindFlagBits::Vertex);
+	Renderer->BindConstantBuffer(0, CB.get(), EShaderBindFlagBits::Pixel);
+	Renderer->SetBlendStateEnabled(true);
+	Renderer->Draw(4);
+
+	Data.GridPlaneType = 1;
+	Renderer->UpdateConstantBufferData(CB.get(), &Data, sizeof(GridData));
+	Renderer->Draw(4);
+
+	Renderer->SetBlendStateEnabled(false);
+	Renderer->GetDeviceContext()->RSSetState(nullptr);
 }

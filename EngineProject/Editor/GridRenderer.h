@@ -7,8 +7,12 @@ struct GridData
 {
 	FMatrix invViewProj;
 	FVector CameraPos;
-	float padding;
+	int32 CellSize;
+	float SubCellSize;
+	int32 GridPlaneType;
+	float Padding[2];
 };
+struct FEditorSettings;
 
 class FGridRenderer
 {
@@ -16,7 +20,7 @@ public:
 	~FGridRenderer();
 
 	bool Init(FRenderer* InRenderer);
-	void OnRender(const FMatrix& ViewProj, const FVector& CameraPos);
+	void OnRender(const FMatrix& ViewProj, const FVector& CameraPos, const FEditorSettings& InEditorSettings);
 	
 private:
 	FRenderer* Renderer;
