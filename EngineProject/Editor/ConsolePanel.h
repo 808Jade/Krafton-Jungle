@@ -32,7 +32,6 @@ public:
 		FLogData LogData;
 
 
-		// 여기서 Category / Verbosity 활용
 		switch (Verbosity)
 		{
 		case ELogVerbosity::Input:

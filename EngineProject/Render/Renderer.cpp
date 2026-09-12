@@ -229,7 +229,7 @@ TSharedPtr<FShader> FRenderer::CreateShader(const wchar_t* FileName, std::vector
 	return CreateShader(FileName, Layouts.data(), Layouts.size());
 }
 
-UStaticMesh* FRenderer::CreateMesh(const UStaticMeshData& InMeshData)
+UStaticMesh* FRenderer::CreateMesh(const FStaticMeshData& InMeshData)
 {
 	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
 
@@ -489,8 +489,6 @@ void FRenderer::BindTexture(uint32 Slot, UTexture2D* Texture2D, EShaderBindFlagB
 	}
 }
 
-
-
 void FRenderer::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topology)
 {
 	DeviceContext->IASetPrimitiveTopology(Topology);
@@ -544,9 +542,6 @@ void FRenderer::DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation, int32 
 
 void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 {
-	//DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffff'ffff);
-	//DeviceContext->OMSetDepthStencilState(nullptr, 0);
-
 	while (true)
 	{
 		if (InQueue.IsEmpty())

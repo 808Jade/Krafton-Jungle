@@ -23,11 +23,11 @@ class UPrimitiveComponent :public USceneComponent
 public:
 	virtual void BeginPlay() override;
 
-	void SetMeshData(const UStaticMeshData& data) { MeshData = data; }
+	void SetMeshData(const FStaticMeshData& data) { MeshData = data; }
 	void SetMeshShader(UStaticMesh* InMesh, FShader* InShader) { Mesh = InMesh; Shader = InShader; }
 	void SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue);
 
-	UStaticMeshData GetMeshData() const { return MeshData; }
+	FStaticMeshData GetMeshData() const { return MeshData; }
 	void SetMesh(UStaticMesh* InMesh);
 	UStaticMesh* GetMesh() const { return Mesh; };
 	FShader* GetShader() const { return Shader; };
@@ -38,5 +38,5 @@ protected:
 	EPrimitiveType Type = EPrimitiveType::Cube;
 	FShader* Shader = nullptr;
 	UStaticMesh* Mesh = nullptr;
-	UStaticMeshData MeshData;
+	FStaticMeshData MeshData;
 };

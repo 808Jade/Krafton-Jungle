@@ -16,6 +16,7 @@ public:
 	virtual void TickComponent(float DeltaTime) {};
 
 	void SetOwner(AActor* InOwner);
+	inline AActor* GetOwner() const { return Owner; }
 private:
 	AActor* Owner;
 };

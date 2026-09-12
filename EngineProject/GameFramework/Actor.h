@@ -43,6 +43,6 @@ protected:
 
 private:
 	UWorld* World = nullptr;
-
 	USceneComponent* RootComponent = nullptr;
+
 };

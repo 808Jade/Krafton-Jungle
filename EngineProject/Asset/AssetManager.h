@@ -20,6 +20,11 @@ public:
 
 	void Init(FRenderer* renderer);
 	void Shutdown();
+
+	template <typename T>
+	static T* GetAsset()
+	{
+	}
 	
 	void SetRenderer(FRenderer* InRenderer);
 	

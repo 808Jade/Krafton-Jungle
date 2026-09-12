@@ -155,6 +155,7 @@
     <ClCompile Include="Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Component\SceneComponent.cpp" />
     <ClCompile Include="Core\EngineTimer.cpp" />
+    <ClCompile Include="Core\Name.cpp" />
     <ClCompile Include="Core\Window.cpp" />
     <ClCompile Include="Editor\ConsolePanel.cpp" />
     <ClCompile Include="Editor\ControlPanel.cpp" />
@@ -194,6 +195,7 @@
     <ClCompile Include="ObjectSystem\Object.cpp" />
     <ClCompile Include="ObjectSystem\ObjectFactory.cpp" />
     <ClCompile Include="Render\Buffer.cpp" />
+    <ClCompile Include="Render\DebugRenderer.cpp" />
     <ClCompile Include="Render\GeometryGenerator.cpp" />
     <ClCompile Include="Render\Mesh.cpp" />
     <ClCompile Include="Render\RenderCommand.cpp" />
@@ -241,7 +243,6 @@
     <ClInclude Include="Camera\CameraComponent.h" />
     <ClInclude Include="Collision\Ray.h" />
     <ClInclude Include="Component\ActorComponent.h" />
-    <ClInclude Include="Component\BillboardComponent.h" />
     <ClInclude Include="Container\Array.h" />
     <ClInclude Include="Container\Containers.h" />
     <ClInclude Include="Container\Map.h" />
@@ -252,6 +253,7 @@
     <ClInclude Include="Core\EngineStatics.h" />
     <ClInclude Include="Core\EngineString.h" />
     <ClInclude Include="Core\EngineTimer.h" />
+    <ClInclude Include="Core\Name.h" />
     <ClInclude Include="Core\Types.h" />
     <ClInclude Include="Core\Window.h" />
     <ClInclude Include="Editor\ConsolePanel.h" />
@@ -296,6 +298,8 @@
     <ClInclude Include="Component\PrimitiveComponent.h" />
     <ClInclude Include="Component\SceneComponent.h" />
     <ClInclude Include="EnginePCH.h" />
+    <ClInclude Include="Render\DebugRenderer.h" />
+    <ClInclude Include="Render\StaticMeshData.h" />
     <ClInclude Include="Render\ImageLoader.h" />
     <ClInclude Include="Text\FontAtlas.h" />
     <ClInclude Include="Text\ImageLoader.h" />

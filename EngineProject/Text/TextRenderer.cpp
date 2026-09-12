@@ -70,7 +70,7 @@ void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const FFo
 			TotalWidth += Glyph->Advance * TextSize;
 		}
 	}
-	float StartY = -TotalWidth * 0.5f;
+	float StartY = 0.0f; // -TotalWidth * 0.5f;
 	PenY = StartY;
 
 	for (uint32 CP : CodePoints)          // 메시 생성 루프

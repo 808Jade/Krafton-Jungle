@@ -15,7 +15,6 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	UCameraComponent* GetCameraComponent();
-
 private:
 private:
 	UCameraComponent* CameraComponent;

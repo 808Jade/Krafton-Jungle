@@ -9,10 +9,10 @@ TArray<UObject*> GUObjectArray;
 
 UObject::UObject()
 {
-	UUID = FEngineStatics::GetUUID();
+	ObjectUUID = FEngineStatics::GetUUID();
 	InternalIndex = GUObjectArray.Num();
 	GUObjectArray.Add(this);
-	LOG(Info, "UUID : {}", UUID);
+	LOG(Info, "UUID : {}", ObjectUUID);
 }
 
 UObject::UObject(bool bRegister)

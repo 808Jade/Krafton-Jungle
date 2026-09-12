@@ -35,6 +35,7 @@ public:
 	bool LoadScene(const FString& Path);
 
 	inline void AddPrimitive(UPrimitiveComponent* Primitive) { PrimitiveComponents.Add(Primitive); }
+	TArray<UPrimitiveComponent*> GetPrimitiveComponents() const { return PrimitiveComponents; }
 
 	void GatherRenderPackets(TQueue<FRenderPacket>& RenderQueue);
 	UPrimitiveComponent* TryPicking(uint32 ScreenW, uint32 ScreenH);
@@ -51,7 +52,7 @@ private:
 	TQueue<AActor*> BeginPlayList;
 	
 	TArray<UPrimitiveComponent*> PrimitiveComponents;
-
+		
 	//카메라 추가 
 	ACameraActor* MainCamera = nullptr;
 

@@ -2,6 +2,7 @@
 
 #include "Core/Types.h"
 #include "Core/EngineStatics.h"
+#include "Core/Name.h"
 
 #include <WICTextureLoader.h>   // png, jpg, bmp 등
 #include <DDSTextureLoader.h>   // .dds 전용 (밉맵/압축 포맷 지원)
@@ -60,8 +61,8 @@ public:
 
 	bool IsA(UClass* Class);
 
-	uint32 GetUUID() const { return UUID; }
-	void SetUUID(uint32 Uid) { UUID = Uid; }
+	uint32 GetUUID() const { return ObjectUUID; }
+	void SetUUID(uint32 Uid) { ObjectUUID = Uid; }
 
 	inline static void RegisterProperties(UClass* InClass) {};
 	
@@ -83,9 +84,13 @@ public:
 		free(Ptr);
 	}
 
+	const FName& GetName() const { return Name; }
+
 private:
-	uint32 UUID;
+	uint32 ObjectUUID;
 	uint32 InternalIndex;
+
+	FName Name = FName("None");
 
 	bool bIsRegistered = true;
 };
