@@ -38,6 +38,8 @@ public:
 	void CreateDepthStencilBufferAndState();
 	void CreateConstantBuffer();
 
+	void CreateBlendState();
+
 	inline ID3D11Device* GetDevice() const { return Device.Get(); }
 	inline ID3D11DeviceContext* GetDeviceContext() const { return DeviceContext.Get(); }
 
@@ -74,6 +76,9 @@ public:
 	void BindShader(FShader* InShader);
 	void BindMesh(UStaticMesh* InMesh);
 
+	// Todo: subuv
+	void UpdateSubUVBuffer(const FRenderPacket& Packet);
+
 	void Draw(uint32 VertexCount, uint32 StartIndexLocation = 0);
 	void DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation = 0, int32 BaseVertexLocation = 0);
 
@@ -109,6 +114,11 @@ private:
 
 	Microsoft::WRL::ComPtr <ID3D11Buffer> ConstantBuffer;
 	Microsoft::WRL::ComPtr <ID3D11SamplerState> DefaultSamplerState;
+
+	// Todo: subuv
+	Microsoft::WRL::ComPtr<ID3D11BlendState> AlphaBlendState;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> SubUVConstantBuffer;
+
 	D3D11_VIEWPORT ViewportInfo;
 
 	uint32 Width;

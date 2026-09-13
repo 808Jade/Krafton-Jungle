@@ -152,6 +152,7 @@
     <ClCompile Include="Camera\CameraComponent.cpp" />
     <ClCompile Include="Collision\Ray.cpp" />
     <ClCompile Include="Component\ActorComponent.cpp" />
+    <ClCompile Include="Component\ParticleSubUVComponent.cpp" />
     <ClCompile Include="Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Component\SceneComponent.cpp" />
     <ClCompile Include="Editor\ConfigPanel.cpp" />
@@ -178,6 +179,7 @@
     <ClCompile Include="GameFramework\Actor.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="GameFramework\Actor\ParticleActor.cpp" />
     <ClCompile Include="ImGuiRenderer.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
     </ClCompile>
@@ -244,6 +246,7 @@
     <ClInclude Include="Camera\CameraComponent.h" />
     <ClInclude Include="Collision\Ray.h" />
     <ClInclude Include="Component\ActorComponent.h" />
+    <ClInclude Include="Component\ParticleSubUVComponent.h" />
     <ClInclude Include="Container\Array.h" />
     <ClInclude Include="Container\Containers.h" />
     <ClInclude Include="Container\Map.h" />
@@ -273,6 +276,7 @@
     <ClInclude Include="Asset\AssetManager.h" />
     <ClInclude Include="Engine\World.h" />
     <ClInclude Include="GameFramework\Actor.h" />
+    <ClInclude Include="GameFramework\Actor\ParticleActor.h" />
     <ClInclude Include="ImGuiRenderer.h" />
     <ClInclude Include="Input\InputSystem.h" />
     <ClInclude Include="Input\KeyCode.h" />
@@ -358,6 +362,9 @@
     </FxCompile>
     <FxCompile Include="Shader\OutlineShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shader\ParticleSubUVShader.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shader\TextShader.hlsl">

@@ -2,6 +2,9 @@
 #include "AssetManager.h"
 #include "Render/Buffer.h"
 
+#include "Render/Vertex.h"
+#include "Render/Texture2D.h"
+
 UAssetManager& UAssetManager::Get()
 {
     static UAssetManager* Instance = FObjectFactory::ConstructObject<UAssetManager>();
@@ -34,6 +37,9 @@ void UAssetManager::Init(FRenderer* InRenderer)
 void UAssetManager::Shutdown()
 {
     MeshMap.Reset();
+
+    // Todo: subuv
+    TextureMap.Reset();
 }
 
 void UAssetManager::SetRenderer(FRenderer* InRenderer)
@@ -53,6 +59,36 @@ UStaticMesh* UAssetManager::GetMesh(FString InName)
     //if (it == MeshMap.end())
     if (foundMeshOrNull == nullptr)
     {
+        // Todo: subuv
+        if (InName == "ParticleQuad")
+        {
+            const FParticleVertex Vertices[] =
+            {
+                { FVector(-0.5f,  0.5f, 0.0f), FVector2(0.0f, 0.0f) },
+                { FVector(0.5f,  0.5f, 0.0f), FVector2(1.0f, 0.0f) },
+                { FVector(0.5f, -0.5f, 0.0f), FVector2(1.0f, 1.0f) },
+                { FVector(-0.5f, -0.5f, 0.0f), FVector2(0.0f, 1.0f) }
+            };
+
+            const uint32 Indices[] =
+            {
+                0, 2, 1,
+                0, 3, 2
+            };
+
+            TSharedPtr<FVertexBuffer> VB = Renderer->CreateVertexBuffer(
+                Vertices,
+                sizeof(Vertices),
+                sizeof(FParticleVertex));
+
+            TSharedPtr<FIndexBuffer> IB = Renderer->CreateIndexBuffer(
+                Indices,
+                ARRAYSIZE(Indices));
+
+            MeshMap[InName] = Renderer->CreateMesh(VB, IB);
+            return MeshMap[InName];
+        }
+
         FStaticMeshData Data = FGeometryGenerator::GetMeshData(InName);
         TSharedPtr<FVertexBuffer> vb = Renderer->CreateVertexBuffer(Data.Vertices.GetData(), sizeof(FVertex) * (UINT)Data.Vertices.Num(), sizeof(FVertex));
         TSharedPtr<FIndexBuffer> ib = Renderer->CreateIndexBuffer(Data.Indices.GetData(), Data.Indices.Num());
@@ -77,13 +113,55 @@ FShader* UAssetManager::GetShader(FString InName)
     {
         std::wstring wstr(InName.begin(), InName.end());
 
-        D3D11_INPUT_ELEMENT_DESC inputDesc[] =
+        // Todo: subuv
+        if (InName == "Shader/ParticleSubUVShader.hlsl")
         {
-            {"POSITION" , 0 , DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-            {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        };
+            ShaderMap[InName] = Renderer->CreateShader(
+                wstr.c_str(),
+                FParticleVertex::GetLayout());
+        }
+        else
+        {
+            D3D11_INPUT_ELEMENT_DESC inputDesc[] =
+            {
+                {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            };
 
-        ShaderMap[InName] = Renderer->CreateShader(wstr.c_str(), inputDesc, 2);
+            ShaderMap[InName] = Renderer->CreateShader(wstr.c_str(), inputDesc, 2);
+        }
+
+        //D3D11_INPUT_ELEMENT_DESC inputDesc[] =
+        //{
+        //    {"POSITION" , 0 , DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        //    {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        //};
+
+        //ShaderMap[InName] = Renderer->CreateShader(wstr.c_str(), inputDesc, 2);
     }
     return ShaderMap[InName].get();
+}
+
+// Todo: subuv
+UTexture2D* UAssetManager::GetTexture(const FString& InPath)
+{
+    if (!Renderer)
+    {
+        return nullptr;
+    }
+
+    auto* Found = TextureMap.FindOrNull(InPath);
+    if (Found != nullptr)
+    {
+        return *Found;
+    }
+
+    UTexture2D* Texture = Renderer->CreateShaderResource(InPath);
+    if (!Texture)
+    {
+        return nullptr;
+    }
+
+    TextureMap[InPath] = Texture;
+    return Texture;
 }

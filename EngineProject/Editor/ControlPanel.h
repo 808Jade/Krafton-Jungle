@@ -2,6 +2,9 @@
 #include <format>
 #include "EditorPanel.h"
 
+// Todo: subuv
+#include "GameFramework/Actor/ParticleActor.h"
+
 #include <functional>
 
 using SceneClearCallback = std::function<void()>;

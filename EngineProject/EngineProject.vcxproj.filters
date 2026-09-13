@@ -31,6 +31,7 @@
     <FxCompile Include="Shader\TextShader.hlsl" />
     <FxCompile Include="Shader\BoundingBoxShader.hlsl" />
     <FxCompile Include="Shader\GridShaderBatch.hlsl" />
+    <FxCompile Include="Shader\ParticleSubUVShader.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera\CameraActor.cpp">
@@ -196,6 +197,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Render\DebugRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Component\ParticleSubUVComponent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GameFramework\Actor\ParticleActor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -459,6 +466,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Editor\ConfigPanel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Component\ParticleSubUVComponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GameFramework\Actor\ParticleActor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

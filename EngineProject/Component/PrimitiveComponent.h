@@ -11,7 +11,10 @@ enum class EPrimitiveType
 	Sphere,
 	Cube,
 	Cone,
-	Plane
+	Plane,
+
+	// Todo: subuv
+	Particle
 };
 
 class UPrimitiveComponent :public USceneComponent
@@ -25,7 +28,10 @@ public:
 
 	void SetMeshData(const FStaticMeshData& data) { MeshData = data; }
 	void SetMeshShader(UStaticMesh* InMesh, FShader* InShader) { Mesh = InMesh; Shader = InShader; }
-	void SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue);
+	
+	// Todo: subuv
+	//void SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue);
+	virtual void SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue);
 
 	FStaticMeshData GetMeshData() const { return MeshData; }
 	void SetMesh(UStaticMesh* InMesh);
