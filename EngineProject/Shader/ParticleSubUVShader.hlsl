@@ -42,22 +42,18 @@ PS_INPUT mainVS(VS_INPUT input)
 
 float4 mainPS(PS_INPUT input) : SV_TARGET
 {
-    // Todo: subuv
     float frame = SubUVData.x;
-    float columns = max(SubUVData.y, 1.0f);
-    float rows = max(SubUVData.z, 1.0f);
+    float columnSize = max(SubUVData.y, 1.0f);
+    float rowSize = max(SubUVData.z, 1.0f);
 
-    // Todo: subuv
     // Frame 번호를 Atlas의 (Column, Row)로 변환
-    float column = fmod(frame, columns);
-    float row = floor(frame / columns);
+    float column = fmod(frame, columnSize);
+    float row = floor(frame / columnSize);
 
-    // Todo: subuv
     // 0~1 UV를 현재 Cell의 UV 영역으로 변환
-    float2 cellSize = float2(1.0f / columns, 1.0f / rows);
+    float2 cellSize = float2(1.0f / columnSize, 1.0f / rowSize);
     float2 atlasUV = input.uv * cellSize;
     atlasUV += float2(column, row) * cellSize;
 
-    // Todo: subuv
     return AtlasTexture.Sample(AtlasSampler, atlasUV);
 }

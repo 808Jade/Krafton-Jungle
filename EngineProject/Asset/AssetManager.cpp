@@ -59,7 +59,7 @@ UStaticMesh* UAssetManager::GetMesh(FString InName)
     //if (it == MeshMap.end())
     if (foundMeshOrNull == nullptr)
     {
-        // Todo: subuv
+        // Todo: subuv, Move to other class
         if (InName == "ParticleQuad")
         {
             const FParticleVertex Vertices[] =
@@ -86,6 +86,7 @@ UStaticMesh* UAssetManager::GetMesh(FString InName)
                 ARRAYSIZE(Indices));
 
             MeshMap[InName] = Renderer->CreateMesh(VB, IB);
+
             return MeshMap[InName];
         }
 
@@ -95,6 +96,7 @@ UStaticMesh* UAssetManager::GetMesh(FString InName)
 
         MeshMap[InName] = Renderer->CreateMesh(vb, ib);
     }
+
     return MeshMap[InName];
 }
 
@@ -116,9 +118,7 @@ FShader* UAssetManager::GetShader(FString InName)
         // Todo: subuv
         if (InName == "Shader/ParticleSubUVShader.hlsl")
         {
-            ShaderMap[InName] = Renderer->CreateShader(
-                wstr.c_str(),
-                FParticleVertex::GetLayout());
+            ShaderMap[InName] = Renderer->CreateShader(wstr.c_str(), FParticleVertex::GetLayout());
         }
         else
         {
@@ -145,23 +145,18 @@ FShader* UAssetManager::GetShader(FString InName)
 // Todo: subuv
 UTexture2D* UAssetManager::GetTexture(const FString& InPath)
 {
-    if (!Renderer)
-    {
-        return nullptr;
-    }
+    assert(Renderer != nullptr);
 
-    auto* Found = TextureMap.FindOrNull(InPath);
-    if (Found != nullptr)
+    UTexture2D** FoundTextureOrNull = TextureMap.FindOrNull(InPath);
+    if (FoundTextureOrNull != nullptr)
     {
-        return *Found;
+        return *FoundTextureOrNull;
     }
 
     UTexture2D* Texture = Renderer->CreateShaderResource(InPath);
-    if (!Texture)
-    {
-        return nullptr;
-    }
-
+    assert(Texture != nullptr);
+    
     TextureMap[InPath] = Texture;
+
     return Texture;
 }

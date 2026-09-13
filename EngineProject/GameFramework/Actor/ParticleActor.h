@@ -14,11 +14,5 @@ class AParticleActor : public AActor
 public:
 	// Todo: subuv
 	AParticleActor();
-
-	// Todo: subuv
-	UParticleSubUVComponent* GetParticleComponent() const { return ParticleComponent; }
-
-private:
-	// Todo: subuv, Maybe no need new component
-	UParticleSubUVComponent* ParticleComponent = nullptr;
+	UParticleSubUVComponent* GetParticleComponent() const;
 };

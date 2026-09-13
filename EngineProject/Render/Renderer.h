@@ -77,7 +77,7 @@ public:
 	void BindMesh(UStaticMesh* InMesh);
 
 	// Todo: subuv
-	void UpdateSubUVBuffer(const FRenderPacket& Packet);
+	void UpdateSubUVConstantBuffer(const FRenderPacket& Packet);
 
 	void Draw(uint32 VertexCount, uint32 StartIndexLocation = 0);
 	void DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation = 0, int32 BaseVertexLocation = 0);

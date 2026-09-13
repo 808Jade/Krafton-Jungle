@@ -33,7 +33,6 @@ struct FTextVertex
 };
 
 // Todo: subuv
-// Particle은 위치 + UV만 필요하므로 기존 FTextVertex와 같은 구조를 별도 타입으로 사용한다.
 struct FParticleVertex
 {
 	FVector Position;

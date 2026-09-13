@@ -524,9 +524,9 @@ void FRenderer::SetDepthStencilEnabled(bool bEnabled)
 	DeviceContext->OMSetDepthStencilState(bEnabled ? DepthStencilState.Get() : DepthDisabledState.Get(), 0);
 }
 
+// Todo: subuv, Need to fix function
 void FRenderer::SetBlendStateEnabled(bool bEnabled)
 {
-	// Todo: subuv
 	if (bEnabled)
 	{
 		const float BlendFactor[4] = { 0, 0, 0, 0 };
@@ -574,19 +574,18 @@ void FRenderer::DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation, int32 
 //
 //}
 
-// Todo: subuv
-void FRenderer::UpdateSubUVBuffer(const FRenderPacket& Packet)
+// Todo: subuv, Fix function
+void FRenderer::UpdateSubUVConstantBuffer(const FRenderPacket& Packet)
 {
-	if (!SubUVConstantBuffer)
-	{
-		return;
-	}
+	assert(SubUVConstantBuffer != nullptr);
 
 	struct FSubUVData
 	{
 		FVector4 Data;
 	};
 
+
+	// Todo: Move to other place
 	FSubUVData Data{
 		FVector4(
 			static_cast<float>(Packet.CurrentFrame),
@@ -610,13 +609,8 @@ void FRenderer::UpdateSubUVBuffer(const FRenderPacket& Packet)
 
 void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 {
-	while (true)
+	while (InQueue.IsEmpty() == false)
 	{
-		if (InQueue.IsEmpty())
-		{
-			return;
-		}
-
 		FRenderPacket rp = InQueue.Peek();
 
 		BindShader(rp.shader);
@@ -634,18 +628,11 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 		{
 			SetBlendStateEnabled(true);
 
-			UpdateSubUVBuffer(rp);
-			BindTexture(0, rp.texture, Pixel);
+			UpdateSubUVConstantBuffer(rp);
+			BindTexture(0, rp.texture, EShaderBindFlagBits::Pixel);
 		}
 
 		DrawIndexed(rp.mesh->IndexBuffer->GetIndexCount());
-
-		// Todo: subuv
-		if (rp.bSubUV)
-		{
-			//UnbindTexture(0, Pixel);
-			//SetBlendStateEnabled(false);
-		}
 
 		InQueue.Dequeue();
 	}

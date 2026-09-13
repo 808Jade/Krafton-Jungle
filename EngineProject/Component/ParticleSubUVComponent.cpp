@@ -8,8 +8,8 @@ void UParticleSubUVComponent::BeginPlay()
 	Super::BeginPlay();
 
 	AtlasTexturePath = "ParticleAtlas.png";
-	NumCols = 4;
-	NumRows = 4;
+	ColSize = 4;
+	RowSize = 4;
 	CurrentFrame = 0;
 	FrameTimer = 0.0f;
 	FrameRate = 12.0f;
@@ -23,16 +23,20 @@ void UParticleSubUVComponent::BeginPlay()
 }
 
 // Todo: subuv
-void UParticleSubUVComponent::SetSubUVSize(uint32 InCols, uint32 InRows)
+void UParticleSubUVComponent::SetSubUVSize(uint32 NewColSize, uint32 NewRowSize)
 {
-	NumCols = (std::max)(1u, InCols);
-	NumRows = (std::max)(1u, InRows);
+	assert(NewColSize > 0 && NewRowSize > 0);
 
-	const uint32 TotalFrames = NumCols * NumRows;
+	ColSize = NewColSize;
+	RowSize = NewRowSize;
+
+	/*
+	const uint32 TotalFrames = ColSize * RowSize;
 	if (CurrentFrame >= TotalFrames)
 	{
 		CurrentFrame = 0;
 	}
+	*/
 }
 
 // Todo: subuv
@@ -46,39 +50,29 @@ void UParticleSubUVComponent::TickComponent(float DeltaTime)
 		return;
 	}
 
-	FrameTimer -= FrameDuration;
+	FrameTimer = 0.0f;
 
+	const uint32 TotalFrames = ColSize * RowSize;
 	++CurrentFrame;
-
-	const uint32 TotalFrames = NumCols * NumRows;
-	if (CurrentFrame >= TotalFrames)
-	{
-		CurrentFrame = 0;
-	}
+	CurrentFrame %= TotalFrames;
 }
 
 // Todo: subuv
 void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue)
 {
-	if (!Mesh || !Shader || !AtlasTexture)
-	{
-		return;
-	}
+	assert(Mesh != nullptr);
+	assert(Shader != nullptr);
+	assert(AtlasTexture != nullptr);
 
 	FRenderPacket Packet;
 	Packet.model = GetWorldMatrix();
 	Packet.mesh = Mesh;
 	Packet.shader = Shader;
-	// Todo: subuv
 	Packet.texture = AtlasTexture;
-	// Todo: subuv
 	Packet.bSubUV = true;
-	// Todo: subuv
 	Packet.CurrentFrame = CurrentFrame;
-	// Todo: subuv
-	Packet.AtlasColumns = NumCols;
-	// Todo: subuv
-	Packet.AtlasRows = NumRows;
+	Packet.AtlasColumns = ColSize;
+	Packet.AtlasRows = RowSize;
 
 	RenderQueue.Enqueue(Packet);
 }

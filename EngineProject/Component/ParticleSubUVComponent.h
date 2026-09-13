@@ -17,18 +17,17 @@ public:
 	virtual void TickComponent(float DeltaTime) override;
 	virtual void SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue) override;
 
-	// Todo: subuv
 	void SetAtlasTexturePath(const FString& InPath) { AtlasTexturePath = InPath; }
-	void SetSubUVSize(uint32 InCols, uint32 InRows);
+	void SetSubUVSize(uint32 Cols, uint32 Rows);
 	void SetFrameRate(float InFrameRate) { FrameRate = (InFrameRate > 0.0f) ? InFrameRate : 1.0f; }
 
 private:
-	// Todo: subuv
 	FString AtlasTexturePath;
-	uint32 NumCols;
-	uint32 NumRows;
+	UTexture2D* AtlasTexture;
+
+	uint32 ColSize;
+	uint32 RowSize;
 	uint32 CurrentFrame;
 	float FrameTimer;
 	float FrameRate;
-	UTexture2D* AtlasTexture;
 };
