@@ -40,7 +40,7 @@ void FDebugRenderer::BuildVertexBuffer()
 void FDebugRenderer::AddLine(const FVector& A, const FVector& B, const FVector4& Color)
 {
 	if (VertexCount + 2 > MaxVertices)
-		return;   // ë„˜ì¹˜ë©´ ë²„ë¦¼
+		return;   // ³ÑÄ¡¸é ¹ö¸²
 
 	*VertexBufferPtr++ = { A, Color };
 	*VertexBufferPtr++ = { B, Color };
@@ -61,9 +61,9 @@ void FDebugRenderer::AddBox(FBox BoundingBox, FVector4 Color)
 	};
 
 	static const int E[12][2] = {
-		{0,1},{1,2},{2,3},{3,0},      // ì•„ëž«ë©´
-		{4,5},{5,6},{6,7},{7,4},      // ìœ—ë©´
-		{0,4},{1,5},{2,6},{3,7},      // ê¸°ë‘¥
+		{0,1},{1,2},{2,3},{3,0},      // ¾Æ·§¸é
+		{4,5},{5,6},{6,7},{7,4},      // À­¸é
+		{0,4},{1,5},{2,6},{3,7},      // ±âµÕ
 	};
 
 	for (const auto& Edge : E)

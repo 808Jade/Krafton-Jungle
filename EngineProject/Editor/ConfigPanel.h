@@ -11,11 +11,12 @@ struct FEditorSettings
 	bool bDrawBoundingBox = false;
 	bool bShowUUID = false;
 	bool bDrawBatchLine = true;
+	bool bDrawPSGrid = false;
 
 	// Values
 	float CameraSpeed = 1.0f;
 	float MouseSensitivity = 1.0f;
-	float GridSpacing = 1.0f;
+	int32 GridSpacing = 1;
 };
 
 

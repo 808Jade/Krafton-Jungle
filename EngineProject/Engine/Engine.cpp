@@ -181,8 +181,15 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 	{
 		DebugRenderer->OnRender(ViewProj);
 	}
-	GridRenderer->OnRender(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation());
-	//GridRenderer->OnRender(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation(), ConfigPanel->GetSettings());
+
+	if (ConfigPanel->GetSettings().bDrawPSGrid)
+	{ 
+		GridRenderer->OnRenderPSGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation(), ConfigPanel->GetSettings());
+	}
+	else
+	{
+		GridRenderer->OnRenderBatchGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation());
+	}
 	
 	Renderer->RenderAll(RenderQueue, ViewProj);
 	FVector4 CamLoc = World->GetMainCamera()->GetCameraComponent()->GetLocation();

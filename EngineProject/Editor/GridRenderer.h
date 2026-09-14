@@ -3,7 +3,7 @@
 #include <d3d11.h>
 #include "Render/Renderer.h"
 
-struct FGridData
+struct FPSGridData
 {
 	FMatrix invViewProj;
 	FVector CameraPos;
@@ -13,7 +13,7 @@ struct FGridData
 	float Padding[2];
 };
 
-struct FGridData2
+struct FBatchGridData
 {
 	FMatrix invViewProj;
 	FVector CameraPos;
@@ -30,32 +30,27 @@ public:
 
 	bool Init(FRenderer* InRenderer);
 
-	//void OnRender(const FMatrix& ViewProj, const FVector& CameraPos, const FEditorSettings& InEditorSettings);
-	void OnRender(const FMatrix& ViewProj, const FVector& CameraPos);
+	void OnRenderPSGrid(const FMatrix& ViewProj, const FVector& CameraPos, const FEditorSettings& InEditorSettings);
+	void OnRenderBatchGrid(const FMatrix& ViewProj, const FVector& CameraPos);
 
-	void SetGridSpace(float Value) { GridSpace = Value; }
+	void SetGridSpace(float Value) { BatchGridSpace = Value; }
 
 private:
 	FRenderer* Renderer;
 
-	TSharedPtr<FShader> BatchGridShader;
-	FVertex* VertexBufferBase;
-	FVertex* VertexBufferPtr;
-	TSharedPtr<FConstantBuffer> CB;
-	uint32 VertexCount;
+	// Batch Grid
+	TSharedPtr<FShader>			BatchGridShader;
+	TSharedPtr<FVertexBuffer>	BatchGridVertexBuffer;
+	TSharedPtr<FConstantBuffer>	BatchGridConstantBuffer;
+	FVertex*					BatchGridVertices;
+	uint32						MaxVertices = 0;
+	float						BatchGridSpace = 1.0f;
 
-	uint32 MaxVertices = 0;
-	TSharedPtr<FVertexBuffer> VertexBuffer;
-
-	float GridSpace = 1.0f;
-
-	//PS Grid용(주석만 풀면 됨)
-	//TSharedPtr<FShader> GridShader;
-	//FShader* AxisShader;
-
-	//TSharedPtr<FVertexBuffer> VB;
-	//TSharedPtr<FIndexBuffer> IB;
-	//TSharedPtr<FConstantBuffer> CB;
-
-	//Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;
+	// PS Grid
+	TSharedPtr<FShader>								PSGridShader;
+	FShader*										AxisShader;
+	TSharedPtr<FVertexBuffer>						PSGridVertexBuffer;
+	TSharedPtr<FIndexBuffer>						PSGridIndexBuffer;
+	TSharedPtr<FConstantBuffer>						PSGridConstantBuffer;
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState>	RasterizerState;
 };
