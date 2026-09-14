@@ -15,11 +15,11 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 
 	// Batch Grid
 	BatchGridShader = Renderer->CreateShader(L"Shader/GridShaderBatch.hlsl", FVertex::GetLayout());
+
 	MaxVertices = 65536;
 	BatchGridVertices = new FVertex[MaxVertices];
 	BatchGridVertexBuffer = Renderer->CreateDynamicVertexBuffer(sizeof(FVertex) * MaxVertices, sizeof(FVertex));
 	BatchGridConstantBuffer = Renderer->CreateConstantBuffer(sizeof(FBatchGridData));
-
 
 	// PS Grid
 	PSGridShader = Renderer->CreateShader(L"Shader/GridShader.hlsl", nullptr, 0);
@@ -53,6 +53,13 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 	RasterizerDesc.CullMode = D3D11_CULL_NONE;
 	RasterizerDesc.FrontCounterClockwise = FALSE;
 	Renderer->GetDevice()->CreateRasterizerState(&RasterizerDesc, &RasterizerState);
+
+	//D3D11_RASTERIZER_DESC RasterizerDesc = {};
+	//RasterizerDesc.FillMode = D3D11_FILL_SOLID;
+	//RasterizerDesc.CullMode = D3D11_CULL_NONE;
+	//RasterizerDesc.FrontCounterClockwise = FALSE;
+	//Renderer->GetDevice()->CreateRasterizerState(&RasterizerDesc, &RasterizerState);
+	////////////////////////////////////////////// 복원용 주석
 
 	return true;
 }

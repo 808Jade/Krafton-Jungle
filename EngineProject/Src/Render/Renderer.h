@@ -67,6 +67,9 @@ public:
 	void BindShader(FShader* InShader);
 	void BindMesh(UStaticMesh* InMesh);
 
+	// Todo: subuv
+	void UpdateSubUVConstantBuffer(const FRenderPacket& Packet);
+
 	void Draw(uint32 VertexCount, uint32 StartIndexLocation = 0);
 	void DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation = 0, int32 BaseVertexLocation = 0);
 
@@ -83,6 +86,14 @@ private:
 	struct FConstants
 	{
 		FMatrix MVP;
+	};
+
+	struct FSubUVConstants
+	{
+		float CurrentFrame;
+		float AtlasRowSize;
+		float AtlasColSize;
+		float Padding = 0.0f;
 	};
 
 	Microsoft::WRL::ComPtr<ID3D11Device> Device;
@@ -104,6 +115,10 @@ private:
 
 	Microsoft::WRL::ComPtr <ID3D11Buffer> ConstantBuffer;
 	Microsoft::WRL::ComPtr <ID3D11SamplerState> DefaultSamplerState;
+
+	// Todo: subuv
+	Microsoft::WRL::ComPtr<ID3D11Buffer> SubUVConstantBuffer;
+
 	D3D11_VIEWPORT ViewportInfo;
 
 	uint32 Width;

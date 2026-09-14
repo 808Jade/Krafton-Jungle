@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "C:\\Users\\JUNGLE\\Desktop\\Jungle Projects\\week_3\\EngineProject\\..\\Build\\Intermediate\\Debug-windows-x86_64\\Object.obj",
+            "outputs": [
+                "C:\\Users\\JUNGLE\\Desktop\\Jungle Projects\\week_3\\EngineProject\\..\\Build\\Intermediate\\Debug-windows-x86_64\\Object.h.obj.dt.module.json",
+                "C:\\Users\\JUNGLE\\Desktop\\Jungle Projects\\week_3\\EngineProject\\..\\Build\\Intermediate\\Debug-windows-x86_64\\Object.h.obj.dt.d.json",
+                "C:\\Users\\JUNGLE\\Desktop\\Jungle Projects\\week_3\\EngineProject\\..\\Build\\Intermediate\\Debug-windows-x86_64\\EngineProject.pch"
+            ],
+            "requires": []
+        }
+    ]
+}

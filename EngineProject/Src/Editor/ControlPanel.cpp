@@ -56,6 +56,23 @@ void FControlPanel::OnRender()
 	ImGui::SameLine();
 	ImGui::Text("Number of spawn");
 
+	// Todo: subuv
+	if (ImGui::SmallButton("Spawn Particle"))
+	{
+		FTransform Transform;
+		Transform.Location = FVector(5.0f, 0.0f, 0.0f);
+		Transform.Scale = FVector(2.0f, 2.0f, 2.0f);
+
+		AParticleActor* ParticleActor = World->SpawnActor<AParticleActor>(&Transform);
+		assert(ParticleActor != nullptr);
+
+		// Set atlas image settings
+		UParticleSubUVComponent* Particle = ParticleActor->GetParticleComponent();
+		Particle->SetAtlasTexturePath("ParticleAtlas.png");
+		Particle->SetSubUVSize(4, 4);
+		Particle->SetFrameRate(12.0f);
+	}
+
 	ImGui::Separator();
 	// 씬 생성 세이브 로드
 	ImGui::SetNextItemWidth(165.0f);

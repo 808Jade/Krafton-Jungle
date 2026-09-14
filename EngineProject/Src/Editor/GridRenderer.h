@@ -29,6 +29,7 @@ public:
 	~FGridRenderer();
 
 	bool Init(FRenderer* InRenderer);
+	void OnRender(const FMatrix& ViewProj, const FVector& CameraPos);
 
 	void OnRenderPSGrid(const FMatrix& ViewProj, const FVector& CameraPos, const FEditorSettings& InEditorSettings);
 	void OnRenderBatchGrid(const FMatrix& ViewProj, const FVector& CameraPos);
