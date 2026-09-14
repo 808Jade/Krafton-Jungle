@@ -40,9 +40,10 @@ public:
 	friend class UWorld;
 protected:
 	TArray<UActorComponent*> Components;
+	
+	// Todo: subuv
+	USceneComponent* RootComponent = nullptr;
 
 private:
 	UWorld* World = nullptr;
-	USceneComponent* RootComponent = nullptr;
-
 };

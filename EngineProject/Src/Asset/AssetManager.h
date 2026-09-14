@@ -30,12 +30,19 @@ public:
 	
 	UStaticMesh* GetMesh(FString InName);
 	FShader* GetShader(FString InName);
+
+	// Todo: subuv
+	UTexture2D* GetTexture(const FString& InPath);
+
 private:
 	TMap<FString, UStaticMesh*> MeshMap;	// KEY: FILE NAME OR 쉐입 첫글자 대문자
 	TMap<FString, TSharedPtr<FShader>> ShaderMap;	// KEY: FILE NAME
 
 	TMap<FString, TSharedPtr<FVertexBuffer>> VertexBufferMap;
 	TMap<FString, TSharedPtr<FIndexBuffer>> indexBufferMap;
+
+	// Todo: subuv
+	TMap<FString, UTexture2D*> TextureMap;
 
 	FRenderer* Renderer;
 };

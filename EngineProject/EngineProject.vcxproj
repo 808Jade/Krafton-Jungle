@@ -114,6 +114,7 @@
     <ClInclude Include="Src\Camera\CameraComponent.h" />
     <ClInclude Include="Src\Collision\Ray.h" />
     <ClInclude Include="Src\Component\ActorComponent.h" />
+    <ClInclude Include="Src\Component\ParticleSubUVComponent.h" />
     <ClInclude Include="Src\Component\PrimitiveComponent.h" />
     <ClInclude Include="Src\Component\SceneComponent.h" />
     <ClInclude Include="Src\Container\Array.h" />
@@ -144,6 +145,7 @@
     <ClInclude Include="Src\Engine\World.h" />
     <ClInclude Include="Src\EnginePCH.h" />
     <ClInclude Include="Src\GameFramework\Actor.h" />
+    <ClInclude Include="Src\GameFramework\Actor\ParticleActor.h" />
     <ClInclude Include="Src\GameFramework\Actor\StaticMeshActor.h" />
     <ClInclude Include="Src\ImGuiRenderer.h" />
     <ClInclude Include="Src\Input\InputSystem.h" />
@@ -198,6 +200,7 @@
     <ClCompile Include="Src\Camera\CameraComponent.cpp" />
     <ClCompile Include="Src\Collision\Ray.cpp" />
     <ClCompile Include="Src\Component\ActorComponent.cpp" />
+    <ClCompile Include="Src\Component\ParticleSubUVComponent.cpp" />
     <ClCompile Include="Src\Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Src\Component\SceneComponent.cpp" />
     <ClCompile Include="Src\Core\EngineTimer.cpp" />
@@ -218,6 +221,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Src\GameFramework\Actor.cpp" />
+    <ClCompile Include="Src\GameFramework\Actor\ParticleActor.cpp" />
     <ClCompile Include="Src\GameFramework\Actor\StaticMeshActor.cpp" />
     <ClCompile Include="Src\ImGuiRenderer.cpp" />
     <ClCompile Include="Src\Input\InputSystem.cpp" />

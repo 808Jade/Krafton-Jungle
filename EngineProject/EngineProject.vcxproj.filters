@@ -84,6 +84,9 @@
     <ClInclude Include="Src\Component\ActorComponent.h">
       <Filter>Src\Component</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Component\ParticleSubUVComponent.h">
+      <Filter>Src\Component</Filter>
+    </ClInclude>
     <ClInclude Include="Src\Component\PrimitiveComponent.h">
       <Filter>Src\Component</Filter>
     </ClInclude>
@@ -173,6 +176,9 @@
     </ClInclude>
     <ClInclude Include="Src\GameFramework\Actor.h">
       <Filter>Src\GameFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\GameFramework\Actor\ParticleActor.h">
+      <Filter>Src\GameFramework\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Src\GameFramework\Actor\StaticMeshActor.h">
       <Filter>Src\GameFramework\Actor</Filter>
@@ -332,6 +338,9 @@
     <ClCompile Include="Src\Component\ActorComponent.cpp">
       <Filter>Src\Component</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Component\ParticleSubUVComponent.cpp">
+      <Filter>Src\Component</Filter>
+    </ClCompile>
     <ClCompile Include="Src\Component\PrimitiveComponent.cpp">
       <Filter>Src\Component</Filter>
     </ClCompile>
@@ -385,6 +394,9 @@
     </ClCompile>
     <ClCompile Include="Src\GameFramework\Actor.cpp">
       <Filter>Src\GameFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameFramework\Actor\ParticleActor.cpp">
+      <Filter>Src\GameFramework\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Src\GameFramework\Actor\StaticMeshActor.cpp">
       <Filter>Src\GameFramework\Actor</Filter>

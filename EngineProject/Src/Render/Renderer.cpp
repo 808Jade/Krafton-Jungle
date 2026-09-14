@@ -32,6 +32,17 @@ bool FRenderer::Init(HWND hWindow)
 	CreateDepthStencilBufferAndState();
 	CreateConstantBuffer();
 
+	// Todo: subuv
+	CreateAlphaBlendState();
+
+	// Todo: subuv
+	D3D11_BUFFER_DESC SubUVDesc = {};
+	SubUVDesc.Usage = D3D11_USAGE_DYNAMIC;
+	SubUVDesc.ByteWidth = 16;
+	SubUVDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	SubUVDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	Device->CreateBuffer(&SubUVDesc, nullptr, SubUVConstantBuffer.GetAddressOf());
+
 	D3D11_SAMPLER_DESC Desc = {};
 	Desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	Desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -154,22 +165,6 @@ void FRenderer::CreateDepthStencilBufferAndState()
 	Device->CreateDepthStencilState(&disabledDesc, &DepthDisabledState);
 }
 
-void FRenderer::CreateAlphaBlendState()
-{
-	D3D11_BLEND_DESC blendDesc = {};
-	blendDesc.RenderTarget[0].BlendEnable = TRUE;
-	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-
-	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-
-	Device->CreateBlendState(&blendDesc, AlphaBlendState.GetAddressOf());
-}
-
 void FRenderer::CreateConstantBuffer()
 {
 	D3D11_BUFFER_DESC constantbufferdesc = {};
@@ -263,7 +258,24 @@ UStaticMesh* FRenderer::CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TShar
 	return Mesh;
 }
 
+// Todo: subuv
+void FRenderer::CreateAlphaBlendState()
+{
+	D3D11_BLEND_DESC Desc = {};
+	Desc.RenderTarget[0].BlendEnable = TRUE;
 
+	Desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	Desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	Desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+
+	Desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	Desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+	Desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
+	Desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+	Device->CreateBlendState(&Desc, AlphaBlendState.GetAddressOf());
+}
 
 UTexture2D* FRenderer::CreateShaderResource(const FString& InPath)
 {
@@ -513,6 +525,7 @@ void FRenderer::SetDepthStencilEnabled(bool bEnabled)
 	DeviceContext->OMSetDepthStencilState(bEnabled ? DepthStencilState.Get() : DepthDisabledState.Get(), 0);
 }
 
+// Todo: subuv, Need to fix function
 void FRenderer::SetBlendStateEnabled(bool bEnabled)
 {
 	if (bEnabled)
@@ -562,16 +575,29 @@ void FRenderer::DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation, int32 
 //
 //}
 
+// Todo: subuv, Fix function
+void FRenderer::UpdateSubUVConstantBuffer(const FRenderPacket& Packet)
+{
+	assert(SubUVConstantBuffer != nullptr);
+
+	// Todo: Move to other place
+	FSubUVConstants subUVConstans;
+	subUVConstans.CurrentFrame = Packet.CurrentFrame;
+	subUVConstans.AtlasColSize = Packet.AtlasColumns;
+	subUVConstans.AtlasRowSize = Packet.AtlasRows;
+
+	D3D11_MAPPED_SUBRESOURCE Mapped = {};
+	DeviceContext->Map(SubUVConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
+	memcpy(Mapped.pData, &subUVConstans, sizeof(subUVConstans));
+	DeviceContext->Unmap(SubUVConstantBuffer.Get(), 0);
+
+	DeviceContext->PSSetConstantBuffers(1, 1, SubUVConstantBuffer.GetAddressOf());
+}
 
 void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 {
-	while (true)
+	while (InQueue.IsEmpty() == false)
 	{
-		if (InQueue.IsEmpty())
-		{
-			return;
-		}
-
 		FRenderPacket rp = InQueue.Peek();
 
 		BindShader(rp.shader);
@@ -583,6 +609,17 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 		MVP = rp.model * VP;
 		UpdateConstantBuffer(MVP);
 		SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		// Todo: subuv
+		if (rp.bSubUV)
+		{
+			SetBlendStateEnabled(true);
+			//SetBlendStateEnabled(false);
+
+			UpdateSubUVConstantBuffer(rp);
+			BindTexture(0, rp.texture, EShaderBindFlagBits::Pixel);
+		}
+
 		DrawIndexed(rp.mesh->IndexBuffer->GetIndexCount());
 
 		InQueue.Dequeue();
