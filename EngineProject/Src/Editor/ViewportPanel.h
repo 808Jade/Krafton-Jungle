@@ -32,5 +32,6 @@ private:
 	float AspectRatio = 0.0f;
 	FRenderingInfo RenderingInfo{};
 	UTexture2D* ViewportFramebuffer;
+	UTexture2D* DepthBuffer;
 };
 

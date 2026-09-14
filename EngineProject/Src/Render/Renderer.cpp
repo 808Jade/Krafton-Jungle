@@ -48,6 +48,11 @@ void FRenderer::BeginRenderPass(const FRenderingInfo& RenderingInfo)
 	}
 
 	DeviceContext->OMSetRenderTargets((uint32)RTVs.Num(), RTVs.GetData(), nullptr);
+
+	SetViewport(RenderingInfo.ViewportSetting.StartX, 
+		RenderingInfo.ViewportSetting.StartY,
+		RenderingInfo.ViewportSetting.Width,
+		RenderingInfo.ViewportSetting.Height);
 }
 
 void FRenderer::EndRenderPass(const FRenderingInfo& RenderingInfo)
