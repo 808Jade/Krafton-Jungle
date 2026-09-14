@@ -321,6 +321,8 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h">
       <Filter>ThirdParty\stb</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Render\RenderContext.h" />
+    <ClInclude Include="Src\Render\Swapchain.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Asset\AssetManager.cpp">
@@ -494,5 +496,8 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Render\RenderDevice.cpp" />
+    <ClCompile Include="Src\Render\RenderContext.cpp" />
+    <ClCompile Include="Src\Render\Swapchain.cpp" />
   </ItemGroup>
 </Project>

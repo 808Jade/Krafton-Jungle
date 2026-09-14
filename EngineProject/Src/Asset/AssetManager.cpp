@@ -154,7 +154,7 @@ UTexture2D* UAssetManager::GetTexture(const FString& InPath)
 		return *FoundTextureOrNull;
 	}
 
-	UTexture2D* Texture = Renderer->CreateShaderResource(InPath);
+	UTexture2D* Texture = Renderer->CreateTexture2DFromFile(InPath);
 	assert(Texture != nullptr);
 
 	TextureMap[InPath] = Texture;

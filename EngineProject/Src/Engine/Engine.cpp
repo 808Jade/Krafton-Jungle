@@ -18,6 +18,8 @@
 
 #include "Asset/AssetManager.h"
 
+#include "Render/RenderCommand.h"
+
 bool Engine::Init(HINSTANCE hInstance)
 {
 	EditorUI = MakeUnique<FEditorUI>();
@@ -29,7 +31,7 @@ bool Engine::Init(HINSTANCE hInstance)
 	// Create Main Window
 	LOG(Info, "Create Main Window...");
 	MainWindow = MakeUnique<Window>();
-	if (!MainWindow->Create(hInstance, 1280, 720, L"Engine"))
+	if (!MainWindow->Create(hInstance, 1920, 1080, L"Engine"))
 	{
 		LOG(Error, "Failed To Create Main Window!");
 		return false;
@@ -38,12 +40,15 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	LOG(Info, "Initialize Renderer...");
 	Renderer = MakeUnique<FRenderer>();
+	RenderCommand::Init(Renderer.get());
 	if (!Renderer->Init(MainWindow->GetHandle()))
 	{
 		LOG(Error, "Failed To Initialize Renderer!");
 
 	}
 	LOG(Info, "Success!");
+	
+
 
 
 	LOG(Info, "Initialize AssetManager...");
@@ -71,6 +76,7 @@ bool Engine::Init(HINSTANCE hInstance)
 	// 필요한 Panel들 추가후 raw pointer 반환(소유권 = EditorUI)
 	PropertyPanel = EditorUI->AddEditorPanel<FPropertyPanel>();
 	ControlPanel = EditorUI->AddEditorPanel<FControlPanel>();
+	ViewportPanel = EditorUI->AddEditorPanel<FViewportPanel>();
 
 	// OutLine
 	OutlineRenderer = MakeUnique<FOutlineRenderer>();
@@ -99,12 +105,16 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	ConfigPanel->SetWorld(World);
 
+
+	
+
 	ControlPanel->SetSceneClearCallback([&]() {
 		Gizmo->SetTarget(nullptr);
 		Outline->SetTarget(nullptr);
 		PropertyPanel->SetTarget(nullptr);
 		}
 	);
+
 
 	bIsRunning = true;
 
@@ -158,15 +168,15 @@ void Engine::Run()
 
 void Engine::UpdateGizmoAndPicking(FMatrix& ViewProj)
 {
-	FRay ray = World->GetMainCamera()->GetCameraComponent()->DeProjection(FInputSystem::GetMouseX(), FInputSystem::GetMouseY(), MainWindow->GetWidth(), MainWindow->GetHeight());
-	FVector2 mousePos(FInputSystem::GetMouseX(), FInputSystem::GetMouseY());
+	FRay ray = World->GetMainCamera()->GetCameraComponent()->DeProjection(ViewportPanel->GetLocalMousePos(), ViewportPanel->GetWidth(), ViewportPanel->GetHeight());
 	bool bMouseDown = FInputSystem::IsMouseDown(EMouseButton::Left);
 
-	Gizmo->Update(ray, mousePos, ViewProj, MainWindow->GetWidth(), MainWindow->GetHeight(), bMouseDown, World->GetMainCamera()->GetCameraComponent());
+	Gizmo->Update(ray, ViewportPanel->GetLocalMousePos(), ViewProj, ViewportPanel->GetWidth(), ViewportPanel->GetHeight(), bMouseDown, World->GetMainCamera()->GetCameraComponent());
 
-	if (FInputSystem::IsMousePressed(EMouseButton::Left) && !Gizmo->IsUsing() && Gizmo->GetHoveredAxis() < 0 && !ImGui::GetIO().WantCaptureMouse)
+	if (FInputSystem::IsMousePressed(EMouseButton::Left) && !Gizmo->IsUsing() && Gizmo->GetHoveredAxis() < 0 && ViewportPanel->IsHovered())
 	{
-		UPrimitiveComponent* PickedComponent = World->TryPicking(MainWindow->GetWidth(), MainWindow->GetHeight());
+		LOG(Info, "Mouse Pos {}, {}", ViewportPanel->GetLocalMousePos().X, ViewportPanel->GetLocalMousePos().Y)
+		UPrimitiveComponent* PickedComponent = World->TryPicking(ViewportPanel->GetLocalMousePos(), ViewportPanel->GetWidth(), ViewportPanel->GetHeight());
 		Gizmo->SetTarget(PickedComponent);
 		Outline->SetTarget(PickedComponent);
 		PropertyPanel->SetTarget(PickedComponent);
@@ -175,7 +185,7 @@ void Engine::UpdateGizmoAndPicking(FMatrix& ViewProj)
 
 void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 {
-	Renderer->BeginFrame();
+	Renderer->BeginRenderPass(ViewportPanel->GetViewportRenderingInfo());
 
 	if (ConfigPanel->GetSettings().bDrawBatchLine)
 	{
@@ -225,9 +235,14 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 		}
 		GizmoRenderer->OnRender(*Gizmo, ViewProj);
 	}
+	Renderer->EndRenderPass(ViewportPanel->GetViewportRenderingInfo());
+
+	Renderer->BeginFrame();
 
 	ImGuiRenderer->Begin();
+
 	EditorUI->OnRender();
+
 	ImGuiRenderer->End();
 
 	Renderer->EndFrame();
@@ -247,6 +262,6 @@ void Engine::HandleWindowResize()
 	if (MainWindow->CheckResized())
 	{
 		Renderer->Resize(MainWindow->GetWidth(), MainWindow->GetHeight());
-		World->GetMainCamera()->GetCameraComponent()->SetAspectRatio((float)MainWindow->GetWidth() / MainWindow->GetHeight());
 	}
+	World->GetMainCamera()->GetCameraComponent()->SetAspectRatio(ViewportPanel->GetViewportAspectRatio());
 }

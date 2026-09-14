@@ -173,7 +173,7 @@
     <ClInclude Include="Src\Render\ImageLoader.h" />
     <ClInclude Include="Src\Render\Mesh.h" />
     <ClInclude Include="Src\Render\RenderCommand.h" />
-    <ClInclude Include="Src\Render\RenderDevice.h" />
+    <ClInclude Include="Src\Render\RenderingInfo.h" />
     <ClInclude Include="Src\Render\RenderPacket.h" />
     <ClInclude Include="Src\Render\Renderer.h" />
     <ClInclude Include="Src\Render\Shader.h" />
@@ -183,6 +183,7 @@
     <ClInclude Include="Src\Text\FontAtlas.h" />
     <ClInclude Include="Src\Text\ImageLoader.h" />
     <ClInclude Include="Src\Text\TextRenderer.h" />
+    <ClInclude Include="Src\Render\Swapchain.h" />
     <ClInclude Include="ThirdParty\ImGui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="ThirdParty\ImGui\backends\imgui_impl_win32.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h" />
@@ -193,6 +194,7 @@
     <ClInclude Include="ThirdParty\ImGui\imstb_truetype.h" />
     <ClInclude Include="ThirdParty\json\json.hpp" />
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
+    <ClInclude Include="Src\Editor\ViewportPanel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Asset\AssetManager.cpp" />
@@ -247,6 +249,7 @@
     <ClCompile Include="Src\Text\FontAtlas.cpp" />
     <ClCompile Include="Src\Text\TextRenderer.cpp" />
     <ClCompile Include="Src\main.cpp" />
+    <ClCompile Include="Src\Render\Swapchain.cpp" />
     <ClCompile Include="ThirdParty\ImGui\backends\imgui_impl_dx11.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -268,6 +271,7 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Src\Editor\ViewportPanel.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

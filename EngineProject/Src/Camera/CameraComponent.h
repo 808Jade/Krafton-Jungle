@@ -44,7 +44,7 @@ public:
 	FVector GetScale() const;
 	FRotator GetRotation() const;
 
-	FRay DeProjection(int32 MouseX, int32 MouseY, uint32 ScreenW, uint32 ScreenH);
+	FRay DeProjection(FVector2 MousePos, float ScreenW, float ScreenH);
 
 	FMatrix GetViewMatrix() const;
 	FMatrix GetOrthogonalMatrix() const;
