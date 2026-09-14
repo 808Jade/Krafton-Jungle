@@ -165,7 +165,13 @@
     <ClInclude Include="Src\Editor\PropertyPanel.h">
       <Filter>Src\Editor</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Editor\ViewportPanel.h">
+      <Filter>Src\Editor</Filter>
+    </ClInclude>
     <ClInclude Include="Src\Engine\Engine.h">
+      <Filter>Src\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Engine\Level.h">
       <Filter>Src\Engine</Filter>
     </ClInclude>
     <ClInclude Include="Src\Engine\World.h">
@@ -243,16 +249,19 @@
     <ClInclude Include="Src\ObjectSystem\Property.h">
       <Filter>Src\ObjectSystem</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Render\Buffer.h">
-      <Filter>Src\Render</Filter>
+    <ClInclude Include="Src\PathTracker.h">
+      <Filter>Src</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Render\DebugRenderer.h">
+    <ClInclude Include="Src\Render\Buffer.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
     <ClInclude Include="Src\Render\GeometryGenerator.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
     <ClInclude Include="Src\Render\ImageLoader.h">
+      <Filter>Src\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Render\LineBatcher.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
     <ClInclude Include="Src\Render\Mesh.h">
@@ -270,10 +279,16 @@
     <ClInclude Include="Src\Render\Renderer.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Render\RenderingInfo.h">
+      <Filter>Src\Render</Filter>
+    </ClInclude>
     <ClInclude Include="Src\Render\Shader.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
     <ClInclude Include="Src\Render\StaticMeshData.h">
+      <Filter>Src\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Render\Swapchain.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
     <ClInclude Include="Src\Render\Texture2D.h">
@@ -281,6 +296,9 @@
     </ClInclude>
     <ClInclude Include="Src\Render\Vertex.h">
       <Filter>Src\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\SceneManager.h">
+      <Filter>Src</Filter>
     </ClInclude>
     <ClInclude Include="Src\Text\FontAtlas.h">
       <Filter>Src\Text</Filter>
@@ -320,14 +338,6 @@
     </ClInclude>
     <ClInclude Include="ThirdParty\stb\stb_image.h">
       <Filter>ThirdParty\stb</Filter>
-    </ClInclude>
-    <ClInclude Include="Src\Render\RenderContext.h" />
-    <ClInclude Include="Src\Render\Swapchain.h" />
-    <ClInclude Include="Level.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneManager.h">
-      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -391,7 +401,13 @@
     <ClCompile Include="Src\Editor\PropertyPanel.cpp">
       <Filter>Src\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Editor\ViewportPanel.cpp">
+      <Filter>Src\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Src\Engine\Engine.cpp">
+      <Filter>Src\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Engine\Level.cpp">
       <Filter>Src\Engine</Filter>
     </ClCompile>
     <ClCompile Include="Src\Engine\World.cpp">
@@ -445,13 +461,16 @@
     <ClCompile Include="Src\ObjectSystem\ObjectFactory.cpp">
       <Filter>Src\ObjectSystem</Filter>
     </ClCompile>
+    <ClCompile Include="Src\PathTracker.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
     <ClCompile Include="Src\Render\Buffer.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Render\DebugRenderer.cpp">
+    <ClCompile Include="Src\Render\GeometryGenerator.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Render\GeometryGenerator.cpp">
+    <ClCompile Include="Src\Render\LineBatcher.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
     <ClCompile Include="Src\Render\Mesh.cpp">
@@ -460,10 +479,16 @@
     <ClCompile Include="Src\Render\RenderCommand.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Render\RenderDevice.cpp">
+      <Filter>Src\Render</Filter>
+    </ClCompile>
     <ClCompile Include="Src\Render\Renderer.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
     <ClCompile Include="Src\Render\Shader.cpp">
+      <Filter>Src\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Render\Swapchain.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
     <ClCompile Include="Src\Render\Texture2D.cpp">
@@ -471,6 +496,9 @@
     </ClCompile>
     <ClCompile Include="Src\Render\Vertex.cpp">
       <Filter>Src\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\SceneManager.cpp">
+      <Filter>Src</Filter>
     </ClCompile>
     <ClCompile Include="Src\Text\FontAtlas.cpp">
       <Filter>Src\Text</Filter>
@@ -502,8 +530,5 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Render\RenderDevice.cpp" />
-    <ClCompile Include="Src\Render\RenderContext.cpp" />
-    <ClCompile Include="Src\Render\Swapchain.cpp" />
   </ItemGroup>
 </Project>

@@ -101,8 +101,8 @@ bool Engine::Init(HINSTANCE hInstance)
 	SceneManager = EditorUI->AddEditorPanel<FSceneManager>();
 	SceneManager->SetWorld(World);
 
-	DebugRenderer = MakeUnique<FDebugRenderer>();
-	DebugRenderer->Init(Renderer.get(), World);
+	LineBatcher = MakeUnique<FLineBatcher>();
+	LineBatcher->Init(Renderer.get(), World);
 
 	PropertyPanel->SetWorld(World);
 	ControlPanel->FControlPanel::World = World;
@@ -196,7 +196,10 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 	{
 		if (ConfigPanel->GetSettings().bDrawBoundingBox)
 		{
-			DebugRenderer->OnRender(ViewProj);
+			LineBatcher->BeginFrame();
+			LineBatcher->BuildVertexBuffer(); 
+			World->GetPathTracker().OnRender(LineBatcher.get());
+			LineBatcher->OnRender(ViewProj);
 		}
 
 		if (ConfigPanel->GetSettings().bDrawPSGrid)

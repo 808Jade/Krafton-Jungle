@@ -89,6 +89,8 @@ bool  UWorld::Init()
 	//카메라 생성
 	CreateMainCamera();
 
+	PathTracker.SetPathRenderingEnabled(true);
+
 	return true;
 }
 
@@ -146,13 +148,12 @@ void UWorld::Tick(float DeltaTime)
 		{
 			Actor->Tick(DeltaTime);
 		}
+		PathTracker.Tick(Level->GetActors(), DeltaTime);
 	}
-
 }
 
 void UWorld::OnRender(FRenderer* Renderer)
 {
-	// Rendering
 }
 
 void UWorld::ClearScene()

@@ -3,17 +3,21 @@
 #include "Buffer.h"
 #include "StaticMeshData.h"
 
-class FDebugRenderer
+class FLineBatcher
 {
 public:
-	FDebugRenderer() = default;
-	~FDebugRenderer();
+	FLineBatcher() = default;
+	~FLineBatcher();
 	bool Init(FRenderer* InRenderer, UWorld* InWorld);
 	void BuildVertexBuffer();
+
+	void BeginFrame();
 
 
 	void AddLine(const FVector& A, const FVector& B, const FVector4& Color);
 	void AddBox(FBox BoundingBox, FVector4 Color);
+	void AddPath(const TArray<FVector>& Points, const FVector4& Color);
+
 	void Flush();
 	void OnRender(const FMatrix& ViewProjection);
 
