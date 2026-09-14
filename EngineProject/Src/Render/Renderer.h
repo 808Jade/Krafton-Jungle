@@ -54,6 +54,7 @@ public:
 
 	UTexture2D* CreateTexture2DFromFile(const FString& InPath);
 	UTexture2D* CreateRenderTargetTexture2D(uint32 Width, uint32 Height, DXGI_FORMAT Format);
+	UTexture2D* CreateDepthStencilTexture2D(uint32 Width, uint32 Height, DXGI_FORMAT Format);
 
 	TSharedPtr<FVertexBuffer> CreateVertexBuffer(const void* InVertices, uint32 InSize, uint32 Stride);
 	TSharedPtr<FIndexBuffer> CreateIndexBuffer(const uint32* InIndices, uint32 MaxIndexCount);

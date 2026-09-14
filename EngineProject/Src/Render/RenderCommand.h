@@ -9,6 +9,7 @@ public:
 
 	static UTexture2D* CreateTexture2DFromFile(const FString& FilePath);
 	static UTexture2D* CreateRenderTargetTexture2D(uint32 Width, uint32 Height, DXGI_FORMAT Format);
+	static UTexture2D* CreateDepthStencilTexture2D(uint32 Width, uint32 Height, DXGI_FORMAT Format);
 
 	static void BindPipelineState() {};
 

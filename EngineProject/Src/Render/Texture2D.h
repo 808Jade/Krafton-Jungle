@@ -19,6 +19,7 @@ public:
 	ID3D11Resource* GetRawPtr() const { return Texture.Get(); }
 	ID3D11ShaderResourceView* GetSRV() const { return SRV.Get(); }
 	ID3D11RenderTargetView* GetRTV() const { return RTV.Get(); }
+	ID3D11DepthStencilView* GetDSV() const { return DSV.Get(); }
 
 	static UTexture2D* CreateFromFile(const FString& FilePath);
 	static UTexture2D* CreateFromEmpty(const FString& FilePath);
@@ -28,4 +29,5 @@ private:
 	ComPtr<ID3D11Resource> Texture;
 	ComPtr<ID3D11ShaderResourceView> SRV;
 	ComPtr<ID3D11RenderTargetView> RTV;
+	ComPtr<ID3D11DepthStencilView> DSV;
 };

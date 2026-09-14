@@ -40,7 +40,7 @@ struct FRenderTargetDesc
 	UTexture2D* Texture;
 	ERenderTargetLoadOp  LoadOp = ERenderTargetLoadOp::Clear;
 	ERenderTargetStoreOp storeOp = ERenderTargetStoreOp::Store;
-	FClearValue clearValue = FClearValue();
+	FClearValue ClearValue = FClearValue();
 };
 
 struct FRenderingInfo

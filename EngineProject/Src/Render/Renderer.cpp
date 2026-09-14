@@ -39,15 +39,26 @@ void FRenderer::BeginRenderPass(const FRenderingInfo& RenderingInfo)
 	TArray<ID3D11RenderTargetView*> RTVs;
 	for (const FRenderTargetDesc& RenderTargetDesc : RenderingInfo.ColorRenderTargets)
 	{
-		FClearValue ClearValue = RenderTargetDesc.clearValue;
+		FClearValue ClearValue = RenderTargetDesc.ClearValue;
 		if (RenderTargetDesc.LoadOp == ERenderTargetLoadOp::Clear)
 		{
-			DeviceContext->ClearRenderTargetView(RenderTargetDesc.Texture->GetRTV(), &RenderTargetDesc.clearValue.ColorClearValue.V[0]);
+			DeviceContext->ClearRenderTargetView(RenderTargetDesc.Texture->GetRTV(), &RenderTargetDesc.ClearValue.ColorClearValue.V[0]);
 		}
 		RTVs.Add(RenderTargetDesc.Texture->GetRTV());
 	}
 
-	DeviceContext->OMSetRenderTargets((uint32)RTVs.Num(), RTVs.GetData(), nullptr);
+	ID3D11DepthStencilView* DSV = nullptr;
+	if (RenderingInfo.DepthSteincil.Texture != nullptr)
+	{
+		FClearValue dsvClearValue = RenderingInfo.DepthSteincil.ClearValue;
+		DSV = RenderingInfo.DepthSteincil.Texture->GetDSV();
+		if (RenderingInfo.DepthSteincil.LoadOp == ERenderTargetLoadOp::Clear)
+		{
+			DeviceContext->ClearDepthStencilView(RenderingInfo.DepthSteincil.Texture->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, dsvClearValue.depthClearValue, dsvClearValue.stencilClearValue);
+		}
+	}
+	DeviceContext->OMSetRenderTargets((uint32)RTVs.Num(), RTVs.GetData(), DSV);
+
 
 	SetViewport(RenderingInfo.ViewportSetting.StartX, 
 		RenderingInfo.ViewportSetting.StartY,
@@ -398,6 +409,40 @@ UTexture2D* FRenderer::CreateRenderTargetTexture2D(uint32 Width, uint32 Height, 
 		return nullptr;
 	}
 
+
+	return Texture2D;
+}
+
+UTexture2D* FRenderer::CreateDepthStencilTexture2D(uint32 Width, uint32 Height, DXGI_FORMAT Format)
+{
+	D3D11_TEXTURE2D_DESC Desc{};
+	Desc.Width = static_cast<UINT>(Width);
+	Desc.Height = static_cast<UINT>(Height);
+	Desc.MipLevels = 1;
+	Desc.ArraySize = 1;
+	Desc.Format = Format;
+	Desc.SampleDesc.Count = 1;
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+	Desc.BindFlags = D3D11_BIND_DEPTH_STENCIL; //| D3D11_BIND_SHADER_RESOURCE;
+
+	UTexture2D* Texture2D = FObjectFactory::ConstructObject<UTexture2D>();
+	HRESULT hr = Device->CreateTexture2D(&Desc, nullptr, (ID3D11Texture2D**)Texture2D->Texture.GetAddressOf());
+	if (FAILED(hr))
+	{
+		return nullptr;
+	}
+
+	//hr = Device->CreateShaderResourceView(Texture2D->Texture.Get(), nullptr, Texture2D->SRV.GetAddressOf());
+	//if (FAILED(hr))
+	//{
+	//	return nullptr;
+	//}
+
+	hr = Device->CreateDepthStencilView(Texture2D->Texture.Get(), nullptr, Texture2D->DSV.GetAddressOf());
+	if (FAILED(hr))
+	{
+		return nullptr;
+	}
 
 	return Texture2D;
 }

@@ -7,6 +7,8 @@
 bool FViewportPanel::Init()
 {
 	ViewportFramebuffer = RenderCommand::CreateRenderTargetTexture2D(1, 1, DXGI_FORMAT_R8G8B8A8_UNORM);
+	DepthStencilBuffer = RenderCommand::CreateDepthStencilTexture2D(1, 1, DXGI_FORMAT_D24_UNORM_S8_UINT);
+
 	return false;
 }
 
@@ -43,6 +45,8 @@ void FViewportPanel::ValidateViewport()
 	ViewportSize.y = CurrentViewportSize.y;
 
 	ViewportFramebuffer = RenderCommand::CreateRenderTargetTexture2D(ViewportSize.x, ViewportSize.y, DXGI_FORMAT_R8G8B8A8_UNORM);
+	DepthStencilBuffer = RenderCommand::CreateDepthStencilTexture2D(ViewportSize.x, ViewportSize.y, DXGI_FORMAT_D24_UNORM_S8_UINT);
+
 
 	RenderingInfo.ColorRenderTargets.Reset();
 	RenderingInfo.ViewportSetting.Width = ViewportSize.x;
@@ -52,6 +56,7 @@ void FViewportPanel::ValidateViewport()
 	Desc.Texture = ViewportFramebuffer;
 
 	RenderingInfo.ColorRenderTargets.Add(Desc);
+	RenderingInfo.DepthSteincil.Texture = DepthStencilBuffer;
 }
 
 

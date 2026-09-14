@@ -11,6 +11,11 @@ UTexture2D* RenderCommand::CreateRenderTargetTexture2D(uint32 Width, uint32 Heig
 	return Renderer->CreateRenderTargetTexture2D(Width, Height, Format);
 }
 
+UTexture2D* RenderCommand::CreateDepthStencilTexture2D(uint32 Width, uint32 Height, DXGI_FORMAT Format)
+{
+	return Renderer->CreateDepthStencilTexture2D(Width, Height, Format);
+}
+
 inline void RenderCommand::Draw(uint32 VertexCount, uint32 StartIndexLocation)
 {
 	Renderer->Draw(VertexCount, StartIndexLocation);
