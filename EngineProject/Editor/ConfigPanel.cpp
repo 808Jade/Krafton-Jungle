@@ -54,7 +54,6 @@ void FConfigPanel::OnRender()
 	ImGui::SetNextItemWidth(200.0f);
 	ImGui::SliderInt("Grid Spacing", &Settings.GridSpacing, 1, 100);
 
-	ImGui::SetNextItemWidth(200.0f);
 	ImGui::Checkbox("Draw PS Grid", &Settings.bDrawPSGrid);
 
 	ImGui::Spacing();
