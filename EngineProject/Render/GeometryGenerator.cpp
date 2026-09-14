@@ -1,9 +1,9 @@
 #include "EnginePCH.h"
 #include "GeometryGenerator.h"
 
-FStaticMeshData FGeometryGenerator::CreatePlane(float Size, const FVector4& Color)
+TSharedPtr<FStaticMeshData> FGeometryGenerator::CreatePlane(float Size, const FVector4& Color)
 {
-	FStaticMeshData PlaneMeshData;
+	TSharedPtr<FStaticMeshData> PlaneMeshData = MakeShared<FStaticMeshData>();
 
 	float HalfSize = Size / 2.0f;
 
@@ -17,16 +17,16 @@ FStaticMeshData FGeometryGenerator::CreatePlane(float Size, const FVector4& Colo
 
 	for (int32 i = 0; i < positions.Num(); i++)
 	{
-		PlaneMeshData.Vertices.Add({ positions[i], Color });
+		PlaneMeshData->Vertices.Add({ positions[i], Color });
 	}
 
-	PlaneMeshData.Indices.Add(0);
-	PlaneMeshData.Indices.Add(2);
-	PlaneMeshData.Indices.Add(1);
-
-	PlaneMeshData.Indices.Add(0);
-	PlaneMeshData.Indices.Add(3);
-	PlaneMeshData.Indices.Add(2);
+	PlaneMeshData->Indices.Add(0);
+	PlaneMeshData->Indices.Add(2);
+	PlaneMeshData->Indices.Add(1);
+				 
+	PlaneMeshData->Indices.Add(0);
+	PlaneMeshData->Indices.Add(3);
+	PlaneMeshData->Indices.Add(2);
 
 	return PlaneMeshData;
 }
@@ -73,12 +73,12 @@ FStaticMeshData FGeometryGenerator::CreatePlane(float Size, const FVector4& Colo
 //	return PlaneMeshData;
 //}
 
-FStaticMeshData FGeometryGenerator::CreateCone(float Radius, float Height, int Segments, const FVector4& Color)
+TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateCone(float Radius, float Height, int Segments, const FVector4& Color)
 {
-	FStaticMeshData ConeMeshData;
+	TSharedPtr<FStaticMeshData> ConeMeshData = MakeShared<FStaticMeshData>();
 
-	TArray<FVertex>& Vertices = ConeMeshData.Vertices;
-	TArray<uint32>& Indices = ConeMeshData.Indices;
+	TArray<FVertex>& Vertices = ConeMeshData->Vertices;
+	TArray<uint32>& Indices = ConeMeshData->Indices;
 
 	Vertices.Add({ { 0.0f, 0.0f, Height }, Color });
 
@@ -187,12 +187,12 @@ FStaticMeshData FGeometryGenerator::CreateCone(float Radius, float Height, int S
 //
 //	return ConeMeshData;
 //}
-FStaticMeshData FGeometryGenerator::CreateCylinder(float Radius, float Height, int32 Segments, const FVector4& Color)
+TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateCylinder(float Radius, float Height, int32 Segments, const FVector4& Color)
 {
-	FStaticMeshData CylinderMeshData;
+	TSharedPtr<FStaticMeshData> CylinderMeshData = MakeShared<FStaticMeshData>();;
 
-	TArray<FVertex>& Vertices = CylinderMeshData.Vertices;
-	TArray<uint32>& Indices = CylinderMeshData.Indices;
+	TArray<FVertex>& Vertices = CylinderMeshData->Vertices;
+	TArray<uint32>& Indices = CylinderMeshData->Indices;
 
 	float Slice = PI * 2.0f / Segments;
 	float HalfHeight = Height / 2.0f;
@@ -340,34 +340,34 @@ FStaticMeshData FGeometryGenerator::CreateCylinder(float Radius, float Height, i
 //	return CylinderMeshData;
 //}
 
-FStaticMeshData FGeometryGenerator::CreateArrow(float BodyRadius, float BodyHeight, float HeadRadius, float HeadHeight, int Segments, const FVector4& Color)
+TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateArrow(float BodyRadius, float BodyHeight, float HeadRadius, float HeadHeight, int Segments, const FVector4& Color)
 {
 
-	FStaticMeshData Arrow = CreateCylinder(BodyRadius, BodyHeight, Segments, Color);
-	Arrow.Translate(FVector(0.0f, 0.0f, BodyHeight * 0.5f));   // 밑면을 0으로
+	TSharedPtr<FStaticMeshData> Arrow = CreateCylinder(BodyRadius, BodyHeight, Segments, Color);
+	Arrow->Translate(FVector(0.0f, 0.0f, BodyHeight * 0.5f));   // 밑면을 0으로
 
-	FStaticMeshData Head = CreateCone(HeadRadius, HeadHeight, Segments, Color);
-	Head.Translate(FVector(0.0f, 0.0f, BodyHeight));
+	TSharedPtr<FStaticMeshData> Head = CreateCone(HeadRadius, HeadHeight, Segments, Color);
+	Head->Translate(FVector(0.0f, 0.0f, BodyHeight));
 
-	Arrow.Append(Head);
+	Arrow->Append(*Head);
 	return Arrow;
 }
 
-FStaticMeshData FGeometryGenerator::CreateScaleBar(float BodyRadius, float BodyLength, float HeadSize, float Segments, const FVector4& Color)
+TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateScaleBar(float BodyRadius, float BodyLength, float HeadSize, float Segments, const FVector4& Color)
 {
-	FStaticMeshData Arrow = CreateCylinder(BodyRadius, BodyLength, Segments, Color);
-	Arrow.Translate(FVector(0.0f, 0.0f, BodyLength * 0.5f));   // 밑면을 0으로
+	TSharedPtr<FStaticMeshData> Arrow = CreateCylinder(BodyRadius, BodyLength, Segments, Color);
+	Arrow->Translate(FVector(0.0f, 0.0f, BodyLength * 0.5f));   // 밑면을 0으로
 
-	FStaticMeshData Head = CreateCube(HeadSize, Color);
-	Head.Translate(FVector(0.0f, 0.0f, BodyLength + HeadSize * 0.5f));
+	TSharedPtr<FStaticMeshData> Head = CreateCube(HeadSize, Color);
+	Head->Translate(FVector(0.0f, 0.0f, BodyLength + HeadSize * 0.5f));
 
-	Arrow.Append(Head);
+	Arrow->Append(*Head);
 	return Arrow;
 }
 
-FStaticMeshData FGeometryGenerator::CreateRing(float Radius, float TubeRadius, int Segments, int TubeSegments, const FVector4& Color)
+TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateRing(float Radius, float TubeRadius, int Segments, int TubeSegments, const FVector4& Color)
 {
-	FStaticMeshData Data;
+	TSharedPtr<FStaticMeshData> Data = MakeShared<FStaticMeshData>();;
 
 	// 정점 생성
 	for (int i = 0; i <= Segments; ++i)
@@ -387,7 +387,7 @@ FStaticMeshData FGeometryGenerator::CreateRing(float Radius, float TubeRadius, i
 			v.Position.Y = (Radius + TubeRadius * cosPhi) * sinTheta;
 			v.Position.Z = TubeRadius * sinPhi;
 			v.Color = Color;
-			Data.Vertices.Add(v);
+			Data->Vertices.Add(v);
 		}
 	}
 
@@ -401,13 +401,13 @@ FStaticMeshData FGeometryGenerator::CreateRing(float Radius, float TubeRadius, i
 			int c = (i + 1) * stride + j;
 			int d = c + 1;
 
-			Data.Indices.Add(a);
-			Data.Indices.Add(c);
-			Data.Indices.Add(b);
+			Data->Indices.Add(a);
+			Data->Indices.Add(c);
+			Data->Indices.Add(b);
 
-			Data.Indices.Add(b);
-			Data.Indices.Add(c);
-			Data.Indices.Add(d);
+			Data->Indices.Add(b);
+			Data->Indices.Add(c);
+			Data->Indices.Add(d);
 		}
 	}
 
@@ -465,7 +465,7 @@ FStaticMeshData FGeometryGenerator::CreateRing(float Radius, float TubeRadius, i
 //	return Data;
 //}
 
-FStaticMeshData FGeometryGenerator::CreateCube(float Size, const FVector4& Color)
+TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateCube(float Size, const FVector4& Color)
 {
 	float HalfWidth = Size / 2.0f;
 	float HalfHeight = Size / 2.0f;
@@ -515,7 +515,7 @@ FStaticMeshData FGeometryGenerator::CreateCube(float Size, const FVector4& Color
 		{ 3,2,6,7 }, //Right
 	};
 
-	FStaticMeshData CubeMeshData;
+	TSharedPtr<FStaticMeshData> CubeMeshData = MakeShared<FStaticMeshData>();
 
 	for (int i = 0; i < 6; i++)
 	{
@@ -524,18 +524,18 @@ FStaticMeshData FGeometryGenerator::CreateCube(float Size, const FVector4& Color
 			FVertex Vertex;
 			Vertex.Position = positions[cubeFaces[i][j]];
 			Vertex.Color = FVector4(colors[i], 1.0f);
-			CubeMeshData.Vertices.Add(Vertex);
+			CubeMeshData->Vertices.Add(Vertex);
 		}
 
 		uint32 BaseVertexIndex = i * 4;
 
-		CubeMeshData.Indices.Add(BaseVertexIndex + 0);
-		CubeMeshData.Indices.Add(BaseVertexIndex + 1);
-		CubeMeshData.Indices.Add(BaseVertexIndex + 2);
+		CubeMeshData->Indices.Add(BaseVertexIndex + 0);
+		CubeMeshData->Indices.Add(BaseVertexIndex + 1);
+		CubeMeshData->Indices.Add(BaseVertexIndex + 2);
 
-		CubeMeshData.Indices.Add(BaseVertexIndex + 0);
-		CubeMeshData.Indices.Add(BaseVertexIndex + 2);
-		CubeMeshData.Indices.Add(BaseVertexIndex + 3);
+		CubeMeshData->Indices.Add(BaseVertexIndex + 0);
+		CubeMeshData->Indices.Add(BaseVertexIndex + 2);
+		CubeMeshData->Indices.Add(BaseVertexIndex + 3);
 	}
 	return CubeMeshData;
 }
@@ -613,9 +613,9 @@ FStaticMeshData FGeometryGenerator::CreateCube(float Size, const FVector4& Color
 //	return CubeMeshData;
 //}
 
-FStaticMeshData FGeometryGenerator::CreateSphere(float Radius, uint32 NumSlices, uint32 NumStacks, const FVector4& Color)
+TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateSphere(float Radius, uint32 NumSlices, uint32 NumStacks, const FVector4& Color)
 {
-	FStaticMeshData SphereMeshData;
+	TSharedPtr<FStaticMeshData> SphereMeshData = MakeShared<FStaticMeshData>();;
 
 	const float SliceStep = PI * 2.0f / NumSlices;
 	const float StackStep = PI / NumStacks;
@@ -637,7 +637,7 @@ FStaticMeshData FGeometryGenerator::CreateSphere(float Radius, uint32 NumSlices,
 			// vertex.Normal = Normalized(vertex.Position);
 			// vertex.UV     = FVector2(float(j) / NumSlices, float(i) / NumStacks);
 
-			SphereMeshData.Vertices.Add(vertex);
+			SphereMeshData->Vertices.Add(vertex);
 		}
 	}
 
@@ -652,13 +652,13 @@ FStaticMeshData FGeometryGenerator::CreateSphere(float Radius, uint32 NumSlices,
 			const uint32 BotR = offset + NumSlices + 1 + j + 1;
 
 			// CW (바깥에서 봤을 때)
-			SphereMeshData.Indices.Add(TopL);
-			SphereMeshData.Indices.Add(BotL);
-			SphereMeshData.Indices.Add(BotR);
+			SphereMeshData->Indices.Add(TopL);
+			SphereMeshData->Indices.Add(BotL);
+			SphereMeshData->Indices.Add(BotR);
 
-			SphereMeshData.Indices.Add(TopL);
-			SphereMeshData.Indices.Add(BotR);
-			SphereMeshData.Indices.Add(TopR);
+			SphereMeshData->Indices.Add(TopL);
+			SphereMeshData->Indices.Add(BotR);
+			SphereMeshData->Indices.Add(TopR);
 		}
 	}
 	return SphereMeshData;
@@ -712,29 +712,34 @@ FStaticMeshData FGeometryGenerator::CreateSphere(float Radius, uint32 NumSlices,
 //	return SphereMeshData;
 //}
 
-FStaticMeshData FGeometryGenerator::GetMeshData(const FString& InName)
+FStaticMeshData* FGeometryGenerator::GetMeshData(const FString& InName)
 {
+	TSharedPtr<FStaticMeshData>* MeshData = MeshDataMap.FindOrNull(InName);
+	if (MeshData)
+	{
+		return (*MeshData).get();
+	}
+	
 	if (InName == FString("Cone"))
 	{
-		return CreateCone(1.0f, 1.0f, 20, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+		MeshDataMap[InName] = CreateCone(1.0f, 1.0f, 20, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	}
 	else if (InName == FString("Cube"))
 	{
-		return CreateCube(1.0f);
+		MeshDataMap[InName] = CreateCube(1.0f);
 	}
 	else if (InName == FString("Cylinder"))
 	{
-		return CreateCylinder(1.0f, 1.0f, 20, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+		MeshDataMap[InName] = CreateCylinder(1.0f, 1.0f, 20, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	}
 	else if (InName == FString("Sphere"))
 	{
-		return CreateSphere(1.0f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+		MeshDataMap[InName] = CreateSphere(1.0f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	}
 	else if (InName == FString("Plane"))
 	{
-		return CreatePlane(1.0f, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+		MeshDataMap[InName] = CreatePlane(1.0f, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	}
-
-
-	return FStaticMeshData();
+	
+	return MeshDataMap[InName].get();
 }

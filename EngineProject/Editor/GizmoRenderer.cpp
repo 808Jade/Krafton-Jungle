@@ -11,25 +11,25 @@ FGizmoRenderer::FGizmoRenderer()
 bool FGizmoRenderer::Init(FRenderer* InRenderer)
 {
 	Renderer = InRenderer;
-	FStaticMeshData LocMeshData = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	LocationMesh = Renderer->CreateMesh(LocMeshData);
-	LocationMesh->VertexBuffer = Renderer->CreateVertexBuffer(LocMeshData.Vertices.GetData(), sizeof(FVertex) * (UINT)LocMeshData.Vertices.Num(), sizeof(FVertex));
-	LocationMesh->IndexBuffer = Renderer->CreateIndexBuffer(LocMeshData.Indices.GetData(), LocMeshData.Indices.Num());
+	TSharedPtr<FStaticMeshData> LocMeshData = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	LocationMesh = Renderer->CreateMesh(*LocMeshData.get());
+	LocationMesh->VertexBuffer = Renderer->CreateVertexBuffer(LocMeshData->Vertices.GetData(), sizeof(FVertex) * (UINT)LocMeshData->Vertices.Num(), sizeof(FVertex));
+	LocationMesh->IndexBuffer = Renderer->CreateIndexBuffer(LocMeshData->Indices.GetData(), LocMeshData->Indices.Num());
 
-	FStaticMeshData RotMeshData = FGeometryGenerator::CreateRing(1.0f, 0.03f, 32, 16, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	RotationMesh = Renderer->CreateMesh(RotMeshData);
-	RotationMesh->VertexBuffer = Renderer->CreateVertexBuffer(RotMeshData.Vertices.GetData(), sizeof(FVertex) * (UINT)RotMeshData.Vertices.Num(), sizeof(FVertex));
-	RotationMesh->IndexBuffer = Renderer->CreateIndexBuffer(RotMeshData.Indices.GetData(), RotMeshData.Indices.Num());
+	TSharedPtr<FStaticMeshData> RotMeshData = FGeometryGenerator::CreateRing(1.0f, 0.03f, 32, 16, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	RotationMesh = Renderer->CreateMesh(*RotMeshData.get());
+	RotationMesh->VertexBuffer = Renderer->CreateVertexBuffer(RotMeshData->Vertices.GetData(), sizeof(FVertex) * (UINT)RotMeshData->Vertices.Num(), sizeof(FVertex));
+	RotationMesh->IndexBuffer = Renderer->CreateIndexBuffer(RotMeshData->Indices.GetData(), RotMeshData->Indices.Num());
 
-	FStaticMeshData ScaleMeshData = FGeometryGenerator::CreateScaleBar(0.1f, 1.0f, 0.4f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
-	ScaleMesh = Renderer->CreateMesh(ScaleMeshData);
-	ScaleMesh->VertexBuffer = Renderer->CreateVertexBuffer(ScaleMeshData.Vertices.GetData(), sizeof(FVertex) * (UINT)ScaleMeshData.Vertices.Num(), sizeof(FVertex));
-	ScaleMesh->IndexBuffer = Renderer->CreateIndexBuffer(ScaleMeshData.Indices.GetData(), ScaleMeshData.Indices.Num());
+	TSharedPtr<FStaticMeshData> ScaleMeshData = FGeometryGenerator::CreateScaleBar(0.1f, 1.0f, 0.4f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	ScaleMesh = Renderer->CreateMesh(*ScaleMeshData.get());
+	ScaleMesh->VertexBuffer = Renderer->CreateVertexBuffer(ScaleMeshData->Vertices.GetData(), sizeof(FVertex) * (UINT)ScaleMeshData->Vertices.Num(), sizeof(FVertex));
+	ScaleMesh->IndexBuffer = Renderer->CreateIndexBuffer(ScaleMeshData->Indices.GetData(), ScaleMeshData->Indices.Num());
 
-	FStaticMeshData SphereData = FGeometryGenerator::CreateSphere(0.2f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
-	SphereMesh = Renderer->CreateMesh(SphereData);
-	SphereMesh->VertexBuffer = Renderer->CreateVertexBuffer(SphereData.Vertices.GetData(), sizeof(FVertex) * (UINT)SphereData.Vertices.Num(), sizeof(FVertex));
-	SphereMesh->IndexBuffer = Renderer->CreateIndexBuffer(SphereData.Indices.GetData(), SphereData.Indices.Num());
+	TSharedPtr<FStaticMeshData> SphereData = FGeometryGenerator::CreateSphere(0.2f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+	SphereMesh = Renderer->CreateMesh(*SphereData.get());
+	SphereMesh->VertexBuffer = Renderer->CreateVertexBuffer(SphereData->Vertices.GetData(), sizeof(FVertex) * (UINT)SphereData->Vertices.Num(), sizeof(FVertex));
+	SphereMesh->IndexBuffer = Renderer->CreateIndexBuffer(SphereData->Indices.GetData(), SphereData->Indices.Num());
 
 	CB = Renderer->CreateConstantBuffer(sizeof(FGizmoData));
 

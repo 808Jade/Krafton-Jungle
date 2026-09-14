@@ -8,30 +8,7 @@
 
 #include "Input/InputSystem.h"
 
-namespace
-{
-	FString PrimitiveTypeToString(EPrimitiveType Type)
-	{
-		switch (Type)
-		{
-		case EPrimitiveType::Sphere:
-			return "Sphere";
-			break;
-		case EPrimitiveType::Cube:
-			return "Cube";
-			break;
-		case EPrimitiveType::Cone:
-			return "Cone";
-			break;
-		case EPrimitiveType::Plane:
-			return "Plane";
-			break;
-		default:
-			return "";
-			break;
-		}
-	}
-}
+
 
 bool FControlPanel::Init()
 {
@@ -53,9 +30,7 @@ void FControlPanel::AddActor(EPrimitiveType Type)
 	FTransform Transform;
 	AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>(&Transform);
 	UPrimitiveComponent* Component = Actor->GetPrimitiveComponent();
-	Component->SetType(Type);
-	Component->SetMesh(UAssetManager::Get().GetMesh(PrimitiveTypeToString(Type)));
-	Component->SetMeshData(FGeometryGenerator::GetMeshData(PrimitiveTypeToString(Type)));
+	Component->ApplyPrimitiveType(Type);
 
 	ActorNum = World->GetActorNum() - 1;
 }
