@@ -102,14 +102,14 @@ void FGridRenderer::OnRenderPSGrid(const FMatrix& ViewProj, const FVector& Camer
 	Renderer->GetDeviceContext()->RSSetState(RasterizerState.Get());
 
 	PSGridData.GridPlaneType = 0;
-	Renderer->UpdateConstantBufferData(PSGridConstantBuffer.get(), &Data, sizeof(FPSGridData));
+	Renderer->UpdateConstantBufferData(PSGridConstantBuffer.get(), &PSGridData, sizeof(FPSGridData));
 	Renderer->BindConstantBuffer(0, PSGridConstantBuffer.get(), EShaderBindFlagBits::Vertex);
 	Renderer->BindConstantBuffer(0, PSGridConstantBuffer.get(), EShaderBindFlagBits::Pixel);
 	Renderer->SetBlendStateEnabled(true);
 	Renderer->Draw(4);
 
 	PSGridData.GridPlaneType = 1;
-	Renderer->UpdateConstantBufferData(PSGridConstantBuffer.get(), &Data, sizeof(FPSGridData));
+	Renderer->UpdateConstantBufferData(PSGridConstantBuffer.get(), &PSGridData, sizeof(FPSGridData));
 	Renderer->Draw(4);
 
 	Renderer->SetBlendStateEnabled(false);
