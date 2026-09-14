@@ -189,13 +189,21 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 		{
 			DebugRenderer->OnRender(ViewProj);
 		}
+
 		if (ConfigPanel->GetSettings().bDrawPSGrid)
 		{
-			GridRenderer->OnRenderPSGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation(), ConfigPanel->GetSettings());
+			GridRenderer->OnRenderPSGrid(
+				ViewProj,
+				World->GetMainCamera()->GetCameraComponent()->GetWorldLocation(),
+				ConfigPanel->GetSettings()
+			);
 		}
 		else
 		{
-			GridRenderer->OnRenderBatchGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation());
+			GridRenderer->OnRenderBatchGrid(
+				ViewProj,
+				World->GetMainCamera()->GetCameraComponent()->GetWorldLocation()
+			);
 		}
 	}
 
@@ -209,10 +217,13 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 		{
 			Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		}
+
 		Renderer->RenderAll(RenderQueue, ViewProj);
 	}
 
-	FVector4 CamLoc = World->GetMainCamera()->GetCameraComponent()->GetLocation();
+	FVector4 CamLoc =
+		World->GetMainCamera()->GetCameraComponent()->GetWorldLocation();
+
 	if (Outline->GetTarget())
 	{
 		OutlineRenderer->OnRender(*Outline, ViewProj, CamLoc);
@@ -222,13 +233,22 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 	{
 		auto Target = Gizmo->GetTarget()->GetOwner();
 		FString Text = "UUID : " + std::to_string(Target->GetUUID());
-		//FString Text = "FName : " + Target->GetName().ToString();
-		if (ConfigPanel->GetSettings().bShowUUID) 
+
+		if (ConfigPanel->GetSettings().bShowUUID)
 		{
 			Renderer->SetDepthStencilEnabled(false);
-			TextRenderer->OnRender(Text, Gizmo->GetLocation(), 1.0f, *Atlas, World->GetMainCamera()->GetCameraComponent());
+
+			TextRenderer->OnRender(
+				Text,
+				Gizmo->GetLocation(),
+				1.0f,
+				*Atlas,
+				World->GetMainCamera()->GetCameraComponent()
+			);
+
 			Renderer->SetDepthStencilEnabled(true);
 		}
+
 		GizmoRenderer->OnRender(*Gizmo, ViewProj);
 	}
 
