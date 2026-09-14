@@ -14,7 +14,6 @@ void FRenderer::BeginFrame()
 	DeviceContext->OMSetDepthStencilState(DepthStencilState.Get(), 0);
 	DeviceContext->RSSetViewports(1, &ViewportInfo);
 	DeviceContext->RSSetState(RasterizerState.Get());
-
 }
 
 void FRenderer::EndFrame()
@@ -22,9 +21,59 @@ void FRenderer::EndFrame()
 	SwapChain->Present(1, 0);
 }
 
-bool FRenderer::Init(HWND hWindow)
+void FRenderer::SetViewport(uint32 InX, uint32 InY, uint32 InWidth, uint32 InHeight)
 {
-	CreateDeviceAndSwapChain(hWindow);
+	D3D11_VIEWPORT Viewport;
+	Viewport.TopLeftX = (float)InX;
+	Viewport.TopLeftY = (float)InY;
+	Viewport.Width = (float)InWidth;
+	Viewport.Height = (float)InHeight;
+	Viewport.MinDepth = 0.0f;
+	Viewport.MaxDepth = 1.0f;
+
+	DeviceContext->RSSetViewports(1, &Viewport);
+}
+
+void FRenderer::BeginRenderPass(const FRenderingInfo& RenderingInfo)
+{
+	TArray<ID3D11RenderTargetView*> RTVs;
+	for (const FRenderTargetDesc& RenderTargetDesc : RenderingInfo.ColorRenderTargets)
+	{
+		FClearValue ClearValue = RenderTargetDesc.ClearValue;
+		if (RenderTargetDesc.LoadOp == ERenderTargetLoadOp::Clear)
+		{
+			DeviceContext->ClearRenderTargetView(RenderTargetDesc.Texture->GetRTV(), &RenderTargetDesc.ClearValue.ColorClearValue.V[0]);
+		}
+		RTVs.Add(RenderTargetDesc.Texture->GetRTV());
+	}
+
+	ID3D11DepthStencilView* DSV = nullptr;
+	if (RenderingInfo.DepthSteincil.Texture != nullptr)
+	{
+		FClearValue dsvClearValue = RenderingInfo.DepthSteincil.ClearValue;
+		DSV = RenderingInfo.DepthSteincil.Texture->GetDSV();
+		if (RenderingInfo.DepthSteincil.LoadOp == ERenderTargetLoadOp::Clear)
+		{
+			DeviceContext->ClearDepthStencilView(RenderingInfo.DepthSteincil.Texture->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, dsvClearValue.depthClearValue, dsvClearValue.stencilClearValue);
+		}
+	}
+	DeviceContext->OMSetRenderTargets((uint32)RTVs.Num(), RTVs.GetData(), DSV);
+
+
+	SetViewport(RenderingInfo.ViewportSetting.StartX, 
+		RenderingInfo.ViewportSetting.StartY,
+		RenderingInfo.ViewportSetting.Width,
+		RenderingInfo.ViewportSetting.Height);
+}
+
+void FRenderer::EndRenderPass(const FRenderingInfo& RenderingInfo)
+{
+	DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+}
+
+bool FRenderer::Init(HWND InHWND)
+{
+	CreateDeviceAndSwapChain(InHWND);
 
 	CreateFrameBuffer();
 
@@ -186,7 +235,7 @@ TSharedPtr<FFontAtlas> FRenderer::LoadFontAtlas(const FString& JsonPath, const F
 		return nullptr;
 	}
 
-	Atlas->AtlasTexture = CreateShaderResource(AtlasTexturePath);
+	Atlas->AtlasTexture = CreateTexture2DFromFile(AtlasTexturePath);
 	if (!Atlas->AtlasTexture)
 	{
 		return nullptr;
@@ -277,25 +326,10 @@ void FRenderer::CreateAlphaBlendState()
 	Device->CreateBlendState(&Desc, AlphaBlendState.GetAddressOf());
 }
 
-UTexture2D* FRenderer::CreateShaderResource(const FString& InPath)
+UTexture2D* FRenderer::CreateTexture2DFromFile(const FString& InPath)
 {
-	//UTexture2D* Texture2D = FObjectFactory::ConstructObject<UTexture2D>();
-
-	//std::wstring WidePath(InPath.begin(), InPath.end());
-	//ComPtr<ID3D11Resource> Resource;
-	//HRESULT hr = DirectX::CreateWICTextureFromFile(Device.Get(), WidePath.c_str(), Resource.GetAddressOf(), Texture2D->ShaderResourceView.GetAddressOf());
-	//if (FAILED(hr))
-	//{
-	//	delete Texture2D;
-	//	return nullptr;
-	//}
-
-	//Resource.As(&Texture2D->Texture);
-
-	//return Texture2D;
-
-		// 1. 이미지 로드 (강제 RGBA 4채널)
-	stbi_set_flip_vertically_on_load(false); // D3D는 UV 원점이 좌상단 → 뒤집지 않음
+	// 1. 이미지 로드 
+	stbi_set_flip_vertically_on_load(false); 
 	int Width = 0, Height = 0, Channels = 0;
 	unsigned char* Pixels = stbi_load(InPath.c_str(), &Width, &Height, &Channels, 4);
 	if (!Pixels)
@@ -323,8 +357,10 @@ UTexture2D* FRenderer::CreateShaderResource(const FString& InPath)
 	InitData.pSysMem = Pixels;
 	InitData.SysMemPitch = static_cast<UINT>(Width) * 4;
 
-	ComPtr<ID3D11Texture2D> Texture;
-	HRESULT hr = Device->CreateTexture2D(&Desc, &InitData, Texture.GetAddressOf());
+	UTexture2D* Texture2D = FObjectFactory::ConstructObject<UTexture2D>();
+	
+	HRESULT hr = Device->CreateTexture2D(&Desc, &InitData, (ID3D11Texture2D**)Texture2D->Texture.GetAddressOf());
+
 	stbi_image_free(Pixels); // GPU로 복사 끝났으니 바로 해제
 	if (FAILED(hr))
 	{
@@ -333,24 +369,82 @@ UTexture2D* FRenderer::CreateShaderResource(const FString& InPath)
 
 	// 3. SRV 생성
 	ComPtr<ID3D11ShaderResourceView> SRV;
-	hr = Device->CreateShaderResourceView(Texture.Get(), nullptr, SRV.GetAddressOf());
+	hr = Device->CreateShaderResourceView(Texture2D->Texture.Get(), nullptr, Texture2D->SRV.GetAddressOf());
 	if (FAILED(hr))
 	{
 		return nullptr;
 	}
 
-	// 4. 전부 성공한 뒤에 오브젝트 생성
+	return Texture2D;
+}
+
+UTexture2D* FRenderer::CreateRenderTargetTexture2D(uint32 Width, uint32 Height, DXGI_FORMAT Format)
+{
+	D3D11_TEXTURE2D_DESC Desc{};
+	Desc.Width = static_cast<UINT>(Width);
+	Desc.Height = static_cast<UINT>(Height);
+	Desc.MipLevels = 1;
+	Desc.ArraySize = 1;
+	Desc.Format = Format;
+	Desc.SampleDesc.Count = 1;
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+	Desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE; 
+	
 	UTexture2D* Texture2D = FObjectFactory::ConstructObject<UTexture2D>();
-	Texture2D->Texture = Texture;
-	Texture2D->ShaderResourceView = SRV;
+	HRESULT hr = Device->CreateTexture2D(&Desc, nullptr, (ID3D11Texture2D**)Texture2D->Texture.GetAddressOf());
+	if (FAILED(hr))
+	{
+		return nullptr;
+	}
+
+	hr = Device->CreateShaderResourceView(Texture2D->Texture.Get(), nullptr, Texture2D->SRV.GetAddressOf());
+	if (FAILED(hr))
+	{
+		return nullptr;
+	}
+
+	hr = Device->CreateRenderTargetView(Texture2D->Texture.Get(), nullptr, Texture2D->RTV.GetAddressOf());
+	if (FAILED(hr))
+	{
+		return nullptr;
+	}
+
 
 	return Texture2D;
 }
 
-UTexture2D* FRenderer::CreateRenderTarget(const FString& InPath)
+UTexture2D* FRenderer::CreateDepthStencilTexture2D(uint32 Width, uint32 Height, DXGI_FORMAT Format)
 {
-	// TODO:
-	return nullptr;
+	D3D11_TEXTURE2D_DESC Desc{};
+	Desc.Width = static_cast<UINT>(Width);
+	Desc.Height = static_cast<UINT>(Height);
+	Desc.MipLevels = 1;
+	Desc.ArraySize = 1;
+	Desc.Format = Format;
+	Desc.SampleDesc.Count = 1;
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+	Desc.BindFlags = D3D11_BIND_DEPTH_STENCIL; //| D3D11_BIND_SHADER_RESOURCE;
+
+	UTexture2D* Texture2D = FObjectFactory::ConstructObject<UTexture2D>();
+	HRESULT hr = Device->CreateTexture2D(&Desc, nullptr, (ID3D11Texture2D**)Texture2D->Texture.GetAddressOf());
+	if (FAILED(hr))
+	{
+		return nullptr;
+	}
+
+	//hr = Device->CreateShaderResourceView(Texture2D->Texture.Get(), nullptr, Texture2D->SRV.GetAddressOf());
+	//if (FAILED(hr))
+	//{
+	//	return nullptr;
+	//}
+
+	hr = Device->CreateDepthStencilView(Texture2D->Texture.Get(), nullptr, Texture2D->DSV.GetAddressOf());
+	if (FAILED(hr))
+	{
+		return nullptr;
+	}
+
+	return Texture2D;
 }
 
 TSharedPtr<FVertexBuffer> FRenderer::CreateVertexBuffer(const void* InVertices, uint32 InSize, uint32 Stride)
@@ -504,13 +598,13 @@ void FRenderer::BindTexture(uint32 Slot, UTexture2D* Texture2D, EShaderBindFlagB
 {
 	if (FlagBits & EShaderBindFlagBits::Vertex)
 	{
-		DeviceContext->VSSetShaderResources(Slot, 1, Texture2D->ShaderResourceView.GetAddressOf());
+		DeviceContext->VSSetShaderResources(Slot, 1, Texture2D->SRV.GetAddressOf());
 		DeviceContext->VSSetSamplers(0, 1, DefaultSamplerState.GetAddressOf());
 	}
 
 	if (FlagBits & EShaderBindFlagBits::Pixel)
 	{
-		DeviceContext->PSSetShaderResources(Slot, 1, Texture2D->ShaderResourceView.GetAddressOf());
+		DeviceContext->PSSetShaderResources(Slot, 1, Texture2D->SRV.GetAddressOf());
 		DeviceContext->PSSetSamplers(0, 1, DefaultSamplerState.GetAddressOf());
 	}
 }

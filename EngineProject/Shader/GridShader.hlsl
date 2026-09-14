@@ -63,11 +63,11 @@ PS_INPUT mainVS(uint vid : SV_VertexID)
 
 #define MOD(x,y) ((x) - (y) * floor((x)/(y))) 
 
-static const float4 CellColor = float4(0.6, 0.6, 0.6, 0.6);
-static const float4 SubCellColor = float4(0.4, 0.4, 0.4, 0.35);
-static const float4 AxisXColor = float4(1.0, 0.0, 0.0, 0.35);
-static const float4 AxisYColor = float4(0.0, 1.0, 0.0, 0.35);
-static const float4 AxisZColor = float4(0.0, 0.0, 1.0, 0.35);
+static const float4 CellColor = float4(0.9, 0.9, 0.9, 0.6);
+static const float4 SubCellColor = float4(0.7, 0.7, 0.7, 0.35);
+static const float4 AxisXColor = float4(1.0, 0.0, 0.0, 0.9);
+static const float4 AxisYColor = float4(0.0, 1.0, 0.0, 0.9);
+static const float4 AxisZColor = float4(0.0, 0.0, 1.0, 0.9);
 
 static const float HeightToFadeRatio = 25.0f;
 static const float MinFadeDistance = 5.0f;

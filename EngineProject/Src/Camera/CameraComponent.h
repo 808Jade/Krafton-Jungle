@@ -31,6 +31,7 @@ public:
 	float GetFieldOfView() const { return FieldOfView; }
 	void SetFieldOfView(float InFieldOfView) { FieldOfView = InFieldOfView; }
 
+	FRay DeProjection(FVector2 MousePos, float ScreenW, float ScreenH);
 	float GetAspectRatio() const { return AspectRatio; }
 	void SetAspectRatio(float InAspectRatio) { AspectRatio = InAspectRatio; }
 

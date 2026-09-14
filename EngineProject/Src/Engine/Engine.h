@@ -16,6 +16,7 @@
 #include "Editor/PropertyPanel.h"
 #include "Editor/ControlPanel.h"
 #include "Editor/ConfigPanel.h"
+#include "Editor/ViewportPanel.h"
 
 #include "Editor/Outline.h"
 #include "Editor/OutLineRenderer.h"
@@ -63,11 +64,14 @@ private:
 	TSharedPtr<FShader> TextShader;
 	TSharedPtr<FFontAtlas> Atlas;
 
+
+
 	// UE_LOG 매크로용 전역 콘솔
 	inline static FConsolePanel* ConsolePanel = nullptr;
 	FPropertyPanel* PropertyPanel = nullptr;
 	FControlPanel* ControlPanel = nullptr;
 	FConfigPanel* ConfigPanel = nullptr;
+	FViewportPanel* ViewportPanel= nullptr;
 	FSceneManager* SceneManager = nullptr;
 };
 

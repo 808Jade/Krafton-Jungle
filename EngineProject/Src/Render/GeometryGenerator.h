@@ -25,6 +25,8 @@ public:
 
 	static FStaticMeshData* GetMeshData(const FString& InName);
 
+
+
 private:
 	inline static TMap<FString, TSharedPtr<FStaticMeshData>> MeshDataMap;
 };
