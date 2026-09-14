@@ -321,6 +321,12 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h">
       <Filter>ThirdParty\stb</Filter>
     </ClInclude>
+    <ClInclude Include="Level.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Asset\AssetManager.cpp">

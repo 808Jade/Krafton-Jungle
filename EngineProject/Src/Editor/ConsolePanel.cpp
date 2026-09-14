@@ -11,6 +11,7 @@ static int   Strnicmp(const char* s1, const char* s2, int n) { int d = 0; while 
 
 bool FConsolePanel::Init()
 {
+	ClearLog();
 	Commands.Add("HELP");
 	Commands.Add("HISTORY");
 	Commands.Add("CLEAR");

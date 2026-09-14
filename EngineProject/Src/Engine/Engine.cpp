@@ -17,6 +17,7 @@
 #include "Camera/CameraComponent.h"
 
 #include "Asset/AssetManager.h"
+#include "../SceneManager.h"
 
 bool Engine::Init(HINSTANCE hInstance)
 {
@@ -48,7 +49,7 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	LOG(Info, "Initialize AssetManager...");
 	UAssetManager::Get().Init(Renderer.get());
-	LOG(Info, "Success!");
+	LOG(Info, "Initialize AssetManager Success!");
 
 
 	LOG(Info, "Initialize ImGui...");
@@ -58,7 +59,7 @@ bool Engine::Init(HINSTANCE hInstance)
 		LOG(Error, "Failed To Initialize ImGui!");
 
 	}
-	LOG(Info, "Success!");
+	LOG(Info, "Initialize ImGui Success!");
 
 	GridRenderer = MakeUnique<FGridRenderer>();
 	GridRenderer->Init(Renderer.get());
@@ -71,6 +72,7 @@ bool Engine::Init(HINSTANCE hInstance)
 	// 필요한 Panel들 추가후 raw pointer 반환(소유권 = EditorUI)
 	PropertyPanel = EditorUI->AddEditorPanel<FPropertyPanel>();
 	ControlPanel = EditorUI->AddEditorPanel<FControlPanel>();
+	
 
 	// OutLine
 	OutlineRenderer = MakeUnique<FOutlineRenderer>();
@@ -89,6 +91,10 @@ bool Engine::Init(HINSTANCE hInstance)
 	// Scene
 	World = FObjectFactory::ConstructObject<UWorld>();
 	World->Init();
+
+	/// 삭제 예정
+	SceneManager = EditorUI->AddEditorPanel<FSceneManager>();
+	SceneManager->SetWorld(World);
 
 	DebugRenderer = MakeUnique<FDebugRenderer>();
 	DebugRenderer->Init(Renderer.get(), World);
@@ -177,22 +183,9 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 {
 	Renderer->BeginFrame();
 
-	if (ConfigPanel->GetSettings().bDrawBoundingBox)
-	{
-		DebugRenderer->OnRender(ViewProj);
-	}
-
-	if (ConfigPanel->GetSettings().bDrawPSGrid)
-	{
-		GridRenderer->OnRenderPSGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation(), ConfigPanel->GetSettings());
-	}
-	else
-	{
-		GridRenderer->OnRenderBatchGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation());
-	}
-
+	GridRenderer->OnRender(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetWorldLocation());
 	Renderer->RenderAll(RenderQueue, ViewProj);
-	FVector4 CamLoc = World->GetMainCamera()->GetCameraComponent()->GetLocation();
+	FVector4 CamLoc = World->GetMainCamera()->GetCameraComponent()->GetWorldLocation();
 	if (Outline->GetTarget())
 		OutlineRenderer->OnRender(*Outline, ViewProj, CamLoc);
 

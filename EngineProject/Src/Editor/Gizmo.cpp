@@ -215,7 +215,7 @@ void FGizmo::UpdateDrag(const FRay& MouseRay, const FVector2& MousePos)
 	if (DraggingAxis == AXIS_SCREEN && Mode != EGizmoMode::Rotation)
 	{
 		if (Mode == EGizmoMode::Location)
-			Target->GetTransform()->Location = DragStartLocation + (current - DragStartPoint);
+			Target->SetRelativeLocation(DragStartLocation + (current - DragStartPoint));
 		else
 		{
 			float dx = MousePos.X - DragStartMousePos.X;
@@ -225,7 +225,7 @@ void FGizmo::UpdateDrag(const FRay& MouseRay, const FVector2& MousePos)
 			float factor = 1.0f + scaleDelta;
 			if (factor < 0.01f) factor = 0.01f;
 
-			Target->GetTransform()->Scale = DragStartScale * factor;
+			Target->SetRelativeScale3D(DragStartScale * factor);
 		}
 		return;
 	}
@@ -240,7 +240,7 @@ void FGizmo::UpdateDrag(const FRay& MouseRay, const FVector2& MousePos)
 
 		FQuat result = delta * start;
 
-		Target->GetTransform()->Rotation = result.ToFRotator();
+		Target->SetRelativeRotation(result.ToFRotator());
 		return;
 	}
 
@@ -248,7 +248,7 @@ void FGizmo::UpdateDrag(const FRay& MouseRay, const FVector2& MousePos)
 	float amount = delta.Dot(DragAxisDirection);
 
 	if (Mode == EGizmoMode::Location)
-		Target->GetTransform()->Location = DragStartLocation + DragAxisDirection * amount;
+		Target->SetRelativeLocation(DragStartLocation + DragAxisDirection * amount);
 	else   // Scale
 	{
 		float factor = 1.0f + amount;
@@ -259,7 +259,7 @@ void FGizmo::UpdateDrag(const FRay& MouseRay, const FVector2& MousePos)
 		else if (DraggingAxis == 1) NewScale.Y *= factor;
 		else                        NewScale.Z *= factor;
 
-		Target->GetTransform()->Scale = NewScale;
+		Target->SetRelativeScale3D(NewScale);
 	}
 }
 
@@ -301,7 +301,7 @@ FVector FGizmo::GetAxisDirection(int Axis) const
 
 	if (bUseLocal && Target)
 	{
-		FMatrix rot = Target->GetTransform()->Rotation.Quaternion().ToFMatrix();
+		FMatrix rot = Target->GetRelativeRotation().Quaternion().ToFMatrix();
 		FVector4 v = rot.TransformVector(AxisDirs[Axis]);
 		return FVector(v.X, v.Y, v.Z).Normalized();
 	}
@@ -312,14 +312,15 @@ FVector FGizmo::GetRenderLocation() const
 {
 	if (!Target) return FVector(0, 0, 0);
 
-	if (CameraComponent->bIsOrthogonal) return GetLocation();
+	if (CameraComponent->GetIsOrthogonal()) return GetLocation();
 
-	return (Target->GetTransform()->Location - CameraComponent->GetTransform()->Location).Normalized() * 10.0f + CameraComponent->GetTransform()->Location;
+	return (Target->GetRelativeLocation() - CameraComponent->GetRelativeLocation()).Normalized() * 10.0f 
+		+ CameraComponent->GetRelativeLocation();
 
 	// return Target ? Target->GetTransform()->Location: FVector(0, 0, 0); 
 }
 
 FVector FGizmo::GetCameraLocation() const
 {
-	return CameraComponent ? CameraComponent->GetTransform()->Location : FVector(0, 0, 0);
+	return CameraComponent ? CameraComponent->GetRelativeLocation() : FVector(0, 0, 0);
 }

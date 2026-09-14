@@ -139,7 +139,7 @@ void FTextRenderer::OnRender(const FString& Text, const FVector& WorldPos, float
 	Renderer->UpdateVertexBufferData(VertexBuffer.get(), Vertices.GetData(), sizeof(FTextVertex) * Vertices.Num());
 	Renderer->UpdateIndexBufferData(IndexBuffer.get(), Indices.GetData(), sizeof(uint32) * Indices.Num());
 
-	FTransform Transform = *CameraComponent->GetTransform();
+	const FTransform &Transform = CameraComponent->GetTransform();
 
 	//// 빌보드 Worl d 행렬: CameraRight/Up을 축으로, WorldPos에 위치
 	FVector Right = Transform.GetRight().Normalized();

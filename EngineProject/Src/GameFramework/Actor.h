@@ -5,25 +5,43 @@
 
 #include "ObjectSystem/Class.h"
 #include "ObjectSystem/ObjectFactory.h"
+#include "../Container/Set.h"
 
 class UWorld;
+class ULevel;
+
 
 
 class AActor : public UObject
 {
 	DECLARE_CLASS(AActor, UObject)
-
 	REFLECT_START(ClassName)
 		REFLECT_END()
 public:
 	AActor();
 	virtual ~AActor();
 
-	virtual void BeginPlay();
-	virtual void Tick(float DeltaTime);
+	virtual void BeginPlay(); // xx World->AddPrimitive 책임이동 필요
+	virtual void Tick(float DeltaTime); // xx component 호출
 
 	UWorld* GetWorld() const { return World; }
+	ULevel* GetLevel() const { return Level; }
+
+	USceneComponent* GetRootComponent() const { return RootComponent; }
+	void SetRootComponent(USceneComponent* SceneComponent) { RootComponent = SceneComponent; }
 	
+	FVector GetActorLocation() const;
+	FRotator GetActorRotation() const;
+	FVector GetActorScale3D() const;
+	FQuat GetActorQuat() const;           //xx 타입명변경
+	FTransform GetActorTransform() const;
+
+	bool Destroy();
+
+
+	//xx삭제 예정
+	friend class UWorld;
+
 	template <typename T>
 	T* CreateDefaultSubobject()
 	{
@@ -34,16 +52,21 @@ public:
 		return Component;
 	}
 
-	void SetRootComponent(USceneComponent* SceneComponent);
-	USceneComponent* GetRootComponent();
+	//const Tset GetComponents() {
 
-	friend class UWorld;
+	//}
+
 protected:
+	//TSet<TObjectPtr<UActorComponent>> OwnedComponents;
 	TArray<UActorComponent*> Components;
-	
-	// Todo: subuv
 	USceneComponent* RootComponent = nullptr;
 
-private:
 	UWorld* World = nullptr;
+	ULevel* Level = nullptr;
+
+
+private:
+
+	
+
 };

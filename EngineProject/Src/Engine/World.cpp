@@ -1,5 +1,6 @@
 #include "EnginePCH.h"
 #include "World.h"
+#include "Level.h"
 
 #include "ObjectSystem/ObjectFactory.h"
 #include "Core/EngineStatics.h"
@@ -66,41 +67,63 @@ namespace
 
 UWorld::~UWorld()
 {
+
 }
 
-bool UWorld::Init()
+bool  UWorld::Init()
 {
 	// Spawn Actor로 카메라 생성하고 세팅하기
-	ACameraActor* GetCamera = SpawnActor<ACameraActor>(nullptr);
-	if (GetCamera)
+	PersistentLevel = FObjectFactory::ConstructObject<ULevel>();
+
+	if(!PersistentLevel)
 	{
-		SetMainCamera(GetCamera);
-		return true;
+		LOG(Error, "Failed to create PersistentLevel");
+		return false;
 	}
 
+	//레벨 연결
+	PersistentLevel->SetWorld(this);
+	Levels.Add(PersistentLevel);
+	CurrentLevel = PersistentLevel;
 
-	return false;
+	//카메라 생성
+	CreateMainCamera();
+
+	return true;
 }
 
-AActor* UWorld::SpawnActor(UClass* Class, const FTransform* UserTransformPtr)
+AActor* UWorld::SpawnActor(UClass* Class, const FTransform* TransformPtr)
 {
 	if (!Class) return nullptr;
 	if (!Class->IsChildOf(AActor::StaticClass())) return nullptr;
-	const FTransform UserTransform = UserTransformPtr ? *UserTransformPtr : FTransform::Identity;
-	UObject* NewObject= FObjectFactory::ConstructObject(Class);
-	AActor* NewActor = Cast<AActor>(NewObject);
-	NewActor->World = this;
-	if (!NewActor) return nullptr;
 
-	if (!NewActor->GetRootComponent())
+	// 1. ObjectFactory로 Actor 생성
+	AActor* NewActor = Cast<AActor>( FObjectFactory::ConstructObject(Class) );
+
+	if (!NewActor)
 	{
-		USceneComponent* DefaultRoot = FObjectFactory::ConstructObject<USceneComponent>();
-		DefaultRoot->SetTransform(UserTransform);
-		NewActor->SetRootComponent(DefaultRoot);
+		LOG(Error, "SpawnActor2 : Failed to create Actor");
+		return nullptr;
 	}
 
-	Actors.Add(NewActor);
+	// 2. Actor에 World/Level 연결
+	NewActor->World = this;
+	NewActor->Level = PersistentLevel;
+
+	// 3. Transform 적용
+	const FTransform SpawnTransform = TransformPtr ? *TransformPtr : FTransform::Identity;
+
+	if (NewActor->GetRootComponent())
+	{
+		NewActor->GetRootComponent()->SetTransform(SpawnTransform);
+	}
+
+	// 4. Level->Actors에 등록
+	PersistentLevel->AddActor(NewActor);
+
+	// 5. PlayList에 추가
 	BeginPlayList.Enqueue(NewActor);
+
 	return NewActor;
 }
 
@@ -112,10 +135,19 @@ void UWorld::Tick(float DeltaTime)
 		BeginPlayList.Dequeue();
 	}
 
-	for (AActor* Actor : Actors)
+	if (MainCamera)
 	{
-		Actor->Tick(DeltaTime);
+		MainCamera->Tick(DeltaTime);
 	}
+
+	for (ULevel* Level : Levels)
+	{
+		for (AActor* Actor : Level->GetActors())
+		{
+			Actor->Tick(DeltaTime);
+		}
+	}
+
 }
 
 void UWorld::OnRender(FRenderer* Renderer)
@@ -125,22 +157,29 @@ void UWorld::OnRender(FRenderer* Renderer)
 
 void UWorld::ClearScene()
 {
+	// 렌더링 대상 제거
 	PrimitiveComponents.Reset();
-	while (!BeginPlayList.IsEmpty()) BeginPlayList.Dequeue();
 
-	for (AActor* Actor : Actors) delete Actor;
-	Actors.Reset();
-	MainCamera = nullptr;
+	// BeginPlay 대기 중인 Actor 제거
+	while (!BeginPlayList.IsEmpty())
+	{
+		BeginPlayList.Dequeue();
+	}
+
+	for (ULevel* Level : Levels)
+	{
+		// 현재 Scene(Level)의 Actor 제거
+		if (CurrentLevel)
+		{
+			CurrentLevel->ClearActors();
+		}
+	}
+	LOG(Info, "{} : ", PersistentLevel->GetActorNum());
 }
 
 bool UWorld::NewScene(const FString& Path)
 {
-	ACameraActor* GetCamera = SpawnActor<ACameraActor>(nullptr);
-	if (GetCamera)
-	{
-		SetMainCamera(GetCamera);
-	}
-	MainCamera = GetCamera;
+	ClearScene();;
 
 	FEngineStatics::NextUUID = 0;
 
@@ -155,7 +194,7 @@ bool UWorld::SaveScene(const FString& Path)
 	Json["NextUUID"] = FEngineStatics::NextUUID;
 	Json["Primitives"] = json::object();
 
-	for (AActor* Actor : Actors)
+	for (AActor* Actor : PersistentLevel->GetActors())
 	{
 
 		USceneComponent* Primitive = Actor->GetRootComponent();
@@ -167,19 +206,15 @@ bool UWorld::SaveScene(const FString& Path)
 
 		json pJson;
 
-		const FTransform* Transform = Primitive->GetTransform();
+		const FTransform& Transform = Primitive->GetTransform();
 
-		pJson["Location"] = { Transform->Location.X, Transform->Location.Y, Transform->Location.Z };
-		pJson["Rotation"] = { Transform->Rotation.Roll, Transform->Rotation.Pitch, Transform->Rotation.Yaw };
-		pJson["Scale"] = { Transform->Scale.X, Transform->Scale.Y, Transform->Scale.Z };
+		pJson["Location"] = { Transform.Location.X, Transform.Location.Y, Transform.Location.Z };
+		pJson["Rotation"] = { Transform.Rotation.Roll, Transform.Rotation.Pitch, Transform.Rotation.Yaw };
+		pJson["Scale"] = { Transform.Scale.X, Transform.Scale.Y, Transform.Scale.Z };
 
 		if (Cast<UPrimitiveComponent>(Primitive))
 		{
 			pJson["Type"] = PrimitiveTypeToString(Cast<UPrimitiveComponent>(Primitive)->GetType());
-		}
-		else if (Cast<UCameraComponent>(Primitive))
-		{
-			pJson["Type"] = "Camera";
 		}
 		else
 		{
@@ -187,13 +222,14 @@ bool UWorld::SaveScene(const FString& Path)
 		}
 
 
-		Json["Primitives"][std::to_string(Primitive->GetUUID())] = pJson;
+		Json["Primitives"][std::to_string(Actor->GetUUID())] = pJson;
 
 	}
 
-	std::filesystem::create_directories("Scene");
-
-	FString FullPath = "Scene/" + Path + ".Scene";
+	//std::filesystem::create_directories("Scene");
+	//FString FullPath = "Scene/" + Path + ".Scene";
+	
+	FString FullPath = Path;
 	std::ofstream File(FullPath);
 
 	if (!File.is_open())
@@ -211,9 +247,7 @@ bool UWorld::SaveScene(const FString& Path)
 
 bool UWorld::LoadScene(const FString& Path)
 {
-	std::filesystem::create_directories("Scene");
-
-	FString FullPath = "Scene/" + Path + ".Scene";
+	FString FullPath = Path;
 	std::ifstream File(FullPath);
 
 	if (!std::filesystem::exists(FullPath))
@@ -263,6 +297,8 @@ bool UWorld::LoadScene(const FString& Path)
 		return true;
 	}
 
+	uint64 SavedNextUUID = Json["NextUUID"];
+
 	for (auto& [UUIDString, PrimitiveJson] : Json["Primitives"].items())
 	{
 		uint64 UUID = std::stoull(UUIDString);
@@ -298,20 +334,6 @@ bool UWorld::LoadScene(const FString& Path)
 
 		FString TypeString = PrimitiveJson["Type"].get<FString>();
 
-		if (TypeString == "Camera")
-		{
-			// 현재 카메라 delete하고 새로 생성
-			ACameraActor* GetCamera = SpawnActor<ACameraActor>(nullptr);
-			if (GetCamera)
-			{
-				SetMainCamera(GetCamera);
-			}
-			MainCamera = GetCamera;
-			MainCamera->GetRootComponent()->SetTransform(Transform);
-
-			continue;
-		}
-
 		if (TypeString == "Other")
 		{
 			continue;
@@ -322,11 +344,12 @@ bool UWorld::LoadScene(const FString& Path)
 
 		// 액터 스폰
 		AStaticMeshActor* Actor = SpawnActor<AStaticMeshActor>(&Transform);
+
 		//Actor->AddPrimitiveComponent(Type, Transform);
+		Actor->SetPrimitiveType(Type);
 		Actor->SetUUID(UUID);
-
-
 	}
+	FEngineStatics::NextUUID = SavedNextUUID;
 
 	return true;
 }
@@ -409,14 +432,57 @@ UPrimitiveComponent* UWorld::TryPicking(uint32 ScreenW, uint32 ScreenH)
 }
 
 
-// 카메라 관련 추가
-
-void UWorld::SetMainCamera(ACameraActor* Camera)
+// 메인 카메라 생성
+void UWorld::CreateMainCamera()
 {
-	MainCamera = Camera;
+	if (MainCamera) 
+		return;
+
+	MainCamera = FObjectFactory::ConstructObject<ACameraActor>();
+
+	if (!MainCamera) 
+	{
+		LOG(Error, "Failed to create MainCamera");
+		return;
+	}
+
+	MainCamera->World = this;
+	MainCamera->Level = nullptr;
+	MainCamera->GetCameraComponent()->SetRelativeLocation(FVector(-5.0f, -5.0f, 5.0f));
 }
 
-ACameraActor* UWorld::GetMainCamera() const
+int32 UWorld::GetActorNum()
 {
-	return MainCamera;
+	return PersistentLevel->GetActorNum();
 }
+
+bool UWorld::DestroyActor(AActor* Actor)
+{
+	return false;
+}
+
+void UWorld::BeginPlay()
+{
+}
+
+void UWorld::EndPlay()
+{
+}
+
+//void UWorld::ClearScene()
+//{
+//}
+//
+//void UWorld::NewScene()
+//{
+//}
+//
+//bool UWorld::SaveScene(const FString& Path)
+//{
+//	return false;
+//}
+//
+//bool UWorld::LoadScene(const FString& Path)
+//{
+//	return false;
+//}

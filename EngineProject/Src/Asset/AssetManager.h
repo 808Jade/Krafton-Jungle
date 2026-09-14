@@ -23,12 +23,15 @@ public:
 
 	template <typename T>
 	static T* GetAsset()
-	{
+	{ 
+		UStaticMesh* GetMesh(EPrimitiveType Type);
 	}
-	
+
+
 	void SetRenderer(FRenderer* InRenderer);
 	
 	UStaticMesh* GetMesh(FString InName);
+	UStaticMesh* GetMesh(EPrimitiveType Type); // 오버로드(수정 중)
 	FShader* GetShader(FString InName);
 
 	// Todo: subuv

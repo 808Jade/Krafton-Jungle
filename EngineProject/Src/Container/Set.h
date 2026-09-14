@@ -2,7 +2,7 @@
 
 #include <cassert>
 #include <unordered_set>
-
+#include "Core/Types.h"
 
 
 template <typename T>
@@ -17,7 +17,7 @@ public:
 	// Returns removed count
 	int32 Remove(const T& data);
 
-	uint32 Num() const;
+	int32  Num() const;
 	void Reset();
 
 	bool Contains(const T& data) const;
@@ -33,44 +33,22 @@ private:
 };
 
 template<typename T>
-inline bool TSet<T>::Add(const T& data)
-{
-	return mSet.insert(data).second;
-}
+inline bool TSet<T>::Add(const T& data) { return mSet.insert(data).second; }
 
 template<typename T>
-inline int32 TSet<T>::Remove(const T& data)
-{
-	return mSet.erase(data);
-}
+inline int32 TSet<T>::Remove(const T& data) { return mSet.erase(data); }
 
-template<typename T>
-inline uint32 TSet<T>::Num() const
-{
-	return static_cast<uint32>(mSet.size());
-}
+template<typename T> 
+inline int32 TSet<T>::Num() const { return static_cast<int32>(mSet.size()); }
 
-template<typename T>
-inline void TSet<T>::Reset()
-{
-	mSet.clear();
-}
+template<typename T> 
+inline void TSet<T>::Reset() { mSet.clear(); }
 
-template<typename T>
-inline bool TSet<T>::Contains(const T& data) const
-{
-	return mSet.find(data) != mSet.end() ? true : false;
-}
+template<typename T> 
+inline bool TSet<T>::Contains(const T& data) const { return mSet.find(data) != mSet.end(); }
 
-template<typename T>
-inline bool TSet<T>::IsEmpty() const
-{
-	return mSet.size() == 0 ? true : false;
-}
+template<typename T> 
+inline bool TSet<T>::IsEmpty() const { return mSet.empty(); }
 
-template<typename T>
-inline void TSet<T>::Reserve(int32 capacity)
-{
-	mSet.reserve(capacity);
-}
-
+template<typename T> 
+inline void TSet<T>::Reserve(int32 capacity) { mSet.reserve(capacity); }

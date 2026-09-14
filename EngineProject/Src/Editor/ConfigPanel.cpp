@@ -51,7 +51,7 @@ void FConfigPanel::OnRender()
 
 	ImGui::SetNextItemWidth(200.0f);
 	ImGui::SliderFloat("Camera Speed", &Settings.CameraSpeed, 0.1f, 10.0f, "%.2f");
-	CamCom->SetCameraSpeed(Settings.CameraSpeed);
+	CamCom->SetMoveSpeed(Settings.CameraSpeed);
 
 	ImGui::SetNextItemWidth(200.0f);
 	ImGui::SliderInt("Grid Spacing", &Settings.GridSpacing, 1, 100);

@@ -7,10 +7,13 @@
 #include "Render/Renderer.h"
 
 class ACameraActor;
+class ULevel;
+
 
 class UWorld : public UObject
 {
 	DECLARE_CLASS(UWorld, UObject)
+
 public:
 	UWorld() = default;
 	virtual ~UWorld();
@@ -40,21 +43,38 @@ public:
 	void GatherRenderPackets(TQueue<FRenderPacket>& RenderQueue);
 	UPrimitiveComponent* TryPicking(uint32 ScreenW, uint32 ScreenH);
 
-	// 카메라 세터, 게터
-	void SetMainCamera(ACameraActor* Camera);
-	ACameraActor* GetMainCamera() const;
 
-	int32 GetActorNum() const { return (int32)Actors.Num(); }
+	///
+
+	void CreateMainCamera();
+
+	// 카메라 Get/Set
+	void SetMainCamera(ACameraActor* Camera) { MainCamera = Camera; }
+	ACameraActor* GetMainCamera() const { return MainCamera; }
+	
+	// Level
+	ULevel* GetPersistentLevel() const { return PersistentLevel; }
+	void SetPersistentLevel(ULevel* InLevel) { PersistentLevel = InLevel; }
+
+	ULevel* GetCurrentLevel() const { return CurrentLevel; }
+	void SetCurrentLevel(ULevel* InLevel) { CurrentLevel = InLevel; }
+
+	
+	int32 GetActorNum();
+
+	bool DestroyActor(AActor* Actor);
+	void BeginPlay();
+	void EndPlay();
 
 private:
-	TArray<AActor*> Actors;
-
 	TQueue<AActor*> BeginPlayList;
 	
 	TArray<UPrimitiveComponent*> PrimitiveComponents;
 		
-	//카메라 추가 
+	//메인 카메라 
 	ACameraActor* MainCamera = nullptr;
 
-	// 피킹 프리미티브
+	ULevel* PersistentLevel = nullptr;
+	ULevel* CurrentLevel = nullptr;
+	TArray<ULevel*> Levels;
 };

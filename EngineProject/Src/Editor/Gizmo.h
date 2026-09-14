@@ -52,10 +52,10 @@ public:
 
 	float ComputeAngleOnPlane(const FVector& Point, int Axis) const;
 
-	inline FTransform GetTransform() const { return Target ? *Target->GetTransform() : FTransform(); }
-	inline FVector GetLocation() const { return Target ? Target->GetTransform()->Location : FVector(0, 0, 0); }
-	inline FRotator GetRotation() const { return Target ? Target->GetTransform()->Rotation : FRotator(0, 0, 0); }
-	inline FVector GetScale() const { return Target ? Target->GetTransform()->Scale : FVector(0, 0, 0); }
+	inline FTransform GetTransform() const { return Target ? Target->GetTransform() : FTransform(); }
+	inline FVector GetLocation() const { return Target ? Target->GetRelativeLocation() : FVector(0, 0, 0); }
+	inline FRotator GetRotation() const { return Target ? Target->GetRelativeRotation() : FRotator(0, 0, 0); }
+	inline FVector GetScale() const { return Target ? Target->GetRelativeScale3D() : FVector(0, 0, 0); }
 
 	FVector GetRenderLocation() const;
 	FVector GetCameraLocation() const;
