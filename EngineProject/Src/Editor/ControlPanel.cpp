@@ -68,6 +68,7 @@ void FControlPanel::OnRender()
 
 		// Set atlas image settings
 		UParticleSubUVComponent* Particle = ParticleActor->GetParticleComponent();
+		Particle->ApplyPrimitiveType(EPrimitiveType::Plane);
 		Particle->SetAtlasTexturePath("ParticleAtlas.png");
 		Particle->SetSubUVSize(4, 4);
 		Particle->SetFrameRate(12.0f);
