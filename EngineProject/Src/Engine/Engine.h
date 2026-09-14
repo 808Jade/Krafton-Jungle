@@ -9,7 +9,7 @@
 #include "ImGuiRenderer.h"
 #include "Editor/GridRenderer.h"
 #include "Editor/GizmoRenderer.h"
-#include "Render/DebugRenderer.h"
+#include "Render/LineBatcher.h"
 
 #include "Editor/EditorUI.h"
 #include "Editor/ConsolePanel.h"
@@ -54,7 +54,7 @@ private:
 	TUniquePtr<FGridRenderer> GridRenderer;
 	TUniquePtr<FGizmoRenderer> GizmoRenderer;
 	TUniquePtr<FTextRenderer> TextRenderer;
-	TUniquePtr<FDebugRenderer> DebugRenderer;
+	TUniquePtr<FLineBatcher> LineBatcher;
 	//TUniquePtr<FGizmo> Gizmo;
 	TUniquePtr<FGizmo> Gizmo;
 	TUniquePtr<FOutline> Outline;

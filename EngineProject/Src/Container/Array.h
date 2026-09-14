@@ -57,6 +57,14 @@ public:
 	void RemoveAtSwap(uint32 index);
 	void RemoveLast();
 
+	size_t size() const { return mDatas.size(); }
+
+	T& Last();
+	const T& Last() const;
+
+	T& Front();
+	const T& Front() const;
+
 private:
 	std::vector<T> mDatas;
 };
@@ -261,9 +269,30 @@ inline void TArray<T>::RemoveLast()
 
 }
 
+template<typename T>
+inline T& TArray<T>::Last()
+{
+	assert(!mDatas.empty());
+	return mDatas.back();
+}
 
+template<typename T>
+const T& TArray<T>::Last() const
+{
+	assert(!mDatas.empty());
+	return mDatas.back();
+}
 
+template<typename T>
+inline T& TArray<T>::Front()
+{
+	assert(!mDatas.empty());
+	return mDatas.front();
+}
 
-
-
-
+template<typename T>
+inline const T& TArray<T>::Front() const
+{
+	assert(!mDatas.empty());
+	return mDatas.front();
+}

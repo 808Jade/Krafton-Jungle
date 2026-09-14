@@ -42,6 +42,8 @@ public:
 	FVector GetAbs() const;
 	FVector Normalized() const;
 
+	static const FVector ZeroVector;    // (0, 0, 0)
+	static const FVector OneVector;     // (1, 1, 1)
 
 	// float GetMax();
 	//// float GetMin();

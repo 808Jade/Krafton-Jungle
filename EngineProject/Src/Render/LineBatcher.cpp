@@ -1,13 +1,13 @@
-#include "DebugRenderer.h"
+#include "LineBatcher.h"
 #include "EnginePCH.h"
 #include "Component/PrimitiveComponent.h"
 
-FDebugRenderer::~FDebugRenderer()
+FLineBatcher::~FLineBatcher()
 {
 	delete[] VertexBufferBase;
 }
 
-bool FDebugRenderer::Init(FRenderer* InRenderer, UWorld* InWorld)
+bool FLineBatcher::Init(FRenderer* InRenderer, UWorld* InWorld)
 {
 	Renderer = InRenderer;
 	World = InWorld;
@@ -24,21 +24,23 @@ bool FDebugRenderer::Init(FRenderer* InRenderer, UWorld* InWorld)
 	return true;
 }
 
-void FDebugRenderer::BuildVertexBuffer()
+void FLineBatcher::BuildVertexBuffer()
 {
-	VertexBufferPtr = VertexBufferBase;
-	VertexCount = 0;
-
 	for (UPrimitiveComponent* Prim : World->GetPrimitiveComponents())
 	{
 		const FTransform& Transform = Prim->GetTransform();
 		FBox WorldBox = Prim->GetMeshData().GetAABB().GetWorldAABB(Transform.GetWorldMatrix());
-
 		AddBox(WorldBox, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	}
 }
 
-void FDebugRenderer::AddLine(const FVector& A, const FVector& B, const FVector4& Color)
+void FLineBatcher::BeginFrame()
+{
+	VertexBufferPtr = VertexBufferBase;
+	VertexCount = 0;
+}
+
+void FLineBatcher::AddLine(const FVector& A, const FVector& B, const FVector4& Color)
 {
 	if (VertexCount + 2 > MaxVertices)
 		return;   // 넘치면 버림
@@ -49,7 +51,7 @@ void FDebugRenderer::AddLine(const FVector& A, const FVector& B, const FVector4&
 	VertexCount += 2;
 }
 
-void FDebugRenderer::AddBox(FBox BoundingBox, FVector4 Color)
+void FLineBatcher::AddBox(FBox BoundingBox, FVector4 Color)
 {
 	const FVector& Min = BoundingBox.Min;
 	const FVector& Max = BoundingBox.Max;
@@ -71,7 +73,17 @@ void FDebugRenderer::AddBox(FBox BoundingBox, FVector4 Color)
 		AddLine(C[Edge[0]], C[Edge[1]], Color);
 }
 
-void FDebugRenderer::Flush()
+void FLineBatcher::AddPath(const TArray<FVector>& Points, const FVector4& Color)
+{
+	if (Points.IsEmpty())
+	{
+		return;
+	}
+	for (size_t i = 0; i < Points.size() - 1; ++i) {
+		AddLine(Points[i], Points[i + 1], Color);
+	}
+}
+void FLineBatcher::Flush()
 {
 	Renderer->BindShader(LineShader.get());
 	Renderer->BindVertexBuffer(VertexBuffer.get());
@@ -79,11 +91,9 @@ void FDebugRenderer::Flush()
 
 	Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 	Renderer->Draw(VertexCount, 0);
-
-
 }
 
-void FDebugRenderer::OnRender(const FMatrix& ViewProjection)
+void FLineBatcher::OnRender(const FMatrix& ViewProjection)
 {
 	BuildVertexBuffer();
 

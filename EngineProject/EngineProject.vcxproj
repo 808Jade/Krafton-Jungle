@@ -108,6 +108,7 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="PathTracker.h" />
     <ClInclude Include="Src\Asset\AssetManager.h" />
     <ClInclude Include="Src\Asset\RenderAsset.h" />
     <ClInclude Include="Src\Camera\CameraActor.h" />
@@ -168,7 +169,7 @@
     <ClInclude Include="Src\ObjectSystem\ObjectFactory.h" />
     <ClInclude Include="Src\ObjectSystem\Property.h" />
     <ClInclude Include="Src\Render\Buffer.h" />
-    <ClInclude Include="Src\Render\DebugRenderer.h" />
+    <ClInclude Include="Src\Render\LineBatcher.h" />
     <ClInclude Include="Src\Render\GeometryGenerator.h" />
     <ClInclude Include="Src\Render\ImageLoader.h" />
     <ClInclude Include="Src\Render\Mesh.h" />
@@ -193,10 +194,11 @@
     <ClInclude Include="ThirdParty\ImGui\imstb_truetype.h" />
     <ClInclude Include="ThirdParty\json\json.hpp" />
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
-  <ClInclude Include="SceneManager.h" />
-  <ClInclude Include="Src\Engine\Level.h" />
+    <ClInclude Include="SceneManager.h" />
+    <ClInclude Include="Src\Engine\Level.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="PathTracker.cpp" />
     <ClCompile Include="Src\Asset\AssetManager.cpp" />
     <ClCompile Include="Src\Camera\CameraActor.cpp" />
     <ClCompile Include="Src\Camera\CameraComponent.cpp" />
@@ -238,7 +240,7 @@
     <ClCompile Include="Src\ObjectSystem\Object.cpp" />
     <ClCompile Include="Src\ObjectSystem\ObjectFactory.cpp" />
     <ClCompile Include="Src\Render\Buffer.cpp" />
-    <ClCompile Include="Src\Render\DebugRenderer.cpp" />
+    <ClCompile Include="Src\Render\LineBatcher.cpp" />
     <ClCompile Include="Src\Render\GeometryGenerator.cpp" />
     <ClCompile Include="Src\Render\Mesh.cpp" />
     <ClCompile Include="Src\Render\RenderCommand.cpp" />
@@ -270,8 +272,8 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-	<ClCompile Include="SceneManager.cpp" />
- 	 <ClCompile Include="Src\Engine\Level.cpp" />
+    <ClCompile Include="SceneManager.cpp" />
+    <ClCompile Include="Src\Engine\Level.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
