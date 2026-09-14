@@ -88,7 +88,7 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 		{
 			Transform.Location = GizmoLocation;
 			Transform.Rotation = AxisDataArray[i].Rotator;
-			World = Transform.GetWorldMatrix();
+			World = Transform.GetLocalMatrix();
 		}
 
 		FGizmoData Data{};
@@ -107,7 +107,7 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 		Transform.Rotation = FRotator(0.0f, 0.0f, 0.0f);
 
 		FGizmoData SphereData{};
-		SphereData.World = Transform.GetWorldMatrix().GetTransposed();
+		SphereData.World = Transform.GetLocalMatrix().GetTransposed();
 		SphereData.ViewProj = ViewProjT;
 		SphereData.Color = (6 == HoveredAxis)
 			? FVector4(1.0f, 1.0f, 0.0f, 1.0f)     // hover 시 노랑

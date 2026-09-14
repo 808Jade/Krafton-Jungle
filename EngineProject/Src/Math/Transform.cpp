@@ -8,7 +8,7 @@ FTransform::FTransform(FVector InL, FVector InS, FRotator InR)
 	Rotation = InR;
 }
 
-FMatrix FTransform::GetWorldMatrix() const
+FMatrix FTransform::GetLocalMatrix() const
 {
     FMatrix RotationMatrix = Rotation.Quaternion().ToFMatrix();
 

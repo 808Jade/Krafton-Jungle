@@ -33,7 +33,7 @@ public:
 
 	// Attatch-To
 	USceneComponent* GetAttachParent() const { return AttachParent; }
-	void SetupAttachment(USceneComponent* InParent) { AttachParent = InParent; }
+	void SetupAttachment(USceneComponent* InParent);
 
 	bool IsVisible() const { return bVisible; }
 	void SetVisible(bool bInVisible) { bVisible = bInVisible; }

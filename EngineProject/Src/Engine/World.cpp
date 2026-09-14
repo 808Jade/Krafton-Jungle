@@ -135,17 +135,17 @@ void UWorld::Tick(float DeltaTime)
 		BeginPlayList.Dequeue();
 	}
 
-	if (MainCamera)
-	{
-		MainCamera->Tick(DeltaTime);
-	}
-
 	for (ULevel* Level : Levels)
 	{
 		for (AActor* Actor : Level->GetActors())
 		{
 			Actor->Tick(DeltaTime);
 		}
+	}
+
+	if (MainCamera)
+	{
+		MainCamera->Tick(DeltaTime);
 	}
 
 }

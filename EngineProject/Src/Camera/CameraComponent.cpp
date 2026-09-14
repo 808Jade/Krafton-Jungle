@@ -17,55 +17,39 @@ void UCameraComponent::TickComponent(float DeltaTime)
 {
     Super::TickComponent(DeltaTime);
 
-    if (FInputSystem::IsKeyDown(EKeyCode::W))
-    {
-        RelativeTransform.Location += RelativeTransform.GetForward() * MoveSpeed * DeltaTime;
-    }
-
-    if (FInputSystem::IsKeyDown(EKeyCode::S))
-    {
-        RelativeTransform.Location -= RelativeTransform.GetForward() * MoveSpeed * DeltaTime;
-    }
-
-    if (FInputSystem::IsKeyDown(EKeyCode::A))
-    {
-        RelativeTransform.Location -= RelativeTransform.GetRight() * MoveSpeed * DeltaTime;
-    }
-
-    if (FInputSystem::IsKeyDown(EKeyCode::D))
-    {
-        RelativeTransform.Location += RelativeTransform.GetRight() * MoveSpeed * DeltaTime;
-    }
-
-    if (FInputSystem::IsKeyDown(EKeyCode::Q))
-    {
-        RelativeTransform.Location -= RelativeTransform.GetUp() * MoveSpeed * DeltaTime;
-    }
-
-    if (FInputSystem::IsKeyDown(EKeyCode::E))
-    {
-        RelativeTransform.Location += RelativeTransform.GetUp() * MoveSpeed * DeltaTime;
-    }
-
-    // 우클릭 카메라 회전
-    if (FInputSystem::IsMouseDown(EMouseButton::Right))
-    {
-        float DeltaPitch = FInputSystem::GetMouseDeltaY() * MouseSensitivity;
-        float DeltaYaw = FInputSystem::GetMouseDeltaX() * MouseSensitivity;
-
-        RelativeTransform.Rotation.Pitch += DeltaPitch;
-        RelativeTransform.Rotation.Yaw += DeltaYaw;
-    }
-
-    // 마우스 휠 전진 / 후진
-    int32 WheelDelta = FInputSystem::GetWheelDelta();
-
-    if (WheelDelta != 0)
-    {
-        RelativeTransform.Location +=
-            RelativeTransform.GetForward() * WheelSpeed * WheelDelta * DeltaTime;
-    }
+    UpdateMovement(DeltaTime);
+    UpdateRotation(DeltaTime);
+    UpdateZoom(DeltaTime);
 }
+
+// 마우스 조작
+
+void UCameraComponent::UpdateMovement(float DeltaTime)
+{
+    if (FInputSystem::IsKeyDown(EKeyCode::W)) RelativeTransform.Location += RelativeTransform.GetForward() * MoveSpeed * DeltaTime;
+    if (FInputSystem::IsKeyDown(EKeyCode::S)) RelativeTransform.Location -= RelativeTransform.GetForward() * MoveSpeed * DeltaTime;
+    if (FInputSystem::IsKeyDown(EKeyCode::A)) RelativeTransform.Location -= RelativeTransform.GetRight() * MoveSpeed * DeltaTime;
+    if (FInputSystem::IsKeyDown(EKeyCode::D)) RelativeTransform.Location += RelativeTransform.GetRight() * MoveSpeed * DeltaTime;
+    if (FInputSystem::IsKeyDown(EKeyCode::Q)) RelativeTransform.Location -= RelativeTransform.GetUp() * MoveSpeed * DeltaTime;
+    if (FInputSystem::IsKeyDown(EKeyCode::E)) RelativeTransform.Location += RelativeTransform.GetUp() * MoveSpeed * DeltaTime;
+}
+
+void UCameraComponent::UpdateRotation(float DeltaTime)
+{
+    if (!FInputSystem::IsMouseDown(EMouseButton::Right)) return;
+
+    RelativeTransform.Rotation.Pitch += FInputSystem::GetMouseDeltaY() * MouseSensitivity;
+    RelativeTransform.Rotation.Yaw += FInputSystem::GetMouseDeltaX() * MouseSensitivity;
+}
+
+void UCameraComponent::UpdateZoom(float DeltaTime)
+{
+    int32 WheelDelta = FInputSystem::GetWheelDelta();
+    if (WheelDelta == 0) return;
+
+    RelativeTransform.Location += RelativeTransform.GetForward() * WheelSpeed * WheelDelta * DeltaTime;
+}
+
 
 FRay UCameraComponent::DeProjection(int32 MouseX, int32 MouseY, uint32 ScreenW, uint32 ScreenH)
 {

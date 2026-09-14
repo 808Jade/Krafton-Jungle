@@ -10,7 +10,7 @@ struct FTransform
 
 	static FTransform Identity;
 
-    FMatrix GetWorldMatrix() const;
+    FMatrix GetLocalMatrix() const;
 
 	FVector GetForward() const;
 	FVector GetUp() const;

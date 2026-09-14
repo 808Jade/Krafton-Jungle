@@ -32,7 +32,7 @@ void FDebugRenderer::BuildVertexBuffer()
 	for (UPrimitiveComponent* Prim : World->GetPrimitiveComponents())
 	{
 		const FTransform& Transform = Prim->GetTransform();
-		FBox WorldBox = Prim->GetMeshData().GetAABB().GetWorldAABB(Transform.GetWorldMatrix());
+		FBox WorldBox = Prim->GetMeshData().GetAABB().GetWorldAABB(Transform.GetLocalMatrix());
 
 		AddBox(WorldBox, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	}

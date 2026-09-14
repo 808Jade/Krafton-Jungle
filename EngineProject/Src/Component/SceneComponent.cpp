@@ -1,6 +1,16 @@
 #include "EnginePCH.h"
 #include "Component/SceneComponent.h"
 
+void USceneComponent::SetupAttachment(USceneComponent* InParent)
+{
+	if (InParent == this || AttachParent == InParent) return;
+
+	for (USceneComponent* Parent = InParent; Parent != nullptr; Parent = Parent->AttachParent)
+		if (Parent == this) return;
+
+	AttachParent = InParent;
+}
+
 FRotator USceneComponent::GetWorldRotation() const
 {
 	if (AttachParent)
@@ -39,7 +49,7 @@ FVector USceneComponent::GetWorldScale3D() const
 
 FMatrix USceneComponent::GetWorldMatrix() const
 {
-	FMatrix LocalMatrix = RelativeTransform.GetWorldMatrix(); // 부모 컴포넌트 연결 없을 때
+	FMatrix LocalMatrix = RelativeTransform.GetLocalMatrix(); // 부모 컴포넌트 연결 없을 때
 
 	if (AttachParent)
 	{

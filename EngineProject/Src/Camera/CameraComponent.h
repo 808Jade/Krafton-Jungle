@@ -13,6 +13,7 @@ public:
 	UCameraComponent() = default;
 
 	virtual void BeginPlay() override;
+
 	// 매 프레임 카메라 입력/이동 처리
 	virtual void TickComponent(float DeltaTime) override;
 
@@ -45,7 +46,7 @@ public:
 	float GetOrthoWidth() const { return OrthoWidth; }
 	void SetOrthoWidth(float InOrthoWidth) { OrthoWidth = InOrthoWidth; }
 
-	// 마우스 조작
+	// 마우스 조작 설정
 	float GetMoveSpeed() const { return MoveSpeed; }
 	void SetMoveSpeed(float InMoveSpeed) { MoveSpeed = InMoveSpeed; }
 
@@ -54,6 +55,11 @@ public:
 
 	float GetWheelSpeed() const { return WheelSpeed; }
 	void SetWheelSpeed(float InWheelSpeed) { WheelSpeed = InWheelSpeed; }
+
+	// 마우스 조작 업데이트
+	void UpdateMovement(float DeltaTime); // 마우스 이동
+	void UpdateRotation(float DeltaTime); // 마우스 우클릭 회전
+	void UpdateZoom(float DeltaTime);     // 마우스 휠 줌
 
 protected:
 	float FieldOfView = 60.0f;
