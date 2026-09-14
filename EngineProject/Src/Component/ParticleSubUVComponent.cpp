@@ -7,9 +7,12 @@ void UParticleSubUVComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AtlasTexturePath = "ParticleAtlas.png";
-	ColSize = 4;
-	RowSize = 4;
+	// Todo: Default setting, set value from arguments
+	//AtlasTexturePath = "ParticleAtlas.png";
+	AtlasTexturePath = "CloudAtlas.png";
+
+	ColSize = 8;
+	RowSize = 8;
 	CurrentFrame = 0;
 	FrameTimer = 0.0f;
 	FrameRate = 12.0f;
@@ -20,6 +23,11 @@ void UParticleSubUVComponent::BeginPlay()
 	AtlasTexture = UAssetManager::Get().GetTexture(AtlasTexturePath);
 
 	Type = EPrimitiveType::Particle;
+}
+
+void UParticleSubUVComponent::SetAtlasTexturePath(const FString& InPath)
+{
+	AtlasTexturePath = InPath;
 }
 
 // Todo: subuv
@@ -37,6 +45,11 @@ void UParticleSubUVComponent::SetSubUVSize(uint32 NewColSize, uint32 NewRowSize)
 		CurrentFrame = 0;
 	}
 	*/
+}
+
+void UParticleSubUVComponent::SetFrameRate(float InFrameRate)
+{
+	FrameRate = (InFrameRate > 0.0f) ? InFrameRate : 1.0f;
 }
 
 // Todo: subuv
@@ -68,8 +81,9 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 	Packet.model = GetWorldMatrix();
 	Packet.mesh = Mesh;
 	Packet.shader = Shader;
-	Packet.texture = AtlasTexture;
+
 	Packet.bSubUV = true;
+	Packet.texture = AtlasTexture;
 	Packet.CurrentFrame = CurrentFrame;
 	Packet.AtlasColumns = ColSize;
 	Packet.AtlasRows = RowSize;

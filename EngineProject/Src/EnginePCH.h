@@ -8,5 +8,5 @@
 #include "Math/EngineMath.h"
 #include "Core/EngineLog.h"
 
-#include "ThirdParty/json/json.hpp"
+#include "json.hpp"
 using json = nlohmann::ordered_json;

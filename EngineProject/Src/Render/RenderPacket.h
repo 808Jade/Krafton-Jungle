@@ -12,8 +12,9 @@ struct FRenderPacket {
 	FShader* shader;
 
 	// Todo: subuv
-	UTexture2D* texture;
 	bool bSubUV;
+
+	UTexture2D* texture;
 	uint32 CurrentFrame;
 	uint32 AtlasColumns;
 	uint32 AtlasRows;

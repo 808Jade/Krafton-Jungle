@@ -17,9 +17,9 @@ public:
 	virtual void TickComponent(float DeltaTime) override;
 	virtual void SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue) override;
 
-	void SetAtlasTexturePath(const FString& InPath) { AtlasTexturePath = InPath; }
+	void SetAtlasTexturePath(const FString& InPath);
 	void SetSubUVSize(uint32 Cols, uint32 Rows);
-	void SetFrameRate(float InFrameRate) { FrameRate = (InFrameRate > 0.0f) ? InFrameRate : 1.0f; }
+	void SetFrameRate(float InFrameRate);
 
 private:
 	FString AtlasTexturePath;

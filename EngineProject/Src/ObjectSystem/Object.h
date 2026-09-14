@@ -4,9 +4,6 @@
 #include "Core/EngineStatics.h"
 #include "Core/Name.h"
 
-#include <WICTextureLoader.h>   // png, jpg, bmp 등
-#include <DDSTextureLoader.h>   // .dds 전용 (밉맵/압축 포맷 지원)
-
 class UClass;
 // Property Reflection
 

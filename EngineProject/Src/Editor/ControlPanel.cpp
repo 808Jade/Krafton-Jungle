@@ -91,6 +91,7 @@ void FControlPanel::OnRender()
 		AParticleActor* ParticleActor = World->SpawnActor<AParticleActor>(&Transform);
 		assert(ParticleActor != nullptr);
 
+		// Set atlas image settings
 		UParticleSubUVComponent* Particle = ParticleActor->GetParticleComponent();
 		Particle->SetAtlasTexturePath("ParticleAtlas.png");
 		Particle->SetSubUVSize(4, 4);

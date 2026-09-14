@@ -17,6 +17,10 @@ void UPrimitiveComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue
 		rp.mesh = Mesh;
 		rp.shader = Shader;
 		rp.model = GetWorldMatrix();
+
+		// Todo: subuv
+		rp.bSubUV = false;
+
 		RenderQueue.Enqueue(rp);
 	}
 }

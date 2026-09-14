@@ -38,7 +38,7 @@ public:
 	void CreateDepthStencilBufferAndState();
 	void CreateConstantBuffer();
 
-	void CreateBlendState();
+	void CreateAlphaBlendState();
 
 	inline ID3D11Device* GetDevice() const { return Device.Get(); }
 	inline ID3D11DeviceContext* GetDeviceContext() const { return DeviceContext.Get(); }
@@ -95,6 +95,14 @@ private:
 	struct FConstants
 	{
 		FMatrix MVP;
+	};
+
+	struct FSubUVConstants
+	{
+		float CurrentFrame;
+		float AtlasRowSize;
+		float AtlasColSize;
+		float Padding = 0.0f;
 	};
 
 	Microsoft::WRL::ComPtr<ID3D11Device> Device;

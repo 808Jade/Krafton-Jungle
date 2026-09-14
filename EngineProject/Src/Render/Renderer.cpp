@@ -3,11 +3,8 @@
 #include "Shader.h"
 #include "Mesh.h"
 
-#include <WICTextureLoader.h>   // png, jpg, bmp 등
-#include <DDSTextureLoader.h>   // .dds 전용 (밉맵/압축 포맷 지원)
-
 #define STB_IMAGE_IMPLEMENTATION
-#include "ThirdParty/stb/stb_image.h"
+#include "stb_image.h"
 
 void FRenderer::BeginFrame()
 {
@@ -36,7 +33,7 @@ bool FRenderer::Init(HWND hWindow)
 	CreateConstantBuffer();
 
 	// Todo: subuv
-	CreateBlendState();
+	CreateAlphaBlendState();
 
 	// Todo: subuv
 	D3D11_BUFFER_DESC SubUVDesc = {};
@@ -261,16 +258,19 @@ UStaticMesh* FRenderer::CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TShar
 }
 
 // Todo: subuv
-void FRenderer::CreateBlendState()
+void FRenderer::CreateAlphaBlendState()
 {
 	D3D11_BLEND_DESC Desc = {};
 	Desc.RenderTarget[0].BlendEnable = TRUE;
+
 	Desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
 	Desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
 	Desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+
 	Desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
 	Desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
 	Desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+
 	Desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
 	Device->CreateBlendState(&Desc, AlphaBlendState.GetAddressOf());
@@ -579,33 +579,19 @@ void FRenderer::UpdateSubUVConstantBuffer(const FRenderPacket& Packet)
 {
 	assert(SubUVConstantBuffer != nullptr);
 
-	struct FSubUVData
-	{
-		FVector4 Data;
-	};
-
-
 	// Todo: Move to other place
-	FSubUVData Data{
-		FVector4(
-			static_cast<float>(Packet.CurrentFrame),
-			static_cast<float>(Packet.AtlasColumns),
-			static_cast<float>(Packet.AtlasRows),
-			0.0f)
-	};
+	FSubUVConstants subUVConstans;
+	subUVConstans.CurrentFrame = Packet.CurrentFrame;
+	subUVConstans.AtlasColSize = Packet.AtlasColumns;
+	subUVConstans.AtlasRowSize = Packet.AtlasRows;
 
 	D3D11_MAPPED_SUBRESOURCE Mapped = {};
-	if (FAILED(DeviceContext->Map(SubUVConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped)))
-	{
-		return;
-	}
-
-	memcpy(Mapped.pData, &Data, sizeof(Data));
+	DeviceContext->Map(SubUVConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
+	memcpy(Mapped.pData, &subUVConstans, sizeof(subUVConstans));
 	DeviceContext->Unmap(SubUVConstantBuffer.Get(), 0);
 
 	DeviceContext->PSSetConstantBuffers(1, 1, SubUVConstantBuffer.GetAddressOf());
 }
-
 
 void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 {
@@ -627,6 +613,7 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 		if (rp.bSubUV)
 		{
 			SetBlendStateEnabled(true);
+			//SetBlendStateEnabled(false);
 
 			UpdateSubUVConstantBuffer(rp);
 			BindTexture(0, rp.texture, EShaderBindFlagBits::Pixel);
