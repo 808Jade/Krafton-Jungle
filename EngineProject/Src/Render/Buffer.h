@@ -1,10 +1,5 @@
 #pragma once
 
-#include <d3d11.h>
-#include <wrl.h>
-
-using namespace Microsoft::WRL;
-
 class FBuffer
 {
 public:

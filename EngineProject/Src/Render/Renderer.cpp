@@ -3,11 +3,8 @@
 #include "Shader.h"
 #include "Mesh.h"
 
-#include <WICTextureLoader.h>   // png, jpg, bmp 등
-#include <DDSTextureLoader.h>   // .dds 전용 (밉맵/압축 포맷 지원)
-
 #define STB_IMAGE_IMPLEMENTATION
-#include "ThirdParty/stb/stb_image.h"
+#include "stb_image.h"
 
 void FRenderer::BeginFrame()
 {
