@@ -5,7 +5,7 @@
 #include "Component/PrimitiveComponent.h"
 #include "Math/Transform.h"
 #include "Render/Renderer.h"
-#include "../../PathTracker.h"
+#include "PathTracker.h"
 
 class ACameraActor;
 class ULevel;

@@ -1,6 +1,6 @@
 #include "EnginePCH.h"
 #include "PathTracker.h"
-#include "Src/ObjectSystem/Object.h"
+#include "ObjectSystem/Object.h"
 
 void FPathTracker::SetPathRenderingEnabled(bool bEnable)
 {
