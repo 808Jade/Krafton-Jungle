@@ -608,7 +608,6 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 		FMatrix MVP;
 		MVP = rp.model * VP;
 		UpdateConstantBuffer(MVP);
-		SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		// Todo: subuv
 		if (rp.bSubUV)

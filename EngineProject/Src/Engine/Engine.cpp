@@ -183,20 +183,52 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 {
 	Renderer->BeginFrame();
 
-	GridRenderer->OnRenderPSGrid( ViewProj, World->GetMainCamera()->GetCameraComponent()->GetWorldLocation(), ConfigPanel->GetSettings() );
-	Renderer->RenderAll(RenderQueue, ViewProj);
-	FVector4 CamLoc = World->GetMainCamera()->GetCameraComponent()->GetWorldLocation();
+	if (ConfigPanel->GetSettings().bDrawBatchLine)
+	{
+		if (ConfigPanel->GetSettings().bDrawBoundingBox)
+		{
+			DebugRenderer->OnRender(ViewProj);
+		}
+		if (ConfigPanel->GetSettings().bDrawPSGrid)
+		{
+			GridRenderer->OnRenderPSGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation(), ConfigPanel->GetSettings());
+		}
+		else
+		{
+			GridRenderer->OnRenderBatchGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation());
+		}
+	}
+
+	if (ConfigPanel->GetSettings().bDrawPrimitives)
+	{
+		if (ConfigPanel->GetSettings().bWireframe)
+		{
+			Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+		}
+		else
+		{
+			Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		}
+		Renderer->RenderAll(RenderQueue, ViewProj);
+	}
+
+	FVector4 CamLoc = World->GetMainCamera()->GetCameraComponent()->GetLocation();
 	if (Outline->GetTarget())
+	{
 		OutlineRenderer->OnRender(*Outline, ViewProj, CamLoc);
+	}
 
 	if (Gizmo->GetTarget())
 	{
 		auto Target = Gizmo->GetTarget()->GetOwner();
 		FString Text = "UUID : " + std::to_string(Target->GetUUID());
 		//FString Text = "FName : " + Target->GetName().ToString();
-		Renderer->SetDepthStencilEnabled(false);
-		TextRenderer->OnRender(Text, Gizmo->GetLocation(), 1.0f, *Atlas, World->GetMainCamera()->GetCameraComponent());
-		Renderer->SetDepthStencilEnabled(true);
+		if (ConfigPanel->GetSettings().bShowUUID) 
+		{
+			Renderer->SetDepthStencilEnabled(false);
+			TextRenderer->OnRender(Text, Gizmo->GetLocation(), 1.0f, *Atlas, World->GetMainCamera()->GetCameraComponent());
+			Renderer->SetDepthStencilEnabled(true);
+		}
 		GizmoRenderer->OnRender(*Gizmo, ViewProj);
 	}
 
