@@ -4,8 +4,8 @@
 
 struct FVertex
 {
-	FVector Position;
-	FVector4 Color;
+	FVector Position = FVector();
+	FVector4 Color = FVector4();
 
 	static std::vector<D3D11_INPUT_ELEMENT_DESC> GetLayout() 
 	{

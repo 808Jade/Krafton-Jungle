@@ -35,7 +35,5 @@ private:
 
 	uint32 Width = 1280;
 	uint32 Height = 720;
-
-	
  };
 

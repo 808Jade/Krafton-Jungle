@@ -1,6 +1,39 @@
 #include "EnginePCH.h"
 #include "GeometryGenerator.h"
 
+namespace
+{
+	FBox CalculateAABB(const TArray<FVertex>& Vertices)
+	{
+		FBox Box;
+
+		if (Vertices.Num() == 0)
+		{
+			Box.Min = { 0.0f, 0.0f, 0.0f };
+			Box.Max = { 0.0f, 0.0f, 0.0f };
+
+			return Box;
+		}
+
+		FVector Min{ FLT_MAX, FLT_MAX, FLT_MAX };
+		FVector Max{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
+		for (const FVertex& Vertex : Vertices)
+		{
+			Min.X = fmin(Min.X, Vertex.Position.X);
+			Min.Y = fmin(Min.Y, Vertex.Position.Y);
+			Min.Z = fmin(Min.Z, Vertex.Position.Z);
+
+			Max.X = fmax(Max.X, Vertex.Position.X);
+			Max.Y = fmax(Max.Y, Vertex.Position.Y);
+			Max.Z = fmax(Max.Z, Vertex.Position.Z);
+		}
+		Box.Min = Min;
+		Box.Max = Max;
+
+		return Box;
+	}
+}
+
 TSharedPtr<FStaticMeshData> FGeometryGenerator::CreatePlane(float Size, const FVector4& Color)
 {
 	TSharedPtr<FStaticMeshData> PlaneMeshData = MakeShared<FStaticMeshData>();
@@ -23,10 +56,13 @@ TSharedPtr<FStaticMeshData> FGeometryGenerator::CreatePlane(float Size, const FV
 	PlaneMeshData->Indices.Add(0);
 	PlaneMeshData->Indices.Add(2);
 	PlaneMeshData->Indices.Add(1);
-				 
+
 	PlaneMeshData->Indices.Add(0);
 	PlaneMeshData->Indices.Add(3);
 	PlaneMeshData->Indices.Add(2);
+
+	PlaneMeshData->AABB = CalculateAABB(PlaneMeshData->Vertices);
+
 
 	return PlaneMeshData;
 }
@@ -99,8 +135,8 @@ TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateCone(float Radius, float H
 		uint32 bottomA = 1 + i;
 		uint32 bottomB = 1 + i + 1;
 
-		Indices.Add(0); 
-		Indices.Add(bottomA); 
+		Indices.Add(0);
+		Indices.Add(bottomA);
 		Indices.Add(bottomB);
 	}
 
@@ -124,6 +160,8 @@ TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateCone(float Radius, float H
 		Indices.Add(bottomRingStart + i + 1);
 		Indices.Add(bottomRingStart + i);
 	}
+
+	ConeMeshData->AABB = CalculateAABB(ConeMeshData->Vertices);
 
 	return ConeMeshData;
 }
@@ -258,6 +296,9 @@ TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateCylinder(float Radius, flo
 		Indices.Add(topRingStart + i);
 	}
 
+	CylinderMeshData->AABB = CalculateAABB(CylinderMeshData->Vertices);
+
+
 	return CylinderMeshData;
 }
 
@@ -350,6 +391,9 @@ TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateArrow(float BodyRadius, fl
 	Head->Translate(FVector(0.0f, 0.0f, BodyHeight));
 
 	Arrow->Append(*Head);
+
+	Arrow->AABB = CalculateAABB(Arrow->Vertices);
+
 	return Arrow;
 }
 
@@ -362,6 +406,9 @@ TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateScaleBar(float BodyRadius,
 	Head->Translate(FVector(0.0f, 0.0f, BodyLength + HeadSize * 0.5f));
 
 	Arrow->Append(*Head);
+
+	Arrow->AABB = CalculateAABB(Arrow->Vertices);
+
 	return Arrow;
 }
 
@@ -410,6 +457,9 @@ TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateRing(float Radius, float T
 			Data->Indices.Add(d);
 		}
 	}
+
+	Data->AABB = CalculateAABB(Data->Vertices);
+
 
 	return Data;
 }
@@ -537,6 +587,9 @@ TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateCube(float Size, const FVe
 		CubeMeshData->Indices.Add(BaseVertexIndex + 2);
 		CubeMeshData->Indices.Add(BaseVertexIndex + 3);
 	}
+
+	CubeMeshData->AABB = CalculateAABB(CubeMeshData->Vertices);
+
 	return CubeMeshData;
 }
 
@@ -661,6 +714,9 @@ TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateSphere(float Radius, uint3
 			SphereMeshData->Indices.Add(TopR);
 		}
 	}
+
+	SphereMeshData->AABB = CalculateAABB(SphereMeshData->Vertices);
+
 	return SphereMeshData;
 }
 
@@ -719,7 +775,7 @@ FStaticMeshData* FGeometryGenerator::GetMeshData(const FString& InName)
 	{
 		return (*MeshData).get();
 	}
-	
+
 	if (InName == FString("Cone"))
 	{
 		MeshDataMap[InName] = CreateCone(1.0f, 1.0f, 20, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
@@ -740,6 +796,6 @@ FStaticMeshData* FGeometryGenerator::GetMeshData(const FString& InName)
 	{
 		MeshDataMap[InName] = CreatePlane(1.0f, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	}
-	
+
 	return MeshDataMap[InName].get();
 }

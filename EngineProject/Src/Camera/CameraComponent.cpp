@@ -103,14 +103,19 @@ FRay UCameraComponent::DeProjection(int32 MouseX, int32 MouseY, uint32 ScreenW, 
     NearPoint /= NearPoint.W;
     FarPoint /= FarPoint.W;
 
+FRay UCameraComponent::DeProjection(FVector2 MousePos, float ScreenW, float ScreenH)
+{
+    FVector COP = transform.Location;
+    const FMatrix InvPerspective = GetPerspectiveMatrix().Inverse();
+    const FMatrix InvView = GetViewMatrix().Inverse();
 
     //// Near Plane 위의 점
     //FVector4 NDCPoint(NDCX, NDCY, 1.0f, 1.0f);
     //FVector4 CameraPoint = NDCPoint * InvPerspective;
     //FVector4 WorldPoint = CameraPoint * InvView;
 
-    //CameraPoint /= CameraPoint.W;
-    //WorldPoint /= WorldPoint.W;
+    const float NDCX = 2.0f * MousePos.X / ScreenW - 1.0f;
+    const float NDCY = 1.0f - 2.0f * MousePos.Y / ScreenH;
 
     FRay Ray;
 

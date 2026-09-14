@@ -363,9 +363,9 @@ void UWorld::GatherRenderPackets(TQueue<FRenderPacket>& RenderQueue)
 	}
 }
 
-UPrimitiveComponent* UWorld::TryPicking(uint32 ScreenW, uint32 ScreenH)
+UPrimitiveComponent* UWorld::TryPicking(FVector2 MousePos, float ScreenW, float ScreenH)
 {
-	FRay ray = MainCamera->GetCameraComponent()->DeProjection(FInputSystem::GetMouseX(), FInputSystem::GetMouseY(), ScreenW, ScreenH);
+	FRay ray = MainCamera->GetCameraComponent()->DeProjection(MousePos, ScreenW, ScreenH);
 
 	float minT{ FLT_MAX };
 	UPrimitiveComponent* PickingPrimitive = nullptr;		//UPrimitiveComponent*
@@ -389,7 +389,7 @@ UPrimitiveComponent* UWorld::TryPicking(uint32 ScreenW, uint32 ScreenH)
 		if (!Primitive) continue;
 		const FStaticMeshData& mesh = Primitive->GetMeshData();
 
-		FBox Box = mesh.GetAABB();
+		FBox Box = mesh.AABB;
 		float rayT{};
 
 		if (!RayIntersectsAABB(LocalRay, Box.Min, Box.Max, rayT))

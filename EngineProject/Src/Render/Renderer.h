@@ -5,6 +5,10 @@
 #include "Texture2D.h"
 #include "Text/FontAtlas.h"
 
+#include "RenderDevice.h"
+#include "RenderingInfo.h"
+
+
 enum EShaderBindFlagBits : uint32
 {
 	None = 0,
@@ -18,13 +22,19 @@ enum EShaderBindFlagBits : uint32
 
 class FRenderer
 {
+	friend class UTexture2D;
 public:
 	void BeginFrame();
 	void EndFrame();
 
-	bool Init(HWND hWindow);
+	void SetViewport(uint32 InX, uint32 InY, uint32 InWidth, uint32 InHeight);
 
-	void CreateDeviceAndSwapChain(HWND hWindow);
+	void BeginRenderPass(const FRenderingInfo& RenderingInfo);
+	void EndRenderPass(const FRenderingInfo& RenderingInfo);
+
+	bool Init(HWND InHWND);
+
+	void CreateDeviceAndSwapChain(HWND InHWND);
 	void CreateFrameBuffer();
 	void CreateRasterizerState();
 	void CreateDepthStencilBufferAndState();
@@ -38,11 +48,12 @@ public:
 
 	TSharedPtr<FShader> CreateShader(const wchar_t* FileName, D3D11_INPUT_ELEMENT_DESC* InLayoutDesc, size_t InLayoutSize);
 	TSharedPtr<FShader> CreateShader(const wchar_t* FileName, std::vector<D3D11_INPUT_ELEMENT_DESC> Layouts);
+
 	UStaticMesh* CreateMesh(const FStaticMeshData& InMeshData);
 	UStaticMesh* CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer);
 
-	UTexture2D* CreateShaderResource(const FString& InPath);
-	UTexture2D* CreateRenderTarget(const FString& InPath);
+	UTexture2D* CreateTexture2DFromFile(const FString& InPath);
+	UTexture2D* CreateRenderTargetTexture2D(uint32 Width, uint32 Height, DXGI_FORMAT Format);
 
 	TSharedPtr<FVertexBuffer> CreateVertexBuffer(const void* InVertices, uint32 InSize, uint32 Stride);
 	TSharedPtr<FIndexBuffer> CreateIndexBuffer(const uint32* InIndices, uint32 MaxIndexCount);
@@ -82,6 +93,8 @@ public:
 	void Shutdown();
 
 private:
+
+
 	// Camera 
 	struct FConstants
 	{
@@ -125,4 +138,6 @@ private:
 	uint32 Height;
 
 	FLOAT ClearColor[4] = { 0.3f, 0.3f, 0.3f, 1.0f };
+
+
 };
