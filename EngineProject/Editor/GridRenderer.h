@@ -13,7 +13,7 @@ struct FGridData
 	float Padding[2];
 };
 
-struct FGridData2
+struct BatchGridData
 {
 	FMatrix invViewProj;
 	FVector CameraPos;
@@ -38,18 +38,17 @@ public:
 private:
 	FRenderer* Renderer;
 
+	// Batch Grid
 	TSharedPtr<FShader> BatchGridShader;
-	FVertex* VertexBufferBase;
-	FVertex* VertexBufferPtr;
+	FVertex* BatchGridVertexBuffer;
 	TSharedPtr<FConstantBuffer> CB;
-	uint32 VertexCount;
 
 	uint32 MaxVertices = 0;
 	TSharedPtr<FVertexBuffer> VertexBuffer;
 
 	float GridSpace = 1.0f;
 
-	//PS Grid용(주석만 풀면 됨)
+	// PS Grid
 	//TSharedPtr<FShader> GridShader;
 	//FShader* AxisShader;
 

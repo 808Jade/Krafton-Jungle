@@ -6,7 +6,7 @@
 
 FGridRenderer::~FGridRenderer()
 {
-	delete[] VertexBufferBase;
+	delete[] BatchGridVertexBuffer;
 }
 
 bool FGridRenderer::Init(FRenderer* InRenderer)
@@ -16,7 +16,7 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 	BatchGridShader = Renderer->CreateShader(L"Shader/GridShaderBatch.hlsl", FVertex::GetLayout());
 
 	MaxVertices = 65536;
-	VertexBufferBase = new FVertex[MaxVertices];
+	BatchGridVertexBuffer = new FVertex[MaxVertices];
 
 	VertexBuffer = Renderer->CreateDynamicVertexBuffer(sizeof(FVertex) * MaxVertices, sizeof(FVertex));
 
@@ -61,27 +61,27 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 
 void FGridRenderer::OnRender(const FMatrix& ViewProj, const FVector& CameraPos)
 {
-	FGridData2 Data;
+	BatchGridData Data;
 	Data.invViewProj = ViewProj.GetTransposed();
 	Data.CameraPos = CameraPos;
 	Data.Padding = GridSpace;
 
-	VertexBufferPtr = VertexBufferBase;
-	VertexCount = 0;
+	FVertex* VertexCursor = BatchGridVertexBuffer;
+	uint32 VertexCount = 0;
 
 	for (int i = -200; i <= 200; i++)
 	{
-		*VertexBufferPtr++ = { FVector(i * GridSpace, -200.0f * GridSpace, 0.0f), FVector4(1.0f, 1.0f, 1.0f, 1.0f) };
-		*VertexBufferPtr++ = { FVector(i * GridSpace, 200.0f * GridSpace, 0.0f), FVector4(1.0, 1.0f, 1.0f, 1.0f) };
+		*VertexCursor++ = { FVector(i * GridSpace, -200.0f * GridSpace, 0.0f), FVector4(1.0f, 1.0f, 1.0f, 1.0f) };
+		*VertexCursor++ = { FVector(i * GridSpace, 200.0f * GridSpace, 0.0f), FVector4(1.0, 1.0f, 1.0f, 1.0f) };
 
-		*VertexBufferPtr++ = { FVector(-200.0f * GridSpace, i * GridSpace, 0.0f), FVector4(1.0f, 1.0f, 1.0f, 1.0f) };
-		*VertexBufferPtr++ = { FVector(200.0f * GridSpace, i * GridSpace, 0.0f), FVector4(1.0f, 1.0f, 1.0f, 1.0f) };
+		*VertexCursor++ = { FVector(-200.0f * GridSpace, i * GridSpace, 0.0f), FVector4(1.0f, 1.0f, 1.0f, 1.0f) };
+		*VertexCursor++ = { FVector(200.0f * GridSpace, i * GridSpace, 0.0f), FVector4(1.0f, 1.0f, 1.0f, 1.0f) };
 
 		VertexCount += 4;
 	}
 
-	Renderer->UpdateVertexBufferData(VertexBuffer.get(), VertexBufferBase, sizeof(FVertex) * VertexCount);
-	Renderer->UpdateConstantBufferData(CB.get(), &Data, sizeof(FGridData2));
+	Renderer->UpdateVertexBufferData(VertexBuffer.get(), BatchGridVertexBuffer, sizeof(FVertex) * VertexCount);
+	Renderer->UpdateConstantBufferData(CB.get(), &Data, sizeof(BatchGridData));
 
 	Renderer->BindShader(BatchGridShader.get());
 	Renderer->BindVertexBuffer(VertexBuffer.get());
