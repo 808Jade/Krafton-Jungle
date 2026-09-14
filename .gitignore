@@ -427,3 +427,12 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Premake / VS generated
+/Build/
+/.vs/
+/EngineProject/.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
