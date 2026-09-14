@@ -108,7 +108,6 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="PathTracker.h" />
     <ClInclude Include="Src\Asset\AssetManager.h" />
     <ClInclude Include="Src\Asset\RenderAsset.h" />
     <ClInclude Include="Src\Camera\CameraActor.h" />
@@ -169,12 +168,12 @@
     <ClInclude Include="Src\ObjectSystem\ObjectFactory.h" />
     <ClInclude Include="Src\ObjectSystem\Property.h" />
     <ClInclude Include="Src\Render\Buffer.h" />
-    <ClInclude Include="Src\Render\LineBatcher.h" />
+    <ClInclude Include="Src\Render\DebugRenderer.h" />
     <ClInclude Include="Src\Render\GeometryGenerator.h" />
     <ClInclude Include="Src\Render\ImageLoader.h" />
     <ClInclude Include="Src\Render\Mesh.h" />
     <ClInclude Include="Src\Render\RenderCommand.h" />
-    <ClInclude Include="Src\Render\RenderDevice.h" />
+    <ClInclude Include="Src\Render\RenderingInfo.h" />
     <ClInclude Include="Src\Render\RenderPacket.h" />
     <ClInclude Include="Src\Render\Renderer.h" />
     <ClInclude Include="Src\Render\Shader.h" />
@@ -184,6 +183,7 @@
     <ClInclude Include="Src\Text\FontAtlas.h" />
     <ClInclude Include="Src\Text\ImageLoader.h" />
     <ClInclude Include="Src\Text\TextRenderer.h" />
+    <ClInclude Include="Src\Render\Swapchain.h" />
     <ClInclude Include="ThirdParty\ImGui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="ThirdParty\ImGui\backends\imgui_impl_win32.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h" />
@@ -194,11 +194,11 @@
     <ClInclude Include="ThirdParty\ImGui\imstb_truetype.h" />
     <ClInclude Include="ThirdParty\json\json.hpp" />
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
-    <ClInclude Include="SceneManager.h" />
-    <ClInclude Include="Src\Engine\Level.h" />
+    <ClInclude Include="Src\Editor\ViewportPanel.h" />
+  <ClInclude Include="SceneManager.h" />
+  <ClInclude Include="Src\Engine\Level.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="PathTracker.cpp" />
     <ClCompile Include="Src\Asset\AssetManager.cpp" />
     <ClCompile Include="Src\Camera\CameraActor.cpp" />
     <ClCompile Include="Src\Camera\CameraComponent.cpp" />
@@ -240,7 +240,7 @@
     <ClCompile Include="Src\ObjectSystem\Object.cpp" />
     <ClCompile Include="Src\ObjectSystem\ObjectFactory.cpp" />
     <ClCompile Include="Src\Render\Buffer.cpp" />
-    <ClCompile Include="Src\Render\LineBatcher.cpp" />
+    <ClCompile Include="Src\Render\DebugRenderer.cpp" />
     <ClCompile Include="Src\Render\GeometryGenerator.cpp" />
     <ClCompile Include="Src\Render\Mesh.cpp" />
     <ClCompile Include="Src\Render\RenderCommand.cpp" />
@@ -251,6 +251,7 @@
     <ClCompile Include="Src\Text\FontAtlas.cpp" />
     <ClCompile Include="Src\Text\TextRenderer.cpp" />
     <ClCompile Include="Src\main.cpp" />
+    <ClCompile Include="Src\Render\Swapchain.cpp" />
     <ClCompile Include="ThirdParty\ImGui\backends\imgui_impl_dx11.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -272,8 +273,9 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="SceneManager.cpp" />
-    <ClCompile Include="Src\Engine\Level.cpp" />
+    <ClCompile Include="Src\Editor\ViewportPanel.cpp" />
+	<ClCompile Include="SceneManager.cpp" />
+ 	 <ClCompile Include="Src\Engine\Level.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

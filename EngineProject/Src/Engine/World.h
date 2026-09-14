@@ -42,7 +42,7 @@ public:
 	TArray<UPrimitiveComponent*> GetPrimitiveComponents() const { return PrimitiveComponents; }
 
 	void GatherRenderPackets(TQueue<FRenderPacket>& RenderQueue);
-	UPrimitiveComponent* TryPicking(uint32 ScreenW, uint32 ScreenH);
+	UPrimitiveComponent* TryPicking(FVector2 MousePos, float ScreenW, float ScreenH);
 
 
 	///

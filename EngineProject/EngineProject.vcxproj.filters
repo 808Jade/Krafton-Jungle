@@ -168,9 +168,6 @@
     <ClInclude Include="Src\Engine\Engine.h">
       <Filter>Src\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Engine\Level.h">
-      <Filter>Src\Engine</Filter>
-    </ClInclude>
     <ClInclude Include="Src\Engine\World.h">
       <Filter>Src\Engine</Filter>
     </ClInclude>
@@ -249,13 +246,13 @@
     <ClInclude Include="Src\Render\Buffer.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Render\DebugRenderer.h">
+      <Filter>Src\Render</Filter>
+    </ClInclude>
     <ClInclude Include="Src\Render\GeometryGenerator.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
     <ClInclude Include="Src\Render\ImageLoader.h">
-      <Filter>Src\Render</Filter>
-    </ClInclude>
-    <ClInclude Include="Src\Render\LineBatcher.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
     <ClInclude Include="Src\Render\Mesh.h">
@@ -324,6 +321,14 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h">
       <Filter>ThirdParty\stb</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Render\RenderContext.h" />
+    <ClInclude Include="Src\Render\Swapchain.h" />
+    <ClInclude Include="Level.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Asset\AssetManager.cpp">
@@ -389,9 +394,6 @@
     <ClCompile Include="Src\Engine\Engine.cpp">
       <Filter>Src\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Engine\Level.cpp">
-      <Filter>Src\Engine</Filter>
-    </ClCompile>
     <ClCompile Include="Src\Engine\World.cpp">
       <Filter>Src\Engine</Filter>
     </ClCompile>
@@ -446,10 +448,10 @@
     <ClCompile Include="Src\Render\Buffer.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Render\GeometryGenerator.cpp">
+    <ClCompile Include="Src\Render\DebugRenderer.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Render\LineBatcher.cpp">
+    <ClCompile Include="Src\Render\GeometryGenerator.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
     <ClCompile Include="Src\Render\Mesh.cpp">
@@ -500,5 +502,8 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Render\RenderDevice.cpp" />
+    <ClCompile Include="Src\Render\RenderContext.cpp" />
+    <ClCompile Include="Src\Render\Swapchain.cpp" />
   </ItemGroup>
 </Project>

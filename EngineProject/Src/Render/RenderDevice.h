@@ -1,10 +1,14 @@
 #pragma once
 
-class RenderDevice
+class FRenderDevice
 {
 public:
-	RenderDevice();
-	~RenderDevice();
+	FRenderDevice();
+	~FRenderDevice();
+
+	
+
+	ID3D11Device* GetRawPtr() const { return Device.Get(); }
 private:
-	ComPtr<ID3D11RenderDevice> ;
+	ComPtr<ID3D11Device> Device;
 };
