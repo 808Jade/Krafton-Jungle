@@ -67,11 +67,11 @@ void UCameraComponent::TickComponent(float DeltaTime)
     }
 }
 
-FRay UCameraComponent::DeProjection(int32 MouseX, int32 MouseY, uint32 ScreenW, uint32 ScreenH)
+FRay UCameraComponent::DeProjection(FVector2 MousePos, float ScreenW, float ScreenH)
 {
     // 마우스 화면 좌표를 NDC 좌표(-1 ~ 1)로 변환
-    const float NDCX = 2.0f * MouseX / ScreenW - 1.0f;
-    const float NDCY = 1.0f - 2.0f * MouseY / ScreenH;
+    const float NDCX = 2.0f * MousePos.X / ScreenW - 1.0f;
+    const float NDCY = 1.0f - 2.0f * MousePos.Y / ScreenH;
 
 
     // Projection / View 행렬의 역행렬
@@ -103,19 +103,14 @@ FRay UCameraComponent::DeProjection(int32 MouseX, int32 MouseY, uint32 ScreenW, 
     NearPoint /= NearPoint.W;
     FarPoint /= FarPoint.W;
 
-FRay UCameraComponent::DeProjection(FVector2 MousePos, float ScreenW, float ScreenH)
-{
-    FVector COP = transform.Location;
-    const FMatrix InvPerspective = GetPerspectiveMatrix().Inverse();
-    const FMatrix InvView = GetViewMatrix().Inverse();
 
     //// Near Plane 위의 점
     //FVector4 NDCPoint(NDCX, NDCY, 1.0f, 1.0f);
     //FVector4 CameraPoint = NDCPoint * InvPerspective;
     //FVector4 WorldPoint = CameraPoint * InvView;
 
-    const float NDCX = 2.0f * MousePos.X / ScreenW - 1.0f;
-    const float NDCY = 1.0f - 2.0f * MousePos.Y / ScreenH;
+    //CameraPoint /= CameraPoint.W;
+    //WorldPoint /= WorldPoint.W;
 
     FRay Ray;
 
