@@ -9,6 +9,8 @@
 #include "Input/InputSystem.h"
 #include "Core/EngineLog.h"
 
+#include <commdlg.h>
+
 
 
 bool FControlPanel::Init()
@@ -28,19 +30,19 @@ void FControlPanel::Tick(float DeltaTime)
 
 void FControlPanel::AddActor(EPrimitiveType Type)
 {
+	//FTransform Transform;
+	//AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>(&Transform);
+	//NewActor->SetPrimitiveType(Type);
+	//AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>(&Transform);
+	//UPrimitiveComponent* Component = Actor->GetPrimitiveComponent();
+	//Component->ApplyPrimitiveType(Type);
+
+
 	FTransform Transform;
 	AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>(&Transform);
 	NewActor->SetPrimitiveType(Type);
-	AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>(&Transform);
-	UPrimitiveComponent* Component = Actor->GetPrimitiveComponent();
-	Component->ApplyPrimitiveType(Type);
 
 	ActorNum = World->GetActorNum();
-
-	//UPrimitiveComponent* Component = Actor->GetPrimitiveComponent();
-	//Component->SetType(Type);
-	//Component->SetMesh(UAssetManager::Get().GetMesh(PrimitiveTypeToString(Type)));
-	//Component->SetMeshData(FGeometryGenerator::GetMeshData(PrimitiveTypeToString(Type)));
 }
 
 void FControlPanel::OnRender()
@@ -297,4 +299,3 @@ void FControlPanel::DrawSceneLoadCombo()
 		if (Callback)Callback();
 	}
 }
-

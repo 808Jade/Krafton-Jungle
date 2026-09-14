@@ -41,7 +41,12 @@ void AStaticMeshActor::SetPrimitiveType(EPrimitiveType Type)
 
 	Component->SetType(Type);
 	Component->SetMesh( UAssetManager::Get().GetMesh(PrimitiveTypeToString(Type)) );
-	Component->SetMeshData( FGeometryGenerator::GetMeshData(PrimitiveTypeToString(Type)) );
+	FStaticMeshData* MeshData = FGeometryGenerator::GetMeshData(PrimitiveTypeToString(Type));
+
+	if (MeshData)
+	{
+		Component->SetMeshData(*MeshData);
+	}
 }
 
 void AStaticMeshActor::BeginPlay()

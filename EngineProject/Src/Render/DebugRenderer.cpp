@@ -1,5 +1,6 @@
 #include "DebugRenderer.h"
 #include "EnginePCH.h"
+#include "Component/PrimitiveComponent.h"
 
 FDebugRenderer::~FDebugRenderer()
 {
@@ -30,8 +31,8 @@ void FDebugRenderer::BuildVertexBuffer()
 
 	for (UPrimitiveComponent* Prim : World->GetPrimitiveComponents())
 	{
-		FTransform* Transform = Prim->GetTransform();
-		FBox WorldBox = Prim->GetMeshData().GetAABB().GetWorldAABB(Transform->GetWorldMatrix());
+		const FTransform& Transform = Prim->GetTransform();
+		FBox WorldBox = Prim->GetMeshData().GetAABB().GetWorldAABB(Transform.GetWorldMatrix());
 
 		AddBox(WorldBox, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	}
