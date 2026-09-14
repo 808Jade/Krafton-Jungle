@@ -177,18 +177,20 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 {
 	Renderer->BeginFrame();
 
-	if (ConfigPanel->GetSettings().bDrawBoundingBox)
+	if (ConfigPanel->GetSettings().bDrawBatchLine)
 	{
-		DebugRenderer->OnRender(ViewProj);
-	}
-
-	if (ConfigPanel->GetSettings().bDrawPSGrid)
-	{
-		GridRenderer->OnRenderPSGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation(), ConfigPanel->GetSettings());
-	}
-	else
-	{
-		GridRenderer->OnRenderBatchGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation());
+		if (ConfigPanel->GetSettings().bDrawBoundingBox)
+		{
+			DebugRenderer->OnRender(ViewProj);
+		}
+		if (ConfigPanel->GetSettings().bDrawPSGrid)
+		{
+			GridRenderer->OnRenderPSGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation(), ConfigPanel->GetSettings());
+		}
+		else
+		{
+			GridRenderer->OnRenderBatchGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation());
+		}
 	}
 
 	if (ConfigPanel->GetSettings().bDrawPrimitives)
