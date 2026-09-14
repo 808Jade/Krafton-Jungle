@@ -17,131 +17,91 @@ void UCameraComponent::TickComponent(float DeltaTime)
 {
     Super::TickComponent(DeltaTime);
 
-    FQuat Q = transform.Rotation.Quaternion().Normalized();
-
     if (FInputSystem::IsKeyDown(EKeyCode::W))
     {
-        transform.Location += transform.GetForward() * CameraSpeed * DeltaTime;
-    }
-    if (FInputSystem::IsKeyDown(EKeyCode::A))
-    {
-        transform.Location -= transform.GetRight() * CameraSpeed * DeltaTime;
-    }
-    if (FInputSystem::IsKeyDown(EKeyCode::S))
-    {
-        transform.Location -= transform.GetForward() * CameraSpeed * DeltaTime;
-    }
-    if (FInputSystem::IsKeyDown(EKeyCode::D))
-    {
-        transform.Location += transform.GetRight() * CameraSpeed * DeltaTime;
-    }
-    if (FInputSystem::IsKeyDown(EKeyCode::Q))
-    {
-        transform.Location -= transform.GetUp() * CameraSpeed * DeltaTime;
-    }
-    if (FInputSystem::IsKeyDown(EKeyCode::E))
-    {
-        transform.Location += transform.GetUp() * CameraSpeed * DeltaTime;
+        RelativeTransform.Location += RelativeTransform.GetForward() * MoveSpeed * DeltaTime;
     }
 
+    if (FInputSystem::IsKeyDown(EKeyCode::S))
+    {
+        RelativeTransform.Location -= RelativeTransform.GetForward() * MoveSpeed * DeltaTime;
+    }
+
+    if (FInputSystem::IsKeyDown(EKeyCode::A))
+    {
+        RelativeTransform.Location -= RelativeTransform.GetRight() * MoveSpeed * DeltaTime;
+    }
+
+    if (FInputSystem::IsKeyDown(EKeyCode::D))
+    {
+        RelativeTransform.Location += RelativeTransform.GetRight() * MoveSpeed * DeltaTime;
+    }
+
+    if (FInputSystem::IsKeyDown(EKeyCode::Q))
+    {
+        RelativeTransform.Location -= RelativeTransform.GetUp() * MoveSpeed * DeltaTime;
+    }
+
+    if (FInputSystem::IsKeyDown(EKeyCode::E))
+    {
+        RelativeTransform.Location += RelativeTransform.GetUp() * MoveSpeed * DeltaTime;
+    }
+
+    // 우클릭 카메라 회전
     if (FInputSystem::IsMouseDown(EMouseButton::Right))
     {
         float DeltaPitch = FInputSystem::GetMouseDeltaY() * MouseSensitivity;
         float DeltaYaw = FInputSystem::GetMouseDeltaX() * MouseSensitivity;
 
-        transform.Rotation.Pitch += DeltaPitch;
-        transform.Rotation.Yaw += DeltaYaw;
+        RelativeTransform.Rotation.Pitch += DeltaPitch;
+        RelativeTransform.Rotation.Yaw += DeltaYaw;
     }
 
-    int32 WDelta = FInputSystem::GetWheelDelta();
+    // 마우스 휠 전진 / 후진
+    int32 WheelDelta = FInputSystem::GetWheelDelta();
 
-    if (WDelta > 0)
+    if (WheelDelta != 0)
     {
-        transform.Location += transform.GetForward() * WheelSpeed * WDelta * DeltaTime;
+        RelativeTransform.Location +=
+            RelativeTransform.GetForward() * WheelSpeed * WheelDelta * DeltaTime;
     }
-
-    if (WDelta < 0)
-    {
-        transform.Location += transform.GetForward() * WheelSpeed * WDelta* DeltaTime;
-    }
-
-    /*if (FInputSystem::IsMouseDown(EMouseButton::Left))
-    {
-        FVector RayDirection = DeProjection(FInputSystem::GetMouseX(), FInputSystem::GetMouseY());
-
-        printf(
-            "Ray Direction: X=%f Y=%f Z=%f\n",
-            RayDirection.X,
-            RayDirection.Y,
-            RayDirection.Z
-        );
-    }*/
 }
 
-void UCameraComponent::SetLocation(FVector vector)
+FRay UCameraComponent::DeProjection(int32 MouseX, int32 MouseY, uint32 ScreenW, uint32 ScreenH)
 {
-    transform.Location = vector;
-}
+    // 마우스 화면 좌표를 NDC 좌표(-1 ~ 1)로 변환
+    const float NDCX = 2.0f * MouseX / ScreenW - 1.0f;
+    const float NDCY = 1.0f - 2.0f * MouseY / ScreenH;
 
-void UCameraComponent::SetScale(FVector vector)
-{
-    transform.Scale = vector;
-}
 
-//void UCameraComponent::SetRotation(FVector vector)
-//{
-//    
-//}
+    // Projection / View 행렬의 역행렬
+    const FMatrix InvProjection = GetProjectionMatrix().Inverse();
+    const FMatrix InvView = GetViewMatrix().Inverse();
 
-void UCameraComponent::SetFOV(float FoV)
-{
-	FOV = FoV;
-}
 
-float* UCameraComponent::GetFOV()
-{
-    return &FOV;
-}
+    // NDC 공간의 Near / Far 지점
+    FVector4 NearPoint(NDCX, NDCY, 0.0f, 1.0f);
+    FVector4 FarPoint(NDCX, NDCY, 1.0f, 1.0f);
 
-void UCameraComponent::SetAspectRatio(float Ratio)
-{
-	AspectRatio = Ratio;
-}
 
-void UCameraComponent::SetNearClipPlane(float NearPlane)
-{
-	NearClipPlane = NearPlane;
-}
+    // Projection 역변환
+    NearPoint = NearPoint * InvProjection;
+    FarPoint = FarPoint * InvProjection;
 
-void UCameraComponent::SetFarClipPlane(float FarPlane)
-{
-	FarClipPlane = FarPlane;
-}
 
-void UCameraComponent::SetCameraSpeed(float InSpeed)
-{
-    CameraSpeed = InSpeed;
-}
+    // Perspective Divide 복원
+    NearPoint /= NearPoint.W;
+    FarPoint /= FarPoint.W;
 
-void UCameraComponent::SetMouseSensitivity(float InSensitivity)
-{
-    MouseSensitivity = InSensitivity;
-}
 
-FVector UCameraComponent::GetLocation() const
-{
-	return transform.Location;
-}
+    // View 역변환
+    NearPoint = NearPoint * InvView;
+    FarPoint = FarPoint * InvView;
 
-FVector UCameraComponent::GetScale() const
-{
-    return transform.Scale;
-}
 
-FRotator UCameraComponent::GetRotation() const
-{
-    return transform.Rotation;
-}
+    // Homogeneous 좌표 정리
+    NearPoint /= NearPoint.W;
+    FarPoint /= FarPoint.W;
 
 FRay UCameraComponent::DeProjection(FVector2 MousePos, float ScreenW, float ScreenH)
 {
@@ -149,65 +109,83 @@ FRay UCameraComponent::DeProjection(FVector2 MousePos, float ScreenW, float Scre
     const FMatrix InvPerspective = GetPerspectiveMatrix().Inverse();
     const FMatrix InvView = GetViewMatrix().Inverse();
 
-    // 1280 720
+    //// Near Plane 위의 점
+    //FVector4 NDCPoint(NDCX, NDCY, 1.0f, 1.0f);
+    //FVector4 CameraPoint = NDCPoint * InvPerspective;
+    //FVector4 WorldPoint = CameraPoint * InvView;
 
     const float NDCX = 2.0f * MousePos.X / ScreenW - 1.0f;
     const float NDCY = 1.0f - 2.0f * MousePos.Y / ScreenH;
 
-    // Near Plane 위의 점
-    FVector4 NDCPoint(NDCX, NDCY, 1.0f, 1.0f);
-    FVector4 CameraPoint = NDCPoint * InvPerspective;
-    FVector4 WorldPoint = CameraPoint * InvView;
+    FRay Ray;
 
-    CameraPoint /= CameraPoint.W;
-    WorldPoint /= WorldPoint.W;
-
-    FRay ray;
-    ray.Origin = transform.Location;
-    ray.Direction = (FVector(WorldPoint.X, WorldPoint.Y, WorldPoint.Z) - ray.Origin).Normalized();
-
-    if (bIsOrthogonal) 
+    if (bIsOrthogonal)
     {
-        const FMatrix InvOrthogonal = GetOrthogonalMatrix().Inverse();
-
-        FVector4 NearPoint = FVector4(NDCX, NDCY, 0.0f, 1.0f) * InvOrthogonal;
-        FVector4 FarPoint = FVector4(NDCX, NDCY, 1.0f, 1.0f) * InvOrthogonal;
-
-        NearPoint /= NearPoint.W;
-        FarPoint /= FarPoint.W;
-
-        NearPoint = NearPoint * InvView;
-        FarPoint = FarPoint * InvView;
-
-        NearPoint /= NearPoint.W;
-        FarPoint /= FarPoint.W;
-
-        FRay ray;
-        ray.Origin = FVector(NearPoint.X, NearPoint.Y, NearPoint.Z);
-        FVector4 Direction4 = (FarPoint - NearPoint);
-        ray.Direction = FVector(Direction4.X, Direction4.Y, Direction4.Z).Normalized();
-
-        std::cout << "Orthogonal\n";
-        std::cout << GetOrthogonalMatrix() << '\n';
-
-        std::cout << "Inverse\n";
-        std::cout << InvOrthogonal << '\n';
-
-        return ray;
+        Ray.Origin = FVector(NearPoint.X, NearPoint.Y, NearPoint.Z);
+    }
+    // 원근 투영은 모든 Ray가 카메라 위치에서 시작
+    else
+    {
+        Ray.Origin = GetWorldLocation();
     }
 
+    // 시작점에서 Far 지점을 향하는 방향을 Ray 방향으로 사용
+    Ray.Direction = (FVector(FarPoint.X, FarPoint.Y, FarPoint.Z) - Ray.Origin).Normalized();
 
-    return ray;
+    return Ray;
+
+    //ray.Origin = transform.Location;
+    //ray.Direction = (FVector(WorldPoint.X, WorldPoint.Y, WorldPoint.Z) - ray.Origin).Normalized();
+
+    //if (bIsOrthogonal) 
+    //{
+    //    const FMatrix InvOrthogonal = GetOrthogonalMatrix().Inverse();
+
+    //    FVector4 NearPoint = FVector4(NDCX, NDCY, 0.0f, 1.0f) * InvOrthogonal;
+    //    FVector4 FarPoint = FVector4(NDCX, NDCY, 1.0f, 1.0f) * InvOrthogonal;
+
+    //    NearPoint /= NearPoint.W;
+    //    FarPoint /= FarPoint.W;
+
+    //    NearPoint = NearPoint * InvView;
+    //    FarPoint = FarPoint * InvView;
+
+    //    NearPoint /= NearPoint.W;
+    //    FarPoint /= FarPoint.W;
+
+    //    FRay ray;
+
+    //    ray.Origin = FVector(NearPoint.X, NearPoint.Y, NearPoint.Z);
+    //    FVector4 Direction4 = (FarPoint - NearPoint);
+
+    //    ray.Direction = FVector(Direction4.X, Direction4.Y, Direction4.Z).Normalized();
+
+    //    return ray;
+    //}
+    //
+    //
+    //return ray;
 }
 
 FMatrix UCameraComponent::GetViewMatrix() const
 {
-    return GetWorldMatrix().Inverse();
+    //return GetWorldMatrix().Inverse();
+
+    FVector WorldLocation = GetWorldLocation();
+    FRotator WorldRotation = GetWorldRotation();
+
+    FQuat WorldQuat = WorldRotation.Quaternion();
+    FMatrix RotationMatrix = WorldQuat.ToFMatrix();
+
+    FMatrix InverseTranslation = FMatrix::MakeTranslation(WorldLocation * -1.0f);
+    FMatrix InverseRotation = RotationMatrix.GetTransposed();
+
+    return InverseTranslation * InverseRotation;
 }
 
 FMatrix UCameraComponent::GetPerspectiveMatrix() const
 {
-	const float HalfFOV = FMath::DegreesToRadians(FOV) * 0.5f;
+	const float HalfFOV = FMath::DegreesToRadians(FieldOfView) * 0.5f;
 
 	const float YScale = 1.0f / tan(HalfFOV);
 	const float XScale = YScale / AspectRatio;
@@ -215,6 +193,7 @@ FMatrix UCameraComponent::GetPerspectiveMatrix() const
     const float ZScale = FarClipPlane / (FarClipPlane - NearClipPlane);
     const float ZOffset = -NearClipPlane * FarClipPlane /(FarClipPlane - NearClipPlane);
 
+    //Forward가 X인 좌표
 	return FMatrix(
 		0.0f, 0.0f, ZScale, 1.0f,
 		XScale, 0.0f, 0.0f, 0.0f,
@@ -242,10 +221,15 @@ FMatrix UCameraComponent::GetOrthogonalMatrix() const
     );
 }
 
-FMatrix UCameraComponent::GetViewProjectionMatrix() const
+FMatrix UCameraComponent::GetProjectionMatrix() const
 {
     if (bIsOrthogonal)
-        return GetViewMatrix() * GetOrthogonalMatrix();
-    
-    return GetViewMatrix() * GetPerspectiveMatrix();
+        return GetOrthogonalMatrix();  // 직교 투영
+     
+    return GetPerspectiveMatrix();     // 원근 투영
+}
+
+FMatrix UCameraComponent::GetViewProjectionMatrix() const
+{
+    return GetViewMatrix() * GetProjectionMatrix();
 }

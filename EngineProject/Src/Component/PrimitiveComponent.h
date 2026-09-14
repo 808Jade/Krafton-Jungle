@@ -40,8 +40,9 @@ public:
 	UStaticMesh* GetMesh() const { return Mesh; };
 	FShader* GetShader() const { return Shader; };
 
-	void SetType(EPrimitiveType Ptype) { Type = Ptype; }
 	EPrimitiveType GetType() const { return Type; }
+	void SetType(EPrimitiveType Ptype) { Type = Ptype; }
+
 protected:
 	EPrimitiveType Type = EPrimitiveType::Cube;
 	FShader* Shader = nullptr;

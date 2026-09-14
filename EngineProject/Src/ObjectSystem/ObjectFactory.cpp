@@ -9,8 +9,8 @@ UObject* FObjectFactory::ConstructObject(UClass* Class)
     UObject* Result = Class->Constructor();
 
     LOG(Info, "Create {}", Class->Name);
-    LOG(Info, "Total Allocation Bytes - {}", FEngineStatics::TotalAllocationBytes);
-    LOG(Info, "Total Allocation Count - {}", FEngineStatics::TotalAllocationCount);
+    //LOG(Info, "Total Allocation Bytes - {}", FEngineStatics::TotalAllocationBytes);
+    //LOG(Info, "Total Allocation Count - {}", FEngineStatics::TotalAllocationCount);
 
     return Result;
 }

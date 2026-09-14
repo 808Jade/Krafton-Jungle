@@ -7,6 +7,9 @@
 #include "Asset/AssetManager.h"
 
 #include "Input/InputSystem.h"
+#include "Core/EngineLog.h"
+
+#include <commdlg.h>
 
 
 
@@ -27,12 +30,19 @@ void FControlPanel::Tick(float DeltaTime)
 
 void FControlPanel::AddActor(EPrimitiveType Type)
 {
-	FTransform Transform;
-	AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>(&Transform);
-	UPrimitiveComponent* Component = Actor->GetPrimitiveComponent();
-	Component->ApplyPrimitiveType(Type);
+	//FTransform Transform;
+	//AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>(&Transform);
+	//NewActor->SetPrimitiveType(Type);
+	//AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>(&Transform);
+	//UPrimitiveComponent* Component = Actor->GetPrimitiveComponent();
+	//Component->ApplyPrimitiveType(Type);
 
-	ActorNum = World->GetActorNum() - 1;
+
+	FTransform Transform;
+	AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>(&Transform);
+	NewActor->SetPrimitiveType(Type);
+
+	ActorNum = World->GetActorNum();
 }
 
 void FControlPanel::OnRender()
@@ -76,58 +86,92 @@ void FControlPanel::OnRender()
 
 	ImGui::Separator();
 	// 씬 생성 세이브 로드
-	ImGui::SetNextItemWidth(165.0f);
-	ImGui::InputText("Scene Name", SceneName, IM_ARRAYSIZE(SceneName));
+	//ImGui::SetNextItemWidth(165.0f);
+	//ImGui::InputText("Scene Name", SceneName, IM_ARRAYSIZE(SceneName));
+	
+
+
 	if (ImGui::Button("New Scene", ImVec2(80.0f, 19.0f)))
 	{
 		World->ClearScene();
 		World->NewScene(SceneName);
-		ActorNum = World->GetActorNum() - 1;
+		ActorNum = World->GetActorNum();
 		if (Callback) Callback();
 	}
-	if (ImGui::Button("Save Scene", ImVec2(80.0f, 19.0f))) { World->SaveScene(SceneName); ActorNum = World->GetActorNum() - 1; }
-	if (ImGui::Button("Load Scene", ImVec2(80.0f, 19.0f)))
-	{
+	ImGui::SameLine();
 
-		if (World->LoadScene(SceneName))
-		{
-			return;
-		}
-		ActorNum = World->GetActorNum() - 1;
-		if (Callback)Callback();
+	if (ImGui::Button("Save Scene", ImVec2(80.0f, 19.0f))) 
+	{ 
+		FString FilePath = OpenSaveSceneDialog();
+		World->SaveScene(FilePath);
+		ActorNum = World->GetActorNum(); 
+		LOG(Info, "Save Scene Path : {}", FilePath);
 	}
+	
+	DrawSceneLoadCombo(); // Load Scene ImGui
+
+
 	ImGui::Separator();
 	UCameraComponent* CamCom = World->GetMainCamera()->GetCameraComponent();
 
-	ImGui::Checkbox("Orthogonal", &CamCom->bIsOrthogonal);
+	bool bOrthogonal = CamCom->GetIsOrthogonal();
+	if (ImGui::Checkbox("Orthogonal", &bOrthogonal))
+	{
+		CamCom->SetIsOrthogonal(bOrthogonal);
+	}
 
 
-	FTransform* transform = CamCom->GetTransform();
+	float FOV = CamCom->GetFieldOfView();
+	FVector Location = CamCom->GetRelativeLocation();
+	FRotator Rotation = CamCom->GetRelativeRotation();
+
+	const FTransform& transform = CamCom->GetTransform();
 
 	ImGui::SetNextItemWidth(255.0f);
-	ImGui::InputFloat("##FOV", &CamCom->FOV);
+	if (ImGui::InputFloat("##FOV", &FOV))
+	{
+		CamCom->SetFieldOfView(FOV);
+	}
+
+	bool bLocationChanged = false;
 
 	ImGui::SetNextItemWidth(80.0f);
-	ImGui::InputFloat("##X", &transform->Location.X);
+	bLocationChanged |= ImGui::InputFloat("##X", &Location.X);
 	ImGui::SameLine();
+
 	ImGui::SetNextItemWidth(80.0f);
-	ImGui::InputFloat("##Y", &transform->Location.Y);
+	bLocationChanged |= ImGui::InputFloat("##Y", &Location.Y);
 	ImGui::SameLine();
+
 	ImGui::SetNextItemWidth(80.0f);
-	ImGui::InputFloat("##Z", &transform->Location.Z);
+	bLocationChanged |= ImGui::InputFloat("##Z", &Location.Z);
 	ImGui::SameLine();
 	ImGui::Text("Camera Location");
 
+	if (bLocationChanged)
+	{
+		CamCom->SetRelativeLocation(Location);
+	}
+
+	bool bRotationChanged = false;
+
 	ImGui::SetNextItemWidth(80.0f);
-	ImGui::InputFloat("##Pitch", &transform->Rotation.Pitch);
+	bRotationChanged |= ImGui::InputFloat("##Pitch", &Rotation.Pitch);
 	ImGui::SameLine();
+
 	ImGui::SetNextItemWidth(80.0f);
-	ImGui::InputFloat("##Yaw", &transform->Rotation.Yaw);
+	bRotationChanged |= ImGui::InputFloat("##Yaw", &Rotation.Yaw);
 	ImGui::SameLine();
+
 	ImGui::SetNextItemWidth(80.0f);
-	ImGui::InputFloat("##Roll", &transform->Rotation.Roll);
+	bRotationChanged |= ImGui::InputFloat("##Roll", &Rotation.Roll);
 	ImGui::SameLine();
 	ImGui::Text("Camera Rotation");
+
+	if (bRotationChanged)
+	{
+		CamCom->SetRelativeRotation(Rotation);
+	}
 
 	ImGui::Separator();
 
@@ -143,4 +187,116 @@ void FControlPanel::OnRender()
 	}
 
 	ImGui::End();
+}
+
+
+// Save시 파일탐색기 Open
+FString FControlPanel::OpenSaveSceneDialog()
+{
+	char FilePath[MAX_PATH] = {};
+
+	OPENFILENAMEA ofn = {};
+	ofn.lStructSize = sizeof(OPENFILENAMEA);
+	ofn.hwndOwner = nullptr;
+	ofn.lpstrFile = FilePath;
+	ofn.nMaxFile = MAX_PATH;
+
+	ofn.lpstrFilter = "Scene Files (*.scene)\0*.scene\0";
+	ofn.lpstrDefExt = "scene";
+	ofn.lpstrInitialDir = DefaultScenePath.c_str();
+
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+
+	if (GetSaveFileNameA(&ofn)) {
+		return FString(FilePath);
+	}
+
+	return FString();
+}
+
+void FControlPanel::RefreshSceneFiles()
+{
+	SceneFiles.Reset();
+	const FString ScenePath = DefaultScenePath; // Path: Scene/
+
+	if (!std::filesystem::exists(ScenePath)) { 
+		LOG(Info, "Scene folder not found: {}\nnow your path is {}", ScenePath.c_str(), std::filesystem::current_path().string());
+
+		LOG(Info, "CurrentPath: {}", std::filesystem::current_path().string());
+
+		return;
+	}
+
+	for (const auto& Entry : std::filesystem::directory_iterator(ScenePath))
+	{
+		if (!Entry.is_regular_file())
+			continue;
+
+		SceneFiles.Add(Entry.path().filename().string());
+	}
+
+	if (SelectedSceneIndex >= SceneFiles.Num())
+	{
+		SelectedSceneIndex = -1;
+	}
+}
+
+void FControlPanel::DrawSceneLoadCombo()
+{
+	const char* Preview = "Select Scene";
+
+	if (SelectedSceneIndex >= 0 && SelectedSceneIndex <= SceneFiles.Num()) {
+		Preview = SceneFiles[SelectedSceneIndex].c_str();
+	}
+
+	ImGui::Text("Scene:");
+	ImGui::SameLine();
+
+	ImGui::SetNextItemWidth(150.0f);
+	bool bComboOpen = ImGui::BeginCombo("##SceneSelect", Preview);
+
+	if (ImGui::IsItemActivated())
+	{
+		RefreshSceneFiles();
+	}
+	
+	if(bComboOpen)
+	{
+		for (int i = 0; i < SceneFiles.Num(); ++i)
+		{
+			bool bSelected = (SelectedSceneIndex == i);
+
+			if (ImGui::Selectable(SceneFiles[i].c_str(), bSelected))
+			{
+				SelectedSceneIndex = i;
+			}
+
+			if (bSelected)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+
+		ImGui::EndCombo();
+	}
+
+	ImGui::SameLine();
+
+	if (ImGui::Button("Load Scene", ImVec2(80.0f, 19.0f)))
+	{
+		if (SelectedSceneIndex < 0)
+			return;
+
+		FString ScenePath = DefaultScenePath + SceneFiles[SelectedSceneIndex];
+
+		RefreshSceneFiles();
+
+		if (!World->LoadScene(ScenePath))
+		{
+			return;
+		}
+		LOG(Info, "Load Scene : {}", ScenePath);
+		ActorNum = World->GetActorNum();
+		if (Callback)Callback();
+	}
 }

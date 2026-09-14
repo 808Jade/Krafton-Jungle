@@ -12,6 +12,7 @@ public:
 	virtual void BeginPlay() override;
 
 	UPrimitiveComponent* GetPrimitiveComponent() const { return PrimitiveComponent; }
+	void SetPrimitiveType(EPrimitiveType Type);
 
 private:
 	UPrimitiveComponent* PrimitiveComponent;

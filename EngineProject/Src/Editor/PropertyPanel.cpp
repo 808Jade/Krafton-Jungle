@@ -105,17 +105,17 @@ void FPropertyPanel::OnRender()
 
 	ImGui::Begin("Jungle Property Window");
 
-	FTransform* transform = nullptr;
-
 	if (Target)
 	{
-		transform = Target->GetTransform();
+		FTransform Transform = Target->GetTransform();
 
-		DrawVector3Controller("Translation", transform->Location, 0.0f, 10.0f);
-		FVector Rotation = FVector(transform->Rotation.Roll, transform->Rotation.Pitch, transform->Rotation.Yaw);
+		FVector Rotation = FVector(Transform.Rotation.Roll, Transform.Rotation.Pitch, Transform.Rotation.Yaw);
 		DrawVector3Controller("Rotation", Rotation, 0.0f, 10.0f);
-		transform->Rotation = FRotator(Rotation.Y, Rotation.Z, Rotation.X);
-		DrawVector3Controller("Scale", transform->Scale, 0.0f, 10.0f);
+
+		Transform.Rotation = FRotator(Rotation.Y, Rotation.Z, Rotation.X);
+		DrawVector3Controller("Scale", Transform.Scale, 0.0f, 10.0f);
+
+		Target->SetTransform(Transform);
 	}
 
 	ImGui::End();

@@ -195,6 +195,8 @@
     <ClInclude Include="ThirdParty\json\json.hpp" />
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
     <ClInclude Include="Src\Editor\ViewportPanel.h" />
+  <ClInclude Include="SceneManager.h" />
+  <ClInclude Include="Src\Engine\Level.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Asset\AssetManager.cpp" />
@@ -272,6 +274,8 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Src\Editor\ViewportPanel.cpp" />
+	<ClCompile Include="SceneManager.cpp" />
+ 	 <ClCompile Include="Src\Engine\Level.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

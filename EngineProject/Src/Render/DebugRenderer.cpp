@@ -1,5 +1,6 @@
 #include "DebugRenderer.h"
 #include "EnginePCH.h"
+#include "Component/PrimitiveComponent.h"
 
 FDebugRenderer::~FDebugRenderer()
 {

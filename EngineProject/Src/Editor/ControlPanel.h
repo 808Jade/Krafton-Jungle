@@ -60,5 +60,16 @@ public:
 
 	SceneClearCallback Callback = nullptr;
 
+
+
+	FString OpenSaveSceneDialog();
+	void RefreshSceneFiles();
+	void DrawSceneLoadCombo();
+
+private:
+	TArray<FString> SceneFiles;
+	const FString DefaultScenePath = "Scene/";
+	int SelectedSceneIndex = -1;
+
 };
 

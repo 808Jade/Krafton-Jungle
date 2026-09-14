@@ -24,6 +24,7 @@
 //Temp
 #include "Text/FontAtlas.h"
 #include "Text/TextRenderer.h"
+#include "../SceneManager.h"
 
 class Engine
 {
@@ -71,5 +72,6 @@ private:
 	FControlPanel* ControlPanel = nullptr;
 	FConfigPanel* ConfigPanel = nullptr;
 	FViewportPanel* ViewportPanel= nullptr;
+	FSceneManager* SceneManager = nullptr;
 };
 

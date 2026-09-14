@@ -323,6 +323,12 @@
     </ClInclude>
     <ClInclude Include="Src\Render\RenderContext.h" />
     <ClInclude Include="Src\Render\Swapchain.h" />
+    <ClInclude Include="Level.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Asset\AssetManager.cpp">
