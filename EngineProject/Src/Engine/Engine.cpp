@@ -85,7 +85,7 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	TextRenderer = MakeUnique<FTextRenderer>();
 	TextRenderer->Init(Renderer.get());
-	
+
 	// Scene
 	World = FObjectFactory::ConstructObject<UWorld>();
 	World->Init();
@@ -181,16 +181,23 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 	{
 		DebugRenderer->OnRender(ViewProj);
 	}
-	GridRenderer->OnRender(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation());
-	//GridRenderer->OnRender(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation(), ConfigPanel->GetSettings());
-	
+
+	if (ConfigPanel->GetSettings().bDrawPSGrid)
+	{
+		GridRenderer->OnRenderPSGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation(), ConfigPanel->GetSettings());
+	}
+	else
+	{
+		GridRenderer->OnRenderBatchGrid(ViewProj, World->GetMainCamera()->GetCameraComponent()->GetLocation());
+	}
+
 	Renderer->RenderAll(RenderQueue, ViewProj);
 	FVector4 CamLoc = World->GetMainCamera()->GetCameraComponent()->GetLocation();
 	if (Outline->GetTarget())
 		OutlineRenderer->OnRender(*Outline, ViewProj, CamLoc);
 
 	if (Gizmo->GetTarget())
-	{ 
+	{
 		auto Target = Gizmo->GetTarget()->GetOwner();
 		FString Text = "UUID : " + std::to_string(Target->GetUUID());
 		//FString Text = "FName : " + Target->GetName().ToString();

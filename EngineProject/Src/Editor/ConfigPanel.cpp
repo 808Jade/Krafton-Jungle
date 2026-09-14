@@ -10,8 +10,10 @@ FConfigPanel::~FConfigPanel()
 
 bool FConfigPanel::Init()
 {
+	LoadSettings();
 	return true;
 }
+
 
 void FConfigPanel::Tick(float DeltaTime)
 {
@@ -52,7 +54,9 @@ void FConfigPanel::OnRender()
 	CamCom->SetCameraSpeed(Settings.CameraSpeed);
 
 	ImGui::SetNextItemWidth(200.0f);
-	ImGui::SliderFloat("Grid Spacing", &Settings.GridSpacing, 0.1f, 10.0f, "%.1f");
+	ImGui::SliderInt("Grid Spacing", &Settings.GridSpacing, 1, 100);
+
+	ImGui::Checkbox("Draw PS Grid", &Settings.bDrawPSGrid);
 
 	ImGui::Spacing();
 	ImGui::Separator();
@@ -86,6 +90,7 @@ bool FConfigPanel::SaveSettings() const
 	File << "DrawBoundingBox=" << Settings.bDrawBoundingBox << "\n";
 	File << "ShowUUID=" << Settings.bShowUUID << "\n";
 	File << "DrawBatchLine=" << Settings.bDrawBatchLine << "\n";
+	File << "DrawPSGrid=" << Settings.bDrawPSGrid << "\n";
 	File << "\n";
 
 	File << "[Editor]\n";
@@ -122,6 +127,8 @@ bool FConfigPanel::LoadSettings()
 				else if (Key == "DrawBoundingBox") Settings.bDrawBoundingBox = std::stoi(ValueStr);
 				else if (Key == "ShowUUID") Settings.bShowUUID = std::stoi(ValueStr);
 				else if (Key == "DrawBatchLine") Settings.bDrawBatchLine = std::stoi(ValueStr);
+				else if (Key == "DrawPSGrid") Settings.bDrawPSGrid = std::stoi(ValueStr);
+
 				else if (Key == "CameraMoveSpeed") Settings.CameraSpeed = std::stof(ValueStr);
 				else if (Key == "CameraRotateSensitivity") Settings.MouseSensitivity = std::stof(ValueStr);
 				else if (Key == "GridSpacing") Settings.GridSpacing = std::stof(ValueStr);
