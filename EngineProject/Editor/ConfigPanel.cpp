@@ -10,8 +10,10 @@ FConfigPanel::~FConfigPanel()
 
 bool FConfigPanel::Init()
 {
+	LoadSettings();
 	return true;
 }
+
 
 void FConfigPanel::Tick(float DeltaTime)
 {
