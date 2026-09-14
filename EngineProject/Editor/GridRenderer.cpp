@@ -61,10 +61,10 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 
 void FGridRenderer::OnRender(const FMatrix& ViewProj, const FVector& CameraPos)
 {
-	FGridData Data;
+	FGridData2 Data;
 	Data.invViewProj = ViewProj.GetTransposed();
 	Data.CameraPos = CameraPos;
-	Data.padding = GridSpace;
+	Data.Padding = GridSpace;
 
 	VertexBufferPtr = VertexBufferBase;
 	VertexCount = 0;
@@ -81,7 +81,7 @@ void FGridRenderer::OnRender(const FMatrix& ViewProj, const FVector& CameraPos)
 	}
 
 	Renderer->UpdateVertexBufferData(VertexBuffer.get(), VertexBufferBase, sizeof(FVertex) * VertexCount);
-	Renderer->UpdateConstantBufferData(CB.get(), &Data, sizeof(FGridData));
+	Renderer->UpdateConstantBufferData(CB.get(), &Data, sizeof(FGridData2));
 
 	Renderer->BindShader(BatchGridShader.get());
 	Renderer->BindVertexBuffer(VertexBuffer.get());
@@ -90,8 +90,9 @@ void FGridRenderer::OnRender(const FMatrix& ViewProj, const FVector& CameraPos)
 	Renderer->Draw(VertexCount);
 
 
+	//Data.CellSize = InEditorSettings.GridSpacing;
+	//Data.SubCellSize = InEditorSettings.GridSpacing * 0.1f;
 
-	////////////////////////////////////////////// 복원용 주석
 	// 1. 무한 그리드 (바닥 격자) - 버텍스 버퍼 없음
 	//Renderer->BindShader(GridShader.get());
 	//Renderer->BindVertexBuffer(nullptr);
@@ -110,4 +111,23 @@ void FGridRenderer::OnRender(const FMatrix& ViewProj, const FVector& CameraPos)
 	//Renderer->UpdateConstantBuffer(Identity * ViewProj);
 	//Renderer->DrawIndexed(6);
 	////////////////////////////////////////////// 복원용 주석
+
+	//Renderer->BindShader(GridShader.get());
+	//Renderer->BindVertexBuffer(nullptr);
+	//Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	//Renderer->GetDeviceContext()->RSSetState(RasterizerState.Get());
+
+	//Data.GridPlaneType = 0;
+	//Renderer->UpdateConstantBufferData(CB.get(), &Data, sizeof(GridData));
+	//Renderer->BindConstantBuffer(0, CB.get(), EShaderBindFlagBits::Vertex);
+	//Renderer->BindConstantBuffer(0, CB.get(), EShaderBindFlagBits::Pixel);
+	//Renderer->SetBlendStateEnabled(true);
+	//Renderer->Draw(4);
+
+	//Data.GridPlaneType = 1;
+	//Renderer->UpdateConstantBufferData(CB.get(), &Data, sizeof(GridData));
+	//Renderer->Draw(4);
+
+	//Renderer->SetBlendStateEnabled(false);
+	//Renderer->GetDeviceContext()->RSSetState(nullptr);
 }

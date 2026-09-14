@@ -36,6 +36,7 @@ public:
 	void CreateFrameBuffer();
 	void CreateRasterizerState();
 	void CreateDepthStencilBufferAndState();
+	void CreateAlphaBlendState();
 	void CreateConstantBuffer();
 
 	inline ID3D11Device* GetDevice() const { return Device.Get(); }
@@ -106,6 +107,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> DepthDisabledState;
 
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;
+
+	Microsoft::WRL::ComPtr<ID3D11BlendState> AlphaBlendState;
 
 	Microsoft::WRL::ComPtr <ID3D11Buffer> ConstantBuffer;
 	Microsoft::WRL::ComPtr <ID3D11SamplerState> DefaultSamplerState;

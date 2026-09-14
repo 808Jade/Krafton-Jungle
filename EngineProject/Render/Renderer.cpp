@@ -157,6 +157,22 @@ void FRenderer::CreateDepthStencilBufferAndState()
 	Device->CreateDepthStencilState(&disabledDesc, &DepthDisabledState);
 }
 
+void FRenderer::CreateAlphaBlendState()
+{
+	D3D11_BLEND_DESC blendDesc = {};
+	blendDesc.RenderTarget[0].BlendEnable = TRUE;
+	blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+
+	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+	blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+	Device->CreateBlendState(&blendDesc, AlphaBlendState.GetAddressOf());
+}
+
 void FRenderer::CreateConstantBuffer()
 {
 	D3D11_BUFFER_DESC constantbufferdesc = {};
@@ -501,6 +517,15 @@ void FRenderer::SetDepthStencilEnabled(bool bEnabled)
 
 void FRenderer::SetBlendStateEnabled(bool bEnabled)
 {
+	if (bEnabled)
+	{
+		float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		DeviceContext->OMSetBlendState(AlphaBlendState.Get(), blendFactor, 0xffffffff);
+	}
+	else
+	{
+		DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+	}
 }
 
 void FRenderer::BindShader(FShader* InShader)
