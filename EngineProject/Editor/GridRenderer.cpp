@@ -46,7 +46,7 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 
 	PSGridVertexBuffer = Renderer->CreateVertexBuffer(Vertices.GetData(), sizeof(FVertex) * Vertices.Num(), sizeof(FVertex));
 	PSGridIndexBuffer = Renderer->CreateIndexBuffer(Indices.GetData(), sizeof(uint32) * Indices.Num());
-	PSGridConstantBuffer = Renderer->CreateConstantBuffer(sizeof(FGridData));
+	PSGridConstantBuffer = Renderer->CreateConstantBuffer(sizeof(FPSGridData));
 
 	D3D11_RASTERIZER_DESC RasterizerDesc = {};
 	RasterizerDesc.FillMode = D3D11_FILL_SOLID;
@@ -57,7 +57,7 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 	return true;
 }
 
-void FGridRenderer::OnRender(const FMatrix& ViewProj, const FVector& CameraPos)
+void FGridRenderer::OnRenderBatchGrid(const FMatrix& ViewProj, const FVector& CameraPos)
 {
 	FBatchGridData Data;
 	Data.invViewProj = ViewProj.GetTransposed();
@@ -88,9 +88,9 @@ void FGridRenderer::OnRender(const FMatrix& ViewProj, const FVector& CameraPos)
 	Renderer->Draw(VertexCount);
 }
 
-void FGridRenderer::OnRender(const FMatrix& ViewProj, const FVector& CameraPos, const FEditorSettings& InEditorSettings)
+void FGridRenderer::OnRenderPSGrid(const FMatrix& ViewProj, const FVector& CameraPos, const FEditorSettings& InEditorSettings)
 {
-	FGridData PSGridData;
+	FPSGridData PSGridData;
 	PSGridData.invViewProj = ViewProj.GetTransposed();
 	PSGridData.CameraPos = CameraPos;
 	PSGridData.CellSize = InEditorSettings.GridSpacing;
@@ -102,14 +102,14 @@ void FGridRenderer::OnRender(const FMatrix& ViewProj, const FVector& CameraPos, 
 	Renderer->GetDeviceContext()->RSSetState(RasterizerState.Get());
 
 	PSGridData.GridPlaneType = 0;
-	Renderer->UpdateConstantBufferData(PSGridConstantBuffer.get(), &Data, sizeof(FGridData));
+	Renderer->UpdateConstantBufferData(PSGridConstantBuffer.get(), &Data, sizeof(FPSGridData));
 	Renderer->BindConstantBuffer(0, PSGridConstantBuffer.get(), EShaderBindFlagBits::Vertex);
 	Renderer->BindConstantBuffer(0, PSGridConstantBuffer.get(), EShaderBindFlagBits::Pixel);
 	Renderer->SetBlendStateEnabled(true);
 	Renderer->Draw(4);
 
 	PSGridData.GridPlaneType = 1;
-	Renderer->UpdateConstantBufferData(PSGridConstantBuffer.get(), &Data, sizeof(FGridData));
+	Renderer->UpdateConstantBufferData(PSGridConstantBuffer.get(), &Data, sizeof(FPSGridData));
 	Renderer->Draw(4);
 
 	Renderer->SetBlendStateEnabled(false);

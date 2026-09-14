@@ -3,7 +3,7 @@
 #include <d3d11.h>
 #include "Render/Renderer.h"
 
-struct FGridData
+struct FPSGridData
 {
 	FMatrix invViewProj;
 	FVector CameraPos;
@@ -30,8 +30,8 @@ public:
 
 	bool Init(FRenderer* InRenderer);
 
-	void OnRender(const FMatrix& ViewProj, const FVector& CameraPos, const FEditorSettings& InEditorSettings);
-	void OnRender(const FMatrix& ViewProj, const FVector& CameraPos);
+	void OnRenderPSGrid(const FMatrix& ViewProj, const FVector& CameraPos, const FEditorSettings& InEditorSettings);
+	void OnRenderBatchGrid(const FMatrix& ViewProj, const FVector& CameraPos);
 
 	void SetGridSpace(float Value) { BatchGridSpace = Value; }
 

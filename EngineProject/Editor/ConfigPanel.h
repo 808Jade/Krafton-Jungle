@@ -11,6 +11,7 @@ struct FEditorSettings
 	bool bDrawBoundingBox = false;
 	bool bShowUUID = false;
 	bool bDrawBatchLine = true;
+	bool bDrawPSGrid = false;
 
 	// Values
 	float CameraSpeed = 1.0f;
