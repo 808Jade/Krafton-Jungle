@@ -23,6 +23,8 @@ class UPrimitiveComponent :public USceneComponent
 public:
 	virtual void BeginPlay() override;
 
+	void ApplyPrimitiveType(EPrimitiveType Type);
+
 	void SetMeshData(const FStaticMeshData& data) { MeshData = data; }
 	void SetMeshShader(UStaticMesh* InMesh, FShader* InShader) { Mesh = InMesh; Shader = InShader; }
 	void SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue);

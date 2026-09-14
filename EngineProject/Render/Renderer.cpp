@@ -255,6 +255,7 @@ UStaticMesh* FRenderer::CreateMesh(const FStaticMeshData& InMeshData)
 	return Mesh;
 }
 
+
 UStaticMesh* FRenderer::CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer)
 {
 	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
