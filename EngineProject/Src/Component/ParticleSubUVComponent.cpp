@@ -20,7 +20,7 @@ void UParticleSubUVComponent::BeginPlay()
 
 	Shader = UAssetManager::Get().GetShader("Shader/ParticleSubUVShader.hlsl");
 	Mesh = UAssetManager::Get().GetMesh("ParticleQuad");
-	AtlasTexture = UAssetManager::Get().GetTexture(AtlasTexturePath);
+	AtlasTexture = UAssetManager::Get().LoadTexture(AtlasTexturePath);
 
 	Type = EPrimitiveType::Particle;
 }

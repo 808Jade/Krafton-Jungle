@@ -6,10 +6,12 @@
 
 #include "World.h"
 #include "Render/Renderer.h"
+#include "Render/RenderDevice.h"
+#include "Render/Swapchain.h"
 #include "ImGuiRenderer.h"
 #include "Editor/GridRenderer.h"
 #include "Editor/GizmoRenderer.h"
-#include "Render/DebugRenderer.h"
+#include "Render/LineBatcher.h"
 
 #include "Editor/EditorUI.h"
 #include "Editor/ConsolePanel.h"
@@ -24,7 +26,15 @@
 //Temp
 #include "Text/FontAtlas.h"
 #include "Text/TextRenderer.h"
+
 #include "../SceneManager.h"
+#include "../Editor/SceneOutliner.h"
+
+struct FWindowContext
+{
+	TUniquePtr<FWindow> Window;
+	TUniquePtr<FSwapchain> Swapchain;
+};
 
 class Engine
 {
@@ -38,15 +48,22 @@ public:
 	static FConsolePanel* GetConsolePanel() { return ConsolePanel; }
 
 	//윈도우 크기 변경 처리
-	void HandleWindowResize();
+	void HandleMainWindow();
 
 private:
 	bool bIsRunning = false;
 	bool bIsResized = false;
-	
-	TUniquePtr<Window> MainWindow;
+
+	// 가장 먼저 선언 → 가장 나중에 해제 (Swapchain, 버퍼들보다 오래 살아야 함)
+	TUniquePtr<FRenderDevice> RenderDevice;
+
+	TArray<FWindowContext> Windows;
+	FWindow* MainWindow;
+	FSwapchain* MainWindowSC;
 
 	UWorld* World;
+
+	
 
 	TUniquePtr<FEditorUI> EditorUI;
 
@@ -55,14 +72,14 @@ private:
 	TUniquePtr<FGridRenderer> GridRenderer;
 	TUniquePtr<FGizmoRenderer> GizmoRenderer;
 	TUniquePtr<FTextRenderer> TextRenderer;
-	TUniquePtr<FDebugRenderer> DebugRenderer;
+	TUniquePtr<FLineBatcher> LineBatcher;
 	//TUniquePtr<FGizmo> Gizmo;
 	TUniquePtr<FGizmo> Gizmo;
 	TUniquePtr<FOutline> Outline;
 	TUniquePtr<FOutlineRenderer> OutlineRenderer;
 
 	TSharedPtr<FShader> TextShader;
-	TSharedPtr<FFontAtlas> Atlas;
+	UFontAtlas* Atlas;
 
 
 
@@ -72,6 +89,9 @@ private:
 	FControlPanel* ControlPanel = nullptr;
 	FConfigPanel* ConfigPanel = nullptr;
 	FViewportPanel* ViewportPanel= nullptr;
-	FSceneManager* SceneManager = nullptr;
+	FSceneOutliner* SceneOutliner = nullptr;
+
+
+	FSceneManager* SceneManager = nullptr; //제거 예정
 };
 

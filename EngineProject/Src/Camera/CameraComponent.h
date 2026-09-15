@@ -12,8 +12,6 @@ class UCameraComponent : public USceneComponent
 public:
 	UCameraComponent() = default;
 
-	virtual void BeginPlay() override;
-
 	// 매 프레임 카메라 입력/이동 처리
 	virtual void TickComponent(float DeltaTime) override;
 
@@ -25,13 +23,12 @@ public:
 	FMatrix GetViewProjectionMatrix() const;
 
 	// Picking
-	FRay DeProjection(int32 MouseX, int32 MouseY, uint32 ScreenW, uint32 ScreenH);
+	FRay DeProjection(FVector2 MousePos, float ScreenW, float ScreenH);
 
 	// Get & Set
 	float GetFieldOfView() const { return FieldOfView; }
 	void SetFieldOfView(float InFieldOfView) { FieldOfView = InFieldOfView; }
 
-	FRay DeProjection(FVector2 MousePos, float ScreenW, float ScreenH);
 	float GetAspectRatio() const { return AspectRatio; }
 	void SetAspectRatio(float InAspectRatio) { AspectRatio = InAspectRatio; }
 

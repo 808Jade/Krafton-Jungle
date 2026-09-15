@@ -12,6 +12,9 @@ public:
 	{
 		return CastChecked<T>(ConstructObject(T::StaticClass()));
 	}
+
+	static FName MakeUniqueObjectName(const FString& BaseName);
+
 private:
 
 };

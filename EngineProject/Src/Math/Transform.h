@@ -7,6 +7,8 @@ struct FTransform
 {
 	FTransform() = default;
 	FTransform(FVector InL, FVector InS, FRotator InR);
+	FTransform(const FRotator& InR, const FVector& InL, const FVector& InS = FVector::OneVector)
+		: Location(InL), Rotation(InR), Scale(InS) {}
 
 	static FTransform Identity;
 

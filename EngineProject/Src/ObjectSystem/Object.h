@@ -52,15 +52,16 @@ public:
 	virtual UClass* GetClass() const;
 
 	template <typename T>
-	bool IsA()
-	{
-		return IsA(T::StaticClass());
-	}
-
+	bool IsA() { return IsA(T::StaticClass()); }
 	bool IsA(UClass* Class);
 
 	uint32 GetUUID() const { return ObjectUUID; }
 	void SetUUID(uint32 Uid) { ObjectUUID = Uid; }
+
+	const FName& GetFName() const { return Name; }         // FName 비교용
+	FString GetName() const { return Name.ToString(); }    // Name 출력용
+
+	void SetName(const FName& InName) { Name = FName(InName); }
 
 	inline static void RegisterProperties(UClass* InClass) {};
 	
@@ -81,8 +82,6 @@ public:
 		FEngineStatics::TotalAllocationCount -= 1;
 		free(Ptr);
 	}
-
-	const FName& GetName() const { return Name; }
 
 private:
 	uint32 ObjectUUID;

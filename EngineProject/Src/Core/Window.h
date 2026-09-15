@@ -4,7 +4,7 @@
 #include <functional>
 
 
-class Window
+class FWindow
 {
 public:
 	bool Create(HINSTANCE hInstance, int Width, int Height, const wchar_t* Title);

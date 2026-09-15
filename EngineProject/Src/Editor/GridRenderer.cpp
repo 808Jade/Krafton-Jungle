@@ -4,6 +4,8 @@
 #include "Render/Vertex.h"
 #include "Asset/AssetManager.h"
 
+#include "Render/RenderCommand.h"
+
 FGridRenderer::~FGridRenderer()
 {
 	delete[] BatchGridVertices;
@@ -14,15 +16,15 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 	Renderer = InRenderer;
 
 	// Batch Grid
-	BatchGridShader = Renderer->CreateShader(L"Shader/GridShaderBatch.hlsl", FVertex::GetLayout());
+	BatchGridShader = RenderCommand::CreateShader(L"Shader/GridShaderBatch.hlsl", FVertex::GetLayout());
 
 	MaxVertices = 65536;
 	BatchGridVertices = new FVertex[MaxVertices];
-	BatchGridVertexBuffer = Renderer->CreateDynamicVertexBuffer(sizeof(FVertex) * MaxVertices, sizeof(FVertex));
-	BatchGridConstantBuffer = Renderer->CreateConstantBuffer(sizeof(FBatchGridData));
+	BatchGridVertexBuffer = RenderCommand::CreateDynamicVertexBuffer(sizeof(FVertex) * MaxVertices, sizeof(FVertex));
+	BatchGridConstantBuffer = RenderCommand::CreateConstantBuffer(sizeof(FBatchGridData));
 
 	// PS Grid
-	PSGridShader = Renderer->CreateShader(L"Shader/GridShader.hlsl", nullptr, 0);
+	PSGridShader = RenderCommand::CreateShader(L"Shader/GridShader.hlsl", nullptr, 0);
 	AxisShader = UAssetManager::Get().GetShader("Shader/DefaultShader.hlsl");
 	TArray<FVertex> Vertices =
 	{
@@ -44,22 +46,9 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 		0,1,2,3,4,5
 	};
 
-	PSGridVertexBuffer = Renderer->CreateVertexBuffer(Vertices.GetData(), sizeof(FVertex) * Vertices.Num(), sizeof(FVertex));
-	PSGridIndexBuffer = Renderer->CreateIndexBuffer(Indices.GetData(), sizeof(uint32) * Indices.Num());
-	PSGridConstantBuffer = Renderer->CreateConstantBuffer(sizeof(FPSGridData));
-
-	D3D11_RASTERIZER_DESC RasterizerDesc = {};
-	RasterizerDesc.FillMode = D3D11_FILL_SOLID;
-	RasterizerDesc.CullMode = D3D11_CULL_NONE;
-	RasterizerDesc.FrontCounterClockwise = FALSE;
-	Renderer->GetDevice()->CreateRasterizerState(&RasterizerDesc, &RasterizerState);
-
-	//D3D11_RASTERIZER_DESC RasterizerDesc = {};
-	//RasterizerDesc.FillMode = D3D11_FILL_SOLID;
-	//RasterizerDesc.CullMode = D3D11_CULL_NONE;
-	//RasterizerDesc.FrontCounterClockwise = FALSE;
-	//Renderer->GetDevice()->CreateRasterizerState(&RasterizerDesc, &RasterizerState);
-	////////////////////////////////////////////// 복원용 주석
+	PSGridVertexBuffer = RenderCommand::CreateStaticVertexBuffer(Vertices.GetData(), sizeof(FVertex) * Vertices.Num(), sizeof(FVertex));
+	PSGridIndexBuffer = RenderCommand::CreateStaticIndexBuffer(Indices.GetData(), Indices.Num());
+	PSGridConstantBuffer = RenderCommand::CreateConstantBuffer(sizeof(FPSGridData));
 
 	return true;
 }
@@ -85,14 +74,14 @@ void FGridRenderer::OnRenderBatchGrid(const FMatrix& ViewProj, const FVector& Ca
 		VertexCount += 4;
 	}
 
-	Renderer->UpdateVertexBufferData(BatchGridVertexBuffer.get(), BatchGridVertices, sizeof(FVertex) * VertexCount);
-	Renderer->UpdateConstantBufferData(BatchGridConstantBuffer.get(), &Data, sizeof(FBatchGridData));
+	RenderCommand::UpdateBufferData(BatchGridVertexBuffer.get(), BatchGridVertices, sizeof(FVertex) * VertexCount);
+	RenderCommand::UpdateBufferData(BatchGridConstantBuffer.get(), &Data, sizeof(FBatchGridData));
 
-	Renderer->BindShader(BatchGridShader.get());
-	Renderer->BindVertexBuffer(BatchGridVertexBuffer.get());
-	Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-	Renderer->BindConstantBuffer(0, BatchGridConstantBuffer.get(), EShaderBindFlagBits::Vertex);
-	Renderer->Draw(VertexCount);
+	RenderCommand::BindShader(BatchGridShader.get());
+	RenderCommand::BindVertexBuffer(BatchGridVertexBuffer.get());
+	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	RenderCommand::BindConstantBuffer(0, BatchGridConstantBuffer.get(), EShaderBindFlagBits::Vertex);
+	RenderCommand::Draw(VertexCount);
 }
 
 void FGridRenderer::OnRenderPSGrid(const FMatrix& ViewProj, const FVector& CameraPos, const FEditorSettings& InEditorSettings)
@@ -103,22 +92,23 @@ void FGridRenderer::OnRenderPSGrid(const FMatrix& ViewProj, const FVector& Camer
 	PSGridData.CellSize = InEditorSettings.GridSpacing;
 	PSGridData.SubCellSize = InEditorSettings.GridSpacing * 0.1f;
 
-	Renderer->BindShader(PSGridShader.get());
-	Renderer->BindVertexBuffer(nullptr);
-	Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	Renderer->GetDeviceContext()->RSSetState(RasterizerState.Get());
+	RenderCommand::BindShader(PSGridShader.get());
+	RenderCommand::BindVertexBuffer(nullptr);
+	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	RenderCommand::SetRasterizerState(ERasterizerState::SolidNone);
 
 	PSGridData.GridPlaneType = 0;
-	Renderer->UpdateConstantBufferData(PSGridConstantBuffer.get(), &PSGridData, sizeof(FPSGridData));
-	Renderer->BindConstantBuffer(0, PSGridConstantBuffer.get(), EShaderBindFlagBits::Vertex);
-	Renderer->BindConstantBuffer(0, PSGridConstantBuffer.get(), EShaderBindFlagBits::Pixel);
-	Renderer->SetBlendStateEnabled(true);
-	Renderer->Draw(4);
+	RenderCommand::UpdateBufferData(PSGridConstantBuffer.get(), &PSGridData, sizeof(FPSGridData));
+	RenderCommand::BindConstantBuffer(0, PSGridConstantBuffer.get(), EShaderBindFlagBits::Vertex);
+	RenderCommand::BindConstantBuffer(0, PSGridConstantBuffer.get(), EShaderBindFlagBits::Pixel);
+	RenderCommand::SetBlendState(EBlendState::AlphaBlend);
+	RenderCommand::Draw(4);
 
 	PSGridData.GridPlaneType = 1;
-	Renderer->UpdateConstantBufferData(PSGridConstantBuffer.get(), &PSGridData, sizeof(FPSGridData));
-	Renderer->Draw(4);
+	RenderCommand::UpdateBufferData(PSGridConstantBuffer.get(), &PSGridData, sizeof(FPSGridData));
+	RenderCommand::Draw(4);
 
-	Renderer->SetBlendStateEnabled(false);
-	Renderer->GetDeviceContext()->RSSetState(nullptr);
+	RenderCommand::SetBlendState(EBlendState::Opaque);
+	RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
+
 }

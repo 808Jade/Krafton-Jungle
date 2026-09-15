@@ -1,8 +1,6 @@
 #pragma once
 
 #include "../GameFramework/Actor.h"
-#include "../Engine/World.h"
-#include "../Engine/Level.h"
 
 class UCameraComponent;
 

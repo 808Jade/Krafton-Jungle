@@ -120,7 +120,6 @@ void FControlPanel::OnRender()
 		CamCom->SetIsOrthogonal(bOrthogonal);
 	}
 
-
 	float FOV = CamCom->GetFieldOfView();
 	FVector Location = CamCom->GetRelativeLocation();
 	FRotator Rotation = CamCom->GetRelativeRotation();

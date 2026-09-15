@@ -18,11 +18,10 @@ public:
     void SetWorld(UWorld* InWorld) { OwningWorld = InWorld; }
 
     const TArray<AActor*>& GetActors() const  { return Actors; }
+    uint32 GetActorNum() const { return Actors.Num(); }
 
     void AddActor(AActor* Actor);
     void ClearActors();
-
-    uint32 GetActorNum() const { return Actors.Num(); }
 
     //virtual void Serialize(FArchive& Ar) override; // Save Level 구현예정
 

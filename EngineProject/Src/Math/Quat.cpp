@@ -13,6 +13,11 @@ FQuat::FQuat(float InX, float InY, float InZ, float InW)
 	X = InX; Y = InY; Z = InZ; W = InW;
 }
 
+FQuat::FQuat(FRotator InRoatator)
+{
+	// TODO
+}
+
 /* Functions */
 
 FQuat FQuat::operator * (const FQuat& Other) const

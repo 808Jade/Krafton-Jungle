@@ -280,7 +280,7 @@ void FSceneManager::DrawTreeNode(FSceneTreeNode* Node)
 			if (!Actor)
 				continue;
 
-			FString ObjectName = Actor->GetName().ToString();
+			FString ObjectName = Actor->GetName();
 
 			if (ObjectName.empty() || ObjectName == "None")
 				ObjectName = Node->Name;

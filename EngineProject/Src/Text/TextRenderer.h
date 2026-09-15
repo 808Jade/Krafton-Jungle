@@ -20,10 +20,10 @@ class FTextRenderer
 public:
 	void Init(FRenderer* InRenderer, uint32 InMaxCharacters = 64);
 	void OnRender(const FString& Text, const FVector& WorldPos, float TextSize,
-		const FFontAtlas& Atlas, UCameraComponent* CameraComponent);
+		const UFontAtlas& Atlas, UCameraComponent* CameraComponent);
 
 private:
-	void BuildTextMesh(const FString& Text, float TextSize, const FFontAtlas& Atlas,
+	void BuildTextMesh(const FString& Text, float TextSize, const UFontAtlas& Atlas,
 		TArray<FTextVertex>& OutVertices, TArray<uint32>& OutIndices);
 
 	FRenderer* Renderer = nullptr;

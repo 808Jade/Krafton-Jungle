@@ -3,16 +3,6 @@
 #include "Input/InputSystem.h"
 #include "../Collision/Ray.h"
 
-//UCameraComponent::UCameraComponent()
-//{
-//
-//}
-
-void UCameraComponent::BeginPlay()
-{
-    Super::BeginPlay();
-}
-
 void UCameraComponent::TickComponent(float DeltaTime)
 {
     Super::TickComponent(DeltaTime);
@@ -51,7 +41,7 @@ void UCameraComponent::UpdateZoom(float DeltaTime)
 }
 
 
-FRay UCameraComponent::DeProjection(int32 MouseX, int32 MouseY, uint32 ScreenW, uint32 ScreenH)
+FRay UCameraComponent::DeProjection(FVector2 MousePos, float ScreenW, float ScreenH)
 {
     // 마우스 화면 좌표를 NDC 좌표(-1 ~ 1)로 변환
     const float NDCX = 2.0f * MousePos.X / ScreenW - 1.0f;
@@ -87,15 +77,6 @@ FRay UCameraComponent::DeProjection(int32 MouseX, int32 MouseY, uint32 ScreenW, 
     NearPoint /= NearPoint.W;
     FarPoint /= FarPoint.W;
 
-
-    //// Near Plane 위의 점
-    //FVector4 NDCPoint(NDCX, NDCY, 1.0f, 1.0f);
-    //FVector4 CameraPoint = NDCPoint * InvPerspective;
-    //FVector4 WorldPoint = CameraPoint * InvView;
-
-    //CameraPoint /= CameraPoint.W;
-    //WorldPoint /= WorldPoint.W;
-
     FRay Ray;
 
     if (bIsOrthogonal)
@@ -112,38 +93,6 @@ FRay UCameraComponent::DeProjection(int32 MouseX, int32 MouseY, uint32 ScreenW, 
     Ray.Direction = (FVector(FarPoint.X, FarPoint.Y, FarPoint.Z) - Ray.Origin).Normalized();
 
     return Ray;
-
-    //ray.Origin = transform.Location;
-    //ray.Direction = (FVector(WorldPoint.X, WorldPoint.Y, WorldPoint.Z) - ray.Origin).Normalized();
-
-    //if (bIsOrthogonal) 
-    //{
-    //    const FMatrix InvOrthogonal = GetOrthogonalMatrix().Inverse();
-
-    //    FVector4 NearPoint = FVector4(NDCX, NDCY, 0.0f, 1.0f) * InvOrthogonal;
-    //    FVector4 FarPoint = FVector4(NDCX, NDCY, 1.0f, 1.0f) * InvOrthogonal;
-
-    //    NearPoint /= NearPoint.W;
-    //    FarPoint /= FarPoint.W;
-
-    //    NearPoint = NearPoint * InvView;
-    //    FarPoint = FarPoint * InvView;
-
-    //    NearPoint /= NearPoint.W;
-    //    FarPoint /= FarPoint.W;
-
-    //    FRay ray;
-
-    //    ray.Origin = FVector(NearPoint.X, NearPoint.Y, NearPoint.Z);
-    //    FVector4 Direction4 = (FarPoint - NearPoint);
-
-    //    ray.Direction = FVector(Direction4.X, Direction4.Y, Direction4.Z).Normalized();
-
-    //    return ray;
-    //}
-    //
-    //
-    //return ray;
 }
 
 FMatrix UCameraComponent::GetViewMatrix() const

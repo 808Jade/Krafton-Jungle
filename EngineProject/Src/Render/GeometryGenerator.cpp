@@ -140,7 +140,7 @@ TSharedPtr<FStaticMeshData> FGeometryGenerator::CreateCone(float Radius, float H
 		Indices.Add(bottomB);
 	}
 
-	uint32 baseIndex = static_cast<uint32>(Vertices.Num());
+	uint32 baseIndex = static_cast<uint32>(Vertices.Num());   
 
 	uint32 bottomCenterIdx = baseIndex;
 	Vertices.Add({ { 0.0f, 0.0f, 0.0f }, Color });

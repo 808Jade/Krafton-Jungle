@@ -1,9 +1,10 @@
 #include "EnginePCH.h"
 
-#include "CameraActor.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
+
 #include "../Component/ActorComponent.h"
-#include "CameraComponent.h"
-#include "ObjectSystem/ObjectFactory.h"
+#include "../ObjectSystem/ObjectFactory.h"
 
 ACameraActor::ACameraActor()
 {

@@ -23,21 +23,22 @@ public:
 
 	template <typename T>
 	static T* GetAsset()
-	{ 
-		UStaticMesh* GetMesh(EPrimitiveType Type);
+	{
+
 	}
 
-
-	void SetRenderer(FRenderer* InRenderer);
-	
 	UStaticMesh* GetMesh(FString InName);
 	UStaticMesh* GetMesh(EPrimitiveType Type); // 오버로드(수정 중)
 	FShader* GetShader(FString InName);
 
 	// Todo: subuv
-	UTexture2D* GetTexture(const FString& InPath);
+	UTexture2D* LoadTexture(const FString& InPath);
+	UFontAtlas* LoadFontAtlas(const FString& JsonPath, const FString& AtlasTexturePath);
+
 
 private:
+	TMap<FString, URenderAsset*> PathMap;
+
 	TMap<FString, UStaticMesh*> MeshMap;	// KEY: FILE NAME OR 쉐입 첫글자 대문자
 	TMap<FString, TSharedPtr<FShader>> ShaderMap;	// KEY: FILE NAME
 

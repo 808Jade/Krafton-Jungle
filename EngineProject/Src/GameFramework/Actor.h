@@ -10,8 +10,6 @@
 class UWorld;
 class ULevel;
 
-
-
 class AActor : public UObject
 {
 	DECLARE_CLASS(AActor, UObject)
@@ -27,6 +25,7 @@ public:
 	UWorld* GetWorld() const { return World; }
 	ULevel* GetLevel() const { return Level; }
 
+	const TArray<UActorComponent*>& GetComponents() const { return Components; }
 	USceneComponent* GetRootComponent() const { return RootComponent; }
 	void SetRootComponent(USceneComponent* SceneComponent) { RootComponent = SceneComponent; }
 	
@@ -63,7 +62,6 @@ protected:
 
 	UWorld* World = nullptr;
 	ULevel* Level = nullptr;
-
 
 private:
 

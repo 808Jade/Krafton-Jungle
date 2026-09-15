@@ -14,18 +14,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
 		return true;
 
-	Window* window = nullptr;
+	FWindow* window = nullptr;
 
 	if (msg == WM_NCCREATE)
 	{
 		CREATESTRUCT* cs = reinterpret_cast<CREATESTRUCT*>(lParam);
-		window = reinterpret_cast<Window*>(cs->lpCreateParams);
+		window = reinterpret_cast<FWindow*>(cs->lpCreateParams);
 
 		SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
 	}
 	else
 	{
-		window = reinterpret_cast<Window*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+		window = reinterpret_cast<FWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 	}
 
 	if (window)
@@ -34,7 +34,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	return DefWindowProc(hWnd, msg, wParam, lParam);   // return 0 대신
 }
 
-bool Window::Create(HINSTANCE hInstance, int InWidth, int InHeight, const wchar_t* Title)
+bool FWindow::Create(HINSTANCE hInstance, int InWidth, int InHeight, const wchar_t* Title)
 {
 	Width = InWidth;
 	Height = InHeight;
@@ -70,7 +70,7 @@ bool Window::Create(HINSTANCE hInstance, int InWidth, int InHeight, const wchar_
 	return true;
 }
 
-void Window::ProcessMessage(bool& bIsRunning)
+void FWindow::ProcessMessage(bool& bIsRunning)
 {
 	MSG msg;
 	while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
@@ -81,7 +81,7 @@ void Window::ProcessMessage(bool& bIsRunning)
 	}
 }
 
-LRESULT Window::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT FWindow::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{

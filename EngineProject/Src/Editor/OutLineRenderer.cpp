@@ -1,17 +1,14 @@
 #include "EnginePCH.h"
 #include "OutLineRenderer.h"
 #include "Asset/AssetManager.h"
+#include "Render/RenderCommand.h"
 
 void FOutlineRenderer::Init(FRenderer* InRenderer)
 {
 	Renderer = InRenderer;
 	Shader = UAssetManager::Get().GetShader("Shader/OutlineShader.hlsl");
-	D3D11_RASTERIZER_DESC RasterizerDesc = {};
-	RasterizerDesc.FillMode = D3D11_FILL_SOLID;
-	RasterizerDesc.CullMode = D3D11_CULL_FRONT;
-	RasterizerDesc.FrontCounterClockwise = FALSE;
-	Renderer->GetDevice()->CreateRasterizerState(&RasterizerDesc, &RasterizerState);
-	ConstantBuffer = Renderer->CreateConstantBuffer(sizeof(FOutlineData));
+
+	ConstantBuffer = RenderCommand::CreateConstantBuffer(sizeof(FOutlineData));
 }
 
 void FOutlineRenderer::SetMesh(UStaticMesh* InMesh)
@@ -19,7 +16,7 @@ void FOutlineRenderer::SetMesh(UStaticMesh* InMesh)
 	Mesh = InMesh;
 }
 
-void FOutlineRenderer::OnRender(const FOutline& InOutline, const FMatrix& InViewProj, const FVector4& CameraPos) 
+void FOutlineRenderer::OnRender(const FOutline& InOutline, const FMatrix& InViewProj, const FVector4& CameraPos)
 {
 	if (!InOutline.GetTarget())
 	{
@@ -27,17 +24,17 @@ void FOutlineRenderer::OnRender(const FOutline& InOutline, const FMatrix& InView
 	}
 
 
-	Renderer->GetDeviceContext()->RSSetState(RasterizerState.Get());
-	Renderer->BindShader(Shader);
-	Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	RenderCommand::SetRasterizerState(ERasterizerState::SolidFront);
+	RenderCommand::BindShader(Shader);
+	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	Renderer->BindMesh(InOutline.GetMesh());
+	RenderCommand::BindMesh(InOutline.GetMesh());
 
 	FMatrix World = InOutline.GetWorldMatrix().GetTransposed();
 	FMatrix ViewProj = InViewProj.GetTransposed();
 	FVector4 Scale = InOutline.GetTargetScale();
 	FOutlineData OutlineConst = { World, ViewProj, CameraPos, Scale };
-	Renderer->UpdateConstantBufferData(ConstantBuffer.get(), &OutlineConst, sizeof(OutlineConst));
-	Renderer->BindConstantBuffer(0, ConstantBuffer.get(), EShaderBindFlagBits::Vertex);
-	Renderer->DrawIndexed(InOutline.GetMesh()->IndexBuffer->GetIndexCount());
+	RenderCommand::UpdateBufferData(ConstantBuffer.get(), &OutlineConst, sizeof(OutlineConst));
+	RenderCommand::BindConstantBuffer(0, ConstantBuffer.get(), EShaderBindFlagBits::Vertex);
+	RenderCommand::DrawIndexed(InOutline.GetMesh()->IndexBuffer->GetIndexCount());
 }

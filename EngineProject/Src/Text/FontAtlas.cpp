@@ -1,7 +1,7 @@
 #include "EnginePCH.h"
 #include "FontAtlas.h"
 
-bool LoadFontAtlasJson(const FString& JsonPath, FFontAtlas* Atlas)
+bool UFontAtlas::LoadFontAtlasJson(const FString& JsonPath)
 {
 	std::ifstream File(JsonPath);
 	if (!File.is_open())
@@ -13,10 +13,10 @@ bool LoadFontAtlasJson(const FString& JsonPath, FFontAtlas* Atlas)
 	File >> Root;
 
 	const auto& AtlasJson = Root["atlas"];
-	Atlas->Width = AtlasJson["width"].get<float>();
-	Atlas->Height = AtlasJson["height"].get<float>();
-	Atlas->DistanceRange = AtlasJson["distanceRange"].get<float>();
-	Atlas->LineHeight = Root["metrics"]["lineHeight"].get<float>();
+	Width = AtlasJson["width"].get<float>();
+	Height = AtlasJson["height"].get<float>();
+	DistanceRange = AtlasJson["distanceRange"].get<float>();
+	LineHeight = Root["metrics"]["lineHeight"].get<float>();
 
 	// yOrigin 체크: "bottom"이 아니면 V 계산 로직을 반대로 해야 함
 	bool bYOriginBottom = AtlasJson.value("yOrigin", "bottom") == "bottom";
@@ -44,7 +44,7 @@ bool LoadFontAtlasJson(const FString& JsonPath, FFontAtlas* Atlas)
 			Glyph.bHasBounds = true;
 		}
 
-		Atlas->GlyphMap.Add(Unicode, Glyph);
+		GlyphMap.Add(Unicode, Glyph);
 	}
 
 	// kerning (선택 사항 - 있으면 파싱)
@@ -57,7 +57,7 @@ bool LoadFontAtlasJson(const FString& JsonPath, FFontAtlas* Atlas)
 			float Adv = KerningJson["advance"].get<float>();
 
 			uint64 Key = ((uint64)U1 << 32) | U2;
-			Atlas->KerningMap.Add(Key, Adv);
+			KerningMap.Add(Key, Adv);
 		}
 	}
 

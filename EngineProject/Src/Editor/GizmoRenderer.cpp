@@ -3,6 +3,7 @@
 
 #include "Render/GeometryGenerator.h"
 #include "Camera/CameraComponent.h"
+#include "Render/RenderCommand.h"
 
 FGizmoRenderer::FGizmoRenderer()
 {
@@ -13,25 +14,17 @@ bool FGizmoRenderer::Init(FRenderer* InRenderer)
 	Renderer = InRenderer;
 	TSharedPtr<FStaticMeshData> LocMeshData = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	LocationMesh = Renderer->CreateMesh(*LocMeshData.get());
-	LocationMesh->VertexBuffer = Renderer->CreateVertexBuffer(LocMeshData->Vertices.GetData(), sizeof(FVertex) * (UINT)LocMeshData->Vertices.Num(), sizeof(FVertex));
-	LocationMesh->IndexBuffer = Renderer->CreateIndexBuffer(LocMeshData->Indices.GetData(), LocMeshData->Indices.Num());
 
 	TSharedPtr<FStaticMeshData> RotMeshData = FGeometryGenerator::CreateRing(1.0f, 0.03f, 32, 16, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	RotationMesh = Renderer->CreateMesh(*RotMeshData.get());
-	RotationMesh->VertexBuffer = Renderer->CreateVertexBuffer(RotMeshData->Vertices.GetData(), sizeof(FVertex) * (UINT)RotMeshData->Vertices.Num(), sizeof(FVertex));
-	RotationMesh->IndexBuffer = Renderer->CreateIndexBuffer(RotMeshData->Indices.GetData(), RotMeshData->Indices.Num());
 
 	TSharedPtr<FStaticMeshData> ScaleMeshData = FGeometryGenerator::CreateScaleBar(0.1f, 1.0f, 0.4f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	ScaleMesh = Renderer->CreateMesh(*ScaleMeshData.get());
-	ScaleMesh->VertexBuffer = Renderer->CreateVertexBuffer(ScaleMeshData->Vertices.GetData(), sizeof(FVertex) * (UINT)ScaleMeshData->Vertices.Num(), sizeof(FVertex));
-	ScaleMesh->IndexBuffer = Renderer->CreateIndexBuffer(ScaleMeshData->Indices.GetData(), ScaleMeshData->Indices.Num());
 
 	TSharedPtr<FStaticMeshData> SphereData = FGeometryGenerator::CreateSphere(0.2f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	SphereMesh = Renderer->CreateMesh(*SphereData.get());
-	SphereMesh->VertexBuffer = Renderer->CreateVertexBuffer(SphereData->Vertices.GetData(), sizeof(FVertex) * (UINT)SphereData->Vertices.Num(), sizeof(FVertex));
-	SphereMesh->IndexBuffer = Renderer->CreateIndexBuffer(SphereData->Indices.GetData(), SphereData->Indices.Num());
 
-	CB = Renderer->CreateConstantBuffer(sizeof(FGizmoData));
+	CB = RenderCommand::CreateConstantBuffer(sizeof(FGizmoData));
 
 	AxisDataArray.Add({ FRotator(90.0f, 0.0f, 0.0f) ,FVector4(1.0f, 0.0f, 0.0f, 1.0f) });
 	AxisDataArray.Add({ FRotator(0.0f, 0.0f, -90.0f) ,FVector4(0.0f, 1.0f, 0.0f, 1.0f) });
@@ -42,7 +35,7 @@ bool FGizmoRenderer::Init(FRenderer* InRenderer)
 	AxisDataArray.Add({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(0.0f, 0.0f, 1.0f, 1.0f) });
 	AxisDataArray.Add({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(1.0f, 1.0f, 1.0f, 1.0f) }); // ScreenAxis
 
-	Shader = Renderer->CreateShader(L"Shader/GizmoShader.hlsl", FVertex::GetLayout());
+	Shader = RenderCommand::CreateShader(L"Shader/GizmoShader.hlsl", FVertex::GetLayout());
 
 	return false;
 }
@@ -61,8 +54,8 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 	default: return;
 	}
 
-	Renderer->BindShader(Shader.get());
-	Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	RenderCommand::BindShader(Shader.get());
+	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	const FMatrix ViewProjT = ViewProj.GetTransposed();
 	// const FVector GizmoLocation = Gizmo.GetLocation();
@@ -70,7 +63,7 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 
 	const FVector GizmoLocation = Gizmo.GetRenderLocation();
 	// 축 3개
-	Renderer->BindMesh(AxisMesh);
+	RenderCommand::BindMesh(AxisMesh);
 	Transform.Location = GizmoLocation;
 
 	for (int i = 0; i < 3; ++i)
@@ -146,8 +139,8 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 
 void FGizmoRenderer::DrawMesh(UStaticMesh* Mesh, const FGizmoData& Data)
 {
-	Renderer->BindMesh(Mesh);
-	Renderer->UpdateConstantBufferData(CB.get(), &Data, sizeof(FGizmoData));
-	Renderer->BindConstantBuffer(0, CB.get(), EShaderBindFlagBits::Vertex);
-	Renderer->DrawIndexed(Mesh->IndexBuffer->GetIndexCount());
+	RenderCommand::BindMesh(Mesh);
+	RenderCommand::UpdateBufferData(CB.get(), &Data, sizeof(FGizmoData));
+	RenderCommand::BindConstantBuffer(0, CB.get(), EShaderBindFlagBits::Vertex);
+	RenderCommand::DrawIndexed(Mesh->IndexBuffer->GetIndexCount());
 }

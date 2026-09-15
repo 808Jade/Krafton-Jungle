@@ -4,6 +4,11 @@
 
 #include "Render/Vertex.h"
 #include "Render/Texture2D.h"
+#include "Render/RenderCommand.h"
+
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 UAssetManager& UAssetManager::Get()
 {
@@ -42,11 +47,6 @@ void UAssetManager::Shutdown()
 	TextureMap.Reset();
 }
 
-void UAssetManager::SetRenderer(FRenderer* InRenderer)
-{
-	Renderer = InRenderer;
-}
-
 UStaticMesh* UAssetManager::GetMesh(FString InName)
 {
 	if (!Renderer)
@@ -76,13 +76,13 @@ UStaticMesh* UAssetManager::GetMesh(FString InName)
 				0, 3, 2
 			};
 
-			TSharedPtr<FVertexBuffer> VB = Renderer->CreateVertexBuffer(
+			TSharedPtr<FVertexBuffer> VB = RenderCommand::CreateStaticVertexBuffer(
 				Vertices,
 				sizeof(Vertices),
 				sizeof(FParticleVertex));
 			FStaticMeshData* Data = FGeometryGenerator::GetMeshData(InName);
 
-			TSharedPtr<FIndexBuffer> IB = Renderer->CreateIndexBuffer(
+			TSharedPtr<FIndexBuffer> IB = RenderCommand::CreateStaticIndexBuffer(
 				Indices,
 				ARRAYSIZE(Indices));
 
@@ -92,8 +92,8 @@ UStaticMesh* UAssetManager::GetMesh(FString InName)
 		}
 
 		FStaticMeshData* Data = FGeometryGenerator::GetMeshData(InName);
-		TSharedPtr<FVertexBuffer> vb = Renderer->CreateVertexBuffer(Data->Vertices.GetData(), sizeof(FVertex) * (UINT)Data->Vertices.Num(), sizeof(FVertex));
-		TSharedPtr<FIndexBuffer> ib = Renderer->CreateIndexBuffer(Data->Indices.GetData(), Data->Indices.Num());
+		TSharedPtr<FVertexBuffer> vb = RenderCommand::CreateStaticVertexBuffer(Data->Vertices.GetData(), sizeof(FVertex) * (UINT)Data->Vertices.Num(), sizeof(FVertex));
+		TSharedPtr<FIndexBuffer> ib = RenderCommand::CreateStaticIndexBuffer(Data->Indices.GetData(), Data->Indices.Num());
 
 		MeshMap[InName] = Renderer->CreateMesh(vb, ib);
 	}
@@ -119,7 +119,7 @@ FShader* UAssetManager::GetShader(FString InName)
 		// Todo: subuv
 		if (InName == "Shader/ParticleSubUVShader.hlsl")
 		{
-			ShaderMap[InName] = Renderer->CreateShader(wstr.c_str(), FParticleVertex::GetLayout());
+			ShaderMap[InName] = RenderCommand::CreateShader(wstr.c_str(), FParticleVertex::GetLayout());
 		}
 		else
 		{
@@ -129,7 +129,7 @@ FShader* UAssetManager::GetShader(FString InName)
 				{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 			};
 
-			ShaderMap[InName] = Renderer->CreateShader(wstr.c_str(), inputDesc, 2);
+			ShaderMap[InName] = RenderCommand::CreateShader(wstr.c_str(), inputDesc, 2);
 		}
 
 		//D3D11_INPUT_ELEMENT_DESC inputDesc[] =
@@ -143,21 +143,56 @@ FShader* UAssetManager::GetShader(FString InName)
 	return ShaderMap[InName].get();
 }
 
-// Todo: subuv
-UTexture2D* UAssetManager::GetTexture(const FString& InPath)
+UTexture2D* UAssetManager::LoadTexture(const FString& InPath)
 {
-	assert(Renderer != nullptr);
+	if (UTexture2D** Found = TextureMap.FindOrNull(InPath))
+		return *Found;
 
-	UTexture2D** FoundTextureOrNull = TextureMap.FindOrNull(InPath);
-	if (FoundTextureOrNull != nullptr)
+	stbi_set_flip_vertically_on_load(false);
+	int Width = 0, Height = 0, Channels = 0;
+	unsigned char* Pixels = stbi_load(InPath.c_str(), &Width, &Height, &Channels, 4);
+	if (!Pixels)
 	{
-		return *FoundTextureOrNull;
+		OutputDebugStringA(("[Texture] stbi_load failed: " + InPath + " (" + stbi_failure_reason() + ")\n").c_str());
+		return nullptr;
 	}
 
-	UTexture2D* Texture = Renderer->CreateTexture2DFromFile(InPath);
-	assert(Texture != nullptr);
+	D3D11_TEXTURE2D_DESC Desc{};
+	Desc.Width = Width;
+	Desc.Height = Height;
+	Desc.MipLevels = 1;
+	Desc.ArraySize = 1;
+	Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	Desc.SampleDesc.Count = 1;
+	Desc.Usage = D3D11_USAGE_IMMUTABLE;
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
-	TextureMap[InPath] = Texture;
+	TUniquePtr<FTexture2D> Resource = RenderCommand::CreateTexture2D(Desc, Pixels);
 
-	return Texture;
+	if (!Resource) return nullptr;
+
+	UTexture2D* Asset = FObjectFactory::ConstructObject<UTexture2D>();
+	Asset->SetResource(std::move(Resource));
+	Asset->SetPath(InPath);
+
+	PathMap.Add(InPath, Asset);
+	return Asset;
+}
+
+UFontAtlas* UAssetManager::LoadFontAtlas(const FString& JsonPath, const FString& AtlasTexturePath)
+{
+	UFontAtlas* Atlas = FObjectFactory::ConstructObject<UFontAtlas>();
+
+	if (!Atlas->LoadFontAtlasJson(JsonPath))
+	{
+		return nullptr;
+	}
+
+	Atlas->AtlasTexture = LoadTexture(AtlasTexturePath);
+	if (!Atlas->AtlasTexture)
+	{
+		return nullptr;
+	}
+
+	return Atlas;
 }
