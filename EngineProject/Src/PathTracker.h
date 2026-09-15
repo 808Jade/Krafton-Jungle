@@ -17,7 +17,7 @@ public:
 
 private:
     bool bIsPathRenderingEnabled = true;
-    float RecordInterval = 0.1f;
+    float RecordInterval = 0.01f;
     float TimeSinceLastRecord = 0.0f;
 
     std::unordered_map<class AActor*, TArray<FVector>> ObjectPaths;

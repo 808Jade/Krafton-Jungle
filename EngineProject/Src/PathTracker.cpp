@@ -59,9 +59,9 @@ void FPathTracker::OnRender(FLineBatcher* LineBatcher)
         float B = (Hash & 0xFF) / 255.0f;
 
         // 밝기 보정
-        R = 0.2f + R * 0.8f;
-        G = 0.2f + G * 0.8f;
-        B = 0.2f + B * 0.8f;
+        //R = 0.2f + R * 0.8f;
+        //G = 0.2f + G * 0.8f;
+        //B = 0.2f + B * 0.8f;
 
         LineBatcher->AddPath(PathHistory, { R, G, B, 1.0f });
     }
