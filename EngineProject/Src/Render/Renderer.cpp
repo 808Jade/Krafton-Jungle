@@ -27,12 +27,12 @@ UStaticMesh* FRenderer::CreateMesh(const FStaticMeshData& InMeshData)
 }
 
 
-UStaticMesh* FRenderer::CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer)
+UStaticMesh* FRenderer::CreateMesh(TUniquePtr<FVertexBuffer> VertexBuffer, TUniquePtr<FIndexBuffer> IndexBuffer)
 {
 	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
 
-	Mesh->VertexBuffer = VertexBuffer;
-	Mesh->IndexBuffer = IndexBuffer;
+	Mesh->VertexBuffer = std::move(VertexBuffer);
+	Mesh->IndexBuffer = std::move(IndexBuffer);
 
 	return Mesh;
 }
@@ -81,8 +81,8 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 
 			RenderCommand::UpdateBufferData(CB.get(), &subUVConstans);
 			RenderCommand::BindConstantBuffer(1, CB.get(), EShaderBindFlagBits::Pixel);
-
 			RenderCommand::BindShaderResource(0, rp.texture, EShaderBindFlagBits::Pixel);
+			RenderCommand::SetBlendState(EBlendState::AlphaBlend);
 		}
 
 		RenderCommand::DrawIndexed(rp.mesh->IndexBuffer->GetIndexCount());

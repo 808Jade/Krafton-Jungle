@@ -2,6 +2,7 @@
 
 #include <d3d11.h>
 #include "Render/Renderer.h"
+#include "Render/PipelineState.h"
 
 struct FPSGridData
 {
@@ -41,6 +42,7 @@ private:
 
 	// Batch Grid
 	TUniquePtr<FShader>			BatchGridShader;
+	FPipelineState				BatchGridPipelineState;
 	TUniquePtr<FVertexBuffer>	BatchGridVertexBuffer;
 	TUniquePtr<FConstantBuffer>	BatchGridConstantBuffer;
 	FVertex* BatchGridVertices;
@@ -49,6 +51,7 @@ private:
 
 	// PS Grid
 	TUniquePtr<FShader>								PSGridShader;
+	FPipelineState									PSGridPipelineState;
 	TUniquePtr<FShader> AxisShader;
 	TUniquePtr<FVertexBuffer>						PSGridVertexBuffer;
 	TUniquePtr<FIndexBuffer>						PSGridIndexBuffer;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Render/Buffer.h"
+#include "Render/PipelineState.h"
 
 struct TextTransformData
 {
@@ -30,13 +31,14 @@ private:
 
 	ComPtr<ID3D11RasterizerState> RasterizerState;
 
-	TSharedPtr<FShader> TextShader = nullptr;
+	TUniquePtr<FShader> TextShader = nullptr;
+	FPipelineState PipelineState;
 
-	TSharedPtr<FVertexBuffer> VertexBuffer;
-	TSharedPtr<FIndexBuffer> IndexBuffer;
+	TUniquePtr<FVertexBuffer> VertexBuffer;
+	TUniquePtr<FIndexBuffer> IndexBuffer;
 
-	TSharedPtr<FConstantBuffer> MVP;
-	TSharedPtr<FConstantBuffer> ScreenPx;
+	TUniquePtr<FConstantBuffer> MVP;
+	TUniquePtr<FConstantBuffer> ScreenPx;
 	uint32 MaxCharacters = 64; // 대략 UUID 문자열 길이(32~36자) 여유있게
 	uint32 MaxVertices = 0;
 	uint32 MaxIndices = 0;

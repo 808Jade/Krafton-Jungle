@@ -201,8 +201,10 @@ void FRenderDevice::CreateStates()
 
 		Device->CreateDepthStencilState(&Desc, DepthStencilStates[(uint8)EDepthStencilState::Default].GetAddressOf());
 
-		Desc.DepthEnable = FALSE;
 		Desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		Device->CreateDepthStencilState(&Desc, DepthStencilStates[(uint8)EDepthStencilState::ReadOnly].GetAddressOf());
+
+		Desc.DepthEnable = FALSE;
 		Device->CreateDepthStencilState(&Desc, DepthStencilStates[(uint8)EDepthStencilState::Disabled].GetAddressOf());
 	}
 
