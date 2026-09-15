@@ -204,6 +204,16 @@ void FControlPanel::OnRender()
 		World->GetPathTracker().ClearPath();
 	}
 
+	if (ImGui::Button("Play Replay"))
+	{
+		World->GetPathTracker().SetPlaybackEnabled(true);
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Stop Replay"))
+	{
+		World->GetPathTracker().SetPlaybackEnabled(false);
+	}
+
 	ImGui::End();
 }
 
