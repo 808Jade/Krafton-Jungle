@@ -14,7 +14,7 @@ bool FLineBatcher::Init(FRenderer* InRenderer, UWorld* InWorld)
 	Renderer = InRenderer;
 	World = InWorld;
 
-	LineShader = RenderCommand::CreateShader(L"Shader/BoundingBoxShader.hlsl", FVertex::GetLayout());
+	LineShader = RenderCommand::CreateShader(L"Assets/Shader/BoundingBoxShader.hlsl", FVertex::GetLayout());
 
 	MaxVertices = 65536;
 	VertexBufferBase = new FVertex[MaxVertices];

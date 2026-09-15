@@ -4,7 +4,7 @@
 #include "Texture2D.h"
 #include "Text/FontAtlas.h"
 
-#include "RenderDevice.h"
+
 #include "RenderingInfo.h"
 
 
@@ -38,7 +38,6 @@ private:
 		float AtlasColSize;
 		float Padding = 0.0f;
 	};
-
 
 	TUniquePtr<FConstantBuffer> CB;
 	TUniquePtr<FConstantBuffer> Temp;

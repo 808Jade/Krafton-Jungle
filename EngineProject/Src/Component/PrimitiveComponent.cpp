@@ -2,6 +2,7 @@
 #include "PrimitiveComponent.h"
 #include "../Render/Renderer.h"
 #include "Asset/AssetManager.h"
+#include "Render/RenderCommand.h"
 
 namespace
 {
@@ -31,13 +32,13 @@ namespace
 void UPrimitiveComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	Shader = UAssetManager::Get().GetShader("Shader/DefaultShader.hlsl");
+	Shader = RenderCommand::CreateShader(L"Assets/Shader/DefaultShader.hlsl", FVertex::GetLayout());
 }
 
 void UPrimitiveComponent::ApplyPrimitiveType(EPrimitiveType Type)
 {
 	SetType(Type);
-	SetMesh(UAssetManager::Get().GetMesh(PrimitiveTypeToString(Type)));
+	SetMesh(UAssetManager::GetAssetByPath<UStaticMesh>(PrimitiveTypeToString(Type)));
 	SetMeshData(*FGeometryGenerator::GetMeshData(PrimitiveTypeToString(Type)));
 }
 
@@ -47,7 +48,7 @@ void UPrimitiveComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue
 	{
 		FRenderPacket rp;
 		rp.mesh = Mesh;
-		rp.shader = Shader;
+		rp.shader = Shader.get();
 		rp.model = GetWorldMatrix();
 
 		// Todo: subuv

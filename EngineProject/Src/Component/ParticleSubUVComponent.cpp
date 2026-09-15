@@ -1,6 +1,7 @@
 #include "EnginePCH.h"
 #include "Component/ParticleSubUVComponent.h"
 #include "Asset/AssetManager.h"
+#include "Render/RenderCommand.h"
 
 // Todo: subuv
 void UParticleSubUVComponent::BeginPlay()
@@ -18,9 +19,9 @@ void UParticleSubUVComponent::BeginPlay()
 	FrameRate = 12.0f;
 	AtlasTexture = nullptr;
 
-	Shader = UAssetManager::Get().GetShader("Shader/ParticleSubUVShader.hlsl");
-	Mesh = UAssetManager::Get().GetMesh("ParticleQuad");
-	AtlasTexture = UAssetManager::Get().LoadTexture(AtlasTexturePath);
+	Shader = RenderCommand::CreateShader(L"Assets/Shader/ParticleSubUVShader.hlsl", FParticleVertex::GetLayout());
+	Mesh = UAssetManager::GetAssetByPath<UStaticMesh>("ParticleQuad");
+	AtlasTexture = UAssetManager::GetAssetByPath<UTexture2D>(AtlasTexturePath);
 
 	Type = EPrimitiveType::Particle;
 }
@@ -80,7 +81,7 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 	FRenderPacket Packet;
 	Packet.model = GetWorldMatrix();
 	Packet.mesh = Mesh;
-	Packet.shader = Shader;
+	Packet.shader = Shader.get();
 
 	Packet.bSubUV = true;
 	Packet.texture = AtlasTexture;

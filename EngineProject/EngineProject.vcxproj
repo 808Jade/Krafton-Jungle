@@ -108,7 +108,6 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="resource.h" />
     <ClInclude Include="Src\Asset\AssetManager.h" />
     <ClInclude Include="Src\Asset\RenderAsset.h" />
     <ClInclude Include="Src\Camera\CameraActor.h" />
@@ -133,6 +132,7 @@
     <ClInclude Include="Src\Core\Name.h" />
     <ClInclude Include="Src\Core\Types.h" />
     <ClInclude Include="Src\Core\Window.h" />
+    <ClInclude Include="Src\Editor\AssetBrowserPanel.h" />
     <ClInclude Include="Src\Editor\ConfigPanel.h" />
     <ClInclude Include="Src\Editor\ConsolePanel.h" />
     <ClInclude Include="Src\Editor\ControlPanel.h" />
@@ -177,6 +177,7 @@
     <ClInclude Include="Src\Render\GeometryGenerator.h" />
     <ClInclude Include="Src\Render\ImageLoader.h" />
     <ClInclude Include="Src\Render\LineBatcher.h" />
+    <ClInclude Include="Src\Render\Material.h" />
     <ClInclude Include="Src\Render\Mesh.h" />
     <ClInclude Include="Src\Render\PipelineState.h" />
     <ClInclude Include="Src\Render\RenderCommand.h" />
@@ -218,6 +219,7 @@
     <ClCompile Include="Src\Core\EngineTimer.cpp" />
     <ClCompile Include="Src\Core\Name.cpp" />
     <ClCompile Include="Src\Core\Window.cpp" />
+    <ClCompile Include="Src\Editor\AssetBrowserPanel.cpp" />
     <ClCompile Include="Src\Editor\ConfigPanel.cpp" />
     <ClCompile Include="Src\Editor\ConsolePanel.cpp" />
     <ClCompile Include="Src\Editor\ControlPanel.cpp" />
@@ -254,6 +256,7 @@
     <ClCompile Include="Src\Render\GeometryGenerator.cpp" />
     <ClCompile Include="Src\Render\LineBatcher.cpp" />
     <ClCompile Include="Src\Render\Mesh.cpp" />
+    <ClCompile Include="Src\Render\PipelineState.cpp" />
     <ClCompile Include="Src\Render\RenderCommand.cpp" />
     <ClCompile Include="Src\Render\RenderDevice.cpp" />
     <ClCompile Include="Src\Render\Renderer.cpp" />
@@ -286,13 +289,6 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\hitori-icon-3.ico" />
-    <Image Include="..\hitori-icon.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="EngineProject.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

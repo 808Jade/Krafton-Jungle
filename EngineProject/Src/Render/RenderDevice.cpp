@@ -3,6 +3,7 @@
 
 #include "Buffer.h"
 #include "Texture2D.h"
+#include "PipelineState.h"
 
 FRenderDevice::FRenderDevice()
 {

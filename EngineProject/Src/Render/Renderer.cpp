@@ -80,7 +80,7 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 			subUVConstans.AtlasRowSize = rp.AtlasRows;
 
 			RenderCommand::UpdateBufferData(CB.get(), &subUVConstans);
-			RenderCommand::BindConstantBuffer(1, CB.get(), EShaderBindFlagBits::Vertex);
+			RenderCommand::BindConstantBuffer(1, CB.get(), EShaderBindFlagBits::Pixel);
 
 			RenderCommand::BindShaderResource(0, rp.texture, EShaderBindFlagBits::Pixel);
 		}

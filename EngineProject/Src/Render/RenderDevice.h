@@ -6,6 +6,7 @@ class FVertexBuffer;
 class FIndexBuffer;
 class FConstantBuffer;
 class FTexture2D;
+struct FPipelineState;
 
 // Device, DeviceContext
 class FRenderDevice

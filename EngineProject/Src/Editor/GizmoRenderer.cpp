@@ -35,7 +35,7 @@ bool FGizmoRenderer::Init(FRenderer* InRenderer)
 	AxisDataArray.Add({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(0.0f, 0.0f, 1.0f, 1.0f) });
 	AxisDataArray.Add({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(1.0f, 1.0f, 1.0f, 1.0f) }); // ScreenAxis
 
-	Shader = RenderCommand::CreateShader(L"Shader/GizmoShader.hlsl", FVertex::GetLayout());
+	Shader = RenderCommand::CreateShader(L"Assets/Shader/GizmoShader.hlsl", FVertex::GetLayout());
 
 	return false;
 }

@@ -4,8 +4,17 @@
 #include "ObjectSystem/Property.h"
 #include "Render/Renderer.h"
 
+#include <filesystem>
+
+enum class EAssetType
+{
+
+};
+
 class UStaticMesh;
 struct FShader;
+
+namespace fs = std::filesystem;
 
 class UAssetManager : public UObject
 {
@@ -13,40 +22,42 @@ class UAssetManager : public UObject
 private:
 	UAssetManager() = default;
 
-	UAssetManager(const UAssetManager& src) = delete;
+	UAssetManager(const UAssetManager& src) =  delete;
 	UAssetManager& operator= (const UAssetManager& src) = delete;
 public:
 	static UAssetManager& Get();
 
-	void Init(FRenderer* renderer);
+	void ScanAssets(const fs::path& AssetRoot);
+	void LoadAsset(const FString& Key, const FString& Path);
+
+	void Init();
 	void Shutdown();
 
 	template <typename T>
-	static T* GetAsset()
+	static T* GetAssetByPath(const FString& Path)
 	{
+		URenderAsset** Found = Get().AssetMap.FindOrNull(Path);
 
+		if (Found == nullptr || *Found == nullptr || !(*Found)->IsA<T>())
+		{
+			return nullptr;
+		}
+		return Cast<T>(*Found);
 	}
 
-	UStaticMesh* GetMesh(FString InName);
-	UStaticMesh* GetMesh(EPrimitiveType Type); // 오버로드(수정 중)
+	//UStaticMesh* GetMesh(FString InName);
+	//UStaticMesh* GetMesh(EPrimitiveType Type); // 오버로드(수정 중)
 	FShader* GetShader(FString InName);
 
-	// Todo: subuv
 	UTexture2D* LoadTexture(const FString& InPath);
 	UFontAtlas* LoadFontAtlas(const FString& JsonPath, const FString& AtlasTexturePath);
 
-
 private:
-	TMap<FString, URenderAsset*> PathMap;
+	TMap<FString, FString> AssetPathMap;
+	TMap<FString, URenderAsset*> AssetMap;
 
-	TMap<FString, UStaticMesh*> MeshMap;	// KEY: FILE NAME OR 쉐입 첫글자 대문자
-	TMap<FString, TSharedPtr<FShader>> ShaderMap;	// KEY: FILE NAME
+	//TMap<FString, UStaticMesh*> MeshMap;	// KEY: FILE NAME OR 쉐입 첫글자 대문자
+	TMap<FString, TUniquePtr<FShader>> ShaderMap;	// KEY: FILE NAME
 
-	TMap<FString, TSharedPtr<FVertexBuffer>> VertexBufferMap;
-	TMap<FString, TSharedPtr<FIndexBuffer>> indexBufferMap;
-
-	// Todo: subuv
-	TMap<FString, UTexture2D*> TextureMap;
-
-	FRenderer* Renderer;
+	//TMap<FString, UTexture2D*> TextureMap;
 };

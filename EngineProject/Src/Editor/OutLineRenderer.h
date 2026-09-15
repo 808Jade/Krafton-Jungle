@@ -22,7 +22,7 @@ public:
 private:
 	FRenderer* Renderer;
 
-	FShader* Shader;
+	TUniquePtr<FShader> Shader;
 	UStaticMesh* Mesh;
 
 	Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;

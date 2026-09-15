@@ -10,105 +10,105 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+namespace
+{
+	UStaticMesh* CreateStaticMesh(const FStaticMeshData* MeshData)
+	{
+		UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
+		Mesh->VertexBuffer = RenderCommand::CreateStaticVertexBuffer(MeshData->Vertices.GetData(), sizeof(FVertex) * static_cast<uint32>(MeshData->Vertices.size()), sizeof(FVertex));
+		Mesh->IndexBuffer = RenderCommand::CreateStaticIndexBuffer(MeshData->Indices.GetData(), static_cast<uint32>(MeshData->Indices.size()));
+		return Mesh;
+	}
+
+}
+
 UAssetManager& UAssetManager::Get()
 {
 	static UAssetManager* Instance = FObjectFactory::ConstructObject<UAssetManager>();
 	return *Instance;
 }
 
-void UAssetManager::Init(FRenderer* InRenderer)
+void UAssetManager::ScanAssets(const fs::path& AssetRoot)
 {
-	Renderer = InRenderer;
-
-	if (!Renderer)
+	if (!fs::exists(AssetRoot))
 	{
+		LOG(Error, "Asset root not found: {}", AssetRoot.generic_string());
 		return;
 	}
 
+	for (const fs::directory_entry& Entry : fs::recursive_directory_iterator(AssetRoot))
+	{
+		if (!Entry.is_regular_file()) continue;
+
+		FString Key = fs::relative(Entry.path(), AssetRoot).generic_string();
+		FString Path = Entry.path().generic_string();
+		AssetPathMap.Add(Key, Path);
+		LoadAsset(Key, Path);
+	}
+}
+
+void UAssetManager::LoadAsset(const FString& Key, const FString& Path)
+{
+	FString Extension = fs::path(Path).extension().string();
+	if (Extension == ".png")
+	{
+		if (UTexture2D* Texture = LoadTexture(Path))
+		{
+			AssetMap[Key] = Texture;
+		}
+	}
+}
+
+void UAssetManager::Init()
+{
 	// 메시 데이터 업로드
 	FStaticMeshData* CubeData = FGeometryGenerator::GetMeshData("Cube");
-	MeshMap[FString("Cube")] = Renderer->CreateMesh(*CubeData);
+	AssetMap["Cube"] = CreateStaticMesh(CubeData);
 
 	FStaticMeshData* ConeData = FGeometryGenerator::GetMeshData("Cone");
-	MeshMap[FString("Cone")] = Renderer->CreateMesh(*ConeData);
+	AssetMap["Cone"] = CreateStaticMesh(ConeData);
 
 	FStaticMeshData* SphereData = FGeometryGenerator::GetMeshData("Sphere");
-	MeshMap[FString("Sphere")] = Renderer->CreateMesh(*SphereData);
+	AssetMap["Sphere"] = CreateStaticMesh(SphereData);
 
 	FStaticMeshData* PlaneData = FGeometryGenerator::GetMeshData("Plane");
-	MeshMap[FString("Plane")] = Renderer->CreateMesh(*PlaneData);
+	AssetMap["Plane"] = CreateStaticMesh(PlaneData);
+
+	const FParticleVertex Vertices[] =
+	{
+		{ FVector(-0.5f,  0.5f, 0.0f), FVector2(0.0f, 0.0f) },
+		{ FVector(0.5f,  0.5f, 0.0f), FVector2(1.0f, 0.0f) },
+		{ FVector(0.5f, -0.5f, 0.0f), FVector2(1.0f, 1.0f) },
+		{ FVector(-0.5f, -0.5f, 0.0f), FVector2(0.0f, 1.0f) }
+	};
+
+	const uint32 Indices[] =
+	{
+		0, 2, 1,
+		0, 3, 2
+	};
+
+	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
+	Mesh->VertexBuffer = RenderCommand::CreateStaticVertexBuffer(
+		Vertices,
+		sizeof(Vertices),
+		sizeof(FParticleVertex));
+	Mesh->IndexBuffer = RenderCommand::CreateStaticIndexBuffer(
+		Indices,
+		ARRAYSIZE(Indices));
+
+	AssetMap["ParticleQuad"] = Mesh;
+
+	ScanAssets("Assets");
 }
 
 void UAssetManager::Shutdown()
 {
-	MeshMap.Reset();
-
-	// Todo: subuv
-	TextureMap.Reset();
-}
-
-UStaticMesh* UAssetManager::GetMesh(FString InName)
-{
-	if (!Renderer)
-	{
-		return nullptr;
-	}
-
-	///auto it = MeshMap.find(InName);
-	auto* foundMeshOrNull = MeshMap.FindOrNull(InName);
-	//if (it == MeshMap.end())
-	if (foundMeshOrNull == nullptr)
-	{
-		// Todo: subuv, Move to other class
-		if (InName == "ParticleQuad")
-		{
-			const FParticleVertex Vertices[] =
-			{
-				{ FVector(-0.5f,  0.5f, 0.0f), FVector2(0.0f, 0.0f) },
-				{ FVector(0.5f,  0.5f, 0.0f), FVector2(1.0f, 0.0f) },
-				{ FVector(0.5f, -0.5f, 0.0f), FVector2(1.0f, 1.0f) },
-				{ FVector(-0.5f, -0.5f, 0.0f), FVector2(0.0f, 1.0f) }
-			};
-
-			const uint32 Indices[] =
-			{
-				0, 2, 1,
-				0, 3, 2
-			};
-
-			TSharedPtr<FVertexBuffer> VB = RenderCommand::CreateStaticVertexBuffer(
-				Vertices,
-				sizeof(Vertices),
-				sizeof(FParticleVertex));
-			FStaticMeshData* Data = FGeometryGenerator::GetMeshData(InName);
-
-			TSharedPtr<FIndexBuffer> IB = RenderCommand::CreateStaticIndexBuffer(
-				Indices,
-				ARRAYSIZE(Indices));
-
-			MeshMap[InName] = Renderer->CreateMesh(VB, IB);
-
-			return MeshMap[InName];
-		}
-
-		FStaticMeshData* Data = FGeometryGenerator::GetMeshData(InName);
-		TSharedPtr<FVertexBuffer> vb = RenderCommand::CreateStaticVertexBuffer(Data->Vertices.GetData(), sizeof(FVertex) * (UINT)Data->Vertices.Num(), sizeof(FVertex));
-		TSharedPtr<FIndexBuffer> ib = RenderCommand::CreateStaticIndexBuffer(Data->Indices.GetData(), Data->Indices.Num());
-
-		MeshMap[InName] = Renderer->CreateMesh(vb, ib);
-	}
-
-	return MeshMap[InName];
 }
 
 FShader* UAssetManager::GetShader(FString InName)
 {
-	if (!Renderer)
-	{
-		return nullptr;
-	}
-
-	//auto it = ShaderMap.find(InName);
+		//auto it = ShaderMap.find(InName);
 	auto* foundShaderOrNull = ShaderMap.FindOrNull(InName);
 
 	//if (it == ShaderMap.end())
@@ -117,7 +117,7 @@ FShader* UAssetManager::GetShader(FString InName)
 		std::wstring wstr(InName.begin(), InName.end());
 
 		// Todo: subuv
-		if (InName == "Shader/ParticleSubUVShader.hlsl")
+		if (InName == "Assets/Shader/ParticleSubUVShader.hlsl")
 		{
 			ShaderMap[InName] = RenderCommand::CreateShader(wstr.c_str(), FParticleVertex::GetLayout());
 		}
@@ -145,8 +145,10 @@ FShader* UAssetManager::GetShader(FString InName)
 
 UTexture2D* UAssetManager::LoadTexture(const FString& InPath)
 {
-	if (UTexture2D** Found = TextureMap.FindOrNull(InPath))
-		return *Found;
+	if (URenderAsset** Found = AssetMap.FindOrNull(InPath))
+	{
+		return Cast<UTexture2D>(*Found);
+	}
 
 	stbi_set_flip_vertically_on_load(false);
 	int Width = 0, Height = 0, Channels = 0;
@@ -175,7 +177,7 @@ UTexture2D* UAssetManager::LoadTexture(const FString& InPath)
 	Asset->SetResource(std::move(Resource));
 	Asset->SetPath(InPath);
 
-	PathMap.Add(InPath, Asset);
+	AssetMap.Add(InPath, Asset);
 	return Asset;
 }
 

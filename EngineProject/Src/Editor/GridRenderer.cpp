@@ -16,7 +16,7 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 	Renderer = InRenderer;
 
 	// Batch Grid
-	BatchGridShader = RenderCommand::CreateShader(L"Shader/GridShaderBatch.hlsl", FVertex::GetLayout());
+	BatchGridShader = RenderCommand::CreateShader(L"Assets/Shader/GridShaderBatch.hlsl", FVertex::GetLayout());
 
 	MaxVertices = 65536;
 	BatchGridVertices = new FVertex[MaxVertices];
@@ -24,8 +24,8 @@ bool FGridRenderer::Init(FRenderer* InRenderer)
 	BatchGridConstantBuffer = RenderCommand::CreateConstantBuffer(sizeof(FBatchGridData));
 
 	// PS Grid
-	PSGridShader = RenderCommand::CreateShader(L"Shader/GridShader.hlsl", nullptr, 0);
-	AxisShader = UAssetManager::Get().GetShader("Shader/DefaultShader.hlsl");
+	PSGridShader = RenderCommand::CreateShader(L"Assets/Shader/GridShader.hlsl", nullptr, 0);
+	AxisShader = RenderCommand::CreateShader(L"Assets/Shader/DefaultShader.hlsl", FVertex::GetLayout());
 	TArray<FVertex> Vertices =
 	{
 		// X Axis
