@@ -85,6 +85,7 @@ void FLineBatcher::AddPath(const TArray<FVector>& Points, const FVector4& Color)
 		AddLine(Points[i], Points[i + 1], Color);
 	}
 }
+
 void FLineBatcher::Flush()
 {
 	RenderCommand::BindShader(LineShader.get());

@@ -8,9 +8,13 @@ void FPathTracker::SetPathRenderingEnabled(bool bEnable)
 
     if (!bIsPathRenderingEnabled)
     {
-        ObjectPaths.clear();
         TimeSinceLastRecord = 0.0f;
     }
+}
+
+void FPathTracker::ClearPath()
+{
+    ObjectPaths.clear();
 }
 
 bool FPathTracker::IsEnabled() const
@@ -27,13 +31,13 @@ void FPathTracker::Tick(const TArray<AActor*>& ActorList, float DeltaTime)
     {
         TimeSinceLastRecord = 0.0f;
 
-        // 모든 오브젝트를 순회하며 현재 위치를 기록
-        for (AActor* Obj : ActorList)
+        for (AActor* Actor : ActorList)
         {
-            if (Obj)
+            FVector CurrentLoc = Actor->GetActorLocation();
+            TArray<FVector>& Path = ObjectPaths[Actor];
+            if (Actor)
             {
-                // 맵에 오브젝트가 없으면 자동으로 생성되고 위치가 추가됨
-                ObjectPaths[Obj].Add(Obj->GetActorLocation());
+                ObjectPaths[Actor].Add(Actor->GetActorLocation());
             }
         }
     }
@@ -41,8 +45,6 @@ void FPathTracker::Tick(const TArray<AActor*>& ActorList, float DeltaTime)
 
 void FPathTracker::OnRender(FLineBatcher* LineBatcher)
 {
-    if (!bIsPathRenderingEnabled) return;
-
     for (const auto& Pair : ObjectPaths)
     {
         AActor* Actor = Pair.first;
@@ -59,9 +61,9 @@ void FPathTracker::OnRender(FLineBatcher* LineBatcher)
         float B = (Hash & 0xFF) / 255.0f;
 
         // 밝기 보정
-        R = 0.2f + R * 0.8f;
-        G = 0.2f + G * 0.8f;
-        B = 0.2f + B * 0.8f;
+        //R = 0.2f + R * 0.8f;
+        //G = 0.2f + G * 0.8f;
+        //B = 0.2f + B * 0.8f;
 
         LineBatcher->AddPath(PathHistory, { R, G, B, 1.0f });
     }
