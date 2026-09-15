@@ -8,7 +8,6 @@ void FPathTracker::SetPathRenderingEnabled(bool bEnable)
 
     if (!bIsPathRenderingEnabled)
     {
-        //ObjectPaths.clear();
         TimeSinceLastRecord = 0.0f;
     }
 }
@@ -32,9 +31,10 @@ void FPathTracker::Tick(const TArray<AActor*>& ActorList, float DeltaTime)
     {
         TimeSinceLastRecord = 0.0f;
 
-        // 모든 오브젝트를 순회하며 현재 위치를 기록
         for (AActor* Actor : ActorList)
         {
+            FVector CurrentLoc = Actor->GetActorLocation();
+            TArray<FVector>& Path = ObjectPaths[Actor];
             if (Actor)
             {
                 ObjectPaths[Actor].Add(Actor->GetActorLocation());
@@ -45,8 +45,6 @@ void FPathTracker::Tick(const TArray<AActor*>& ActorList, float DeltaTime)
 
 void FPathTracker::OnRender(FLineBatcher* LineBatcher)
 {
-    if (!bIsPathRenderingEnabled) return;
-
     for (const auto& Pair : ObjectPaths)
     {
         AActor* Actor = Pair.first;
