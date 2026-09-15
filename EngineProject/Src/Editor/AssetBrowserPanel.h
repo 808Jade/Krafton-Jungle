@@ -2,14 +2,21 @@
 
 #include "EditorPanel.h"
 
-class AssetBrowserPanel : public IEditorPanel
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
+class FAssetBrowserPanel : public IEditorPanel
 {
 public:
 	bool Init() override;
 	void Tick(float DeltaTime) override;
 	void OnRender() override;
 
-private:
+	void RenderFolderTree(const fs::path& Path, fs::path& SelectedPath);
 
+private:
+	fs::path AssetRootPath = "Assets/";
+	fs::path CurrentPath;
 	
 };

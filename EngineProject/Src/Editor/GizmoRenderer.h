@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Render/Renderer.h"
+#include "Render/PipelineState.h"
 #include "Gizmo.h"
 
 class UCameraComponent;
@@ -36,12 +37,13 @@ private:
 	
 	TArray<FAxisData> AxisDataArray;
 
-	TSharedPtr<FShader> Shader;
+	TUniquePtr<FShader> Shader;
+	FPipelineState PipelineState;
 	UStaticMesh* LocationMesh;
 	UStaticMesh* RotationMesh;
 	UStaticMesh* ScaleMesh;
 	UStaticMesh* SphereMesh;
-	TSharedPtr<FConstantBuffer> CB;
+	TUniquePtr<FConstantBuffer> CB;
 
 	//EGizmoMode Mode = EGizmoMode::Scale;
 };

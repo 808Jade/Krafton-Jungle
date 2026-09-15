@@ -2,6 +2,7 @@
 
 #include "Buffer.h"
 #include "StaticMeshData.h"
+#include "PipelineState.h"
 
 class FLineBatcher
 {
@@ -26,12 +27,13 @@ private:
 
 	UWorld* World;
 
-	TSharedPtr<FShader> LineShader;
+	TUniquePtr<FShader> LineShader;
+	FPipelineState PipelineState;
 	FVertex* VertexBufferBase;  
 	FVertex* VertexBufferPtr;  
-	TSharedPtr<FConstantBuffer> CB;
+	TUniquePtr<FConstantBuffer> CB;
 	uint32 VertexCount;
 
 	uint32 MaxVertices = 0;
-	TSharedPtr<FVertexBuffer> VertexBuffer;
+	TUniquePtr<FVertexBuffer> VertexBuffer;
 };

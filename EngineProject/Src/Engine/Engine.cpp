@@ -76,6 +76,7 @@ bool Engine::Init(HINSTANCE hInstance)
 	PropertyPanel = EditorUI->AddEditorPanel<FPropertyPanel>();
 	ControlPanel = EditorUI->AddEditorPanel<FControlPanel>();
 	ViewportPanel = EditorUI->AddEditorPanel<FViewportPanel>();
+	AssetBrowser = EditorUI->AddEditorPanel<FAssetBrowserPanel>();
 
 	// OutLine
 	OutlineRenderer = MakeUnique<FOutlineRenderer>();
@@ -215,6 +216,10 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 
 	if (ConfigPanel->GetSettings().bDrawPrimitives)
 	{
+		RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
+		RenderCommand::SetBlendState(EBlendState::Opaque);
+		RenderCommand::SetDepthStencilState(EDepthStencilState::Default);
+
 		if (ConfigPanel->GetSettings().bWireframe)
 		{
 			RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
@@ -252,6 +257,7 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 
 		}
 
+		RenderCommand::ClearDepthStencil(ViewportPanel->GetViewportRenderingInfo().DepthSteincil.Texture);
 		GizmoRenderer->OnRender(*Gizmo, ViewProj);
 	}
 	RenderCommand::EndRenderPass(ViewportPanel->GetViewportRenderingInfo());

@@ -27,12 +27,12 @@ UStaticMesh* FRenderer::CreateMesh(const FStaticMeshData& InMeshData)
 }
 
 
-UStaticMesh* FRenderer::CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer)
+UStaticMesh* FRenderer::CreateMesh(TUniquePtr<FVertexBuffer> VertexBuffer, TUniquePtr<FIndexBuffer> IndexBuffer)
 {
 	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
 
-	Mesh->VertexBuffer = VertexBuffer;
-	Mesh->IndexBuffer = IndexBuffer;
+	Mesh->VertexBuffer = std::move(VertexBuffer);
+	Mesh->IndexBuffer = std::move(IndexBuffer);
 
 	return Mesh;
 }

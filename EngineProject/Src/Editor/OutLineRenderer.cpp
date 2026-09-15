@@ -8,6 +8,10 @@ void FOutlineRenderer::Init(FRenderer* InRenderer)
 	Renderer = InRenderer;
 	Shader = RenderCommand::CreateShader(L"Assets/Shader/OutlineShader.hlsl", FVertex::GetLayout());
 
+	PipelineState.Shader = Shader.get();
+	PipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	PipelineState.RasterizerState = ERasterizerState::SolidFront;
+
 	ConstantBuffer = RenderCommand::CreateConstantBuffer(sizeof(FOutlineData));
 }
 
@@ -24,9 +28,7 @@ void FOutlineRenderer::OnRender(const FOutline& InOutline, const FMatrix& InView
 	}
 
 
-	RenderCommand::SetRasterizerState(ERasterizerState::SolidFront);
-	RenderCommand::BindShader(Shader.get());
-	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	RenderCommand::BindPipelineState(PipelineState);
 
 	RenderCommand::BindMesh(InOutline.GetMesh());
 

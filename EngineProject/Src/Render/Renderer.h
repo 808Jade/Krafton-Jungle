@@ -18,7 +18,7 @@ public:
 	bool Init();
 
 	UStaticMesh* CreateMesh(const FStaticMeshData& InMeshData);
-	UStaticMesh* CreateMesh(TSharedPtr<FVertexBuffer> VertexBuffer, TSharedPtr<FIndexBuffer> IndexBuffer);
+	UStaticMesh* CreateMesh(TUniquePtr<FVertexBuffer> VertexBuffer, TUniquePtr<FIndexBuffer> IndexBuffer);
 
 	void RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP);
 

@@ -12,16 +12,16 @@ FGizmoRenderer::FGizmoRenderer()
 bool FGizmoRenderer::Init(FRenderer* InRenderer)
 {
 	Renderer = InRenderer;
-	TSharedPtr<FStaticMeshData> LocMeshData = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	TUniquePtr<FStaticMeshData> LocMeshData = FGeometryGenerator::CreateArrow(0.1f, 1.0f, 0.2f, 0.5f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	LocationMesh = Renderer->CreateMesh(*LocMeshData.get());
 
-	TSharedPtr<FStaticMeshData> RotMeshData = FGeometryGenerator::CreateRing(1.0f, 0.03f, 32, 16, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	TUniquePtr<FStaticMeshData> RotMeshData = FGeometryGenerator::CreateRing(1.0f, 0.03f, 32, 16, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	RotationMesh = Renderer->CreateMesh(*RotMeshData.get());
 
-	TSharedPtr<FStaticMeshData> ScaleMeshData = FGeometryGenerator::CreateScaleBar(0.1f, 1.0f, 0.4f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
+	TUniquePtr<FStaticMeshData> ScaleMeshData = FGeometryGenerator::CreateScaleBar(0.1f, 1.0f, 0.4f, 20, FVector4(1.0f, 0.0f, 0.0f, 1.0f));
 	ScaleMesh = Renderer->CreateMesh(*ScaleMeshData.get());
 
-	TSharedPtr<FStaticMeshData> SphereData = FGeometryGenerator::CreateSphere(0.2f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+	TUniquePtr<FStaticMeshData> SphereData = FGeometryGenerator::CreateSphere(0.2f, 20, 10, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	SphereMesh = Renderer->CreateMesh(*SphereData.get());
 
 	CB = RenderCommand::CreateConstantBuffer(sizeof(FGizmoData));
@@ -36,6 +36,9 @@ bool FGizmoRenderer::Init(FRenderer* InRenderer)
 	AxisDataArray.Add({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(1.0f, 1.0f, 1.0f, 1.0f) }); // ScreenAxis
 
 	Shader = RenderCommand::CreateShader(L"Assets/Shader/GizmoShader.hlsl", FVertex::GetLayout());
+
+	PipelineState.Shader = Shader.get();
+	PipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 	return false;
 }
@@ -54,8 +57,7 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 	default: return;
 	}
 
-	RenderCommand::BindShader(Shader.get());
-	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	RenderCommand::BindPipelineState(PipelineState);
 
 	const FMatrix ViewProjT = ViewProj.GetTransposed();
 	// const FVector GizmoLocation = Gizmo.GetLocation();

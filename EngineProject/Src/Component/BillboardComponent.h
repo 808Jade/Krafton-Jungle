@@ -7,6 +7,6 @@ class UBillboardComponent : public UPrimitiveComponent
 	DECLARE_CLASS(UBillboardComponent, UPrimitiveComponent)
 public:
 	UBillboardComponent();
-	virtual ~UBillboardComponent();
+	virtual ~UBillboardComponent() override;
 private:
 };

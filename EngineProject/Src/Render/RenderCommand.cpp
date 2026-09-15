@@ -186,6 +186,16 @@ void RenderCommand::EndRenderPass(const FRenderingInfo& RenderingInfo)
 	RenderDevice->GetContext()->OMSetRenderTargets(0, nullptr, nullptr);
 }
 
+void RenderCommand::ClearDepthStencil(FTexture2D* DepthStencilTexture, float Depth, uint8 Stencil)
+{
+	if (DepthStencilTexture == nullptr)
+	{
+		return;
+	}
+
+	RenderDevice->GetContext()->ClearDepthStencilView(DepthStencilTexture->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, Depth, Stencil);
+}
+
 void RenderCommand::SetViewport(uint32 InX, uint32 InY, uint32 InWidth, uint32 InHeight)
 {
 	D3D11_VIEWPORT Viewport;
