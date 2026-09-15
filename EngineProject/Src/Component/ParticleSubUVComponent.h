@@ -15,6 +15,7 @@ class UParticleSubUVComponent : public UPrimitiveComponent
 public:
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime) override;
+
 	virtual void SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue) override;
 
 	void SetAtlasTexturePath(const FString& InPath);

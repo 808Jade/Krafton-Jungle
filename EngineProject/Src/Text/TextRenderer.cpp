@@ -3,6 +3,8 @@
 
 #include "Camera/CameraComponent.h"
 
+#include "Render/RenderCommand.h"
+
 namespace
 {
 	TArray<uint32> DecodeUTF8(const FString& Str)
@@ -39,22 +41,16 @@ void FTextRenderer::Init(FRenderer* InRenderer, uint32 InMaxCharacters)
 	MaxIndices = MaxCharacters * 6;  // 글자당 삼각형 2개(6인덱스)
 
 	// 다이나믹 버텍스/인덱스 버퍼 생성 (D3D11_USAGE_DYNAMIC, CPU_ACCESS_WRITE)
-	VertexBuffer = Renderer->CreateDynamicVertexBuffer(sizeof(FTextVertex) * MaxVertices, sizeof(FTextVertex));
-	IndexBuffer = Renderer->CreateDynamicIndexBuffer(sizeof(uint32) * MaxIndices);
+	VertexBuffer = RenderCommand::CreateDynamicVertexBuffer(sizeof(FTextVertex) * MaxVertices, sizeof(FTextVertex));
+	IndexBuffer = RenderCommand::CreateDynamicIndexBuffer(sizeof(uint32) * MaxIndices);
 
-	MVP = Renderer->CreateConstantBuffer(sizeof(TextTransformData));
-	ScreenPx = Renderer->CreateConstantBuffer(sizeof(MSDFData));
+	MVP = RenderCommand::CreateConstantBuffer(sizeof(TextTransformData));
+	ScreenPx = RenderCommand::CreateConstantBuffer(sizeof(MSDFData));
 
-	TextShader = Renderer->CreateShader(L"Shader/TextShader.hlsl", FTextVertex::GetLayout());
-
-	D3D11_RASTERIZER_DESC RasterizerDesc = {};
-	RasterizerDesc.FillMode = D3D11_FILL_SOLID;
-	RasterizerDesc.CullMode = D3D11_CULL_BACK;
-	RasterizerDesc.FrontCounterClockwise = FALSE;
-	Renderer->GetDevice()->CreateRasterizerState(&RasterizerDesc, &RasterizerState);
+	TextShader = RenderCommand::CreateShader(L"Shader/TextShader.hlsl", FTextVertex::GetLayout());
 }
 
-void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const FFontAtlas& Atlas,
+void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFontAtlas& Atlas,
 	TArray<FTextVertex>& OutVertices, TArray<uint32>& OutIndices)
 {
 	TArray<uint32> CodePoints = DecodeUTF8(Text);
@@ -113,7 +109,7 @@ void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const FFo
 }
 
 void FTextRenderer::OnRender(const FString& Text, const FVector& WorldPos, float TextSize,
-	const FFontAtlas& Atlas, UCameraComponent* CameraComponent)
+	const UFontAtlas& Atlas, UCameraComponent* CameraComponent)
 {
 	if (Text.empty() || !Atlas.AtlasTexture)
 	{
@@ -136,8 +132,8 @@ void FTextRenderer::OnRender(const FString& Text, const FVector& WorldPos, float
 		return;
 	}
 
-	Renderer->UpdateVertexBufferData(VertexBuffer.get(), Vertices.GetData(), sizeof(FTextVertex) * Vertices.Num());
-	Renderer->UpdateIndexBufferData(IndexBuffer.get(), Indices.GetData(), sizeof(uint32) * Indices.Num());
+	RenderCommand::UpdateBufferData(VertexBuffer.get(), Vertices.GetData(), sizeof(FTextVertex) * Vertices.Num());
+	RenderCommand::UpdateBufferData(IndexBuffer.get(), Indices.GetData(), sizeof(uint32) * Indices.Num());
 
 	const FTransform &Transform = CameraComponent->GetTransform();
 
@@ -179,17 +175,17 @@ void FTextRenderer::OnRender(const FString& Text, const FVector& WorldPos, float
 	MSDFData MSDFData;
 	MSDFData.ScreenPx = Atlas.DistanceRange;
 
-	Renderer->GetDeviceContext()->RSSetState(RasterizerState.Get());
-	Renderer->BindShader(TextShader.get());
-	Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	Renderer->BindTexture(0, Atlas.AtlasTexture, Pixel);
-	Renderer->UpdateConstantBufferData(MVP.get(), &TransData, sizeof(TextTransformData));
-	Renderer->UpdateConstantBufferData(ScreenPx.get(), &MSDFData, sizeof(MSDFData));
+	RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
+	RenderCommand::BindShader(TextShader.get());
+	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	RenderCommand::BindShaderResource(0, Atlas.AtlasTexture, EShaderBindFlagBits::Pixel);
+	RenderCommand::UpdateBufferData(MVP.get(), &TransData, sizeof(TextTransformData));
+	RenderCommand::UpdateBufferData(ScreenPx.get(), &MSDFData, sizeof(MSDFData));
 
-	Renderer->BindConstantBuffer(0, MVP.get(), Vertex);
-	Renderer->BindConstantBuffer(1, ScreenPx.get(), Pixel);
+	RenderCommand::BindConstantBuffer(0, MVP.get(), EShaderBindFlagBits::Vertex);
+	RenderCommand::BindConstantBuffer(1, ScreenPx.get(), EShaderBindFlagBits::Pixel);
 
-	Renderer->BindVertexBuffer(VertexBuffer.get());
-	Renderer->BindIndexBuffer(IndexBuffer.get());
-	Renderer->DrawIndexed(Indices.Num());
+	RenderCommand::BindVertexBuffer(VertexBuffer.get());
+	RenderCommand::BindIndexBuffer(IndexBuffer.get());
+	RenderCommand::DrawIndexed(Indices.Num());
 }

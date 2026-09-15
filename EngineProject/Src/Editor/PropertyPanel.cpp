@@ -108,6 +108,7 @@ void FPropertyPanel::OnRender()
 	if (Target)
 	{
 		FTransform Transform = Target->GetTransform();
+		DrawVector3Controller("Location", Transform.Location, 0.0f, 10.0f);
 
 		FVector Rotation = FVector(Transform.Rotation.Roll, Transform.Rotation.Pitch, Transform.Rotation.Yaw);
 		DrawVector3Controller("Rotation", Rotation, 0.0f, 10.0f);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Asset/RenderAsset.h"
+
 struct FGlyphInfo // 글자 하나의 정보
 {
 	float Advance = 0.0f; // 이 글자를 그린 후 펜을 얼마나 오른쪽으로 옮길지 
@@ -10,8 +12,12 @@ struct FGlyphInfo // 글자 하나의 정보
 	bool bHasBounds = false; // 공백(unicode 32)처럼 그릴 게 없는 글자 구분용
 };
 
-struct FFontAtlas
+class UFontAtlas : public URenderAsset
 {
+	DECLARE_CLASS(UFontAtlas, URenderAsset)
+public:
+	bool LoadFontAtlasJson(const FString& JsonPath);
+
 	float Width = 0.0f; // 아틀라스 텍스처 가로 픽셀 (json: atlas.width)
 	float Height = 0.0f; // 아틀라스 텍스처 세로 픽셀 (json: atlas.height)
 	float DistanceRange = 2.0f;// MSDF distance range (json: atlas.distanceRange) - 셰이더에서 씀
@@ -20,7 +26,7 @@ struct FFontAtlas
 	TMap<uint64, float> KerningMap; // (Unicode1 << 32 | Unicode2) -> advance 보정값
 
 	UTexture2D* AtlasTexture;
+
 };
 
 
-bool LoadFontAtlasJson(const FString& JsonPath, FFontAtlas* Atlas);

@@ -29,27 +29,26 @@ bool Engine::Init(HINSTANCE hInstance)
 	ConsolePanel = EditorUI->AddEditorPanel<FConsolePanel>();
 	ConsolePanel->AddLog(ELogVerbosity::Info, "Engine Initialize...");
 
-	// Create Main Window
+	LOG(Info, "Initialize Renderer...");
+	Renderer = MakeUnique<FRenderer>();
+	RenderDevice = MakeUnique<FRenderDevice>();
+	RenderCommand::Init(RenderDevice.get());
+	Renderer->Init();
+
+	// Create Main Window & Swapchain
+	FWindowContext MainWindowCtx;
 	LOG(Info, "Create Main Window...");
-	MainWindow = MakeUnique<Window>();
-	if (!MainWindow->Create(hInstance, 1920, 1080, L"Engine"))
+	MainWindowCtx.Window = MakeUnique<FWindow>();
+	if (!MainWindowCtx.Window->Create(hInstance, 1920, 1080, L"Engine"))
 	{
 		LOG(Error, "Failed To Create Main Window!");
 		return false;
 	}
 	LOG(Info, "Success!");
-
-	LOG(Info, "Initialize Renderer...");
-	Renderer = MakeUnique<FRenderer>();
-	RenderCommand::Init(Renderer.get());
-	if (!Renderer->Init(MainWindow->GetHandle()))
-	{
-		LOG(Error, "Failed To Initialize Renderer!");
-
-	}
-	LOG(Info, "Success!");
-	
-
+	MainWindowCtx.Swapchain = MakeUnique<FSwapchain>(RenderDevice.get(), MainWindowCtx.Window.get());
+	MainWindow = MainWindowCtx.Window.get();
+	MainWindowSC = MainWindowCtx.Swapchain.get();
+	Windows.Add(std::move(MainWindowCtx));
 
 
 	LOG(Info, "Initialize AssetManager...");
@@ -59,10 +58,9 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	LOG(Info, "Initialize ImGui...");
 	ImGuiRenderer = MakeUnique<FImGuiRenderer>();
-	if (!ImGuiRenderer->Init(MainWindow->GetHandle(), Renderer->GetDevice(), Renderer->GetDeviceContext()))
+	if (!ImGuiRenderer->Init(MainWindow->GetHandle(), RenderDevice->GetDevice(), RenderDevice->GetContext()))
 	{
 		LOG(Error, "Failed To Initialize ImGui!");
-
 	}
 	LOG(Info, "Initialize ImGui Success!");
 
@@ -87,8 +85,8 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	Outline = MakeUnique<FOutline>();
 
-	TextShader = Renderer->CreateShader(L"Shader/TextShader.hlsl", FTextVertex::GetLayout());
-	Atlas = Renderer->LoadFontAtlas("atlas.json", "atlas.png");
+	TextShader = RenderCommand::CreateShader(L"Shader/TextShader.hlsl", FTextVertex::GetLayout());
+	Atlas = UAssetManager::Get().LoadFontAtlas("atlas.json", "atlas.png");
 
 	TextRenderer = MakeUnique<FTextRenderer>();
 	TextRenderer->Init(Renderer.get());
@@ -109,9 +107,6 @@ bool Engine::Init(HINSTANCE hInstance)
 	ControlPanel->SetGizmo(Gizmo.get());
 
 	ConfigPanel->SetWorld(World);
-
-
-	
 
 	ControlPanel->SetSceneClearCallback([&]() {
 		Gizmo->SetTarget(nullptr);
@@ -136,9 +131,6 @@ void Engine::Run()
 	FMatrix Mat;
 	Mat.SetIdentity();
 
-	UPrimitiveComponent* OutlineComponent = nullptr;
-
-
 	while (bIsRunning)
 	{
 		EngineTimer::Tick();
@@ -149,9 +141,11 @@ void Engine::Run()
 
 		//Check Swapchain Resize
 		MainWindow->ProcessMessage(bIsRunning);
+		if (!bIsRunning)
+			break;
 
 		//메시지 처리 직후 리사이즈 검사
-		HandleWindowResize();
+		HandleMainWindow();
 
 		//Update World
 		World->Tick(DeltaTime);
@@ -190,7 +184,7 @@ void Engine::UpdateGizmoAndPicking(FMatrix& ViewProj)
 
 void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 {
-	Renderer->BeginRenderPass(ViewportPanel->GetViewportRenderingInfo());
+	RenderCommand::BeginRenderPass(ViewportPanel->GetViewportRenderingInfo());
 
 	if (ConfigPanel->GetSettings().bDrawBatchLine)
 	{
@@ -223,11 +217,11 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 	{
 		if (ConfigPanel->GetSettings().bWireframe)
 		{
-			Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+			RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 		}
 		else
 		{
-			Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		}
 
 		Renderer->RenderAll(RenderQueue, ViewProj);
@@ -248,8 +242,6 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 
 		if (ConfigPanel->GetSettings().bShowUUID)
 		{
-			Renderer->SetDepthStencilEnabled(false);
-
 			TextRenderer->OnRender(
 				Text,
 				Gizmo->GetLocation(),
@@ -258,14 +250,14 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 				World->GetMainCamera()->GetCameraComponent()
 			);
 
-			Renderer->SetDepthStencilEnabled(true);
 		}
 
 		GizmoRenderer->OnRender(*Gizmo, ViewProj);
 	}
-	Renderer->EndRenderPass(ViewportPanel->GetViewportRenderingInfo());
+	RenderCommand::EndRenderPass(ViewportPanel->GetViewportRenderingInfo());
 
-	Renderer->BeginFrame();
+	// Swapchain 렌더링
+	RenderCommand::BeginRenderPass(MainWindowSC->GetRenderingInfo());
 
 	ImGuiRenderer->Begin();
 
@@ -273,7 +265,8 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 
 	ImGuiRenderer->End();
 
-	Renderer->EndFrame();
+	RenderCommand::EndRenderPass(MainWindowSC->GetRenderingInfo());
+	MainWindowSC->SwapBuffers();
 }
 
 void Engine::Shutdown()
@@ -282,14 +275,14 @@ void Engine::Shutdown()
 	for (int32 i = GUObjectArray.Num() - 1; i >= 0; --i)
 		delete GUObjectArray[i];
 	ImGuiRenderer->Shutdown();
-	Renderer->Shutdown();
+	RenderDevice->Shutdown();
 }
 
-void Engine::HandleWindowResize()
+void Engine::HandleMainWindow()
 {
 	if (MainWindow->CheckResized())
 	{
-		Renderer->Resize(MainWindow->GetWidth(), MainWindow->GetHeight());
+		MainWindowSC->Resize(MainWindow->GetWidth(), MainWindow->GetHeight());
 	}
 	World->GetMainCamera()->GetCameraComponent()->SetAspectRatio(ViewportPanel->GetViewportAspectRatio());
 }

@@ -31,3 +31,42 @@ template<typename T, typename... Args>
 TUniquePtr<T> MakeUnique(Args&&... args) {
     return std::make_unique<T>(std::forward<Args>(args)...);
 }
+
+#define DEFINE_ENUM_OPERATORS(EnumName) \
+    constexpr EnumName operator&(EnumName _a, EnumName _b) \
+    { \
+        using UnderlyingType = std::underlying_type_t<EnumName>; \
+        return static_cast<EnumName>(static_cast<UnderlyingType>(_a) & static_cast<UnderlyingType>(_b)); \
+    } \
+    constexpr EnumName operator|(EnumName _a, EnumName _b) \
+    { \
+        using UnderlyingType = std::underlying_type_t<EnumName>; \
+        return static_cast<EnumName>(static_cast<UnderlyingType>(_a) | static_cast<UnderlyingType>(_b)); \
+    } \
+    constexpr EnumName operator^(EnumName _a, EnumName _b) \
+    { \
+        using UnderlyingType = std::underlying_type_t<EnumName>; \
+        return static_cast<EnumName>(static_cast<UnderlyingType>(_a) ^ static_cast<UnderlyingType>(_b)); \
+    } \
+    constexpr EnumName operator~(EnumName _a) \
+    { \
+        using UnderlyingType = std::underlying_type_t<EnumName>; \
+        return static_cast<EnumName>(~static_cast<UnderlyingType>(_a)); \
+    } \
+    inline EnumName& operator&=(EnumName& _a, EnumName _b) \
+    { \
+        return _a = _a & _b; \
+    } \
+    inline EnumName& operator|=(EnumName& _a, EnumName _b) \
+    { \
+        return _a = _a | _b; \
+    } \
+    inline EnumName& operator^=(EnumName& _a, EnumName _b) \
+    { \
+        return _a = _a ^ _b; \
+    } \
+    constexpr bool HasFlag(EnumName _bitMask, EnumName _flag) \
+    { \
+        using UnderlyingType = std::underlying_type_t<EnumName>; \
+        return (static_cast<UnderlyingType>(_bitMask) & static_cast<UnderlyingType>(_flag)) != 0; \
+    }

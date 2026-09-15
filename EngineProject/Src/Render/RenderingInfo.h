@@ -35,9 +35,9 @@ struct FClearValue
 	uint8 stencilClearValue = 0;
 };
 
-struct FRenderTargetDesc
+struct FRenderingDesc
 {
-	UTexture2D* Texture;
+	FTexture2D* Texture = nullptr;
 	ERenderTargetLoadOp  LoadOp = ERenderTargetLoadOp::Clear;
 	ERenderTargetStoreOp storeOp = ERenderTargetStoreOp::Store;
 	FClearValue ClearValue = FClearValue();
@@ -47,6 +47,6 @@ struct FRenderingInfo
 {
 	FViewportSettings ViewportSetting;
 
-	TArray<FRenderTargetDesc> ColorRenderTargets;
-	FRenderTargetDesc DepthSteincil;
+	TArray<FRenderingDesc> ColorRenderTargets;
+	FRenderingDesc DepthSteincil;
 };

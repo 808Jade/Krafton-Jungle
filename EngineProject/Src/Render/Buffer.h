@@ -3,8 +3,8 @@
 class FBuffer
 {
 public:
-	FBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc);
-	virtual ~FBuffer() = default ;
+	FBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, const void* InitialData = nullptr);
+	virtual ~FBuffer() = default;
 
 	inline uint32 GetBufferSize() const { return BufferSize; }
 	inline ID3D11Buffer* GetBuffer() const { return Buffer.Get(); }
@@ -19,9 +19,9 @@ class FVertexBuffer : public FBuffer
 {
 public:
 	//static
-	FVertexBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 InStride);
+	FVertexBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 InStride, const void* InitialData = nullptr);
 	~FVertexBuffer() override = default;
-	 
+
 	inline uint32 GetStride() const { return Stride; }
 private:
 	uint32 Stride = 0;
@@ -31,7 +31,7 @@ private:
 class FIndexBuffer : public FBuffer
 {
 public:
-	FIndexBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 Count);
+	FIndexBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 Count, const void* InitialData = nullptr);
 	~FIndexBuffer() override = default;
 
 	inline uint32 GetIndexCount() const { return IndexCount; }
@@ -45,7 +45,7 @@ class FConstantBuffer : public FBuffer
 {
 public:
 	FConstantBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc);
-	~FConstantBuffer() override  = default;
+	~FConstantBuffer() override = default;
 
 private:
 

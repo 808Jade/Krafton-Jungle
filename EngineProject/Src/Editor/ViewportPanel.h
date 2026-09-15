@@ -27,11 +27,11 @@ public:
 	}
 private:
 	bool bIsHovered = false;;
-	ImVec2 ViewportSize;
+	ImVec2 ViewportSize = ImVec2{ 1,1 };
 	ImVec2 ViewportPos;
 	float AspectRatio = 0.0f;
 	FRenderingInfo RenderingInfo{};
-	UTexture2D* ViewportFramebuffer;
-	UTexture2D* DepthStencilBuffer;
+	TUniquePtr<FTexture2D> ViewportFramebuffer;
+	TUniquePtr<FTexture2D> DepthStencilBuffer;
 };
 

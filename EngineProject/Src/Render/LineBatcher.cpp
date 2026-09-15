@@ -1,6 +1,8 @@
-#include "LineBatcher.h"
 #include "EnginePCH.h"
+#include "LineBatcher.h"
 #include "Component/PrimitiveComponent.h"
+
+#include "RenderCommand.h"
 
 FLineBatcher::~FLineBatcher()
 {
@@ -12,14 +14,14 @@ bool FLineBatcher::Init(FRenderer* InRenderer, UWorld* InWorld)
 	Renderer = InRenderer;
 	World = InWorld;
 
-	LineShader = Renderer->CreateShader(L"Shader/BoundingBoxShader.hlsl", FVertex::GetLayout());
+	LineShader = RenderCommand::CreateShader(L"Shader/BoundingBoxShader.hlsl", FVertex::GetLayout());
 
 	MaxVertices = 65536;
 	VertexBufferBase = new FVertex[MaxVertices];
 
-	VertexBuffer = Renderer->CreateDynamicVertexBuffer(sizeof(FVertex) * MaxVertices, sizeof(FVertex));
+	VertexBuffer = RenderCommand::CreateDynamicVertexBuffer(sizeof(FVertex) * MaxVertices, sizeof(FVertex));
 
-	CB = Renderer->CreateConstantBuffer(sizeof(FMatrix));
+	CB = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
 
 	return true;
 }
@@ -85,21 +87,21 @@ void FLineBatcher::AddPath(const TArray<FVector>& Points, const FVector4& Color)
 }
 void FLineBatcher::Flush()
 {
-	Renderer->BindShader(LineShader.get());
-	Renderer->BindVertexBuffer(VertexBuffer.get());
-	Renderer->BindConstantBuffer(0, CB.get(), Vertex);
+	RenderCommand::BindShader(LineShader.get());
+	RenderCommand::BindVertexBuffer(VertexBuffer.get());
+	RenderCommand::BindConstantBuffer(0, CB.get(), EShaderBindFlagBits::Vertex);
 
-	Renderer->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-	Renderer->Draw(VertexCount, 0);
+	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+	RenderCommand::Draw(VertexCount, 0);
 }
 
 void FLineBatcher::OnRender(const FMatrix& ViewProjection)
 {
-	BuildVertexBuffer();
+	//BuildVertexBuffer();
 
 	FMatrix VP = ViewProjection.GetTransposed();
-	Renderer->UpdateVertexBufferData(VertexBuffer.get(), VertexBufferBase, sizeof(FVertex) * VertexCount);
-	Renderer->UpdateConstantBufferData(CB.get(), &VP, sizeof(FMatrix));
+	RenderCommand::UpdateBufferData(VertexBuffer.get(), VertexBufferBase, sizeof(FVertex) * VertexCount);
+	RenderCommand::UpdateBufferData(CB.get(), &VP, sizeof(FMatrix));
 
 	Flush();
 }
