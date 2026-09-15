@@ -29,7 +29,7 @@ public:
 	void ApplyPrimitiveType(EPrimitiveType Type);
 
 	void SetMeshData(const FStaticMeshData& data) { MeshData = data; }
-	void SetMeshShader(UStaticMesh* InMesh, FShader* InShader) { Mesh = InMesh; Shader = InShader; }
+	//void SetMeshShader(UStaticMesh* InMesh, FShader* InShader) { Mesh = InMesh; Shader = InShader; }
 	
 	// Todo: subuv
 	//void SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue);
@@ -38,14 +38,14 @@ public:
 	FStaticMeshData GetMeshData() const { return MeshData; }
 	void SetMesh(UStaticMesh* InMesh);
 	UStaticMesh* GetMesh() const { return Mesh; };
-	FShader* GetShader() const { return Shader; };
+	FShader* GetShader() const { return Shader.get(); };
 
 	EPrimitiveType GetType() const { return Type; }
 	void SetType(EPrimitiveType Ptype) { Type = Ptype; }
 
 protected:
 	EPrimitiveType Type = EPrimitiveType::Cube;
-	FShader* Shader = nullptr;
+	TUniquePtr<FShader> Shader = nullptr;
 	UStaticMesh* Mesh = nullptr;
 	FStaticMeshData MeshData;
 };

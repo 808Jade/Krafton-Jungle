@@ -47,7 +47,7 @@ void FTextRenderer::Init(FRenderer* InRenderer, uint32 InMaxCharacters)
 	MVP = RenderCommand::CreateConstantBuffer(sizeof(TextTransformData));
 	ScreenPx = RenderCommand::CreateConstantBuffer(sizeof(MSDFData));
 
-	TextShader = RenderCommand::CreateShader(L"Shader/TextShader.hlsl", FTextVertex::GetLayout());
+	TextShader = RenderCommand::CreateShader(L"Assets/Shader/TextShader.hlsl", FTextVertex::GetLayout());
 }
 
 void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFontAtlas& Atlas,

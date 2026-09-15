@@ -84,6 +84,9 @@
     <ClInclude Include="Src\Component\ActorComponent.h">
       <Filter>Src\Component</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Component\BillboardComponent.h">
+      <Filter>Src\Component</Filter>
+    </ClInclude>
     <ClInclude Include="Src\Component\ParticleSubUVComponent.h">
       <Filter>Src\Component</Filter>
     </ClInclude>
@@ -91,6 +94,9 @@
       <Filter>Src\Component</Filter>
     </ClInclude>
     <ClInclude Include="Src\Component\SceneComponent.h">
+      <Filter>Src\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Component\TextRenderComponent.h">
       <Filter>Src\Component</Filter>
     </ClInclude>
     <ClInclude Include="Src\Container\Array.h">
@@ -131,6 +137,9 @@
     </ClInclude>
     <ClInclude Include="Src\Core\Window.h">
       <Filter>Src\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Editor\AssetBrowserPanel.h">
+      <Filter>Src\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Src\Editor\ConfigPanel.h">
       <Filter>Src\Editor</Filter>
@@ -267,6 +276,9 @@
     <ClInclude Include="Src\Render\Mesh.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Render\PipelineState.h">
+      <Filter>Src\Render</Filter>
+    </ClInclude>
     <ClInclude Include="Src\Render\RenderCommand.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
@@ -274,6 +286,9 @@
       <Filter>Src\Render</Filter>
     </ClInclude>
     <ClInclude Include="Src\Render\RenderPacket.h">
+      <Filter>Src\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Render\RenderStates.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
     <ClInclude Include="Src\Render\Renderer.h">
@@ -339,6 +354,7 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h">
       <Filter>ThirdParty\stb</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Render\Material.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Asset\AssetManager.cpp">
@@ -365,6 +381,9 @@
     <ClCompile Include="Src\Component\SceneComponent.cpp">
       <Filter>Src\Component</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Component\TextRenderComponent.cpp">
+      <Filter>Src\Component</Filter>
+    </ClCompile>
     <ClCompile Include="Src\Core\EngineTimer.cpp">
       <Filter>Src\Core</Filter>
     </ClCompile>
@@ -373,6 +392,9 @@
     </ClCompile>
     <ClCompile Include="Src\Core\Window.cpp">
       <Filter>Src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Editor\AssetBrowserPanel.cpp">
+      <Filter>Src\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Src\Editor\ConfigPanel.cpp">
       <Filter>Src\Editor</Filter>
@@ -530,5 +552,6 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Render\PipelineState.cpp" />
   </ItemGroup>
 </Project>
