@@ -24,58 +24,7 @@ bool FPathTracker::IsEnabled() const
 
 void FPathTracker::Tick(const TArray<AActor*>& ActorList, float DeltaTime)
 {
-    // 재생 모드
-    if (bIsPlayingBack)
-    {
-        PlaybackTime += DeltaTime;
-
-        float FloatIndex = PlaybackTime / RecordInterval;
-        int32 IndexA = static_cast<int32>(FloatIndex);
-        int32 IndexB = IndexA + 1;
-        float Alpha = FloatIndex - IndexA;
-
-        bool bAllFinished = true;
-        for (auto& Pair : ObjectPaths)
-        {
-            AActor* Actor = Pair.first;
-            const TArray<FVector>& Path = Pair.second;
-
-            if (!Actor || Path.Num() == 0)
-            {
-                continue;
-            }
-
-            if (IndexA >= Path.Num() - 1)
-            {
-                Actor->GetRootComponent()->SetRelativeLocation(Path.Last());
-                continue;
-            }
-
-            bAllFinished = false;
-
-            FVector PosA = Path[IndexA];
-            FVector PosB = Path[IndexB];
-            FVector CurrentPos;
-            CurrentPos.X = PosA.X + (PosB.X - PosA.X) * Alpha;
-            CurrentPos.Y = PosA.Y + (PosB.Y - PosA.Y) * Alpha;
-            CurrentPos.Z = PosA.Z + (PosB.Z - PosA.Z) * Alpha;
-
-            Actor->GetRootComponent()->SetRelativeLocation(CurrentPos);
-        }
-
-        if (bAllFinished)
-        {
-            SetPlaybackEnabled(false);
-        }
-
-        return;
-    }
-
-    // 녹화모드
-    if (!bIsPathRenderingEnabled)
-    {
-        return;
-    }
+    if (!bIsPathRenderingEnabled) return;
 
     TimeSinceLastRecord += DeltaTime;
     if (TimeSinceLastRecord >= RecordInterval)
@@ -123,14 +72,4 @@ void FPathTracker::OnRender(FLineBatcher* LineBatcher)
 void FPathTracker::OnObjectDestroyed(AActor* InActor)
 {
     ObjectPaths.erase(InActor);
-}
-
-void FPathTracker::SetPlaybackEnabled(bool bEnable)
-{
-    bIsPlayingBack = bEnable;
-    if (bIsPlayingBack)
-    {
-        bIsPathRenderingEnabled = false;
-        PlaybackTime = 0.0f;
-    }
 }
