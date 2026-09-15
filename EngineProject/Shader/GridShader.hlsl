@@ -88,7 +88,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
         
         float4 color = float4(0.0, 0.0, 1.0, 0.0);
         
-        color = lerp(color, float4(0.0, 0.0, 1.0, 0.5), alphaAxisZ);
+        color = lerp(color, AxisZColor, alphaAxisZ);
         
         color.a *= falloffZ;
         

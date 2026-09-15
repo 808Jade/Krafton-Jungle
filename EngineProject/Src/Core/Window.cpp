@@ -1,6 +1,7 @@
 #include "EnginePCH.h"
 
 #include "Window.h"
+#include "../resource.h"
 #include "Input/InputSystem.h"
 
 #include <backends/imgui_impl_win32.h>
@@ -44,6 +45,7 @@ bool FWindow::Create(HINSTANCE hInstance, int InWidth, int InHeight, const wchar
 	wc.lpfnWndProc = WndProc;
 	wc.hInstance = hInstance;
 	wc.lpszClassName = CLASS_NAME;
+	wc.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON2));
 	RegisterClass(&wc);
 
 	DWORD style = WS_OVERLAPPEDWINDOW;

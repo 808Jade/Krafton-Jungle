@@ -39,7 +39,7 @@ bool Engine::Init(HINSTANCE hInstance)
 	FWindowContext MainWindowCtx;
 	LOG(Info, "Create Main Window...");
 	MainWindowCtx.Window = MakeUnique<FWindow>();
-	if (!MainWindowCtx.Window->Create(hInstance, 1920, 1080, L"Engine"))
+	if (!MainWindowCtx.Window->Create(hInstance, 1920, 1080, L"Hitori Engine"))
 	{
 		LOG(Error, "Failed To Create Main Window!");
 		return false;

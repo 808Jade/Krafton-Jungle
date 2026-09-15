@@ -6,6 +6,7 @@ class FPathTracker
 {
 public:
     void SetPathRenderingEnabled(bool bEnable);
+    void ClearPath();
 
     bool IsEnabled() const;
 
@@ -16,7 +17,7 @@ public:
     void OnObjectDestroyed(AActor* InActor);
 
 private:
-    bool bIsPathRenderingEnabled = true;
+    bool bIsPathRenderingEnabled = false;
     float RecordInterval = 0.01f;
     float TimeSinceLastRecord = 0.0f;
 

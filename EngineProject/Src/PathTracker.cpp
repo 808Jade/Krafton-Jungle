@@ -8,9 +8,14 @@ void FPathTracker::SetPathRenderingEnabled(bool bEnable)
 
     if (!bIsPathRenderingEnabled)
     {
-        ObjectPaths.clear();
+        //ObjectPaths.clear();
         TimeSinceLastRecord = 0.0f;
     }
+}
+
+void FPathTracker::ClearPath()
+{
+    ObjectPaths.clear();
 }
 
 bool FPathTracker::IsEnabled() const
@@ -28,12 +33,11 @@ void FPathTracker::Tick(const TArray<AActor*>& ActorList, float DeltaTime)
         TimeSinceLastRecord = 0.0f;
 
         // 모든 오브젝트를 순회하며 현재 위치를 기록
-        for (AActor* Obj : ActorList)
+        for (AActor* Actor : ActorList)
         {
-            if (Obj)
+            if (Actor)
             {
-                // 맵에 오브젝트가 없으면 자동으로 생성되고 위치가 추가됨
-                ObjectPaths[Obj].Add(Obj->GetActorLocation());
+                ObjectPaths[Actor].Add(Actor->GetActorLocation());
             }
         }
     }
