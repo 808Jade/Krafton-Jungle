@@ -15,6 +15,22 @@ namespace VectorSIMD
 	inline FVectorRegister Load(const float* Ptr) { return _mm_loadu_ps(Ptr); }
 	inline void Store(float* Ptr, FVectorRegister V) { _mm_storeu_ps(Ptr, V); }
 
+
+	inline FVectorRegister LoadFloat3(const float* Ptr)
+	{
+		return _mm_set_ps(0.0f, Ptr[2], Ptr[1], Ptr[0]);
+	}
+
+	inline void StoreFloat3(float* Ptr, FVectorRegister V)
+	{
+		alignas(16) float Temp[4];
+		_mm_store_ps(Temp, V);
+
+		Ptr[0] = Temp[0];
+		Ptr[1] = Temp[1];
+		Ptr[2] = Temp[2];
+	}
+
 	inline FVectorRegister LoadAligned(const float* Ptr) { return _mm_load_ps(Ptr); }
 	inline void StoreAligned(float* Ptr, FVectorRegister V) { _mm_store_ps(Ptr, V); }
 

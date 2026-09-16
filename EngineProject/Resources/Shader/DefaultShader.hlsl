@@ -18,12 +18,14 @@ struct PS_INPUT
 	float4 color : COLOR;
 };
 
+Texture2D Texture : register(t0);
+SamplerState Sampler : register(s0);
+
 PS_INPUT mainVS(VS_INPUT input)
 {
 	PS_INPUT output;
     
     output.position = mul(float4(input.position, 1.0f), MVP);
-    //output.position = float4(input.position, 1.0f);
     output.color = float4(input.position, 1.0f);
     output.uv = input.uv;
 	return output;
@@ -31,5 +33,7 @@ PS_INPUT mainVS(VS_INPUT input)
 
 float4 mainPS(PS_INPUT input) : SV_TARGET
 {
-    return input.color + float4(0.5f, 0.5f, 0.5f, 0.0f);
+    float4 color = Texture.Sample(Sampler, input.uv);
+    
+    return color;
 }

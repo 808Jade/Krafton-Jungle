@@ -16,6 +16,9 @@ public: \
 #define PROPERTY(PropertyName) \
     InClass->AddProperty<decltype(ThisClass::PropertyName)>(#PropertyName, offsetof(ThisClass, PropertyName));
 
+#define PROPERTY_TYPE(PropertyName, PropertyType) \
+    InClass->AddProperty<decltype(ThisClass::PropertyName)>(#PropertyName, offsetof(ThisClass, PropertyName), EPropertyType::##PropertyType);
+
 #define REFLECT_END()\
 	};\
 private:

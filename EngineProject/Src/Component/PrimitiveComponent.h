@@ -23,7 +23,8 @@ class UPrimitiveComponent :public USceneComponent
 	DECLARE_CLASS(UPrimitiveComponent, USceneComponent)
 
 	REFLECT_START(ClassName)
-		REFLECT_END()
+	PROPERTY(Material)
+	REFLECT_END()
 public:
 	virtual void BeginPlay() override;
 
@@ -36,7 +37,7 @@ public:
 	inline void SetMeshData(const FStaticMeshData& data) { MeshData = data; }
 	inline FStaticMeshData GetMeshData() const { return MeshData; }
 
-	inline void SetMesh(UStaticMesh* InMesh) {Mesh = InMesh;}
+	inline void SetMesh(UStaticMesh* InMesh) { Mesh = InMesh; }
 	inline UStaticMesh* GetMesh() const { return Mesh; };
 
 	inline void SetMaterial(UMaterial* InMaterial) { Material = InMaterial; }

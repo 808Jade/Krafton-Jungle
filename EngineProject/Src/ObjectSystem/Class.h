@@ -33,6 +33,12 @@ public:
 	{
 		Properties.Add({ InName, GetPropertyType<T>(), InOffset, sizeof(T) });
 	}
+
+	template <typename T>
+	void AddProperty(const FString& InName, uint64 InOffset, EPropertyType InType)
+	{
+		Properties.Add({ InName, InType, InOffset, sizeof(T) });
+	}
 };
 
 //보류

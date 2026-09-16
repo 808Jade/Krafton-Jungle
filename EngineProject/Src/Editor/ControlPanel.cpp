@@ -4,6 +4,7 @@
 #include "../Camera/CameraComponent.h"
 
 #include "GameFramework/Actor/StaticMeshActor.h"
+#include "GameFramework/Actor/LightActor.h"
 #include "GameFramework/Actor/TextRenderActor.h"
 #include "Asset/AssetManager.h"
 
@@ -112,6 +113,15 @@ void FControlPanel::OnRender()
 		// Set atlas image settings
 		UTextRenderComponent* Particle = TextRenderActor->GetTextRenderComponent();
 		Particle->ApplyPrimitiveType(EPrimitiveType::Plane);
+	}
+
+	if (ImGui::Button("Spawn Light Actor"))
+	{
+		FTransform Transform;
+		Transform.Location = FVector(0.0f, 0.0f, 3.0f);
+
+		ALightActor* LightActor = World->SpawnActor<ALightActor>("SpotLight", &Transform);
+		assert(LightActor != nullptr);
 	}
 
 	ImGui::Separator();

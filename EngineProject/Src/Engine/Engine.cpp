@@ -15,6 +15,7 @@
 
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/Actor/LightActor.h"
 
 #include "Asset/AssetManager.h"
 #include "Render/RenderResourceManager.h"
@@ -86,7 +87,7 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	Outline = MakeUnique<FOutline>();
 
-	Atlas = UAssetManager::Get().LoadFontAtlas("Assets/Fonts/atlas.json", "Assets/Fonts/atlas.png");
+	Atlas = UAssetManager::GetAssetByPath<UFont>("Assets/Fonts/NanumWild.json");
 
 	TextRenderer = MakeUnique<FTextRenderer>();
 	TextRenderer->Init(Renderer.get());
@@ -196,16 +197,28 @@ void Engine::UpdateGizmoAndPicking(FMatrix& ViewProj)
 void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 {
 	RenderCommand::BeginRenderPass(ViewportPanel->GetViewportRenderingInfo());
-
 	if (ConfigPanel->GetSettings().bDrawBatchLine)
 	{
+		// 라인 배처는 매 프레임 한 번만 비우고 한 번만 그린다.
+		// 바운딩박스는 그 안에 쌓이는 여러 항목 중 하나일 뿐이다.
+		LineBatcher->BeginFrame();
+
 		if (ConfigPanel->GetSettings().bDrawBoundingBox)
 		{
-			LineBatcher->BeginFrame();
 			LineBatcher->BuildVertexBuffer();
 			World->GetPathTracker().OnRender(LineBatcher.get());
-			LineBatcher->OnRender(ViewProj);
 		}
+
+		// 선택된 액터가 라이트면 원뿔을 같이 쌓는다
+		if (Gizmo->GetTarget())
+		{
+			if (ALightActor* LightActor = Cast<ALightActor>(Gizmo->GetTarget()->GetOwner()))
+			{
+				LightActor->GetSpotLightComponent()->DrawDebug(LineBatcher.get());
+			}
+		}
+
+		LineBatcher->OnRender(ViewProj);
 
 		if (ConfigPanel->GetSettings().bDrawPSGrid)
 		{
@@ -259,7 +272,7 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 	FVector4 CamLoc =
 		World->GetMainCamera()->GetCameraComponent()->GetWorldLocation();
 
-	if (Outline->GetTarget())
+	if (Outline->GetTarget() && Cast<UPrimitiveComponent>(Outline->GetTarget())->IsVisible())
 	{
 		OutlineRenderer->OnRender(*Outline, ViewProj, CamLoc);
 	}
@@ -295,7 +308,6 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 			);
 		}
 	}
-
 
 	RenderCommand::EndRenderPass(ViewportPanel->GetViewportRenderingInfo());
 

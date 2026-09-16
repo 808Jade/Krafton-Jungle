@@ -98,7 +98,7 @@ FQuat FQuat::Normalized() const
 FVector FQuat::RotateVector(const FVector& V) const
 {
 	FQuatRegister Q = VectorSIMD::Load(this->V);
-	FVectorRegister Vec = VectorSIMD::Load(V.V);
+	FVectorRegister Vec = VectorSIMD::LoadFloat3(V.V);
 
 	// Q.xyz
 	FVectorRegister Qv = Qv = VectorSIMD::SetWZero(Q);
@@ -113,7 +113,7 @@ FVector FQuat::RotateVector(const FVector& V) const
 	Result = VectorSIMD::Add( Result, VectorSIMD::Cross3(Qv, T));
 
 	FVector Out;
-	VectorSIMD::Store(Out.V, Result);
+	VectorSIMD::StoreFloat3(Out.V, Result);
 
 	return Out;
 }

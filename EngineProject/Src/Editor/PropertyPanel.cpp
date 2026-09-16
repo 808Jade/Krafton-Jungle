@@ -2,6 +2,11 @@
 #include "PropertyPanel.h"
 
 #include "imgui_internal.h"
+#include "EditorDragDrop.h"
+#include "Component/PrimitiveComponent.h"
+#include "Render/Material.h"
+#include "Render/Texture2D.h"
+#include "Text/Font.h"
 
 namespace
 {
@@ -87,6 +92,119 @@ namespace
 		return isVectorChanged;
 	}
 
+	void DrawTextureSlot(UMaterial** MaterialPtr, int32 SlotIndex)
+	{
+		const float ThumbnailSize = 64.0f;
+
+		UMaterial* Material = *MaterialPtr;
+		UTexture2D* Texture = nullptr;
+		if (SlotIndex < static_cast<int32>(Material->Textures.Num()))
+		{
+			Texture = Material->Textures[SlotIndex];
+		}
+
+		ImGui::PushID(SlotIndex);
+
+		if (Texture && Texture->GetResource())
+		{
+			ImGui::Image(
+				(ImTextureID)Texture->GetResource()->GetSRV(),
+				{ ThumbnailSize, ThumbnailSize });
+		}
+		else
+		{
+			ImGui::Button("Empty", { ThumbnailSize, ThumbnailSize });
+		}
+
+		// 바로 위 위젯이 드롭을 받는다
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* Payload = ImGui::AcceptDragDropPayload(EditorDragDrop::Texture))
+			{
+				UTexture2D* DroppedTexture = *static_cast<UTexture2D**>(Payload->Data);
+
+				// 공유 에셋이면 지금 복제한다.
+				// 이 시점까지 미루면 손대지 않은 오브젝트는 계속 공유 에셋을 쓴다.
+				if (Material->bIsInstance == false)
+				{
+					Material = UMaterial::CreateInstance(Material);
+					*MaterialPtr = Material;
+				}
+
+				// 슬롯이 배열 범위 밖이면 그 자리까지 늘려 준다
+				while (static_cast<int32>(Material->Textures.Num()) <= SlotIndex)
+				{
+					Material->Textures.Add(nullptr);
+				}
+
+				Material->Textures[SlotIndex] = DroppedTexture;
+				Texture = DroppedTexture;
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		ImGui::SameLine();
+
+		ImGui::BeginGroup();
+		ImGui::Text("Slot %d", SlotIndex);
+
+		if (Texture)
+		{
+			ImGui::TextWrapped("%s", Texture->GetPath().c_str());
+		}
+		else
+		{
+			ImGui::TextDisabled("(비어 있음)");
+		}
+		ImGui::EndGroup();
+
+		ImGui::PopID();
+	}
+
+	void DrawFontSlot(UFont** FontPtr)
+	{
+		const float ThumbnailSize = 64.0f;
+
+		UFont* Font = *FontPtr;
+
+		if (Font && Font->AtlasTexture && Font->AtlasTexture->GetResource())
+		{
+			ImGui::Image(
+				(ImTextureID)Font->AtlasTexture->GetResource()->GetSRV(),
+				{ ThumbnailSize, ThumbnailSize });
+		}
+		else
+		{
+			ImGui::Button("Empty", { ThumbnailSize, ThumbnailSize });
+		}
+
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const ImGuiPayload* Payload = ImGui::AcceptDragDropPayload(EditorDragDrop::Font))
+			{
+				*FontPtr = *static_cast<UFont**>(Payload->Data);
+				Font = *FontPtr;
+			}
+
+			ImGui::EndDragDropTarget();
+		}
+
+		ImGui::SameLine();
+
+		ImGui::BeginGroup();
+		if (Font)
+		{
+			ImGui::TextWrapped("%s", Font->GetPath().c_str());
+		}
+		else
+		{
+			ImGui::TextDisabled("(비어 있음)");
+		}
+		ImGui::EndGroup();
+	}
+
+
 	// UClass에 등록된 프로퍼티를 타입에 맞는 위젯으로 그린다
 	void DrawProperty(UObject* Object, const FProperty& Property, ImFont* CustomFont)
 	{
@@ -118,6 +236,21 @@ namespace
 			break;
 		}
 
+		case EPropertyType::Vector4:
+		{
+			FVector4* Value = static_cast<FVector4*>(ValuePtr);
+			ImGui::DragFloat4(Label.c_str(), &Value->X, 0.1f);
+			break;
+		}
+
+		case EPropertyType::Color:
+		{
+			// 타입은 Vector4와 같고 위젯만 색상 선택기다
+			FVector4* Value = static_cast<FVector4*>(ValuePtr);
+			ImGui::ColorEdit4(Label.c_str(), &Value->X);
+			break;
+		}
+
 		case EPropertyType::String:
 		{
 			FString* Value = static_cast<FString*>(ValuePtr);
@@ -133,12 +266,34 @@ namespace
 			break;
 		}
 
+		case EPropertyType::Material:
+		{
+			// ValuePtr은 UMaterial* 자체의 주소다.
+			// 드롭이 일어나면 DrawTextureSlot이 여기에 복제본 포인터를 써넣는다.
+			UMaterial** MaterialPtr = static_cast<UMaterial**>(ValuePtr);
+			if (*MaterialPtr == nullptr)
+			{
+				ImGui::TextDisabled("(머티리얼 없음)");
+				break;
+			}
+
+			// Textures 배열을 순회하지 않고 슬롯 0을 고정으로 그린다.
+			// 배열이 비어 있어도 드롭할 자리가 있어야 하기 때문.
+			DrawTextureSlot(MaterialPtr, 0);
+			break;
+		}
+
+		case EPropertyType::Font:
+		{
+			DrawFontSlot(static_cast<UFont**>(ValuePtr));
+			break;
+		}
+
 		default:
 			ImGui::TextDisabled("(Unsupported)");
 			break;
 		}
 	}
-
 	// 클래스 계층을 따라 올라가며 각 단계의 프로퍼티를 표시
 	void DrawProperties(UObject* Object, ImFont* CustomFont)
 	{
@@ -219,7 +374,22 @@ void FPropertyPanel::OnRender()
 
 		// 액터 -> 컴포넌트 순으로, 클래스별 프로퍼티 표시
 		DrawProperties(Target->GetOwner(), CustomFont);
-		DrawProperties(Target, CustomFont);
+		// 선택된 컴포넌트뿐 아니라 같은 액터의 다른 컴포넌트도 보여준다.
+		// (예: 라이트는 빌보드를 클릭해서 고르지만 수치는 SpotLight 쪽에 있다)
+		if (AActor* Owner = Target->GetOwner())
+		{
+			for (UActorComponent* Component : Owner->GetComponents())
+			{
+				// 같은 클래스를 상속한 컴포넌트가 여럿이면 헤더 ID가 겹치므로 분리한다
+				ImGui::PushID(Component);
+				DrawProperties(Component, CustomFont);
+				ImGui::PopID();
+			}
+		}
+		else
+		{
+			DrawProperties(Target, CustomFont);
+		}
 	}
 
 	ImGui::End();

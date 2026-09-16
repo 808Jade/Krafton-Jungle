@@ -3,7 +3,10 @@
 #include "Core/EngineString.h"
 #include "Math/EngineMath.h"
 
-enum class EPropertyType { Unknown, Float, Int, String, Bool, Vector,  };
+class UMaterial;
+class UFont;
+
+enum class EPropertyType { Unknown, Float, Int, String, Bool, Vector, Vector4, Color, Material, Font };
 
 template <typename T>
 constexpr EPropertyType GetPropertyType()
@@ -22,6 +25,9 @@ DEFINE_PROPERTY_TYPE(float, Float)
 DEFINE_PROPERTY_TYPE(bool, Bool)
 DEFINE_PROPERTY_TYPE(FString, String)
 DEFINE_PROPERTY_TYPE(FVector, Vector)
+DEFINE_PROPERTY_TYPE(FVector4, Vector4)
+DEFINE_PROPERTY_TYPE(UMaterial*, Material)
+DEFINE_PROPERTY_TYPE(UFont*, Font)
 
 struct FProperty
 {

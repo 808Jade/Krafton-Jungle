@@ -10,6 +10,7 @@ class UTextRenderComponent : public UPrimitiveComponent
 	REFLECT_START(ClassName)
 		PROPERTY(Text)
 		PROPERTY(TextSize)
+		PROPERTY(Font)
 	REFLECT_END()
 
 public:

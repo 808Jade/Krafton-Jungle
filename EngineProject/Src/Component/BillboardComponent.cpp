@@ -15,6 +15,9 @@ UBillboardComponent::~UBillboardComponent()
 void UBillboardComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Mesh = UAssetManager::GetAssetByPath<UStaticMesh>("ParticleQuad");
+	Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");
 }
 
 void UBillboardComponent::TickComponent(float DeltaTime)
@@ -24,10 +27,18 @@ void UBillboardComponent::TickComponent(float DeltaTime)
 
 void UBillboardComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue)
 {
+	// 렌더러가 역참조하므로 둘 중 하나라도 없으면 보내지 않는다
+	if (Mesh == nullptr || Material == nullptr)
+	{
+		return;
+	}
+
 	FRenderPacket rp;
 	rp.mesh = Mesh;
 	rp.material = Material;
-	rp.model = GetWorldMatrix();
+
+	// 항상 카메라를 향하도록 빌보드 기저로 만든 행렬을 쓴다
+	GetWorldTransformedMatrix(&rp.model);
 
 	RenderQueue.Enqueue(rp);
 }

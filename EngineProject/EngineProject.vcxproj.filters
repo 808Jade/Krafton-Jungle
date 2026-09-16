@@ -46,6 +46,9 @@
     <Filter Include="Src\Render">
       <UniqueIdentifier>{DC7094AA-C828-D6F7-3130-AF531D0771E8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Src\Serialization">
+      <UniqueIdentifier>{5A4EA825-C664-A6BB-0FDC-31DD7B317743}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Src\Text">
       <UniqueIdentifier>{4160EB46-2D2D-4652-5646-34FA42727BE0}</UniqueIdentifier>
     </Filter>
@@ -96,6 +99,9 @@
     <ClInclude Include="Src\Component\SceneComponent.h">
       <Filter>Src\Component</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Component\SpotLightComponent.h">
+      <Filter>Src\Component</Filter>
+    </ClInclude>
     <ClInclude Include="Src\Component\TextRenderComponent.h">
       <Filter>Src\Component</Filter>
     </ClInclude>
@@ -132,6 +138,9 @@
     <ClInclude Include="Src\Core\EngineTimer.h">
       <Filter>Src\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Core\NamePool.h">
+      <Filter>Src\Core</Filter>
+    </ClInclude>
     <ClInclude Include="Src\Core\NameTypes.h">
       <Filter>Src\Core</Filter>
     </ClInclude>
@@ -151,6 +160,12 @@
       <Filter>Src\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Src\Editor\ControlPanel.h">
+      <Filter>Src\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Editor\EditorDragDrop.h">
+      <Filter>Src\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Editor\EditorFileUtils.h">
       <Filter>Src\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Src\Editor\EditorPanel.h">
@@ -201,13 +216,16 @@
     <ClInclude Include="Src\GameFramework\Actor\BillboardActor.h">
       <Filter>Src\GameFramework\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="Src\GameFramework\Actor\TextRenderActor.h">
+    <ClInclude Include="Src\GameFramework\Actor\LightActor.h">
       <Filter>Src\GameFramework\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Src\GameFramework\Actor\ParticleActor.h">
       <Filter>Src\GameFramework\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Src\GameFramework\Actor\StaticMeshActor.h">
+      <Filter>Src\GameFramework\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\GameFramework\Actor\TextRenderActor.h">
       <Filter>Src\GameFramework\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Src\ImGuiRenderer.h">
@@ -303,6 +321,9 @@
     <ClInclude Include="Src\Render\RenderPacket.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Render\RenderResourceManager.h">
+      <Filter>Src\Render</Filter>
+    </ClInclude>
     <ClInclude Include="Src\Render\RenderStates.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
@@ -326,6 +347,9 @@
     </ClInclude>
     <ClInclude Include="Src\Render\Vertex.h">
       <Filter>Src\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Serialization\JsonArchive.h">
+      <Filter>Src\Serialization</Filter>
     </ClInclude>
     <ClInclude Include="Src\Text\Font.h">
       <Filter>Src\Text</Filter>
@@ -366,7 +390,6 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h">
       <Filter>ThirdParty\stb</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Render\RenderResourceManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Asset\AssetManager.cpp">
@@ -396,13 +419,19 @@
     <ClCompile Include="Src\Component\SceneComponent.cpp">
       <Filter>Src\Component</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Component\SpotLightComponent.cpp">
+      <Filter>Src\Component</Filter>
+    </ClCompile>
     <ClCompile Include="Src\Component\TextRenderComponent.cpp">
       <Filter>Src\Component</Filter>
     </ClCompile>
     <ClCompile Include="Src\Core\EngineTimer.cpp">
       <Filter>Src\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Core\UnrealNames.cpp">
+    <ClCompile Include="Src\Core\NamePool.cpp">
+      <Filter>Src\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Core\NameTypes.cpp">
       <Filter>Src\Core</Filter>
     </ClCompile>
     <ClCompile Include="Src\Core\Window.cpp">
@@ -418,6 +447,9 @@
       <Filter>Src\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Src\Editor\ControlPanel.cpp">
+      <Filter>Src\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Editor\EditorFileUtils.cpp">
       <Filter>Src\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Src\Editor\EditorUI.cpp">
@@ -462,13 +494,16 @@
     <ClCompile Include="Src\GameFramework\Actor\BillboardActor.cpp">
       <Filter>Src\GameFramework\Actor</Filter>
     </ClCompile>
-    <ClCompile Include="Src\GameFramework\Actor\TextRenderActor.cpp">
+    <ClCompile Include="Src\GameFramework\Actor\LightActor.cpp">
       <Filter>Src\GameFramework\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Src\GameFramework\Actor\ParticleActor.cpp">
       <Filter>Src\GameFramework\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Src\GameFramework\Actor\StaticMeshActor.cpp">
+      <Filter>Src\GameFramework\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameFramework\Actor\TextRenderActor.cpp">
       <Filter>Src\GameFramework\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Src\ImGuiRenderer.cpp">
@@ -534,6 +569,9 @@
     <ClCompile Include="Src\Render\RenderDevice.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Render\RenderResourceManager.cpp">
+      <Filter>Src\Render</Filter>
+    </ClCompile>
     <ClCompile Include="Src\Render\Renderer.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
@@ -548,6 +586,9 @@
     </ClCompile>
     <ClCompile Include="Src\Render\Vertex.cpp">
       <Filter>Src\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Serialization\JsonArchive.cpp">
+      <Filter>Src\Serialization</Filter>
     </ClCompile>
     <ClCompile Include="Src\Text\Font.cpp">
       <Filter>Src\Text</Filter>
@@ -579,6 +620,5 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Render\RenderResourceManager.cpp" />
   </ItemGroup>
 </Project>

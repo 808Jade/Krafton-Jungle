@@ -31,6 +31,7 @@ public:
 	void LoadAsset(const FString& Key, const FString& Path);
 
 	void Init();
+	void CreateDefaultTextures();
 	void CreateDefaultMeshes();
 	void CreateDefaultMaterials();
 	void Shutdown();

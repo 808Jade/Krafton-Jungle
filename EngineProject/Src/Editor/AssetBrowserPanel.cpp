@@ -1,6 +1,8 @@
 #include "EnginePCH.h"
 #include "AssetBrowserPanel.h"
 #include "Asset/AssetManager.h"
+#include "Text/Font.h"
+#include "EditorDragDrop.h"
 
 bool FAssetBrowserPanel::Init()
 {
@@ -62,8 +64,12 @@ void FAssetBrowserPanel::OnRender()
 				std::string FilenameString = Path.filename().string();
 
 				ImGui::PushID(PathString.c_str()); // 각 위젯에 고유 ID 부여
-
 				UTexture2D* Thumbnail = nullptr;
+
+				// 실제 에셋일 때만 채워진다.
+				// 폴더/파일 아이콘은 끌 수 없어야 하므로 썸네일과 구분해서 들고 있는다.
+				UTexture2D* TextureAsset = nullptr;
+				UFont* FontAsset = nullptr;
 
 				// 폴더 또는 파일 아이콘 표시
 				if (fs::is_directory(Path))
@@ -76,9 +82,18 @@ void FAssetBrowserPanel::OnRender()
 					URenderAsset* Asset = UAssetManager::GetAssetByPath<URenderAsset>(PathString);
 					if (Asset && Asset->IsA<UTexture2D>())
 					{
-						Thumbnail = Cast<UTexture2D>(Asset);
+						TextureAsset = Cast<UTexture2D>(Asset);
+						Thumbnail = TextureAsset;
 					}
-					else
+					else if (Asset && Asset->IsA<UFont>())
+					{
+						FontAsset = Cast<UFont>(Asset);
+
+						// 폰트는 글리프 아틀라스를 그대로 미리보기로 쓴다
+						Thumbnail = FontAsset->AtlasTexture;
+					}
+
+					if (Thumbnail == nullptr)
 					{
 						Thumbnail = UAssetManager::GetAssetByPath<UTexture2D>(FileIconPath);
 					}
@@ -86,6 +101,27 @@ void FAssetBrowserPanel::OnRender()
 				if (Thumbnail)
 				{
 					ImGui::ImageButton(PathString.c_str(), (ImTextureID)Thumbnail->GetResource()->GetSRV(), { thumbnailSize, thumbnailSize });
+				}
+
+				// 페이로드에 포인터를 그대로 실어서 받는 쪽이 AssetMap을 다시 뒤지지 않게 한다.
+				if (TextureAsset && ImGui::BeginDragDropSource())
+				{
+					ImGui::SetDragDropPayload(EditorDragDrop::Texture, &TextureAsset, sizeof(UTexture2D*));
+
+					// 끌고 다니는 동안 커서를 따라다니는 미리보기
+					ImGui::Image((ImTextureID)TextureAsset->GetResource()->GetSRV(), { thumbnailSize, thumbnailSize });
+					ImGui::TextUnformatted(FilenameString.c_str());
+
+					ImGui::EndDragDropSource();
+				}
+
+				if (FontAsset && ImGui::BeginDragDropSource())
+				{
+					ImGui::SetDragDropPayload(EditorDragDrop::Font, &FontAsset, sizeof(UFont*));
+
+					ImGui::TextUnformatted(FilenameString.c_str());
+
+					ImGui::EndDragDropSource();
 				}
 
 				// 더블 클릭 이벤트 처리

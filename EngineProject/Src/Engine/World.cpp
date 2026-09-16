@@ -129,7 +129,7 @@ void UWorld::GatherRenderPackets(TQueue<FRenderPacket>& RenderQueue)
 {
 	for (UPrimitiveComponent* Primitive : PrimitiveComponents)
 	{
-		if (Primitive)
+		if (Primitive && Primitive->IsVisible())
 			Primitive->SubmitToRenderQueue(RenderQueue);
 	}
 }

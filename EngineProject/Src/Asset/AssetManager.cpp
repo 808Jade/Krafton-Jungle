@@ -73,8 +73,40 @@ void UAssetManager::Init()
 {
 	ScanAssets("Assets");
 
+	// 머티리얼이 참조하므로 반드시 먼저 만든다
+	CreateDefaultTextures();
+
 	CreateDefaultMeshes();
 	CreateDefaultMaterials();
+}
+
+void UAssetManager::CreateDefaultTextures()
+{
+	// 텍스처가 지정되지 않은 머티리얼이 검게 나오지 않도록 하는 1x1 흰색 텍스처.
+	// 셰이더에서 곱해도 결과가 변하지 않으므로 "텍스처 없음"의 기본값으로 쓴다.
+	const uint32 WhitePixel = 0xFFFFFFFF;
+
+	D3D11_TEXTURE2D_DESC Desc{};
+	Desc.Width = 1;
+	Desc.Height = 1;
+	Desc.MipLevels = 1;
+	Desc.ArraySize = 1;
+	Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	Desc.SampleDesc.Count = 1;
+	Desc.Usage = D3D11_USAGE_IMMUTABLE;
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+	TUniquePtr<FTexture2D> Resource = RenderCommand::CreateTexture2D(Desc, &WhitePixel);
+	if (!Resource)
+	{
+		return;
+	}
+
+	UTexture2D* WhiteTexture = FObjectFactory::ConstructObject<UTexture2D>();
+	WhiteTexture->SetResource(std::move(Resource));
+	WhiteTexture->SetPath("WhiteTexture");
+
+	AssetMap["WhiteTexture"] = WhiteTexture;
 }
 
 void UAssetManager::CreateDefaultMeshes()
@@ -121,6 +153,7 @@ void UAssetManager::CreateDefaultMaterials()
 {
 	UMaterial* DefaultMat = FObjectFactory::ConstructObject<UMaterial>();
 	DefaultMat->Shader = FRenderResourceManager::GetShader("Resources/Shader/DefaultShader.hlsl");
+	DefaultMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture"));
 
 	AssetMap["DefaultMaterial"] = DefaultMat;
 
