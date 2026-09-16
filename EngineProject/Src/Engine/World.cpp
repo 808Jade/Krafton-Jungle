@@ -12,59 +12,6 @@
 
 #include "Collision/Ray.h"
 
-namespace
-{
-	FString PrimitiveTypeToString(EPrimitiveType Type)
-	{
-		switch (Type)
-		{
-		case EPrimitiveType::Sphere:
-			return "Sphere";
-			break;
-		case EPrimitiveType::Cube:
-			return "Cube";
-			break;
-		case EPrimitiveType::Cone:
-			return "Cone";
-			break;
-		case EPrimitiveType::Plane:
-			return "Plane";
-			break;
-		default:
-			return "";
-			break;
-		}
-	}
-
-	EPrimitiveType FStringToPrimitiveType(const FString& string)
-	{
-		if (string == "Sphere")
-		{
-			return EPrimitiveType::Sphere;
-		}
-		if (string == "Cube")
-		{
-			return EPrimitiveType::Cube;
-		}
-		if (string == "Cone")
-		{
-			return EPrimitiveType::Cone;
-		}
-		if (string == "Plane")
-		{
-			return EPrimitiveType::Plane;
-		}
-		return EPrimitiveType::Cube;
-	}
-}
-
-//UPrimitiveComponent* UWorld::SpawnPrimitive(FClass* Class)
-//{
-//	UPrimitiveComponent* Component = FObjectFactory::ConstructObject<UPrimitiveComponent>();
-//	Primitives.push_back(Component);
-//	return Component;
-//}
-
 UWorld::~UWorld()
 {
 
@@ -92,13 +39,13 @@ bool  UWorld::Init()
 	return true;
 }
 
-AActor* UWorld::SpawnActor(UClass* Class, const FTransform* TransformPtr)
+AActor* UWorld::SpawnActor(UClass* Class, FName InName, const FTransform* Transform)
 {
 	if (!Class) return nullptr;
 	if (!Class->IsChildOf(AActor::StaticClass())) return nullptr;
 
 	// 1. ObjectFactory로 Actor 생성
-	AActor* NewActor = Cast<AActor>( FObjectFactory::ConstructObject(Class, PersistentLevel, NAME_None) );
+	AActor* NewActor = Cast<AActor>( FObjectFactory::ConstructObject(Class, PersistentLevel, InName) );
 
 	if (!NewActor)
 	{
@@ -111,7 +58,7 @@ AActor* UWorld::SpawnActor(UClass* Class, const FTransform* TransformPtr)
 	NewActor->Level = PersistentLevel;
 
 	// 3. Transform 적용
-	const FTransform SpawnTransform = TransformPtr ? *TransformPtr : FTransform::Identity;
+	const FTransform SpawnTransform = Transform ? *Transform : FTransform::Identity;
 
 	if (NewActor->GetRootComponent())
 	{
@@ -176,183 +123,6 @@ void UWorld::ClearScene()
 		}
 	}
 	LOG(Info, "{} : ", PersistentLevel->GetActorNum());
-}
-
-bool UWorld::NewScene(const FString& Path)
-{
-	ClearScene();;
-
-	FEngineStatics::NextUUID = 0;
-
-	return true;
-}
-
-bool UWorld::SaveScene(const FString& Path)
-{
-	json Json;
-	Json.dump(4);
-	Json["Version"] = 1;
-	Json["NextUUID"] = FEngineStatics::NextUUID;
-	Json["Primitives"] = json::object();
-
-	for (AActor* Actor : PersistentLevel->GetActors())
-	{
-
-		USceneComponent* Primitive = Actor->GetRootComponent();
-
-		if (Primitive == nullptr)
-		{
-			continue;
-		}
-
-		json pJson;
-
-		const FTransform& Transform = Primitive->GetTransform();
-
-		pJson["Location"] = { Transform.Location.X, Transform.Location.Y, Transform.Location.Z };
-		pJson["Rotation"] = { Transform.Rotation.Roll, Transform.Rotation.Pitch, Transform.Rotation.Yaw };
-		pJson["Scale"] = { Transform.Scale.X, Transform.Scale.Y, Transform.Scale.Z };
-
-		if (Cast<UPrimitiveComponent>(Primitive))
-		{
-			pJson["Type"] = PrimitiveTypeToString(Cast<UPrimitiveComponent>(Primitive)->GetType());
-		}
-		else
-		{
-			pJson["Type"] = "Other";
-		}
-
-
-		Json["Primitives"][std::to_string(Actor->GetUUID())] = pJson;
-
-	}
-
-	//std::filesystem::create_directories("Scene");
-	//FString FullPath = "Scene/" + Path + ".Scene";
-	
-	FString FullPath = Path;
-	std::ofstream File(FullPath);
-
-	if (!File.is_open())
-	{
-		return false;
-	}
-
-	File << Json.dump(4);
-
-	File.close();
-
-	std::cout << Json.dump(4);
-	return true;
-}
-
-bool UWorld::LoadScene(const FString& Path)
-{
-	FString FullPath = Path;
-	std::ifstream File(FullPath);
-
-	if (!std::filesystem::exists(FullPath))
-	{
-		LOG(Warning, "{} is Not Exist!", FullPath);
-		return false;
-	}
-
-	ClearScene();
-
-	if (!File.is_open())
-	{
-		return false;
-	}
-
-	json Json;
-
-	try
-	{
-		File >> Json;
-	}
-	catch (const json::parse_error&)
-	{
-		File.close();
-		return false;
-	}
-
-	File.close();
-
-	if (!Json.contains("Version"))
-	{
-		return false;
-	}
-
-	if (Json["Version"] != 1)
-	{
-		return false;
-	}
-
-	if (Json.contains("NextUUID"))
-	{
-		FEngineStatics::NextUUID = Json["NextUUID"].get<uint32>();
-	}
-
-	if (!Json.contains("Primitives"))
-	{
-		return true;
-	}
-
-	uint64 SavedNextUUID = Json["NextUUID"];
-
-	for (auto& [UUIDString, PrimitiveJson] : Json["Primitives"].items())
-	{
-		uint64 UUID = std::stoull(UUIDString);
-
-		FTransform Transform;
-
-		if (PrimitiveJson.contains("Location"))
-		{
-			Transform.Location.X = PrimitiveJson["Location"][0].get<float>();
-			Transform.Location.Y = PrimitiveJson["Location"][1].get<float>();
-			Transform.Location.Z = PrimitiveJson["Location"][2].get<float>();
-		}
-
-		if (PrimitiveJson.contains("Rotation"))
-		{
-			Transform.Rotation.Roll = PrimitiveJson["Rotation"][0].get<float>();
-			Transform.Rotation.Pitch = PrimitiveJson["Rotation"][1].get<float>();
-			Transform.Rotation.Yaw = PrimitiveJson["Rotation"][2].get<float>();
-		}
-
-		if (PrimitiveJson.contains("Scale"))
-		{
-			Transform.Scale.X = PrimitiveJson["Scale"][0].get<float>();
-			Transform.Scale.Y = PrimitiveJson["Scale"][1].get<float>();
-			Transform.Scale.Z = PrimitiveJson["Scale"][2].get<float>();
-		}
-
-		if (!PrimitiveJson.contains("Type"))
-		{
-			continue;
-		}
-
-
-		FString TypeString = PrimitiveJson["Type"].get<FString>();
-
-		if (TypeString == "Other")
-		{
-			continue;
-		}
-
-		EPrimitiveType Type = FStringToPrimitiveType(TypeString);
-
-
-		// 액터 스폰
-		AStaticMeshActor* Actor = SpawnActor<AStaticMeshActor>(&Transform);
-
-		//Actor->AddPrimitiveComponent(Type, Transform);
-		Actor->SetPrimitiveType(Type);
-		Actor->SetUUID(UUID);
-	}
-	FEngineStatics::NextUUID = SavedNextUUID;
-
-	return true;
 }
 
 void UWorld::GatherRenderPackets(TQueue<FRenderPacket>& RenderQueue)
@@ -469,21 +239,3 @@ void UWorld::BeginPlay()
 void UWorld::EndPlay()
 {
 }
-
-//void UWorld::ClearScene()
-//{
-//}
-//
-//void UWorld::NewScene()
-//{
-//}
-//
-//bool UWorld::SaveScene(const FString& Path)
-//{
-//	return false;
-//}
-//
-//bool UWorld::LoadScene(const FString& Path)
-//{
-//	return false;
-//}

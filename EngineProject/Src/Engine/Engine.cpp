@@ -185,8 +185,8 @@ void Engine::UpdateGizmoAndPicking(FMatrix& ViewProj)
 
 	if (FInputSystem::IsMousePressed(EMouseButton::Left) && !Gizmo->IsUsing() && Gizmo->GetHoveredAxis() < 0 && ViewportPanel->IsHovered())
 	{
-		LOG(Info, "Mouse Pos {}, {}", ViewportPanel->GetLocalMousePos().X, ViewportPanel->GetLocalMousePos().Y)
-			UPrimitiveComponent* PickedComponent = World->TryPicking(ViewportPanel->GetLocalMousePos(), ViewportPanel->GetWidth(), ViewportPanel->GetHeight());
+		//LOG(Info, "Mouse Pos {}, {}", ViewportPanel->GetLocalMousePos().X, ViewportPanel->GetLocalMousePos().Y)
+		UPrimitiveComponent* PickedComponent = World->TryPicking(ViewportPanel->GetLocalMousePos(), ViewportPanel->GetWidth(), ViewportPanel->GetHeight());
 		Gizmo->SetTarget(PickedComponent);
 		Outline->SetTarget(PickedComponent);
 		PropertyPanel->SetTarget(PickedComponent);
@@ -210,16 +210,13 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 		if (ConfigPanel->GetSettings().bDrawPSGrid)
 		{
 			GridRenderer->OnRenderPSGrid(
-				ViewProj,
-				World->GetMainCamera()->GetCameraComponent()->GetWorldLocation(),
-				ConfigPanel->GetSettings()
+				ViewProj, World->GetMainCamera()->GetCameraComponent()->GetWorldLocation(), ConfigPanel->GetSettings()
 			);
 		}
 		else
 		{
 			GridRenderer->OnRenderBatchGrid(
-				ViewProj,
-				World->GetMainCamera()->GetCameraComponent()->GetWorldLocation()
+				ViewProj, World->GetMainCamera()->GetCameraComponent()->GetWorldLocation()
 			);
 		}
 	}
@@ -307,6 +304,7 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 
 	ImGuiRenderer->Begin();
 
+	ControlPanel->DrawMainMenuBar();
 	EditorUI->OnRender();
 
 	ImGuiRenderer->End();

@@ -47,8 +47,6 @@ void AStaticMeshActor::SetPrimitiveType(EPrimitiveType Type)
 	{
 		Component->SetMeshData(*MeshData);
 	}
-
-	SetName(FObjectFactory::MakeUniqueObjectName( GetClass(), GetOuter(), FName(PrimitiveTypeToString(Type)) ));
 }
 
 void AStaticMeshActor::BeginPlay()

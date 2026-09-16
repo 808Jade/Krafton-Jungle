@@ -10,10 +10,7 @@ UObject* FObjectFactory::ConstructObject(UClass* Class, UObject* Outer, FName Na
 
     Object->SetOuter(Outer);
 
-    if (Name == NAME_None)
-    {
-        Name = MakeUniqueObjectName( Class, Outer, NAME_None);
-    }
+    Name = MakeUniqueObjectName( Class, Outer, Name);
 
     Object->SetName(Name);
 

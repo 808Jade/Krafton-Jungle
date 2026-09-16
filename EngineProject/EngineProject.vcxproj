@@ -108,6 +108,12 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="JsonArchive.h" />
+    <ClInclude Include="Src\Core\NamePool.h" />
+    <ClInclude Include="Src\Editor\EditorFileUtils.h" />
+    <ClInclude Include="Src\Container\StringView.h" />
+    <ClInclude Include="Src\Core\NameTypes.h" />
+    <ClInclude Include="Src\Editor\SceneOutliner.h" />
     <ClInclude Include="Src\Asset\AssetManager.h" />
     <ClInclude Include="Src\Asset\RenderAsset.h" />
     <ClInclude Include="Src\Camera\CameraActor.h" />
@@ -211,6 +217,11 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="JsonArchive.cpp" />
+    <ClCompile Include="Src\Core\NamePool.cpp" />
+    <ClCompile Include="Src\Editor\EditorFileUtils.cpp" />
+    <ClCompile Include="Src\Core\NameTypes.cpp" />
+    <ClCompile Include="Src\Editor\SceneOutliner.cpp" />
     <ClCompile Include="Src\Asset\AssetManager.cpp" />
     <ClCompile Include="Src\Camera\CameraActor.cpp" />
     <ClCompile Include="Src\Camera\CameraComponent.cpp" />
@@ -222,7 +233,6 @@
     <ClCompile Include="Src\Component\SceneComponent.cpp" />
     <ClCompile Include="Src\Component\TextRenderComponent.cpp" />
     <ClCompile Include="Src\Core\EngineTimer.cpp" />
-    <ClCompile Include="Src\Core\UnrealNames.cpp" />
     <ClCompile Include="Src\Core\Window.cpp" />
     <ClCompile Include="Src\Editor\AssetBrowserPanel.cpp" />
     <ClCompile Include="Src\Editor\ConfigPanel.cpp" />
