@@ -16,9 +16,9 @@ public:
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime) override;
 
-	FMatrix GetBillboardWorldMatrix(const FMatrix& ViewMatrix);
-
+	void GetWorldTransformedMatrix(FMatrix* OutWorldMatrix) const;
 	virtual void SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue) override;
+
 private:
 
 	

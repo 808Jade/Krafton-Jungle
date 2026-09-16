@@ -2,12 +2,29 @@
 
 #include "BillboardComponent.h"
 
+struct FParticle
+{
+	FVector Location;
+	FVector Velocity;
+	float LifeTime;
+
+	float Age;
+	float Scale;
+	uint32 SubUVFrame;
+	float FrameTimer;
+
+	float Alpha;
+
+	bool bAlive;
+};
+
 struct FSubUVConstants
 {
 	float CurrentFrame;
 	float AtlasRowSize;
 	float AtlasColSize;
-	float Padding = 0.0f;
+	//float Padding = 0.0f;
+	float Alpha;
 };
 
 // Todo: subuv
@@ -24,6 +41,9 @@ class UParticleSubUVComponent : public UBillboardComponent
 	REFLECT_END()
 
 public:
+	UParticleSubUVComponent() = default;
+	virtual ~UParticleSubUVComponent() = default;
+	
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime) override;
 
@@ -34,12 +54,30 @@ public:
 	void SetFrameRate(float InFrameRate);
 
 private:
+	void RespawnParticle(FParticle& Particle);
+
+	// Todo: Move to util class
+	float GetRandomNumberBetween(float start, float end) const;
+	float Lerp(float first, float second, float alpha) const;
+	float GedSmoothStepedRatio(float start, float end, float value) const;
+
+private:
+	enum
+	{
+		MAX_PARTICLE_COMPONENTS_COUNT = 50,
+	};
+
+	static const float MAX_NORMALIZED_VALUE;
+	static const float FADE_START;
+
 	FString AtlasTexturePath;
 	UTexture2D* AtlasTexture;
 
 	uint32 ColSize;
 	uint32 RowSize;
-	uint32 CurrentFrame;
 	float FrameTimer;
 	float FrameRate;
+
+	// Todo: Reserve particles
+	TArray<FParticle> Particles;
 };

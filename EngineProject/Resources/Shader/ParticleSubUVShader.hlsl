@@ -9,7 +9,7 @@ cbuffer subuv : register(b1)
     float CurrentFrame;
     float AtlasRowSize;
     float AtlasColSize;
-    float Padding;
+    float ParticleAlpha;
 };
 
 Texture2D AtlasTexture : register(t0);
@@ -48,5 +48,8 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     float2 cellStartOffsetUV = (float2(atlasCol, atlasRow) * cellSize);
     cellUV += cellStartOffsetUV;
 
-    return AtlasTexture.Sample(AtlasSampler, cellUV);
+    float4 color = AtlasTexture.Sample(AtlasSampler, cellUV);
+    color.a *= ParticleAlpha;
+    
+    return color;
 }

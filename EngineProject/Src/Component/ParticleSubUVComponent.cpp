@@ -8,6 +8,9 @@
 
 #include "BillboardComponent.h"
 
+const float UParticleSubUVComponent::MAX_NORMALIZED_VALUE = 1.0f;
+const float UParticleSubUVComponent::FADE_START = 0.7;
+
 void UParticleSubUVComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -17,16 +20,32 @@ void UParticleSubUVComponent::BeginPlay()
 
 	ColSize = 8;
 	RowSize = 8;
-	CurrentFrame = 0;
 	FrameTimer = 0.0f;++
 	FrameRate = 12.0f;
-	AtlasTexture = nullptr;
+	// AtlasTexture = nullptr;
 
 	//Shader = RenderCommand::CreateShader(L"Resources/Shader/ParticleSubUVShader.hlsl", FParticleVertex::GetLayout());
 	Mesh = UAssetManager::GetAssetByPath<UStaticMesh>("ParticleQuad");
 	Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");
 
 	Type = EPrimitiveType::Particle;
+	
+	for (uint8 i = 0; i < MAX_PARTICLE_COMPONENTS_COUNT; ++i)
+	{
+		FParticle Particle;
+		RespawnParticle(Particle);
+
+		Particle.Age = GetRandomNumberBetween(0.0f, Particle.LifeTime);
+		Particle.Location.Z += Particle.Velocity.Z * Particle.Age;
+
+		const float LifeRatio = Particle.Age / Particle.LifeTime;
+		Particle.Scale = Lerp(0.4f, 3.0f, LifeRatio);
+		
+		const float ElapsedFrames = Particle.Age * FrameRate;
+		Particle.SubUVFrame = static_cast<uint32>(ElapsedFrames) % (ColSize * RowSize);
+
+		Particles.Add(Particle);
+	}
 }
 
 void UParticleSubUVComponent::SetAtlasTexturePath(const FString& InPath)
@@ -50,19 +69,45 @@ void UParticleSubUVComponent::SetFrameRate(float InFrameRate)
 void UParticleSubUVComponent::TickComponent(float DeltaTime)
 {
 	Super::TickComponent(DeltaTime);
-	FrameTimer += DeltaTime;
-
-	const float FrameDuration = 1.0f / FrameRate;
-	if (FrameTimer < FrameDuration)
-	{
-		return;
-	}
-
-	FrameTimer = 0.0f;
-
 	const uint32 TotalFrames = ColSize * RowSize;
-	++CurrentFrame;
-	CurrentFrame %= TotalFrames;
+
+	for (FParticle& Particle : Particles)
+	{
+		Particle.Location += Particle.Velocity * DeltaTime;
+		Particle.Age += DeltaTime;
+
+		if (Particle.Age >= Particle.LifeTime)
+		{
+			RespawnParticle(Particle);
+
+			continue;
+		}
+
+		const float LifeRatio = Particle.Age / Particle.LifeTime;
+		
+		Particle.Scale = Lerp(0.5f, 3.0f, LifeRatio);
+
+		if (LifeRatio > FADE_START)
+		{
+			const float FadeRatio = GedSmoothStepedRatio(FADE_START, MAX_NORMALIZED_VALUE, LifeRatio);
+			Particle.Alpha = MAX_NORMALIZED_VALUE - FadeRatio;
+		}
+		else
+		{
+			Particle.Alpha = MAX_NORMALIZED_VALUE;
+		}
+
+		Particle.FrameTimer += DeltaTime;
+		const float FrameDuration = MAX_NORMALIZED_VALUE / FrameRate;
+
+		if (Particle.FrameTimer >= FrameDuration)
+		{
+			Particle.FrameTimer = 0.0f;
+
+			++Particle.SubUVFrame;
+			Particle.SubUVFrame %= TotalFrames;
+		}
+	}
 }
 
 void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue)
@@ -70,55 +115,132 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 	assert(Mesh != nullptr);
 	assert(Material != nullptr);
 
-	UCameraComponent* CameraComponent = GetOwner()->GetWorld()->GetMainCamera()->GetCameraComponent();
-	assert(CameraComponent != nullptr);
+	const FVector CameraPos = GetOwner()->GetWorld()->GetMainCamera()->GetCameraComponent()->GetWorldLocation();
+	for (FParticle& Particle : Particles)
+	{
+		if (Particle.bAlive == false)
+		{
+			continue;
+		}
 
-	const FTransform& Transform = CameraComponent->GetTransform();
+		FMatrix WorldMatrix = FMatrix::Identity; 
+		Super::GetWorldTransformedMatrix(&WorldMatrix);
 
-	FVector BbUp = Transform.GetUp().Normalized();                         // Z-up 월드
-	FVector BbRight = FVector::Cross(BbUp, Transform.GetForward()).Normalized();
-	FVector BbFwd = FVector::Cross(BbUp, BbRight);          // 자기모순 없게 외적으로 유도
+		// Scale, Move
+		WorldMatrix.M[0][0] *= Particle.Scale;
+		WorldMatrix.M[0][1] *= Particle.Scale;
+		WorldMatrix.M[0][2] *= Particle.Scale;
+		WorldMatrix.M[0][3] *= Particle.Scale;
 
-	FMatrix World;
-	World.SetIdentity();
-	// row0 = 로컬 +X = up
-	World.M[0][0] = BbUp.X;    World.M[0][1] = BbUp.Y;    World.M[0][2] = BbUp.Z;    World.M[0][3] = 0;
-	// row1 = 로컬 +Y = right
-	World.M[1][0] = BbRight.X; World.M[1][1] = BbRight.Y; World.M[1][2] = BbRight.Z; World.M[1][3] = 0;
-	// row2 = 로컬 +Z = forward
-	World.M[2][0] = BbFwd.X;         World.M[2][1] = BbFwd.Y;         World.M[2][2] = BbFwd.Z;         World.M[2][3] = 0;
-	World.M[3][0] = GetWorldLocation().X;      World.M[3][1] = GetWorldLocation().Y;      World.M[3][2] = GetWorldLocation().Z;      World.M[3][3] = 1;
+		WorldMatrix.M[1][0] *= Particle.Scale;
+		WorldMatrix.M[1][1] *= Particle.Scale;
+		WorldMatrix.M[1][2] *= Particle.Scale;
+		WorldMatrix.M[1][3] *= Particle.Scale;
 
-	// Calculate camera to particle distance
-	const FVector CameraPos = CameraComponent->GetWorldLocation();
-	const FVector ParticlePos = GetWorldLocation();
+		WorldMatrix.M[2][0] *= Particle.Scale;
+		WorldMatrix.M[2][1] *= Particle.Scale;
+		WorldMatrix.M[2][2] *= Particle.Scale;
+		WorldMatrix.M[2][3] *= Particle.Scale;
 
-	const FVector CameraToParticleVec = ParticlePos - CameraPos;
-	const float CameraToParticleDistance =
-		CameraToParticleVec.X * CameraToParticleVec.X +
-		CameraToParticleVec.Y * CameraToParticleVec.Y +
-		CameraToParticleVec.Z * CameraToParticleVec.Z;
+		WorldMatrix.M[3][0] = Particle.Location.X;
+		WorldMatrix.M[3][1] = Particle.Location.Y;
+		WorldMatrix.M[3][2] = Particle.Location.Z;
+		WorldMatrix.M[3][3] = 1.0f;
 
-	// Set RenderPacket
-	FRenderPacket Packet;
-	Packet.model = World;
-	Packet.mesh = Mesh;
-	Packet.material = Material;
+		const FVector ParticlePos = Particle.Location;
+		const FVector CameraToParticleVec = ParticlePos - CameraPos;
 
-			/*Packet.bSubUV = true;
-			Packet.texture = AtlasTexture;
-			Packet.CurrentFrame = CurrentFrame;
-			Packet.AtlasColumns = ColSize;
-			Packet.AtlasRows = RowSize;*/
+		const float CameraToParticleDistance = 
+			CameraToParticleVec.X *
+			CameraToParticleVec.X +
 
-	FSubUVConstants subUVConstans;
-	subUVConstans.CurrentFrame = CurrentFrame;
-	subUVConstans.AtlasColSize = ColSize;
-	subUVConstans.AtlasRowSize = RowSize;
+			CameraToParticleVec.Y *
+			CameraToParticleVec.Y +
 
-	RenderCommand::UpdateBufferData(Packet.material->ParamBuffer.get(), &subUVConstans);
+			CameraToParticleVec.Z *
+			CameraToParticleVec.Z;
 
-	Packet.CameraToParticleDistance = CameraToParticleDistance;
+		FRenderPacket Packet;
+		Packet.model = WorldMatrix;
+		Packet.mesh = Mesh;
+		Packet.material = Material;
 
-	RenderQueue.Enqueue(Packet);
+		FSubUVConstants C;
+		C.CurrentFrame =  Particle.SubUVFrame;
+		C.AtlasColSize = ColSize;
+		C.AtlasRowSize = RowSize;
+		C.Alpha = Particle.Alpha;
+
+		RenderCommand::UpdateBufferData(Material->ParamBuffer.get(), &C);
+		/*Packet.texture = AtlasTexture;
+
+		Packet.CurrentFrame = Particle.SubUVFrame;
+		Packet.AtlasColumns = ColSize;
+
+		Packet.AtlasRows = RowSize;
+		Packet.ParticleAlpha = Particle.Alpha;*/
+		Packet.CameraToParticleDistance = CameraToParticleDistance;
+
+		RenderQueue.Enqueue(Packet);
+	}
+}
+
+void UParticleSubUVComponent::RespawnParticle(FParticle& Particle)
+{
+	Particle.Location = GetWorldLocation();
+
+	Particle.Velocity.X = 0.0f;
+	Particle.Velocity.Y = 0.0f;
+	Particle.Velocity.Z = GetRandomNumberBetween(0.5f, 0.8f);
+
+	Particle.LifeTime = GetRandomNumberBetween(3.5f, 10.0f);
+	Particle.Age = 0.0f;
+	Particle.SubUVFrame = static_cast<uint32>(GetRandomNumberBetween(0.0f, static_cast<float>((ColSize * RowSize) - 1)));
+	Particle.Scale = 0.4f;
+	Particle.FrameTimer = 0.0f;
+	Particle.bAlive = true;
+
+	Particle.Alpha = MAX_NORMALIZED_VALUE;
+}
+
+// Todo: Move to util class
+float UParticleSubUVComponent::GetRandomNumberBetween(float start, float end) const
+{
+	float randomNumber = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+
+	return start + randomNumber * (end - start);
+}
+
+float UParticleSubUVComponent::Lerp(float left, float right, float alpha) const
+{
+	//assert(alpha >= 0.0f && alpha <= 1.0f);
+	if (alpha < 0.0f)
+	{
+		alpha = 0.0f;
+	}
+	
+	if (alpha > 1.0f)
+	{
+		alpha = 1.0f;
+	}
+
+	return left + (right - left) * alpha;
+}
+
+float UParticleSubUVComponent::GedSmoothStepedRatio(float start, float end, float value) const
+{
+	float normedValue = (value - start) / (end - start);
+	//assert(normedValue >= 0.0f && normedValue <= 1.0f);
+
+	if (normedValue < 0.0f)
+	{
+		normedValue = 0.0f;
+	}
+
+	if (normedValue > 1.0f)
+	{
+		normedValue = 1.0f;
+	}
+
+	return normedValue * normedValue * (3.0f - 2.0f * normedValue);
 }

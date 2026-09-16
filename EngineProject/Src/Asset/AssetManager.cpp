@@ -94,16 +94,16 @@ void UAssetManager::CreateDefaultMeshes()
 
 	const FParticleVertex Vertices[] =
 	{
-		{ FVector(-0.5f,  0.5f, 0.0f), FVector2(0.0f, 0.0f) },
-		{ FVector(0.5f,  0.5f, 0.0f), FVector2(1.0f, 0.0f) },
-		{ FVector(0.5f, -0.5f, 0.0f), FVector2(1.0f, 1.0f) },
-		{ FVector(-0.5f, -0.5f, 0.0f), FVector2(0.0f, 1.0f) }
+		{ FVector(0.0f, -0.5f,  0.5f), FVector2(0.0f, 0.0f) },
+		{ FVector(0.0f, 0.5f,  0.5f), FVector2(1.0f, 0.0f) },
+		{ FVector(0.0f, 0.5f, -0.5f), FVector2(1.0f, 1.0f) },
+		{ FVector(0.0f, -0.5f, -0.5f), FVector2(0.0f, 1.0f) }
 	};
 
 	const uint32 Indices[] =
 	{
-		0, 2, 1,
-		0, 3, 2
+		0, 1, 2,
+		0, 2, 3
 	};
 
 	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();

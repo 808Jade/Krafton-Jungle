@@ -11,7 +11,6 @@
 
 bool FRenderer::Init()
 {
-	CB = RenderCommand::CreateConstantBuffer(sizeof(FSubUVConstants));
 	Temp = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
 
 	return true;

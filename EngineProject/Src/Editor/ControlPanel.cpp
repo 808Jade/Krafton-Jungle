@@ -76,7 +76,6 @@ void FControlPanel::OnRender()
 		AParticleActor* ParticleActor = World->SpawnActor<AParticleActor>(&Transform);
 		assert(ParticleActor != nullptr);
 
-		// Set atlas image settings
 		UParticleSubUVComponent* Particle = ParticleActor->GetParticleComponent();
 		Particle->ApplyPrimitiveType(EPrimitiveType::Plane);
 		Particle->SetAtlasTexturePath("ParticleAtlas.png");
