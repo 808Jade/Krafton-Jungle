@@ -90,7 +90,6 @@ private:
 	FConfigPanel* ConfigPanel = nullptr;
 	FViewportPanel* ViewportPanel= nullptr;
 	FSceneOutliner* SceneOutliner = nullptr;
-	FSceneManager* SceneManager = nullptr;
 	FAssetBrowserPanel* AssetBrowser = nullptr;
 };
 
