@@ -14,7 +14,10 @@ bool FLineBatcher::Init(FRenderer* InRenderer, UWorld* InWorld)
 	Renderer = InRenderer;
 	World = InWorld;
 
-	LineShader = RenderCommand::CreateShader(L"Shader/BoundingBoxShader.hlsl", FVertex::GetLayout());
+	LineShader = RenderCommand::CreateShader(L"Assets/Shader/BoundingBoxShader.hlsl", FVertex::GetLayout());
+
+	PipelineState.Shader = LineShader.get();
+	PipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 
 	MaxVertices = 65536;
 	VertexBufferBase = new FVertex[MaxVertices];
@@ -47,8 +50,8 @@ void FLineBatcher::AddLine(const FVector& A, const FVector& B, const FVector4& C
 	if (VertexCount + 2 > MaxVertices)
 		return;   // 넘치면 버림
 
-	*VertexBufferPtr++ = { A, Color };
-	*VertexBufferPtr++ = { B, Color };
+	*VertexBufferPtr++ = { A, FVector2(), Color };
+	*VertexBufferPtr++ = { B, FVector2(), Color };
 
 	VertexCount += 2;
 }
@@ -85,13 +88,13 @@ void FLineBatcher::AddPath(const TArray<FVector>& Points, const FVector4& Color)
 		AddLine(Points[i], Points[i + 1], Color);
 	}
 }
+
 void FLineBatcher::Flush()
 {
-	RenderCommand::BindShader(LineShader.get());
+	RenderCommand::BindPipelineState(PipelineState);
 	RenderCommand::BindVertexBuffer(VertexBuffer.get());
 	RenderCommand::BindConstantBuffer(0, CB.get(), EShaderBindFlagBits::Vertex);
 
-	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 	RenderCommand::Draw(VertexCount, 0);
 }
 

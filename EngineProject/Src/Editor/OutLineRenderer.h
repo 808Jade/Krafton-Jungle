@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Render/Renderer.h"
+#include "Render/PipelineState.h"
 #include "Outline.h"
 
 struct FOutlineData
@@ -22,9 +23,10 @@ public:
 private:
 	FRenderer* Renderer;
 
-	FShader* Shader;
+	TUniquePtr<FShader> Shader;
+	FPipelineState PipelineState;
 	UStaticMesh* Mesh;
 
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> RasterizerState;
-	TSharedPtr<FConstantBuffer> ConstantBuffer;
+	ComPtr<ID3D11RasterizerState> RasterizerState;
+	TUniquePtr<FConstantBuffer> ConstantBuffer;
 };

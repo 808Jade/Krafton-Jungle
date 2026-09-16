@@ -38,7 +38,7 @@ bool Engine::Init(HINSTANCE hInstance)
 	FWindowContext MainWindowCtx;
 	LOG(Info, "Create Main Window...");
 	MainWindowCtx.Window = MakeUnique<FWindow>();
-	if (!MainWindowCtx.Window->Create(hInstance, 1920, 1080, L"Engine"))
+	if (!MainWindowCtx.Window->Create(hInstance, 1920, 1080, L"Hitori Engine"))
 	{
 		LOG(Error, "Failed To Create Main Window!");
 		return false;
@@ -51,7 +51,7 @@ bool Engine::Init(HINSTANCE hInstance)
 
 
 	LOG(Info, "Initialize AssetManager...");
-	UAssetManager::Get().Init(Renderer.get());
+	UAssetManager::Get().Init();
 	LOG(Info, "Initialize AssetManager Success!");
 
 
@@ -75,6 +75,7 @@ bool Engine::Init(HINSTANCE hInstance)
 	PropertyPanel = EditorUI->AddEditorPanel<FPropertyPanel>();
 	ControlPanel = EditorUI->AddEditorPanel<FControlPanel>();
 	ViewportPanel = EditorUI->AddEditorPanel<FViewportPanel>();
+	AssetBrowser = EditorUI->AddEditorPanel<FAssetBrowserPanel>();
 
 	// OutLine
 	OutlineRenderer = MakeUnique<FOutlineRenderer>();
@@ -84,8 +85,8 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	Outline = MakeUnique<FOutline>();
 
-	TextShader = RenderCommand::CreateShader(L"Shader/TextShader.hlsl", FTextVertex::GetLayout());
-	Atlas = UAssetManager::Get().LoadFontAtlas("atlas.json", "atlas.png");
+	TextShader = RenderCommand::CreateShader(L"Assets/Shader/TextShader.hlsl", FTextVertex::GetLayout());
+	Atlas = UAssetManager::Get().LoadFontAtlas("Assets/atlas.json", "Assets/atlas.png");
 
 	TextRenderer = MakeUnique<FTextRenderer>();
 	TextRenderer->Init(Renderer.get());
@@ -225,6 +226,10 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 
 	if (ConfigPanel->GetSettings().bDrawPrimitives)
 	{
+		RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
+		RenderCommand::SetBlendState(EBlendState::Opaque);
+		RenderCommand::SetDepthStencilState(EDepthStencilState::Default);
+
 		if (ConfigPanel->GetSettings().bWireframe)
 		{
 			RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
@@ -262,6 +267,7 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 
 		}
 
+		RenderCommand::ClearDepthStencil(ViewportPanel->GetViewportRenderingInfo().DepthSteincil.Texture);
 		GizmoRenderer->OnRender(*Gizmo, ViewProj);
 	}
 	RenderCommand::EndRenderPass(ViewportPanel->GetViewportRenderingInfo());

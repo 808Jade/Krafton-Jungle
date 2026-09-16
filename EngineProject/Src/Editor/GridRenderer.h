@@ -2,6 +2,7 @@
 
 #include <d3d11.h>
 #include "Render/Renderer.h"
+#include "Render/PipelineState.h"
 
 struct FPSGridData
 {
@@ -40,18 +41,20 @@ private:
 	FRenderer* Renderer;
 
 	// Batch Grid
-	TSharedPtr<FShader>			BatchGridShader;
-	TSharedPtr<FVertexBuffer>	BatchGridVertexBuffer;
-	TSharedPtr<FConstantBuffer>	BatchGridConstantBuffer;
+	TUniquePtr<FShader>			BatchGridShader;
+	FPipelineState				BatchGridPipelineState;
+	TUniquePtr<FVertexBuffer>	BatchGridVertexBuffer;
+	TUniquePtr<FConstantBuffer>	BatchGridConstantBuffer;
 	FVertex* BatchGridVertices;
 	uint32						MaxVertices = 0;
 	float						BatchGridSpace = 1.0f;
 
 	// PS Grid
-	TSharedPtr<FShader>								PSGridShader;
-	FShader* AxisShader;
-	TSharedPtr<FVertexBuffer>						PSGridVertexBuffer;
-	TSharedPtr<FIndexBuffer>						PSGridIndexBuffer;
-	TSharedPtr<FConstantBuffer>						PSGridConstantBuffer;
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState>	RasterizerState;
+	TUniquePtr<FShader>								PSGridShader;
+	FPipelineState									PSGridPipelineState;
+	TUniquePtr<FShader> AxisShader;
+	TUniquePtr<FVertexBuffer>						PSGridVertexBuffer;
+	TUniquePtr<FIndexBuffer>						PSGridIndexBuffer;
+	TUniquePtr<FConstantBuffer>						PSGridConstantBuffer;
+	ComPtr<ID3D11RasterizerState>	RasterizerState;
 };

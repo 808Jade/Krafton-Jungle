@@ -1,6 +1,8 @@
 #include "EnginePCH.h"
 #include "RenderCommand.h"
 
+#include "PipelineState.h"
+
 void RenderCommand::Init(FRenderDevice* InRenderDevice)
 {
 	RenderDevice = InRenderDevice;
@@ -38,19 +40,30 @@ TUniquePtr<FConstantBuffer> RenderCommand::CreateConstantBuffer(uint32 BufferSiz
 
 TUniquePtr<FTexture2D> RenderCommand::CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const void* InitialData)
 {
+	assert(RenderDevice);
 	return RenderDevice->CreateTexture2D(Desc, InitialData);
 }
 
 TUniquePtr<FShader> RenderCommand::CreateShader(const wchar_t* FileName, D3D11_INPUT_ELEMENT_DESC* InLayoutDesc, size_t InLayoutSize)
 {
+	assert(RenderDevice);
 	return RenderDevice->CreateShader(FileName, InLayoutDesc, InLayoutSize);
 }
 
 TUniquePtr<FShader> RenderCommand::CreateShader(const wchar_t* FileName, std::vector<D3D11_INPUT_ELEMENT_DESC> Layouts)
 {
+	assert(RenderDevice);
 	return CreateShader(FileName, Layouts.data(), Layouts.size());
 }
 
+void RenderCommand::BindPipelineState(const FPipelineState& PipelineState)
+{
+	BindShader(PipelineState.Shader);
+	SetPrimitiveTopology(PipelineState.Topology);
+	SetRasterizerState(PipelineState.RasterizerState);
+	SetBlendState(PipelineState.BlendState);
+	SetDepthStencilState(PipelineState.DepthStencilState);
+}
 
 void RenderCommand::BindShader(FShader* Shader)
 {
@@ -73,6 +86,11 @@ void RenderCommand::Draw(uint32 VertexCount, uint32 StartIndexLocation)
 void RenderCommand::DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation, int32 BaseVertexLocation)
 {
 	RenderDevice->GetContext()->DrawIndexed(IndexCount, StartIndexLocation, BaseVertexLocation);
+}
+
+void RenderCommand::DrawInstance(uint32 IndexCount, uint32 StartIndexLocation, int32 BaseVertexLocation)
+{
+	//RenderDevice->GetContext()->DrawInstanced();
 }
 
 void RenderCommand::UpdateBufferData(FBuffer* InBuffer, const void* Data, uint32 DataSize)
@@ -166,6 +184,16 @@ void RenderCommand::BeginRenderPass(const FRenderingInfo& RenderingInfo)
 void RenderCommand::EndRenderPass(const FRenderingInfo& RenderingInfo)
 {
 	RenderDevice->GetContext()->OMSetRenderTargets(0, nullptr, nullptr);
+}
+
+void RenderCommand::ClearDepthStencil(FTexture2D* DepthStencilTexture, float Depth, uint8 Stencil)
+{
+	if (DepthStencilTexture == nullptr)
+	{
+		return;
+	}
+
+	RenderDevice->GetContext()->ClearDepthStencilView(DepthStencilTexture->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, Depth, Stencil);
 }
 
 void RenderCommand::SetViewport(uint32 InX, uint32 InY, uint32 InWidth, uint32 InHeight)

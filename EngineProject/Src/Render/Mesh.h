@@ -10,6 +10,6 @@ public:
 	virtual ~UStaticMesh() override;
 
 
-	TSharedPtr<FVertexBuffer> VertexBuffer;
-	TSharedPtr<FIndexBuffer> IndexBuffer;
+	TUniquePtr<FVertexBuffer> VertexBuffer;
+	TUniquePtr<FIndexBuffer> IndexBuffer;
 };

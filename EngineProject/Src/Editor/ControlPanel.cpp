@@ -50,7 +50,6 @@ void FControlPanel::OnRender()
 	ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_FirstUseEver);
 	ImGui::Begin("Jungle Control Panel");
 
-	ImGui::Text("Hello Jungle World");
 	ImGui::Text("FPS: %.2f (%.0f ms)", 1.0f / DeltaTime, DeltaTime * 1000.0f);
 
 	ImGui::Separator();
@@ -59,7 +58,7 @@ void FControlPanel::OnRender()
 	ImGui::SameLine();
 	ImGui::Text("Primitive");
 	//EngineTimer::GetDeltaTime();
-	if (ImGui::SmallButton("Spawn")) { AddActor(static_cast<EPrimitiveType>(SelectedIndex)); }
+	if (ImGui::Button("Spawn")) { AddActor(static_cast<EPrimitiveType>(SelectedIndex)); }
 	ImGui::SameLine();
 	ImGui::SetNextItemWidth(80.0f);
 	ImGui::InputInt("##N", &ActorNum, 0, 0, ImGuiInputTextFlags_ReadOnly);
@@ -67,7 +66,7 @@ void FControlPanel::OnRender()
 	ImGui::Text("Number of spawn");
 
 	// Todo: subuv
-	if (ImGui::SmallButton("Spawn Particle"))
+	if (ImGui::Button("Spawn Particle"))
 	{
 		FTransform Transform;
 		Transform.Location = FVector(5.0f, 0.0f, 0.0f);
@@ -89,7 +88,7 @@ void FControlPanel::OnRender()
 	//ImGui::SetNextItemWidth(165.0f);
 	//ImGui::InputText("Scene Name", SceneName, IM_ARRAYSIZE(SceneName));
 	
-
+	ImGui::Text("Scene");
 
 	if (ImGui::Button("New Scene", ImVec2(80.0f, 19.0f)))
 	{
@@ -112,6 +111,8 @@ void FControlPanel::OnRender()
 
 
 	ImGui::Separator();
+
+	ImGui::Text("Camera");
 	UCameraComponent* CamCom = World->GetMainCamera()->GetCameraComponent();
 
 	bool bOrthogonal = CamCom->GetIsOrthogonal();
@@ -174,6 +175,7 @@ void FControlPanel::OnRender()
 
 	ImGui::Separator();
 
+	ImGui::Text("Gizmo");
 	GizmoSelectedIndex = static_cast<int32>(Gizmo->GetMode());
 	if (ImGui::SetNextItemWidth(100.0f); ImGui::Combo("##GizmoCombo", &GizmoSelectedIndex, GizmoItems, IM_ARRAYSIZE(GizmoItems)))
 	{
@@ -184,6 +186,34 @@ void FControlPanel::OnRender()
 	{
 		Gizmo->SetSpace(static_cast<EGizmoSpace>(SpaceSelectedIndex));
 	}
+
+	ImGui::Separator();
+
+	ImGui::Text("Path Tracker");
+	if (ImGui::Button("Start Recording"))
+	{
+		World->GetPathTracker().SetPathRenderingEnabled(true);
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Stop Recording"))
+	{
+		World->GetPathTracker().SetPathRenderingEnabled(false);
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Clear"))
+	{
+		World->GetPathTracker().ClearPath();
+	}
+	if (ImGui::Button("Play Replay"))
+	{
+		World->GetPathTracker().SetPlaybackEnabled(true);
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Stop Replay"))
+	{
+		World->GetPathTracker().SetPlaybackEnabled(false);
+	}
+
 
 	ImGui::End();
 }
@@ -247,9 +277,6 @@ void FControlPanel::DrawSceneLoadCombo()
 	if (SelectedSceneIndex >= 0 && SelectedSceneIndex <= SceneFiles.Num()) {
 		Preview = SceneFiles[SelectedSceneIndex].c_str();
 	}
-
-	ImGui::Text("Scene:");
-	ImGui::SameLine();
 
 	ImGui::SetNextItemWidth(150.0f);
 	bool bComboOpen = ImGui::BeginCombo("##SceneSelect", Preview);

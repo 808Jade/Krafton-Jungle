@@ -19,6 +19,7 @@
 #include "Editor/ControlPanel.h"
 #include "Editor/ConfigPanel.h"
 #include "Editor/ViewportPanel.h"
+#include "Editor/AssetBrowserPanel.h"
 
 #include "Editor/Outline.h"
 #include "Editor/OutLineRenderer.h"
@@ -77,7 +78,7 @@ private:
 	TUniquePtr<FOutline> Outline;
 	TUniquePtr<FOutlineRenderer> OutlineRenderer;
 
-	TSharedPtr<FShader> TextShader;
+	TUniquePtr<FShader> TextShader;
 	UFontAtlas* Atlas;
 
 
@@ -89,5 +90,7 @@ private:
 	FConfigPanel* ConfigPanel = nullptr;
 	FViewportPanel* ViewportPanel= nullptr;
 	FSceneOutliner* SceneOutliner = nullptr;
+	FSceneManager* SceneManager = nullptr;
+	FAssetBrowserPanel* AssetBrowser = nullptr;
 };
 

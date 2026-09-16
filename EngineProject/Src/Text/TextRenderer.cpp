@@ -47,7 +47,10 @@ void FTextRenderer::Init(FRenderer* InRenderer, uint32 InMaxCharacters)
 	MVP = RenderCommand::CreateConstantBuffer(sizeof(TextTransformData));
 	ScreenPx = RenderCommand::CreateConstantBuffer(sizeof(MSDFData));
 
-	TextShader = RenderCommand::CreateShader(L"Shader/TextShader.hlsl", FTextVertex::GetLayout());
+	TextShader = RenderCommand::CreateShader(L"Assets/Shader/TextShader.hlsl", FTextVertex::GetLayout());
+
+	PipelineState.Shader = TextShader.get();
+	PipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
 void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFontAtlas& Atlas,
@@ -175,9 +178,7 @@ void FTextRenderer::OnRender(const FString& Text, const FVector& WorldPos, float
 	MSDFData MSDFData;
 	MSDFData.ScreenPx = Atlas.DistanceRange;
 
-	RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
-	RenderCommand::BindShader(TextShader.get());
-	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	RenderCommand::BindPipelineState(PipelineState);
 	RenderCommand::BindShaderResource(0, Atlas.AtlasTexture, EShaderBindFlagBits::Pixel);
 	RenderCommand::UpdateBufferData(MVP.get(), &TransData, sizeof(TextTransformData));
 	RenderCommand::UpdateBufferData(ScreenPx.get(), &MSDFData, sizeof(MSDFData));

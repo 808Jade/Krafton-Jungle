@@ -6,6 +6,7 @@ class FPathTracker
 {
 public:
     void SetPathRenderingEnabled(bool bEnable);
+    void ClearPath();
 
     bool IsEnabled() const;
 
@@ -15,10 +16,15 @@ public:
 
     void OnObjectDestroyed(AActor* InActor);
 
+    void SetPlaybackEnabled(bool bEnable);
+
 private:
-    bool bIsPathRenderingEnabled = true;
-    float RecordInterval = 0.1f;
+    bool bIsPathRenderingEnabled = false;
+    float RecordInterval = 0.01f;
     float TimeSinceLastRecord = 0.0f;
+
+    bool bIsPlayingBack = false;
+    float PlaybackTime = 0.0f;
 
     std::unordered_map<class AActor*, TArray<FVector>> ObjectPaths;
 };

@@ -1,10 +1,14 @@
 #pragma once
-class UTextRenderComponent : public UPrimitiveComponent
+
+#include "BillboardComponent.h"
+
+class UTextRenderComponent : public UBillboardComponent
 {
-	DECLARE_CLASS(UTextRenderComponent, UPrimitiveComponent)
+	DECLARE_CLASS(UTextRenderComponent, UBillboardComponent)
 public:
 	UTextRenderComponent();
 	virtual ~UTextRenderComponent();
 private:
+	FString Text;
 };
 

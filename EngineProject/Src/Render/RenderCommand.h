@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Renderer.h"
+#include "RenderDevice.h"
 
 enum class EShaderBindFlagBits : uint32
 {
@@ -33,7 +33,7 @@ public:
 	static TUniquePtr<FShader> CreateShader(const wchar_t* FileName, D3D11_INPUT_ELEMENT_DESC* InLayoutDesc, size_t InLayoutSize);
 	static TUniquePtr<FShader> CreateShader(const wchar_t* FileName, std::vector<D3D11_INPUT_ELEMENT_DESC> Layouts);
 
-	static void BindPipelineState() {};
+	static void BindPipelineState(const FPipelineState& PipelineState);
 
 	static void BindMesh(UStaticMesh* Mesh);
 
@@ -41,6 +41,7 @@ public:
 
 	static void Draw(uint32 VertexCount, uint32 StartIndexLocation = 0);
 	static void DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation = 0, int32 BaseVertexLocation = 0);
+	static void DrawInstance(uint32 IndexCount, uint32 StartIndexLocation = 0, int32 BaseVertexLocation = 0);
 
 	template <typename T>
 	static void UpdateBufferData(FBuffer* InBuffer, T* Data)
@@ -57,6 +58,7 @@ public:
 
 	static void BeginRenderPass(const FRenderingInfo& RenderingInfo);
 	static void EndRenderPass(const FRenderingInfo& RenderingInfo);
+	static void ClearDepthStencil(FTexture2D* DepthStencilTexture, float Depth = 1.0f, uint8 Stencil = 0);
 
 	static void SetViewport(uint32 InX, uint32 InY, uint32 InWidth, uint32 InHeight);
 

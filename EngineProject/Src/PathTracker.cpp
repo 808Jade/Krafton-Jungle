@@ -8,9 +8,13 @@ void FPathTracker::SetPathRenderingEnabled(bool bEnable)
 
     if (!bIsPathRenderingEnabled)
     {
-        ObjectPaths.clear();
         TimeSinceLastRecord = 0.0f;
     }
+}
+
+void FPathTracker::ClearPath()
+{
+    ObjectPaths.clear();
 }
 
 bool FPathTracker::IsEnabled() const
@@ -20,20 +24,71 @@ bool FPathTracker::IsEnabled() const
 
 void FPathTracker::Tick(const TArray<AActor*>& ActorList, float DeltaTime)
 {
-    if (!bIsPathRenderingEnabled) return;
+    // 재생 모드
+    if (bIsPlayingBack)
+    {
+        PlaybackTime += DeltaTime;
+
+        float FloatIndex = PlaybackTime / RecordInterval;
+        int32 IndexA = static_cast<int32>(FloatIndex);
+        int32 IndexB = IndexA + 1;
+        float Alpha = FloatIndex - IndexA;
+
+        bool bAllFinished = true;
+        for (auto& Pair : ObjectPaths)
+        {
+            AActor* Actor = Pair.first;
+            const TArray<FVector>& Path = Pair.second;
+
+            if (!Actor || Path.Num() == 0)
+            {
+                continue;
+            }
+
+            if (IndexA >= Path.Num() - 1)
+            {
+                Actor->GetRootComponent()->SetRelativeLocation(Path.Last());
+                continue;
+            }
+
+            bAllFinished = false;
+
+            FVector PosA = Path[IndexA];
+            FVector PosB = Path[IndexB];
+            FVector CurrentPos;
+            CurrentPos.X = PosA.X + (PosB.X - PosA.X) * Alpha;
+            CurrentPos.Y = PosA.Y + (PosB.Y - PosA.Y) * Alpha;
+            CurrentPos.Z = PosA.Z + (PosB.Z - PosA.Z) * Alpha;
+
+            Actor->GetRootComponent()->SetRelativeLocation(CurrentPos);
+        }
+
+        if (bAllFinished)
+        {
+            SetPlaybackEnabled(false);
+        }
+
+        return;
+    }
+
+    // 녹화모드
+    if (!bIsPathRenderingEnabled)
+    {
+        return;
+    }
 
     TimeSinceLastRecord += DeltaTime;
     if (TimeSinceLastRecord >= RecordInterval)
     {
         TimeSinceLastRecord = 0.0f;
 
-        // 모든 오브젝트를 순회하며 현재 위치를 기록
-        for (AActor* Obj : ActorList)
+        for (AActor* Actor : ActorList)
         {
-            if (Obj)
+            FVector CurrentLoc = Actor->GetActorLocation();
+            TArray<FVector>& Path = ObjectPaths[Actor];
+            if (Actor)
             {
-                // 맵에 오브젝트가 없으면 자동으로 생성되고 위치가 추가됨
-                ObjectPaths[Obj].Add(Obj->GetActorLocation());
+                ObjectPaths[Actor].Add(Actor->GetActorLocation());
             }
         }
     }
@@ -41,7 +96,6 @@ void FPathTracker::Tick(const TArray<AActor*>& ActorList, float DeltaTime)
 
 void FPathTracker::OnRender(FLineBatcher* LineBatcher)
 {
-    if (!bIsPathRenderingEnabled) return;
 
     for (const auto& Pair : ObjectPaths)
     {
@@ -59,9 +113,9 @@ void FPathTracker::OnRender(FLineBatcher* LineBatcher)
         float B = (Hash & 0xFF) / 255.0f;
 
         // 밝기 보정
-        R = 0.2f + R * 0.8f;
-        G = 0.2f + G * 0.8f;
-        B = 0.2f + B * 0.8f;
+        //R = 0.2f + R * 0.8f;
+        //G = 0.2f + G * 0.8f;
+        //B = 0.2f + B * 0.8f;
 
         LineBatcher->AddPath(PathHistory, { R, G, B, 1.0f });
     }
@@ -70,4 +124,14 @@ void FPathTracker::OnRender(FLineBatcher* LineBatcher)
 void FPathTracker::OnObjectDestroyed(AActor* InActor)
 {
     ObjectPaths.erase(InActor);
+}
+
+void FPathTracker::SetPlaybackEnabled(bool bEnable)
+{
+    bIsPlayingBack = bEnable;
+    if (bIsPlayingBack)
+    {
+        bIsPathRenderingEnabled = false;
+        PlaybackTime = 0.0f;
+    }
 }

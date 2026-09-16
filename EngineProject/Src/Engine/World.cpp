@@ -89,8 +89,6 @@ bool  UWorld::Init()
 	//카메라 생성
 	CreateMainCamera();
 
-	PathTracker.SetPathRenderingEnabled(true);
-
 	return true;
 }
 
