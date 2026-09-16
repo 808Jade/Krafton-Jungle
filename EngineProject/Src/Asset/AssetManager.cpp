@@ -129,6 +129,7 @@ void UAssetManager::CreateDefaultMaterials()
 	ParticleMat->ParamBuffer = RenderCommand::CreateConstantBuffer(256);
 	ParticleMat->Textures.Add(GetAssetByPath<UTexture2D>("Assets/CloudAtlas.png"));
 	ParticleMat->BlendState = EBlendState::AlphaBlend;
+	ParticleMat->DepthStencilState = EDepthStencilState::ReadOnly;
 
 	AssetMap["SubUVMaterial"] = ParticleMat;
 }

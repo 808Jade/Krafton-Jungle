@@ -15,6 +15,7 @@ public:
 	TArray<UTexture2D*> Textures;
 	TUniquePtr<FConstantBuffer> ParamBuffer;
 	EBlendState BlendState = EBlendState::Opaque;
+	EDepthStencilState DepthStencilState = EDepthStencilState::Default;
 
 private:
 

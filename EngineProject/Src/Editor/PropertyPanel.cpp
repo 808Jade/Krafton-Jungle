@@ -88,7 +88,7 @@ namespace
 	}
 
 	// UClass에 등록된 프로퍼티를 타입에 맞는 위젯으로 그린다
-	void DrawProperty(UObject* Object, const FProperty& Property)
+	void DrawProperty(UObject* Object, const FProperty& Property, ImFont* CustomFont)
 	{
 		void* ValuePtr = reinterpret_cast<char*>(Object) + Property.Offset;
 		const FString Label = "##" + Property.Name;
@@ -124,11 +124,12 @@ namespace
 
 			char Buffer[256] = {};
 			strncpy_s(Buffer, Value->c_str(), sizeof(Buffer) - 1);
-
+			if (CustomFont) ImGui::PushFont(CustomFont);
 			if (ImGui::InputText(Label.c_str(), Buffer, sizeof(Buffer)))
 			{
 				*Value = Buffer;
 			}
+			if (CustomFont) ImGui::PopFont();
 			break;
 		}
 
@@ -139,7 +140,7 @@ namespace
 	}
 
 	// 클래스 계층을 따라 올라가며 각 단계의 프로퍼티를 표시
-	void DrawProperties(UObject* Object)
+	void DrawProperties(UObject* Object, ImFont* CustomFont)
 	{
 		if (!Object)
 		{
@@ -166,7 +167,7 @@ namespace
 			{
 				for (const FProperty& Property : Class->GetProperties())
 				{
-					DrawProperty(Object, Property);
+					DrawProperty(Object, Property, CustomFont);
 				}
 			}
 			ImGui::PopID();
@@ -176,7 +177,17 @@ namespace
 
 bool FPropertyPanel::Init()
 {
-	//transform = new FTransform(FVector(), FVector(), FRotator());
+	ImGuiIO& io = ImGui::GetIO();
+
+	io.Fonts->AddFontDefault();
+
+	const char* fontPath = "../HMKMRHD.ttf";
+	float fontSize = 15.0f;
+	const ImWchar* koreanRanges = io.Fonts->GetGlyphRangesKorean();
+
+	CustomFont = io.Fonts->AddFontFromFileTTF(fontPath, fontSize, nullptr, koreanRanges);
+	assert(CustomFont != nullptr);
+
 	return true;
 }
 
@@ -207,8 +218,8 @@ void FPropertyPanel::OnRender()
 		ImGui::Separator();
 
 		// 액터 -> 컴포넌트 순으로, 클래스별 프로퍼티 표시
-		DrawProperties(Target->GetOwner());
-		DrawProperties(Target);
+		DrawProperties(Target->GetOwner(), CustomFont);
+		DrawProperties(Target, CustomFont);
 	}
 
 	ImGui::End();
