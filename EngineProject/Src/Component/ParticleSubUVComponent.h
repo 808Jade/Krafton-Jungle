@@ -18,7 +18,10 @@ class UParticleSubUVComponent : public UBillboardComponent
 	DECLARE_CLASS(UParticleSubUVComponent, UBillboardComponent)
 
 	REFLECT_START(ClassName)
-		REFLECT_END()
+		PROPERTY(ColSize)
+		PROPERTY(RowSize)
+		PROPERTY(FrameRate)
+	REFLECT_END()
 
 public:
 	virtual void BeginPlay() override;

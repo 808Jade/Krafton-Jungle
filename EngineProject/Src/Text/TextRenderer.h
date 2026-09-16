@@ -19,12 +19,18 @@ struct MSDFData
 class FTextRenderer
 {
 public:
-	void Init(FRenderer* InRenderer, uint32 InMaxCharacters = 64);
-	void OnRender(const FString& Text, const FVector& WorldPos, float TextSize,
+	void Init(FRenderer* InRenderer, uint32 InMaxCharacters = 256);
+
+	// 컴포넌트 트랜스폼을 그대로 사용 (TextRenderComponent)
+	void OnRender(const FString& Text, const FMatrix& WorldMatrix, float TextSize,
 		const UFont& Atlas, UCameraComponent* CameraComponent);
 
-	void BuildTextMesh(const FString& Text, float TextSize, const UFont& Atlas);
+	// 항상 카메라를 향하게 그린다 (에디터 UUID 라벨 등)
+	void OnRenderBillboard(const FString& Text, const FVector& WorldPos, float TextSize,
+		const UFont& Atlas, UCameraComponent* CameraComponent);
+
 private:
+	void BuildTextMesh(const FString& Text, float TextSize, const UFont& Atlas);
 
 	FRenderer* Renderer = nullptr;
 

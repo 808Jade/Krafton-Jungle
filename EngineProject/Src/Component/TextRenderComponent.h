@@ -8,6 +8,8 @@ class UTextRenderComponent : public UPrimitiveComponent
 	DECLARE_CLASS(UTextRenderComponent, UPrimitiveComponent)
 
 	REFLECT_START(ClassName)
+		PROPERTY(Text)
+		PROPERTY(TextSize)
 	REFLECT_END()
 
 public:

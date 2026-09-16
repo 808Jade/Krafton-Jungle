@@ -186,7 +186,7 @@ void Engine::UpdateGizmoAndPicking(FMatrix& ViewProj)
 	if (FInputSystem::IsMousePressed(EMouseButton::Left) && !Gizmo->IsUsing() && Gizmo->GetHoveredAxis() < 0 && ViewportPanel->IsHovered())
 	{
 		LOG(Info, "Mouse Pos {}, {}", ViewportPanel->GetLocalMousePos().X, ViewportPanel->GetLocalMousePos().Y)
-		UPrimitiveComponent* PickedComponent = World->TryPicking(ViewportPanel->GetLocalMousePos(), ViewportPanel->GetWidth(), ViewportPanel->GetHeight());
+			UPrimitiveComponent* PickedComponent = World->TryPicking(ViewportPanel->GetLocalMousePos(), ViewportPanel->GetWidth(), ViewportPanel->GetHeight());
 		Gizmo->SetTarget(PickedComponent);
 		Outline->SetTarget(PickedComponent);
 		PropertyPanel->SetTarget(PickedComponent);
@@ -202,7 +202,7 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 		if (ConfigPanel->GetSettings().bDrawBoundingBox)
 		{
 			LineBatcher->BeginFrame();
-			LineBatcher->BuildVertexBuffer(); 
+			LineBatcher->BuildVertexBuffer();
 			World->GetPathTracker().OnRender(LineBatcher.get());
 			LineBatcher->OnRender(ViewProj);
 		}
@@ -252,7 +252,7 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 
 		TextRenderer->OnRender(
 			TextComponent->GetText(),
-			TextComponent->GetWorldLocation(),
+			TextComponent->GetWorldMatrix(),
 			TextComponent->GetTextSize(),
 			*TextComponent->GetFont(),
 			World->GetMainCamera()->GetCameraComponent()
@@ -299,6 +299,7 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 		}
 	}
 
+
 	RenderCommand::EndRenderPass(ViewportPanel->GetViewportRenderingInfo());
 
 	// Swapchain 렌더링
@@ -311,6 +312,7 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 	ImGuiRenderer->End();
 
 	RenderCommand::EndRenderPass(MainWindowSC->GetRenderingInfo());
+
 	MainWindowSC->SwapBuffers();
 }
 

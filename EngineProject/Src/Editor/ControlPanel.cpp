@@ -4,6 +4,7 @@
 #include "../Camera/CameraComponent.h"
 
 #include "GameFramework/Actor/StaticMeshActor.h"
+#include "GameFramework/Actor/TextRenderActor.h"
 #include "Asset/AssetManager.h"
 
 #include "Input/InputSystem.h"
@@ -81,6 +82,19 @@ void FControlPanel::OnRender()
 		Particle->SetAtlasTexturePath("ParticleAtlas.png");
 		Particle->SetSubUVSize(4, 4);
 		Particle->SetFrameRate(12.0f);
+	}
+
+	if (ImGui::Button("Spawn Text Actor"))
+	{
+		FTransform Transform;
+		Transform.Location = FVector(5.0f, 0.0f, 0.0f);
+		Transform.Scale = FVector(2.0f, 2.0f, 2.0f);
+
+		ATextRenderActor* TextRenderActor = World->SpawnActor<ATextRenderActor>(&Transform);
+		assert(TextRenderActor != nullptr);
+
+		// Set atlas image settings
+		UTextRenderComponent* Particle = TextRenderActor->GetTextRenderComponent();
 	}
 
 	ImGui::Separator();

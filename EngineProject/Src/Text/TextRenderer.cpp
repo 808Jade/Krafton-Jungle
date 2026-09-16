@@ -68,7 +68,7 @@ void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFo
 			TotalWidth += Glyph->Advance * TextSize;
 		}
 	}
-	float StartY = 0.0f; // -TotalWidth * 0.5f;
+	float StartY = -TotalWidth * 0.5f;
 	PenY = StartY;
 
 	for (uint32 CP : CodePoints)          // 메시 생성 루프
@@ -110,7 +110,7 @@ void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFo
 	}
 }
 
-void FTextRenderer::OnRender(const FString& Text, const FVector& WorldPos, float TextSize,
+void FTextRenderer::OnRender(const FString& Text, const FMatrix& WorldMatrix, float TextSize,
 	const UFont& Atlas, UCameraComponent* CameraComponent)
 {
 	if (Text.empty() || !Atlas.AtlasTexture)
@@ -118,53 +118,28 @@ void FTextRenderer::OnRender(const FString& Text, const FVector& WorldPos, float
 		return;
 	}
 
+	// 이 텍스트의 메시를 로컬 좌표로 새로 만든다
+	Vertices.Reset();
+	Indices.Reset();
+	BuildTextMesh(Text, TextSize, Atlas);
+
 	if (Vertices.IsEmpty())
 	{
 		return;
 	}
 
-	// 버퍼 용량 초과 체크 (UUID 정도면 안 넘겠지만 방어적으로)
+	// 버퍼 용량 초과 체크
 	if (Vertices.Num() > (int32)MaxVertices || Indices.Num() > (int32)MaxIndices)
 	{
-		// 필요시 여기서 버퍼 재생성 로직 추가 가능
+		LOG(Warning, "Text too long for text buffer ({} chars max): {}", MaxCharacters, Text);
 		return;
 	}
 
 	RenderCommand::UpdateBufferData(VertexBuffer.get(), Vertices.GetData(), sizeof(FTextVertex) * Vertices.Num());
 	RenderCommand::UpdateBufferData(IndexBuffer.get(), Indices.GetData(), sizeof(uint32) * Indices.Num());
 
-	const FTransform& Transform = CameraComponent->GetTransform();
-
-	//// 빌보드 Worl d 행렬: CameraRight/Up을 축으로, WorldPos에 위치
-	FVector Right = Transform.GetRight().Normalized();
-	FVector Up = Transform.GetUp().Normalized();
-	FVector Forward = Transform.GetForward().Normalized();   // 또는 Cross로 계산
-
-	//// 카메라가 수직으로 내려다볼 때 폴백
-	//if (Right.Length() <= 1e-6f)
-	//{
-	//	Right = ;
-	//	Forward = FVector::Cross(Up, Right);
-	//}
-
-	FMatrix World;
-	World.SetIdentity();
-	// row0 = 로컬 +X → Forward
-	World.M[0][0] = Forward.X; World.M[0][1] = Forward.Y; World.M[0][2] = Forward.Z; World.M[0][3] = 0;
-	// row1 = 로컬 +Y → Right (글자 가로)
-	World.M[1][0] = Right.X;   World.M[1][1] = Right.Y;   World.M[1][2] = Right.Z;   World.M[1][3] = 0;
-	// row2 = 로컬 +Z → Up (글자 세로)
-	World.M[2][0] = Up.X;      World.M[2][1] = Up.Y;      World.M[2][2] = Up.Z;      World.M[2][3] = 0;
-	// row3 = 위치
-	World.M[3][0] = WorldPos.X; World.M[3][1] = WorldPos.Y; World.M[3][2] = WorldPos.Z; World.M[3][3] = 1;
-
-	//World.M[0][0] = Right.X;   World.M[0][1] = Right.Y;   World.M[0][2] = Right.Z;   World.M[0][3] = 0.0f;
-	//World.M[1][0] = Up.X;      World.M[1][1] = Up.Y;      World.M[1][2] = Up.Z;      World.M[1][3] = 0.0f;
-	//World.M[2][0] = Forward.X; World.M[2][1] = Forward.Y; World.M[2][2] = Forward.Z; World.M[2][3] = 0.0f;
-	//World.M[3][0] = WorldPos.X; World.M[3][1] = WorldPos.Y; World.M[3][2] = WorldPos.Z; World.M[3][3] = 1.0f;
-
 	TextTransformData TransData;
-	TransData.World = World.GetTransposed();
+	TransData.World = WorldMatrix.GetTransposed();
 	TransData.ViewProj = CameraComponent->GetViewProjectionMatrix().GetTransposed();
 
 	MSDFData MSDFData;
@@ -184,4 +159,24 @@ void FTextRenderer::OnRender(const FString& Text, const FVector& WorldPos, float
 
 	Vertices.Reset();
 	Indices.Reset();
+}
+
+void FTextRenderer::OnRenderBillboard(const FString& Text, const FVector& WorldPos, float TextSize,
+	const UFont& Atlas, UCameraComponent* CameraComponent)
+{
+	const FTransform& Transform = CameraComponent->GetTransform();
+
+	const FVector Forward = Transform.GetForward().Normalized();
+	const FVector Right = Transform.GetRight().Normalized();
+	const FVector Up = Transform.GetUp().Normalized();
+
+	// 텍스트 로컬축: X = , Y = 글자 가로, Z = 글자 세로
+	FMatrix World;
+	World.SetIdentity();
+	World.M[0][0] = Forward.X;  World.M[0][1] = Forward.Y;  World.M[0][2] = Forward.Z;  World.M[0][3] = 0;
+	World.M[1][0] = Right.X;    World.M[1][1] = Right.Y;    World.M[1][2] = Right.Z;    World.M[1][3] = 0;
+	World.M[2][0] = Up.X;       World.M[2][1] = Up.Y;       World.M[2][2] = Up.Z;       World.M[2][3] = 0;
+	World.M[3][0] = WorldPos.X; World.M[3][1] = WorldPos.Y; World.M[3][2] = WorldPos.Z; World.M[3][3] = 1;
+
+	OnRender(Text, World, TextSize, Atlas, CameraComponent);
 }

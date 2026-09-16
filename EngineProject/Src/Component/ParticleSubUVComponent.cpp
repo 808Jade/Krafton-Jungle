@@ -18,7 +18,7 @@ void UParticleSubUVComponent::BeginPlay()
 	ColSize = 8;
 	RowSize = 8;
 	CurrentFrame = 0;
-	FrameTimer = 0.0f;
+	FrameTimer = 0.0f;++
 	FrameRate = 12.0f;
 	AtlasTexture = nullptr;
 

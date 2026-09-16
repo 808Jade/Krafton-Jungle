@@ -27,6 +27,12 @@ void FOutlineRenderer::OnRender(const FOutline& InOutline, const FMatrix& InView
 		return;
 	}
 
+	// 메시 없는 컴포넌트(텍스트 등)는 아웃라인을 그리지 않는다
+	if (!InOutline.GetMesh() || !InOutline.GetMesh()->IndexBuffer)
+	{
+		return;
+	}
+
 
 	RenderCommand::BindPipelineState(PipelineState);
 

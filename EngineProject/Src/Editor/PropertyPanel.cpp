@@ -86,6 +86,92 @@ namespace
 
 		return isVectorChanged;
 	}
+
+	// UClass에 등록된 프로퍼티를 타입에 맞는 위젯으로 그린다
+	void DrawProperty(UObject* Object, const FProperty& Property)
+	{
+		void* ValuePtr = reinterpret_cast<char*>(Object) + Property.Offset;
+		const FString Label = "##" + Property.Name;
+
+		ImGui::Text(Property.Name.c_str());
+		ImGui::SameLine(120.0f);
+		ImGui::SetNextItemWidth(-1.0f);
+
+		switch (Property.Type)
+		{
+		case EPropertyType::Float:
+			ImGui::DragFloat(Label.c_str(), static_cast<float*>(ValuePtr), 0.1f);
+			break;
+
+		case EPropertyType::Int:
+			ImGui::DragInt(Label.c_str(), static_cast<int*>(ValuePtr), 1.0f);
+			break;
+
+		case EPropertyType::Bool:
+			ImGui::Checkbox(Label.c_str(), static_cast<bool*>(ValuePtr));
+			break;
+
+		case EPropertyType::Vector:
+		{
+			FVector* Value = static_cast<FVector*>(ValuePtr);
+			ImGui::DragFloat3(Label.c_str(), &Value->X, 0.1f);
+			break;
+		}
+
+		case EPropertyType::String:
+		{
+			FString* Value = static_cast<FString*>(ValuePtr);
+
+			char Buffer[256] = {};
+			strncpy_s(Buffer, Value->c_str(), sizeof(Buffer) - 1);
+
+			if (ImGui::InputText(Label.c_str(), Buffer, sizeof(Buffer)))
+			{
+				*Value = Buffer;
+			}
+			break;
+		}
+
+		default:
+			ImGui::TextDisabled("(Unsupported)");
+			break;
+		}
+	}
+
+	// 클래스 계층을 따라 올라가며 각 단계의 프로퍼티를 표시
+	void DrawProperties(UObject* Object)
+	{
+		if (!Object)
+		{
+			return;
+		}
+
+		TArray<UClass*> ClassChain;
+		for (UClass* Class = Object->GetClass(); Class; Class = Class->Super)
+		{
+			ClassChain.Add(Class);
+		}
+
+		// 기반 클래스부터 표시
+		for (auto It = ClassChain.rbegin(); It != ClassChain.rend(); ++It)
+		{
+			UClass* Class = *It;
+			if (Class->GetProperties().IsEmpty())
+			{
+				continue;
+			}
+
+			ImGui::PushID(Class->Name.c_str());
+			if (ImGui::CollapsingHeader(Class->Name.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				for (const FProperty& Property : Class->GetProperties())
+				{
+					DrawProperty(Object, Property);
+				}
+			}
+			ImGui::PopID();
+		}
+	}
 }
 
 bool FPropertyPanel::Init()
@@ -117,6 +203,12 @@ void FPropertyPanel::OnRender()
 		DrawVector3Controller("Scale", Transform.Scale, 0.0f, 10.0f);
 
 		Target->SetTransform(Transform);
+
+		ImGui::Separator();
+
+		// 액터 -> 컴포넌트 순으로, 클래스별 프로퍼티 표시
+		DrawProperties(Target->GetOwner());
+		DrawProperties(Target);
 	}
 
 	ImGui::End();
