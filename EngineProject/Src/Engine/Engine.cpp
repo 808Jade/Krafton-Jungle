@@ -1,6 +1,7 @@
 #include "EnginePCH.h"
 
 #include "Engine.h"
+
 #include "Core/EngineStatics.h"
 #include "Core/EngineTimer.h"
 #include "Input/InputSystem.h"
@@ -10,6 +11,7 @@
 #include "Render/GeometryGenerator.h"
 
 #include "World.h"
+#include "Level.h"
 
 #include "Render/Renderer.h"
 
@@ -21,6 +23,7 @@
 #include "Render/RenderResourceManager.h"
 
 #include "Render/RenderCommand.h"
+#include "Editor/SceneOutliner.h"
 
 bool Engine::Init(HINSTANCE hInstance)
 {
@@ -87,7 +90,7 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	Outline = MakeUnique<FOutline>();
 
-	Atlas = UAssetManager::GetAssetByPath<UFont>("Assets/Fonts/NanumWild.json");
+	Atlas = UAssetManager::GetAssetByPath<UFont>("Assets/Fonts/Pretendard.json");
 
 	TextRenderer = MakeUnique<FTextRenderer>();
 	TextRenderer->Init(Renderer.get());
@@ -110,6 +113,14 @@ bool Engine::Init(HINSTANCE hInstance)
 			PropertyPanel->SetTarget(Primitive);
 		}
 	);
+
+	SceneOutliner->SetDeleteActorCallback(
+		[this](AActor* Actor)
+		{
+			DeleteActor(Actor);
+		}
+	);
+		
 
 	LineBatcher = MakeUnique<FLineBatcher>();
 	LineBatcher->Init(Renderer.get(), World);
@@ -188,10 +199,25 @@ void Engine::UpdateGizmoAndPicking(FMatrix& ViewProj)
 	{
 		//LOG(Info, "Mouse Pos {}, {}", ViewportPanel->GetLocalMousePos().X, ViewportPanel->GetLocalMousePos().Y)
 		UPrimitiveComponent* PickedComponent = World->TryPicking(ViewportPanel->GetLocalMousePos(), ViewportPanel->GetWidth(), ViewportPanel->GetHeight());
-		Gizmo->SetTarget(PickedComponent);
-		Outline->SetTarget(PickedComponent);
-		PropertyPanel->SetTarget(PickedComponent);
+		//Gizmo->SetTarget(PickedComponent);
+		//Outline->SetTarget(PickedComponent);
+		//PropertyPanel->SetTarget(PickedComponent);
+
+		if (PickedComponent)
+		{
+			SceneOutliner->SelectActor(PickedComponent->GetOwner());
+		}
+		else
+		{
+			SceneOutliner->SelectActor(nullptr);
+		}
 	}
+
+	if (!ImGui::GetIO().WantTextInput && FInputSystem::IsKeyPressed(EKeyCode::Delete))
+	{
+		DeleteActor(SceneOutliner->GetSelectedActor());
+	}
+
 }
 
 void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
@@ -280,25 +306,49 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 	if (Gizmo->GetTarget())
 	{
 		auto Target = Cast<UPrimitiveComponent>(Gizmo->GetTarget());
+
 		FBox box = Target->GetMeshData().AABB.GetWorldAABB(Target->GetWorldMatrix());
 
 		RenderCommand::ClearDepthStencil(ViewportPanel->GetViewportRenderingInfo().DepthSteincil.Texture);
+
 		GizmoRenderer->OnRender(*Gizmo, ViewProj);
 
-		RenderCommand::ClearDepthStencil(ViewportPanel->GetViewportRenderingInfo().DepthSteincil.Texture);
-		FString Text = "UUID : " + std::to_string(Target->GetUUID());
+	}
 
-		if (ConfigPanel->GetSettings().bShowUUID)
+	RenderCommand::ClearDepthStencil(ViewportPanel->GetViewportRenderingInfo().DepthSteincil.Texture);
+
+	if (ConfigPanel->GetSettings().bShowUUID)
+	{
+		for (AActor* Actor : World->GetPersistentLevel()->GetActors())
 		{
-			float Padding = 0.5f;
+			if (!Actor)
+				continue;
+
+			UPrimitiveComponent* Primitive =
+				Cast<UPrimitiveComponent>(Actor->GetRootComponent());
+
+			if (!Primitive)
+				continue;
+
+			FBox Box =
+				Primitive->GetMeshData().AABB.GetWorldAABB(
+					Primitive->GetWorldMatrix()
+				);
 
 			FVector UUIDLocation;
-			UUIDLocation.X = (box.Min.X + box.Max.X) * 0.5f;
-			UUIDLocation.Y = (box.Min.Y + box.Max.Y) * 0.5f;
+			UUIDLocation.X = (Box.Min.X + Box.Max.X) * 0.5f;
+			UUIDLocation.Y = (Box.Min.Y + Box.Max.Y) * 0.5f;
+			UUIDLocation.Z = Box.Max.Z + 0.5f;
 
-			UUIDLocation.Z = box.Max.Z + Padding;
+			FString Text =
+				"UUID : " + std::to_string(Actor->GetUUID());
 
-			TextRenderer->BuildTextMesh(Text, 0.5f, *Atlas);
+			TextRenderer->BuildTextMesh(
+				Text,
+				0.5f,
+				*Atlas
+			);
+
 			TextRenderer->OnRenderBillboard(
 				Text,
 				UUIDLocation,
@@ -309,7 +359,9 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 		}
 	}
 
-	RenderCommand::EndRenderPass(ViewportPanel->GetViewportRenderingInfo());
+
+
+		RenderCommand::EndRenderPass(ViewportPanel->GetViewportRenderingInfo());
 
 	// Swapchain 렌더링
 	RenderCommand::BeginRenderPass(MainWindowSC->GetRenderingInfo());
@@ -343,4 +395,14 @@ void Engine::HandleMainWindow()
 		MainWindowSC->Resize(MainWindow->GetWidth(), MainWindow->GetHeight());
 	}
 	World->GetMainCamera()->GetCameraComponent()->SetAspectRatio(ViewportPanel->GetViewportAspectRatio());
+}
+
+void Engine::DeleteActor(AActor* Actor)
+{
+	if (!Actor)
+		return;
+
+	SceneOutliner->SelectActor(nullptr);
+
+	Actor->Destroy();
 }
