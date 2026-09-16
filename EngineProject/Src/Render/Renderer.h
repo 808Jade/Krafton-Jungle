@@ -20,20 +20,6 @@ public:
 	void RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP);
 
 private:
-	// Camera 
-	struct FConstants
-	{
-		FMatrix MVP;
-	};
-
-	struct FSubUVConstants
-	{
-		float CurrentFrame;
-		float AtlasRowSize;
-		float AtlasColSize;
-		float Padding = 0.0f;
-	};
-
 	TUniquePtr<FConstantBuffer> CB;
 	TUniquePtr<FConstantBuffer> Temp;
 

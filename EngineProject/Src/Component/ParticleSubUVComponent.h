@@ -2,6 +2,14 @@
 
 #include "Component/PrimitiveComponent.h"
 
+struct FSubUVConstants
+{
+	float CurrentFrame;
+	float AtlasRowSize;
+	float AtlasColSize;
+	float Padding = 0.0f;
+};
+
 // Todo: subuv
 // 가장 단순한 SubUV 파티클입니다.
 // Atlas 전체를 Col x Row로 나누고 CurrentFrame 하나만 변경합니다.

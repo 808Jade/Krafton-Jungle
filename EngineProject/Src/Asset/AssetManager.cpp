@@ -71,10 +71,10 @@ void UAssetManager::LoadAsset(const FString& Key, const FString& Path)
 
 void UAssetManager::Init()
 {
+	ScanAssets("Assets");
+
 	CreateDefaultMeshes();
 	CreateDefaultMaterials();
-
-	ScanAssets("Assets");
 }
 
 void UAssetManager::CreateDefaultMeshes()
@@ -124,6 +124,14 @@ void UAssetManager::CreateDefaultMaterials()
 	DefaultMat->Shader = FRenderResourceManager::GetShader("Resources/Shader/DefaultShader.hlsl");
 
 	AssetMap["DefaultMaterial"] = DefaultMat;
+
+	UMaterial* ParticleMat = FObjectFactory::ConstructObject<UMaterial>();
+	ParticleMat->Shader = FRenderResourceManager::GetShader("Resources/Shader/ParticleSubUVShader.hlsl");
+	ParticleMat->ParamBuffer = RenderCommand::CreateConstantBuffer(256);
+	ParticleMat->Textures.Add(GetAssetByPath<UTexture2D>("Assets/CloudAtlas.png"));
+	ParticleMat->BlendState = EBlendState::AlphaBlend;
+
+	AssetMap["SubUVMaterial"] = ParticleMat;
 
 }
 

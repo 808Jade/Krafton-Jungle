@@ -13,7 +13,6 @@ void UParticleSubUVComponent::BeginPlay()
 
 	// Todo: Default setting, set value from arguments
 	//AtlasTexturePath = "ParticleAtlas.png";
-	AtlasTexturePath = "CloudAtlas.png";
 
 	ColSize = 8;
 	RowSize = 8;
@@ -24,7 +23,7 @@ void UParticleSubUVComponent::BeginPlay()
 
 	//Shader = RenderCommand::CreateShader(L"Resources/Shader/ParticleSubUVShader.hlsl", FParticleVertex::GetLayout());
 	Mesh = UAssetManager::GetAssetByPath<UStaticMesh>("ParticleQuad");
-	AtlasTexture = UAssetManager::GetAssetByPath<UTexture2D>(AtlasTexturePath);
+	Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");
 
 	Type = EPrimitiveType::Particle;
 }
@@ -135,11 +134,18 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 	Packet.mesh = Mesh;
 	Packet.material = Material;
 
-	/*Packet.bSubUV = true;
-	Packet.texture = AtlasTexture;
-	Packet.CurrentFrame = CurrentFrame;
-	Packet.AtlasColumns = ColSize;
-	Packet.AtlasRows = RowSize;*/
+			/*Packet.bSubUV = true;
+			Packet.texture = AtlasTexture;
+			Packet.CurrentFrame = CurrentFrame;
+			Packet.AtlasColumns = ColSize;
+			Packet.AtlasRows = RowSize;*/
+
+	FSubUVConstants subUVConstans;
+	subUVConstans.CurrentFrame = CurrentFrame;
+	subUVConstans.AtlasColSize = ColSize;
+	subUVConstans.AtlasRowSize = RowSize;
+
+	RenderCommand::UpdateBufferData(Packet.material->ParamBuffer.get(), &subUVConstans);
 
 	RenderQueue.Enqueue(Packet);
 }

@@ -56,11 +56,20 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 		RenderCommand::BindShader(rp.material->Shader);
 		RenderCommand::SetBlendState(rp.material->BlendState);
 
+		RenderCommand::BindConstantBuffer(1, rp.material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
+
+		for (int i = 0; i < rp.material->Textures.size(); i++)
+		{
+			RenderCommand::BindShaderResource(i, rp.material->Textures[i], EShaderBindFlagBits::Pixel);
+		}
+		RenderCommand::BindSamplerState(0, ESamplerState::LinearClamp, EShaderBindFlagBits::Pixel);
+
 		// rp.Transform 과 Camera VP 행렬 곱
 		// 행렬곱의 결과 (MVP Matrix) Constant Buffer 업데이트 필요
 		FMatrix MVP = (rp.model * VP).GetTransposed();
 		RenderCommand::UpdateBufferData(Temp.get(), &MVP);
 		RenderCommand::BindConstantBuffer(0, Temp.get(), EShaderBindFlagBits::Vertex);
+
 
 		// Todo: subuv
 		/*if (rp.bSubUV)
