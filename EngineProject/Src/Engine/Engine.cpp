@@ -269,21 +269,30 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 
 	if (Gizmo->GetTarget())
 	{
-		auto Target = Gizmo->GetTarget()->GetOwner();
-
+		auto Target = Cast<UPrimitiveComponent>(Gizmo->GetTarget());
+		FBox box = Target->GetMeshData().AABB.GetWorldAABB(Target->GetWorldMatrix());
 
 		RenderCommand::ClearDepthStencil(ViewportPanel->GetViewportRenderingInfo().DepthSteincil.Texture);
 		GizmoRenderer->OnRender(*Gizmo, ViewProj);
 
 		RenderCommand::ClearDepthStencil(ViewportPanel->GetViewportRenderingInfo().DepthSteincil.Texture);
 		FString Text = "UUID : " + std::to_string(Target->GetUUID());
+
 		if (ConfigPanel->GetSettings().bShowUUID)
 		{
-			TextRenderer->BuildTextMesh(Text, 1.0f, *Atlas);
+			float Padding = 0.5f;
+
+			FVector UUIDLocation;
+			UUIDLocation.X = (box.Min.X + box.Max.X) * 0.5f;
+			UUIDLocation.Y = (box.Min.Y + box.Max.Y) * 0.5f;
+
+			UUIDLocation.Z = box.Max.Z + Padding;
+
+			TextRenderer->BuildTextMesh(Text, 0.5f, *Atlas);
 			TextRenderer->OnRender(
 				Text,
-				Gizmo->GetLocation(),
-				1.0f,
+				UUIDLocation,
+				0.5f,
 				*Atlas,
 				World->GetMainCamera()->GetCameraComponent()
 			);
