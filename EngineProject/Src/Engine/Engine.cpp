@@ -289,7 +289,7 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 			UUIDLocation.Z = box.Max.Z + Padding;
 
 			TextRenderer->BuildTextMesh(Text, 0.5f, *Atlas);
-			TextRenderer->OnRender(
+			TextRenderer->OnRenderBillboard(
 				Text,
 				UUIDLocation,
 				0.5f,

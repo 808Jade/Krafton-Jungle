@@ -29,8 +29,8 @@ public:
 	void OnRenderBillboard(const FString& Text, const FVector& WorldPos, float TextSize,
 		const UFont& Atlas, UCameraComponent* CameraComponent);
 
-private:
 	void BuildTextMesh(const FString& Text, float TextSize, const UFont& Atlas);
+private:
 
 	FRenderer* Renderer = nullptr;
 
