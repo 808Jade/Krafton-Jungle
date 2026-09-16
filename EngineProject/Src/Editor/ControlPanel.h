@@ -63,10 +63,18 @@ public:
 
 
 	FString OpenSaveSceneDialog();
-	void RefreshSceneFiles();
-	void DrawSceneLoadCombo();
+	void DrawMainMenuBar();
 
 private:
+	// 상단 툴바 파일 Save & Load
+	void CreateNewScene();
+	void OpenScene();
+	void SaveCurrentScene();
+	void SaveSceneAs();
+
+	FString OpenLoadSceneDialog();
+	FString CurrentScenePath;
+
 	TArray<FString> SceneFiles;
 	const FString DefaultScenePath = "Scene/";
 	int SelectedSceneIndex = -1;

@@ -22,12 +22,12 @@ public:
 
 	bool Init();
 	/*UPrimitiveComponent* SpawnPrimitive(FClass* Class);*/
-	AActor* SpawnActor(UClass* Class, const FTransform* Transform);
+	AActor* SpawnActor(UClass* Class, FName InName = NAME_None, const FTransform * Transform = nullptr);
 
 	template <class T>
-	T* SpawnActor(const FTransform* Transform)
+	T* SpawnActor(FName InName = NAME_None, const FTransform* Transform = nullptr)
 	{
-		return CastChecked<T>(SpawnActor(T::StaticClass(), Transform));
+		return CastChecked<T>(SpawnActor(T::StaticClass(), InName, Transform));
 	}
 
 	void Tick(float DeltaTime);
@@ -35,9 +35,6 @@ public:
 	void OnRender(FRenderer* Renderer);
 
 	void ClearScene();
-	bool NewScene(const FString& Path);
-	bool SaveScene(const FString& Path);
-	bool LoadScene(const FString& Path);
 
 	inline void AddPrimitive(UPrimitiveComponent* Primitive) { PrimitiveComponents.Add(Primitive); }
 	TArray<UPrimitiveComponent*> GetPrimitiveComponents() const { return PrimitiveComponents; }

@@ -26,9 +26,7 @@ public:
 
     void DrawActors(ULevel* Level);
     void DrawActorNode(AActor* Actor);
-    void DrawComponents(AActor* Actor);
-    void DrawComponentNode(UActorComponent* Component);
-    void SelectObject(UObject* Object);
+    void SelectActor(AActor* Actor);
 
 
 private:

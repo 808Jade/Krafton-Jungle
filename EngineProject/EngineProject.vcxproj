@@ -108,6 +108,9 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="JsonArchive.h" />
+    <ClInclude Include="Src\Core\NamePool.h" />
+    <ClInclude Include="Src\Editor\EditorFileUtils.h" />
     <ClInclude Include="Src\Container\StringView.h" />
     <ClInclude Include="Src\Core\NameTypes.h" />
     <ClInclude Include="Src\Editor\SceneOutliner.h" />
@@ -208,7 +211,10 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Src\Core\UnrealNames.cpp" />
+    <ClCompile Include="JsonArchive.cpp" />
+    <ClCompile Include="Src\Core\NamePool.cpp" />
+    <ClCompile Include="Src\Editor\EditorFileUtils.cpp" />
+    <ClCompile Include="Src\Core\NameTypes.cpp" />
     <ClCompile Include="Src\Editor\SceneOutliner.cpp" />
     <ClCompile Include="Src\Asset\AssetManager.cpp" />
     <ClCompile Include="Src\Camera\CameraActor.cpp" />

@@ -8,10 +8,34 @@
 
 #include "Input/InputSystem.h"
 #include "Core/EngineLog.h"
+#include "EditorFileUtils.h"
 
 #include <commdlg.h>
 
-
+namespace
+{
+	FString PrimitiveTypeToString(EPrimitiveType Type)
+	{
+		switch (Type)
+		{
+		case EPrimitiveType::Sphere:
+			return "Sphere";
+			break;
+		case EPrimitiveType::Cube:
+			return "Cube";
+			break;
+		case EPrimitiveType::Cone:
+			return "Cone";
+			break;
+		case EPrimitiveType::Plane:
+			return "Plane";
+			break;
+		default:
+			return "";
+			break;
+		}
+	}
+}
 
 bool FControlPanel::Init()
 {
@@ -30,16 +54,9 @@ void FControlPanel::Tick(float DeltaTime)
 
 void FControlPanel::AddActor(EPrimitiveType Type)
 {
-	//FTransform Transform;
-	//AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>(&Transform);
-	//NewActor->SetPrimitiveType(Type);
-	//AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>(&Transform);
-	//UPrimitiveComponent* Component = Actor->GetPrimitiveComponent();
-	//Component->ApplyPrimitiveType(Type);
-
-
 	FTransform Transform;
-	AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>(&Transform);
+	FName ActorName(PrimitiveTypeToString(Type));
+	AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>(ActorName, &Transform);
 	NewActor->SetPrimitiveType(Type);
 
 	ActorNum = World->GetActorNum();
@@ -72,7 +89,7 @@ void FControlPanel::OnRender()
 		Transform.Location = FVector(5.0f, 0.0f, 0.0f);
 		Transform.Scale = FVector(2.0f, 2.0f, 2.0f);
 
-		AParticleActor* ParticleActor = World->SpawnActor<AParticleActor>(&Transform);
+		AParticleActor* ParticleActor = World->SpawnActor<AParticleActor>("Test", &Transform);
 		assert(ParticleActor != nullptr);
 
 		// Set atlas image settings
@@ -82,33 +99,6 @@ void FControlPanel::OnRender()
 		Particle->SetSubUVSize(4, 4);
 		Particle->SetFrameRate(12.0f);
 	}
-
-	ImGui::Separator();
-	// 씬 생성 세이브 로드
-	//ImGui::SetNextItemWidth(165.0f);
-	//ImGui::InputText("Scene Name", SceneName, IM_ARRAYSIZE(SceneName));
-	
-	ImGui::Text("Scene");
-
-	if (ImGui::Button("New Scene", ImVec2(80.0f, 19.0f)))
-	{
-		World->ClearScene();
-		World->NewScene(SceneName);
-		ActorNum = World->GetActorNum();
-		if (Callback) Callback();
-	}
-	ImGui::SameLine();
-
-	if (ImGui::Button("Save Scene", ImVec2(80.0f, 19.0f))) 
-	{ 
-		FString FilePath = OpenSaveSceneDialog();
-		World->SaveScene(FilePath);
-		ActorNum = World->GetActorNum(); 
-		LOG(Info, "Save Scene Path : {}", FilePath);
-	}
-	
-	DrawSceneLoadCombo(); // Load Scene ImGui
-
 
 	ImGui::Separator();
 
@@ -218,111 +208,63 @@ void FControlPanel::OnRender()
 	ImGui::End();
 }
 
-
-// Save시 파일탐색기 Open
-FString FControlPanel::OpenSaveSceneDialog()
+void FControlPanel::DrawMainMenuBar()
 {
-	char FilePath[MAX_PATH] = {};
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(8.0f, 10.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8.0f, 10.0f));
 
-	OPENFILENAMEA ofn = {};
-	ofn.lStructSize = sizeof(OPENFILENAMEA);
-	ofn.hwndOwner = nullptr;
-	ofn.lpstrFile = FilePath;
-	ofn.nMaxFile = MAX_PATH;
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("File"))
+		{
+			if (ImGui::MenuItem("New Scene")) { CreateNewScene(); }
 
-	ofn.lpstrFilter = "Scene Files (*.scene)\0*.scene\0";
-	ofn.lpstrDefExt = "scene";
-	ofn.lpstrInitialDir = DefaultScenePath.c_str();
+			if (ImGui::MenuItem("Open Scene...")) { OpenScene(); }
 
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+			ImGui::Separator();
 
-	if (GetSaveFileNameA(&ofn)) {
-		return FString(FilePath);
+			if (ImGui::MenuItem("Save")) { SaveCurrentScene(); }
+
+			if (ImGui::MenuItem("Save As...")) { SaveSceneAs(); }
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMainMenuBar();
 	}
-
-	return FString();
+	ImGui::PopStyleVar(2);
 }
 
-void FControlPanel::RefreshSceneFiles()
+void FControlPanel::CreateNewScene()
 {
-	SceneFiles.Reset();
-	const FString ScenePath = DefaultScenePath; // Path: Scene/
-
-	if (!std::filesystem::exists(ScenePath)) { 
-		LOG(Info, "Scene folder not found: {}\nnow your path is {}", ScenePath.c_str(), std::filesystem::current_path().string());
-
-		LOG(Info, "CurrentPath: {}", std::filesystem::current_path().string());
-
+	if (!FEditorFileUtils::NewScene(World))
 		return;
-	}
 
-	for (const auto& Entry : std::filesystem::directory_iterator(ScenePath))
+	ActorNum = World->GetActorNum();
+
+	if (Callback)
+		Callback();
+}
+
+void FControlPanel::OpenScene()
+{
+	if (!FEditorFileUtils::LoadScene(World))
+		return;
+
+	ActorNum = World->GetActorNum();
+
+	if (Callback)
 	{
-		if (!Entry.is_regular_file())
-			continue;
-
-		SceneFiles.Add(Entry.path().filename().string());
-	}
-
-	if (SelectedSceneIndex >= SceneFiles.Num())
-	{
-		SelectedSceneIndex = -1;
+		Callback();
 	}
 }
 
-void FControlPanel::DrawSceneLoadCombo()
+void FControlPanel::SaveCurrentScene()
 {
-	const char* Preview = "Select Scene";
+	FEditorFileUtils::SaveScene(World);
+}
 
-	if (SelectedSceneIndex >= 0 && SelectedSceneIndex <= SceneFiles.Num()) {
-		Preview = SceneFiles[SelectedSceneIndex].c_str();
-	}
-
-	ImGui::SetNextItemWidth(150.0f);
-	bool bComboOpen = ImGui::BeginCombo("##SceneSelect", Preview);
-
-	if (ImGui::IsItemActivated())
-	{
-		RefreshSceneFiles();
-	}
-	
-	if(bComboOpen)
-	{
-		for (int i = 0; i < SceneFiles.Num(); ++i)
-		{
-			bool bSelected = (SelectedSceneIndex == i);
-
-			if (ImGui::Selectable(SceneFiles[i].c_str(), bSelected))
-			{
-				SelectedSceneIndex = i;
-			}
-
-			if (bSelected)
-			{
-				ImGui::SetItemDefaultFocus();
-			}
-		}
-
-		ImGui::EndCombo();
-	}
-
-	ImGui::SameLine();
-
-	if (ImGui::Button("Load Scene", ImVec2(80.0f, 19.0f)))
-	{
-		if (SelectedSceneIndex < 0)
-			return;
-
-		FString ScenePath = DefaultScenePath + SceneFiles[SelectedSceneIndex];
-
-		RefreshSceneFiles();
-
-		if (!World->LoadScene(ScenePath))
-		{
-			return;
-		}
-		LOG(Info, "Load Scene : {}", ScenePath);
-		ActorNum = World->GetActorNum();
-		if (Callback)Callback();
-	}
+void FControlPanel::SaveSceneAs()
+{
+	FEditorFileUtils::SaveSceneAs(World);
 }

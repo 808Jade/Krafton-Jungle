@@ -62,6 +62,7 @@ void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFo
 
 	// 전체 텍스트 너비를 미리 계산해서 중앙 정렬 (UUID 라벨은 보통 중앙 정렬이 자연스러움)
 	float TotalWidth = 0.0f;
+
 	for (uint32 CP : CodePoints)
 	{
 		if (const FGlyphInfo* Glyph = Atlas.GlyphMap.FindOrNull(CP))
@@ -69,7 +70,9 @@ void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFo
 			TotalWidth += Glyph->Advance * TextSize;
 		}
 	}
-	float StartY = 0.0f; // -TotalWidth * 0.5f;
+	float StartY = -TotalWidth * 0.5f;
+	float StartZ = 0.0f;
+
 	PenY = StartY;
 
 	for (uint32 CP : CodePoints)          // 메시 생성 루프
