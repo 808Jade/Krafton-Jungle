@@ -2,7 +2,7 @@
 
 #include "Core/Types.h"
 #include "Core/EngineStatics.h"
-#include "Core/Name.h"
+#include "Core/NameTypes.h"
 
 
 class UClass;
@@ -49,7 +49,7 @@ public:
 	virtual ~UObject();
 
 	static UClass* StaticClass();
-	virtual UClass* GetClass() const;
+	virtual UClass* GetClass() const { return StaticClass(); }
 
 	template <typename T>
 	bool IsA() { return IsA(T::StaticClass()); }
@@ -60,6 +60,9 @@ public:
 
 	const FName& GetFName() const { return Name; }         // FName 비교용
 	FString GetName() const { return Name.ToString(); }    // Name 출력용
+
+	UObject* GetOuter() const { return Outer; }
+	void SetOuter(UObject* InOuter) { Outer = InOuter; }
 
 	void SetName(const FName& InName) { Name = FName(InName); }
 
@@ -88,6 +91,8 @@ private:
 	uint32 InternalIndex;
 
 	FName Name = FName("None");
+	UObject* Outer = nullptr;
+
 
 	bool bIsRegistered = true;
 };

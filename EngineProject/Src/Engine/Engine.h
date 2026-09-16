@@ -27,7 +27,6 @@
 #include "Text/FontAtlas.h"
 #include "Text/TextRenderer.h"
 
-#include "../SceneManager.h"
 #include "../Editor/SceneOutliner.h"
 
 struct FWindowContext
@@ -90,8 +89,5 @@ private:
 	FConfigPanel* ConfigPanel = nullptr;
 	FViewportPanel* ViewportPanel= nullptr;
 	FSceneOutliner* SceneOutliner = nullptr;
-
-
-	FSceneManager* SceneManager = nullptr; //제거 예정
 };
 

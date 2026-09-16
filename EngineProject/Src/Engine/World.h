@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ObjectSystem/Object.h"
+#include "ObjectSystem/Class.h"
 #include "GameFramework/Actor.h"
 #include "Component/PrimitiveComponent.h"
 #include "Math/Transform.h"

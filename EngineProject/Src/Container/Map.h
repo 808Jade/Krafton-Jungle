@@ -4,10 +4,11 @@
 #include <unordered_map>
 #include <utility>
 #include <initializer_list>
+#include "Core/Types.h"
+#include <functional>
 
 
-
-template <typename T, typename V>
+template <typename T, typename V, typename Hash = std::hash<T>>
 class TMap
 {
 public:
@@ -16,11 +17,11 @@ public:
 
 	~TMap() = default;
 
-	std::unordered_map<T, V>::iterator begin();
-	std::unordered_map<T, V>::iterator end();
+	typename std::unordered_map<T, V, Hash>::iterator begin();
+	typename std::unordered_map<T, V, Hash>::iterator end();
 
-	std::unordered_map<T, V>::const_iterator begin() const;
-	std::unordered_map<T, V>::const_iterator end() const;
+	typename std::unordered_map<T, V, Hash>::const_iterator begin() const;
+	typename std::unordered_map<T, V, Hash>::const_iterator end() const;
 
 	void Add(const T& key, const V& Value);
 	int32 Remove(const T& key);
@@ -31,6 +32,9 @@ public:
 	V* FindOrNull(const T& key);
 	const V* FindOrNull(const T& key) const;
 
+	V* Find(const T& key);
+	const V* Find(const T& key) const;
+
 	bool Contains(const T& key) const;
 	bool IsEmpty() const;
 	void Reserve(int32 Capacity);
@@ -39,69 +43,69 @@ public:
 	const V& operator[](const T& key) const;
 
 private:
-	std::unordered_map<T, V> mMap;
+	std::unordered_map<T, V, Hash> mMap;
 };
 
-template<typename T, typename V>
-inline std::unordered_map<T, V>::iterator TMap<T, V>::begin()
+template <typename T, typename V, typename Hash>
+inline typename std::unordered_map<T, V, Hash>::iterator TMap<T, V, Hash>::begin()
 {
 	return mMap.begin();
 }
 
-template<typename T, typename V>
-inline std::unordered_map<T, V>::iterator TMap<T, V>::end()
+template <typename T, typename V, typename Hash>
+inline typename std::unordered_map<T, V, Hash>::iterator TMap<T, V, Hash>::end()
 {
 	return mMap.end();
 }
 
-template<typename T, typename V>
-inline std::unordered_map<T, V>::const_iterator TMap<T, V>::begin() const
+template <typename T, typename V, typename Hash>
+inline typename std::unordered_map<T, V, Hash>::const_iterator TMap<T, V, Hash>::begin() const
 {
 	return mMap.cbegin();
 }
 
-template<typename T, typename V>
-inline std::unordered_map<T, V>::const_iterator TMap<T, V>::end() const
+template <typename T, typename V, typename Hash>
+inline typename std::unordered_map<T, V, Hash>::const_iterator TMap<T, V, Hash>::end() const
 {
 	return mMap.cend();
 }
 
-template <typename T, typename V>
-inline void TMap<T, V>::Add(const T& key, const V& value)
+template <typename T, typename V, typename Hash>
+inline void TMap<T, V, Hash>::Add(const T& key, const V& value)
 {
 	mMap[key] = value;
 }
 
-template <typename T, typename V>
-inline int32 TMap<T, V>::Remove(const T& key)
+template <typename T, typename V, typename Hash>
+inline int32 TMap<T, V, Hash>::Remove(const T& key)
 {
 	return static_cast<int32>(mMap.erase(key));
 }
 
-template <typename T, typename V>
-inline uint32 TMap<T, V>::Num() const
+template <typename T, typename V, typename Hash>
+inline uint32 TMap<T, V, Hash>::Num() const
 {
 	return static_cast<uint32>(mMap.size());
 }
 
-template <typename T, typename V>
-inline void TMap<T, V>::Reset()
+template <typename T, typename V, typename Hash>
+inline void TMap<T, V, Hash>::Reset()
 {
 	mMap.clear();
 }
 
-template <typename T, typename V>
-inline void TMap<T, V>::Empty(int32 capacity)
+template <typename T, typename V, typename Hash>
+inline void TMap<T, V, Hash>::Empty(int32 capacity)
 {
 	mMap.clear();
 	mMap.reserve(static_cast<size_t>(capacity));
 }
 
-// Todo: Need to fix return type
-template <typename T, typename V>
-inline V* TMap<T, V>::FindOrNull(const T& key)
+template <typename T, typename V, typename Hash>
+inline V* TMap<T, V, Hash>::FindOrNull(const T& key)
 {
 	auto iter = mMap.find(key);
+
 	if (iter == mMap.end())
 	{
 		return nullptr;
@@ -110,10 +114,11 @@ inline V* TMap<T, V>::FindOrNull(const T& key)
 	return &iter->second;
 }
 
-template <typename T, typename V>
-inline const V* TMap<T, V>::FindOrNull(const T& key) const
+template <typename T, typename V, typename Hash>
+inline const V* TMap<T, V, Hash>::FindOrNull(const T& key) const
 {
 	auto iter = mMap.find(key);
+
 	if (iter == mMap.end())
 	{
 		return nullptr;
@@ -122,32 +127,58 @@ inline const V* TMap<T, V>::FindOrNull(const T& key) const
 	return &iter->second;
 }
 
-template <typename T, typename V>
-inline bool TMap<T, V>::Contains(const T& key) const
+template <typename T, typename V, typename Hash>
+inline V* TMap<T, V, Hash>::Find(const T& key)
+{
+	auto iter = mMap.find(key);
+
+	if (iter == mMap.end())
+	{
+		return nullptr;
+	}
+
+	return &iter->second;
+}
+
+template <typename T, typename V, typename Hash>
+inline const V* TMap<T, V, Hash>::Find(const T& key) const
+{
+	auto iter = mMap.find(key);
+
+	if (iter == mMap.end())
+	{
+		return nullptr;
+	}
+
+	return &iter->second;
+}
+
+template <typename T, typename V, typename Hash>
+inline bool TMap<T, V, Hash>::Contains(const T& key) const
 {
 	return mMap.find(key) != mMap.end();
 }
 
-template <typename T, typename V>
-inline bool TMap<T, V>::IsEmpty() const
+template <typename T, typename V, typename Hash>
+inline bool TMap<T, V, Hash>::IsEmpty() const
 {
 	return mMap.empty();
 }
 
-template <typename T, typename V>
-inline void TMap<T, V>::Reserve(int32 capacity)
+template <typename T, typename V, typename Hash>
+inline void TMap<T, V, Hash>::Reserve(int32 capacity)
 {
 	mMap.reserve(static_cast<size_t>(capacity));
 }
 
-template <typename T, typename V>
-inline V& TMap<T, V>::operator[](const T& key)
+template <typename T, typename V, typename Hash>
+inline V& TMap<T, V, Hash>::operator[](const T& key)
 {
 	return mMap[key];
 }
 
-template <typename T, typename V>
-inline const V& TMap<T, V>::operator[](const T& key) const
+template <typename T, typename V, typename Hash>
+inline const V& TMap<T, V, Hash>::operator[](const T& key) const
 {
 	return mMap.at(key);
 }

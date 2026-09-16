@@ -100,6 +100,14 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	SceneOutliner = EditorUI->AddEditorPanel<FSceneOutliner>();
 	SceneOutliner->SetWorld(World);
+	SceneOutliner->SetSelectionCallback(
+		[this](UPrimitiveComponent* Primitive)
+		{
+			Gizmo->SetTarget(Primitive);
+			Outline->SetTarget(Primitive);
+			PropertyPanel->SetTarget(Primitive);
+		}
+	);
 
 	LineBatcher = MakeUnique<FLineBatcher>();
 	LineBatcher->Init(Renderer.get(), World);

@@ -5,6 +5,7 @@
 #include "Engine/World.h"
 
 #include "Component/ActorComponent.h"
+#include "Component/PrimitiveComponent.h"
 
 bool FSceneOutliner::Init()
 {
@@ -41,12 +42,68 @@ void FSceneOutliner::DrawActors(ULevel* Level)
 
     const TArray<AActor*>& Actors = Level->GetActors();
 
-    for (AActor* Actor : Actors)
+    struct FActorGroup
     {
-        if (!Actor)
+        EPrimitiveType Type;
+        const char* Name;
+    };
+
+    const FActorGroup Groups[] =
+    {
+        { EPrimitiveType::Sphere, "Sphere" },
+        { EPrimitiveType::Cube,   "Cube" },
+        { EPrimitiveType::Cone,   "Cone" },
+        { EPrimitiveType::Plane,  "Plane" }
+    };
+
+    //for (AActor* Actor : Actors)
+    //{
+    //    if (!Actor)
+    //        continue;
+
+    //    DrawActorNode(Actor);
+    //}
+
+    for (const FActorGroup& Group : Groups)
+    {
+        bool bHasActor = false;
+
+        for (AActor* Actor : Actors)
+        {
+            if (!Actor)
+                continue;
+
+            UPrimitiveComponent* Primitive =
+                Cast<UPrimitiveComponent>(Actor->GetRootComponent());
+
+            if (Primitive && Primitive->GetType() == Group.Type)
+            {
+                bHasActor = true;
+                break;
+            }
+        }
+
+        if (!bHasActor)
             continue;
 
-        DrawActorNode(Actor);
+        if (ImGui::TreeNodeEx(Group.Name, ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            for (AActor* Actor : Actors)
+            {
+                if (!Actor)
+                    continue;
+
+                UPrimitiveComponent* Primitive =
+                    Cast<UPrimitiveComponent>(Actor->GetRootComponent());
+
+                if (Primitive && Primitive->GetType() == Group.Type)
+                {
+                    DrawActorNode(Actor);
+                }
+            }
+
+            ImGui::TreePop();
+        }
     }
 }
 
@@ -58,7 +115,10 @@ void FSceneOutliner::DrawActorNode(AActor* Actor)
 
     const FString& ActorName = Actor->GetName();
 
-    ImGuiTreeNodeFlags Flags = ImGuiTreeNodeFlags_None;
+    //ImGuiTreeNodeFlags Flags = ImGuiTreeNodeFlags_None;
+    ImGuiTreeNodeFlags Flags = 
+        ImGuiTreeNodeFlags_Leaf |
+        ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
     // Actor 선택 시 UI 선택 상태
     if (SelectedObject == Actor) 
@@ -74,12 +134,12 @@ void FSceneOutliner::DrawActorNode(AActor* Actor)
         SelectObject(Actor);
     }
 
-    // Component Draw
-    if (bOpened) 
-    {
-        DrawComponents(Actor);
-        ImGui::TreePop();
-    }
+    //// Component Draw
+    //if (bOpened) 
+    //{
+    //    DrawComponents(Actor);
+    //    ImGui::TreePop();
+    //}
     
 }
 
@@ -131,4 +191,16 @@ void FSceneOutliner::DrawComponentNode(UActorComponent* Component)
 void FSceneOutliner::SelectObject(UObject* Object)
 {
     SelectedObject = Object;
+
+    AActor* Actor = Cast<AActor>(Object);
+    if (!Actor)
+        return;
+
+    UPrimitiveComponent* Primitive =
+        Cast<UPrimitiveComponent>(Actor->GetRootComponent());
+
+    if (Callback)
+    {
+        Callback(Primitive);
+    }
 }

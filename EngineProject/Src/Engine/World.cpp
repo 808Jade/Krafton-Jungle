@@ -100,11 +100,11 @@ AActor* UWorld::SpawnActor(UClass* Class, const FTransform* TransformPtr)
 	if (!Class->IsChildOf(AActor::StaticClass())) return nullptr;
 
 	// 1. ObjectFactory로 Actor 생성
-	AActor* NewActor = Cast<AActor>( FObjectFactory::ConstructObject(Class) );
+	AActor* NewActor = Cast<AActor>( FObjectFactory::ConstructObject(Class, PersistentLevel, NAME_None) );
 
 	if (!NewActor)
 	{
-		LOG(Error, "SpawnActor2 : Failed to create Actor");
+		LOG(Error, "SpawnActor : Failed to create Actor");
 		return nullptr;
 	}
 

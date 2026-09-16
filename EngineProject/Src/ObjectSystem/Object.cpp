@@ -52,13 +52,9 @@ UClass* UObject::StaticClass()
 	return &c;
 }
 
-UClass* UObject::GetClass() const
-{
-	return StaticClass();
-}
-
 bool UObject::IsA(UClass* Class)
 {
 	return GetClass()->IsChildOf(Class);
 }
+
 

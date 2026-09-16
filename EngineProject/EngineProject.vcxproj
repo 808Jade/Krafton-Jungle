@@ -108,6 +108,8 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Src\Container\StringView.h" />
+    <ClInclude Include="Src\Core\NameTypes.h" />
     <ClInclude Include="Src\Editor\SceneOutliner.h" />
     <ClInclude Include="Src\Asset\AssetManager.h" />
     <ClInclude Include="Src\Asset\RenderAsset.h" />
@@ -129,7 +131,6 @@
     <ClInclude Include="Src\Core\EngineStatics.h" />
     <ClInclude Include="Src\Core\EngineString.h" />
     <ClInclude Include="Src\Core\EngineTimer.h" />
-    <ClInclude Include="Src\Core\Name.h" />
     <ClInclude Include="Src\Core\Types.h" />
     <ClInclude Include="Src\Core\Window.h" />
     <ClInclude Include="Src\Editor\ConfigPanel.h" />
@@ -189,11 +190,9 @@
     <ClInclude Include="Src\Render\Swapchain.h" />
     <ClInclude Include="Src\Render\Texture2D.h" />
     <ClInclude Include="Src\Render\Vertex.h" />
-    <ClInclude Include="Src\SceneManager.h" />
     <ClInclude Include="Src\Text\FontAtlas.h" />
     <ClInclude Include="Src\Text\ImageLoader.h" />
     <ClInclude Include="Src\Text\TextRenderer.h" />
-    <ClInclude Include="Src\Render\Swapchain.h" />
     <ClInclude Include="Src\Component\TextRenderComponent.h" />
     <ClInclude Include="ThirdParty\ImGui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="ThirdParty\ImGui\backends\imgui_impl_win32.h" />
@@ -209,6 +208,7 @@
     <ClInclude Include="Src\Engine\Level.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Src\Core\UnrealNames.cpp" />
     <ClCompile Include="Src\Editor\SceneOutliner.cpp" />
     <ClCompile Include="Src\Asset\AssetManager.cpp" />
     <ClCompile Include="Src\Camera\CameraActor.cpp" />
@@ -219,7 +219,6 @@
     <ClCompile Include="Src\Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Src\Component\SceneComponent.cpp" />
     <ClCompile Include="Src\Core\EngineTimer.cpp" />
-    <ClCompile Include="Src\Core\Name.cpp" />
     <ClCompile Include="Src\Core\Window.cpp" />
     <ClCompile Include="Src\Editor\ConfigPanel.cpp" />
     <ClCompile Include="Src\Editor\ConsolePanel.cpp" />
@@ -264,7 +263,6 @@
     <ClCompile Include="Src\Render\Swapchain.cpp" />
     <ClCompile Include="Src\Render\Texture2D.cpp" />
     <ClCompile Include="Src\Render\Vertex.cpp" />
-    <ClCompile Include="Src\SceneManager.cpp" />
     <ClCompile Include="Src\Text\FontAtlas.cpp" />
     <ClCompile Include="Src\Text\TextRenderer.cpp" />
     <ClCompile Include="Src\main.cpp" />
@@ -291,8 +289,6 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Src\Editor\ViewportPanel.cpp" />
-    <ClCompile Include="Src\Engine\Level.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

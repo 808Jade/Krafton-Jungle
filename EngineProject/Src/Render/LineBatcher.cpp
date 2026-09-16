@@ -31,7 +31,7 @@ void FLineBatcher::BuildVertexBuffer()
 	for (UPrimitiveComponent* Prim : World->GetPrimitiveComponents())
 	{
 		const FTransform& Transform = Prim->GetTransform();
-		FBox WorldBox = Prim->GetMeshData().AABB.GetWorldAABB(Transform.GetWorldMatrix());
+		FBox WorldBox = Prim->GetMeshData().AABB.GetWorldAABB(Transform.GetLocalMatrix());
 		AddBox(WorldBox, FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	}
 }
