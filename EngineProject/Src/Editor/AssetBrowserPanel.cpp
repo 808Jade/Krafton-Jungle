@@ -54,7 +54,7 @@ void FAssetBrowserPanel::OnRender()
 		// 테이블 기반 그리드 시작
 		if (ImGui::BeginTable("AssetGridTable", ColumnCount))
 		{
-			for (const fs::path& Path : fs::recursive_directory_iterator(AssetRootPath))
+			for (const fs::path& Path : fs::directory_iterator(CurrentPath))
 			{
 				ImGui::TableNextColumn();
 
@@ -63,25 +63,29 @@ void FAssetBrowserPanel::OnRender()
 
 				ImGui::PushID(PathString.c_str()); // 각 위젯에 고유 ID 부여
 
-				UTexture2D* Thumbnail;
+				UTexture2D* Thumbnail = nullptr;
 
 				// 폴더 또는 파일 아이콘 표시
 				if (fs::is_directory(Path))
 				{
-					//ThumbnailSize = UAssetManager::GetAssetByPath<UTexture2D>("Resource/DirectoryIcon.png");
-					//ImGui::ImageButton(PathString.c_str(), (ImTextureID)ThumbnailSize->GetResource()->GetSRV(), {thumbnailSize, thumbnailSize});
+					Thumbnail = UAssetManager::GetAssetByPath<UTexture2D>(FolderIconPath);
 				}
+
 				else // 파일인 경우
 				{
- 					URenderAsset* Asset = UAssetManager::GetAssetByPath<URenderAsset>(Path.string());
+					URenderAsset* Asset = UAssetManager::GetAssetByPath<URenderAsset>(PathString);
 					if (Asset && Asset->IsA<UTexture2D>())
 					{
 						Thumbnail = Cast<UTexture2D>(Asset);
-						if (Thumbnail != nullptr)
-						{
-							ImGui::ImageButton(Path.string().c_str(), (ImTextureID)Thumbnail->GetResource()->GetSRV(), { thumbnailSize, thumbnailSize });
-						}
 					}
+					else
+					{
+						Thumbnail = UAssetManager::GetAssetByPath<UTexture2D>(FileIconPath);
+					}
+				}
+				if (Thumbnail)
+				{
+					ImGui::ImageButton(PathString.c_str(), (ImTextureID)Thumbnail->GetResource()->GetSRV(), { thumbnailSize, thumbnailSize });
 				}
 
 				// 더블 클릭 이벤트 처리
@@ -107,7 +111,7 @@ void FAssetBrowserPanel::OnRender()
 
 void FAssetBrowserPanel::RenderFolderTree(const fs::path& Path, fs::path& SelectedPath)
 {
-	for (const fs::path& Entry : fs::recursive_directory_iterator(AssetRootPath))
+	for (const fs::path& Entry : fs::directory_iterator(Path))
 	{
 		if (fs::is_directory(Entry))
 		{

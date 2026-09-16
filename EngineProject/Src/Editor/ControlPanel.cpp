@@ -4,6 +4,7 @@
 #include "../Camera/CameraComponent.h"
 
 #include "GameFramework/Actor/StaticMeshActor.h"
+#include "GameFramework/Actor/TextRenderActor.h"
 #include "Asset/AssetManager.h"
 
 #include "Input/InputSystem.h"
@@ -58,7 +59,7 @@ void FControlPanel::AddActor(EPrimitiveType Type)
 	FName ActorName(PrimitiveTypeToString(Type));
 	AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>(ActorName, &Transform);
 	NewActor->SetPrimitiveType(Type);
-
+	
 	ActorNum = World->GetActorNum();
 }
 
@@ -92,12 +93,24 @@ void FControlPanel::OnRender()
 		AParticleActor* ParticleActor = World->SpawnActor<AParticleActor>("Test", &Transform);
 		assert(ParticleActor != nullptr);
 
-		// Set atlas image settings
 		UParticleSubUVComponent* Particle = ParticleActor->GetParticleComponent();
 		Particle->ApplyPrimitiveType(EPrimitiveType::Plane);
 		Particle->SetAtlasTexturePath("ParticleAtlas.png");
 		Particle->SetSubUVSize(4, 4);
 		Particle->SetFrameRate(12.0f);
+	}
+
+	if (ImGui::Button("Spawn Text Actor"))
+	{
+		FTransform Transform;
+		Transform.Location = FVector(5.0f, 0.0f, 0.0f);
+		Transform.Scale = FVector(2.0f, 2.0f, 2.0f);
+
+		ATextRenderActor* TextRenderActor = World->SpawnActor<ATextRenderActor>(&Transform);
+		assert(TextRenderActor != nullptr);
+
+		// Set atlas image settings
+		UTextRenderComponent* Particle = TextRenderActor->GetTextRenderComponent();
 	}
 
 	ImGui::Separator();

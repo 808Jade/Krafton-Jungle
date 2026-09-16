@@ -46,7 +46,7 @@ public:
 		case ELogVerbosity::Error:
 			LogData.Color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f);
 			break;
-		}
+		} 
 
 		LogData.message = std::format(fmt, std::forward<Args>(args)...);
 

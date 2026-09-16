@@ -308,6 +308,12 @@ FMatrix& FMatrix::operator -= (const FMatrix& Other)
 }
 
 
+FMatrix FMatrix::Identity = FMatrix(
+	1.0f, 0.0f, 0.0f, 0.0f,
+	0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f
+);
 
 /* Global Operator */
 std::ostream& operator << (std::ostream& OS, const FMatrix& M )

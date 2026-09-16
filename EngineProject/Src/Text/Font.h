@@ -12,9 +12,9 @@ struct FGlyphInfo // 글자 하나의 정보
 	bool bHasBounds = false; // 공백(unicode 32)처럼 그릴 게 없는 글자 구분용
 };
 
-class UFontAtlas : public URenderAsset
+class UFont : public URenderAsset
 {
-	DECLARE_CLASS(UFontAtlas, URenderAsset)
+	DECLARE_CLASS(UFont, URenderAsset)
 public:
 	bool LoadFontAtlasJson(const FString& JsonPath);
 

@@ -15,10 +15,10 @@ AActor::~AActor()
 
 void AActor::BeginPlay()
 {
-	if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(RootComponent))
-	{
-		World->AddPrimitive(Cast<UPrimitiveComponent>(RootComponent));
-	}
+	//if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(RootComponent))
+	//{
+	//	World->AddPrimitive(Cast<UPrimitiveComponent>(RootComponent));
+	//}
 
 	for (UActorComponent* Component : Components) 
 	{

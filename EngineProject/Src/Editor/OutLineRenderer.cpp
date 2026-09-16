@@ -6,7 +6,7 @@
 void FOutlineRenderer::Init(FRenderer* InRenderer)
 {
 	Renderer = InRenderer;
-	Shader = RenderCommand::CreateShader(L"Assets/Shader/OutlineShader.hlsl", FVertex::GetLayout());
+	Shader = RenderCommand::CreateShader(L"Resources/Shader/OutlineShader.hlsl", FVertex::GetLayout());
 
 	PipelineState.Shader = Shader.get();
 	PipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -23,6 +23,12 @@ void FOutlineRenderer::SetMesh(UStaticMesh* InMesh)
 void FOutlineRenderer::OnRender(const FOutline& InOutline, const FMatrix& InViewProj, const FVector4& CameraPos)
 {
 	if (!InOutline.GetTarget())
+	{
+		return;
+	}
+
+	// 메시 없는 컴포넌트(텍스트 등)는 아웃라인을 그리지 않는다
+	if (!InOutline.GetMesh() || !InOutline.GetMesh()->IndexBuffer)
 	{
 		return;
 	}

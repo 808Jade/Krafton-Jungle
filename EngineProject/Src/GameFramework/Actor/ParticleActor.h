@@ -12,7 +12,6 @@ class AParticleActor : public AActor
 		REFLECT_END()
 
 public:
-	// Todo: subuv
 	AParticleActor();
 	UParticleSubUVComponent* GetParticleComponent() const;
 };

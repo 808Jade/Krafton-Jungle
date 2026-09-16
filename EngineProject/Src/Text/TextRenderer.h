@@ -19,13 +19,18 @@ struct MSDFData
 class FTextRenderer
 {
 public:
-	void Init(FRenderer* InRenderer, uint32 InMaxCharacters = 64);
-	void OnRender(const FString& Text, const FVector& WorldPos, float TextSize,
-		const UFontAtlas& Atlas, UCameraComponent* CameraComponent);
+	void Init(FRenderer* InRenderer, uint32 InMaxCharacters = 256);
 
+	// 컴포넌트 트랜스폼을 그대로 사용 (TextRenderComponent)
+	void OnRender(const FString& Text, const FMatrix& WorldMatrix, float TextSize,
+		const UFont& Atlas, UCameraComponent* CameraComponent);
+
+	// 항상 카메라를 향하게 그린다 (에디터 UUID 라벨 등)
+	void OnRenderBillboard(const FString& Text, const FVector& WorldPos, float TextSize,
+		const UFont& Atlas, UCameraComponent* CameraComponent);
+
+	void BuildTextMesh(const FString& Text, float TextSize, const UFont& Atlas);
 private:
-	void BuildTextMesh(const FString& Text, float TextSize, const UFontAtlas& Atlas,
-		TArray<FTextVertex>& OutVertices, TArray<uint32>& OutIndices);
 
 	FRenderer* Renderer = nullptr;
 
@@ -36,6 +41,9 @@ private:
 
 	TUniquePtr<FVertexBuffer> VertexBuffer;
 	TUniquePtr<FIndexBuffer> IndexBuffer;
+
+	TArray<FTextVertex> Vertices;
+	TArray<uint32> Indices;
 
 	TUniquePtr<FConstantBuffer> MVP;
 	TUniquePtr<FConstantBuffer> ScreenPx;

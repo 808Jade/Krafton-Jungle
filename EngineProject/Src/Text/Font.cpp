@@ -1,7 +1,7 @@
 #include "EnginePCH.h"
-#include "FontAtlas.h"
+#include "Font.h"
 
-bool UFontAtlas::LoadFontAtlasJson(const FString& JsonPath)
+bool UFont::LoadFontAtlasJson(const FString& JsonPath)
 {
 	std::ifstream File(JsonPath);
 	if (!File.is_open())

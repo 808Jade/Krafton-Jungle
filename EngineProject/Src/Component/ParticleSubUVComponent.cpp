@@ -6,6 +6,10 @@
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 
+#include "BillboardComponent.h"
+
+const float UParticleSubUVComponent::MAX_NORMALIZED_VALUE = 1.0f;
+const float UParticleSubUVComponent::FADE_START = 0.7;
 
 void UParticleSubUVComponent::BeginPlay()
 {
@@ -13,20 +17,35 @@ void UParticleSubUVComponent::BeginPlay()
 
 	// Todo: Default setting, set value from arguments
 	//AtlasTexturePath = "ParticleAtlas.png";
-	AtlasTexturePath = "CloudAtlas.png";
 
 	ColSize = 8;
 	RowSize = 8;
-	CurrentFrame = 0;
-	FrameTimer = 0.0f;
+	FrameTimer = 0.0f;++
 	FrameRate = 12.0f;
-	AtlasTexture = nullptr;
+	// AtlasTexture = nullptr;
 
-	Shader = RenderCommand::CreateShader(L"Assets/Shader/ParticleSubUVShader.hlsl", FParticleVertex::GetLayout());
+	//Shader = RenderCommand::CreateShader(L"Resources/Shader/ParticleSubUVShader.hlsl", FParticleVertex::GetLayout());
 	Mesh = UAssetManager::GetAssetByPath<UStaticMesh>("ParticleQuad");
-	AtlasTexture = UAssetManager::GetAssetByPath<UTexture2D>(AtlasTexturePath);
+	Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");
 
 	Type = EPrimitiveType::Particle;
+	
+	for (uint8 i = 0; i < MAX_PARTICLE_COMPONENTS_COUNT; ++i)
+	{
+		FParticle Particle;
+		RespawnParticle(Particle);
+
+		Particle.Age = GetRandomNumberBetween(0.0f, Particle.LifeTime);
+		Particle.Location.Z += Particle.Velocity.Z * Particle.Age;
+
+		const float LifeRatio = Particle.Age / Particle.LifeTime;
+		Particle.Scale = Lerp(0.4f, 3.0f, LifeRatio);
+		
+		const float ElapsedFrames = Particle.Age * FrameRate;
+		Particle.SubUVFrame = static_cast<uint32>(ElapsedFrames) % (ColSize * RowSize);
+
+		Particles.Add(Particle);
+	}
 }
 
 void UParticleSubUVComponent::SetAtlasTexturePath(const FString& InPath)
@@ -49,97 +68,179 @@ void UParticleSubUVComponent::SetFrameRate(float InFrameRate)
 
 void UParticleSubUVComponent::TickComponent(float DeltaTime)
 {
-	FrameTimer += DeltaTime;
-
-	const float FrameDuration = 1.0f / FrameRate;
-	if (FrameTimer < FrameDuration)
-	{
-		return;
-	}
-
-	FrameTimer = 0.0f;
-
+	Super::TickComponent(DeltaTime);
 	const uint32 TotalFrames = ColSize * RowSize;
-	++CurrentFrame;
-	CurrentFrame %= TotalFrames;
+
+	for (FParticle& Particle : Particles)
+	{
+		Particle.Location += Particle.Velocity * DeltaTime;
+		Particle.Age += DeltaTime;
+
+		if (Particle.Age >= Particle.LifeTime)
+		{
+			RespawnParticle(Particle);
+
+			continue;
+		}
+
+		const float LifeRatio = Particle.Age / Particle.LifeTime;
+		
+		Particle.Scale = Lerp(0.5f, 3.0f, LifeRatio);
+
+		if (LifeRatio > FADE_START)
+		{
+			const float FadeRatio = GedSmoothStepedRatio(FADE_START, MAX_NORMALIZED_VALUE, LifeRatio);
+			Particle.Alpha = MAX_NORMALIZED_VALUE - FadeRatio;
+		}
+		else
+		{
+			Particle.Alpha = MAX_NORMALIZED_VALUE;
+		}
+
+		Particle.FrameTimer += DeltaTime;
+		const float FrameDuration = MAX_NORMALIZED_VALUE / FrameRate;
+
+		if (Particle.FrameTimer >= FrameDuration)
+		{
+			Particle.FrameTimer = 0.0f;
+
+			++Particle.SubUVFrame;
+			Particle.SubUVFrame %= TotalFrames;
+		}
+	}
 }
 
 void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue)
 {
 	assert(Mesh != nullptr);
-	assert(Shader != nullptr);
-	assert(AtlasTexture != nullptr);
+	assert(Material != nullptr);
 
-	// TextRenderer와 동일하게 Camera Transform 획득
-	AActor* Owner = GetOwner();
-	assert(Owner != nullptr);
-
-	UWorld* World= Owner->GetWorld();
-	assert(World!= nullptr);
-
-	ACameraActor* Camera = World->GetMainCamera();
-	assert(Camera != nullptr);
-
-	UCameraComponent* CameraComponent = Camera->GetCameraComponent();
-	assert(CameraComponent != nullptr);
-
-	const FTransform& Transform = CameraComponent->GetTransform();
-
-	// TextRenderer와 동일
-	FVector Right = Transform.GetRight().Normalized();
-	FVector Up = Transform.GetUp().Normalized();
-	FVector Forward = Transform.GetForward().Normalized();
-
-	FVector BbUp = Transform.GetUp().Normalized();
-	FVector BbRight = FVector::Cross(BbUp, Forward).Normalized();
-	FVector BbFwd = FVector::Cross(BbUp, BbRight);
-
-	if (BbRight.Length() <= 1e-6f)
+	const FVector CameraPos = GetOwner()->GetWorld()->GetMainCamera()->GetCameraComponent()->GetWorldLocation();
+	for (FParticle& Particle : Particles)
 	{
-		BbRight = Right;
-		BbFwd = FVector::Cross(BbUp, BbRight);
+		if (Particle.bAlive == false)
+		{
+			continue;
+		}
+
+		FMatrix WorldMatrix = FMatrix::Identity; 
+		Super::GetWorldTransformedMatrix(&WorldMatrix);
+
+		// Scale, Move
+		WorldMatrix.M[0][0] *= Particle.Scale;
+		WorldMatrix.M[0][1] *= Particle.Scale;
+		WorldMatrix.M[0][2] *= Particle.Scale;
+		WorldMatrix.M[0][3] *= Particle.Scale;
+
+		WorldMatrix.M[1][0] *= Particle.Scale;
+		WorldMatrix.M[1][1] *= Particle.Scale;
+		WorldMatrix.M[1][2] *= Particle.Scale;
+		WorldMatrix.M[1][3] *= Particle.Scale;
+
+		WorldMatrix.M[2][0] *= Particle.Scale;
+		WorldMatrix.M[2][1] *= Particle.Scale;
+		WorldMatrix.M[2][2] *= Particle.Scale;
+		WorldMatrix.M[2][3] *= Particle.Scale;
+
+		WorldMatrix.M[3][0] = Particle.Location.X;
+		WorldMatrix.M[3][1] = Particle.Location.Y;
+		WorldMatrix.M[3][2] = Particle.Location.Z;
+		WorldMatrix.M[3][3] = 1.0f;
+
+		const FVector ParticlePos = Particle.Location;
+		const FVector CameraToParticleVec = ParticlePos - CameraPos;
+
+		const float CameraToParticleDistance = 
+			CameraToParticleVec.X *
+			CameraToParticleVec.X +
+
+			CameraToParticleVec.Y *
+			CameraToParticleVec.Y +
+
+			CameraToParticleVec.Z *
+			CameraToParticleVec.Z;
+
+		FRenderPacket Packet;
+		Packet.model = WorldMatrix;
+		Packet.mesh = Mesh;
+		Packet.material = Material;
+
+		FSubUVConstants C;
+		C.CurrentFrame =  Particle.SubUVFrame;
+		C.AtlasColSize = ColSize;
+		C.AtlasRowSize = RowSize;
+		C.Alpha = Particle.Alpha;
+
+		RenderCommand::UpdateBufferData(Material->ParamBuffer.get(), &C);
+		/*Packet.texture = AtlasTexture;
+
+		Packet.CurrentFrame = Particle.SubUVFrame;
+		Packet.AtlasColumns = ColSize;
+
+		Packet.AtlasRows = RowSize;
+		Packet.ParticleAlpha = Particle.Alpha;*/
+		Packet.CameraToParticleDistance = CameraToParticleDistance;
+
+		RenderQueue.Enqueue(Packet);
+	}
+}
+
+void UParticleSubUVComponent::RespawnParticle(FParticle& Particle)
+{
+	Particle.Location = GetWorldLocation();
+
+	Particle.Velocity.X = 0.0f;
+	Particle.Velocity.Y = 0.0f;
+	Particle.Velocity.Z = GetRandomNumberBetween(0.5f, 0.8f);
+
+	Particle.LifeTime = GetRandomNumberBetween(3.5f, 10.0f);
+	Particle.Age = 0.0f;
+	Particle.SubUVFrame = static_cast<uint32>(GetRandomNumberBetween(0.0f, static_cast<float>((ColSize * RowSize) - 1)));
+	Particle.Scale = 0.4f;
+	Particle.FrameTimer = 0.0f;
+	Particle.bAlive = true;
+
+	Particle.Alpha = MAX_NORMALIZED_VALUE;
+}
+
+// Todo: Move to util class
+float UParticleSubUVComponent::GetRandomNumberBetween(float start, float end) const
+{
+	float randomNumber = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+
+	return start + randomNumber * (end - start);
+}
+
+float UParticleSubUVComponent::Lerp(float left, float right, float alpha) const
+{
+	//assert(alpha >= 0.0f && alpha <= 1.0f);
+	if (alpha < 0.0f)
+	{
+		alpha = 0.0f;
+	}
+	
+	if (alpha > 1.0f)
+	{
+		alpha = 1.0f;
 	}
 
-	const FVector WorldPos = GetWorldLocation();
-	const FVector WorldScale = GetWorldScale3D();
+	return left + (right - left) * alpha;
+}
 
-	FMatrix WorldMatrix;
-	WorldMatrix.SetIdentity();
+float UParticleSubUVComponent::GedSmoothStepedRatio(float start, float end, float value) const
+{
+	float normedValue = (value - start) / (end - start);
+	//assert(normedValue >= 0.0f && normedValue <= 1.0f);
 
-	// Y -> Billboard Right
-	WorldMatrix.M[0][0] = -BbRight.X;
-	WorldMatrix.M[0][1] = -BbRight.Y;
-	WorldMatrix.M[0][2] = -BbRight.Z;
-	WorldMatrix.M[0][3] = 0.0f;
+	if (normedValue < 0.0f)
+	{
+		normedValue = 0.0f;
+	}
 
-	// Z -> Billboard Up
-	WorldMatrix.M[1][0] = BbUp.X;
-	WorldMatrix.M[1][1] = BbUp.Y;
-	WorldMatrix.M[1][2] = BbUp.Z;
-	WorldMatrix.M[1][3] = 0.0f;
+	if (normedValue > 1.0f)
+	{
+		normedValue = 1.0f;
+	}
 
-	// X -> Billboard Forward
-	WorldMatrix.M[2][0] = -BbFwd.X;
-	WorldMatrix.M[2][1] = -BbFwd.Y;
-	WorldMatrix.M[2][2] = -BbFwd.Z;
-	WorldMatrix.M[2][3] = 0.0f;
-
-	// Position
-	WorldMatrix.M[3][0] = WorldPos.X;
-	WorldMatrix.M[3][1] = WorldPos.Y;
-	WorldMatrix.M[3][2] = WorldPos.Z;
-	WorldMatrix.M[3][3] = 1.0f;
-
-	FRenderPacket Packet;
-	Packet.model = WorldMatrix;
-	Packet.mesh = Mesh;
-	Packet.shader = Shader.get();
-
-	Packet.bSubUV = true;
-	Packet.texture = AtlasTexture;
-	Packet.CurrentFrame = CurrentFrame;
-	Packet.AtlasColumns = ColSize;
-	Packet.AtlasRows = RowSize;
-
-	RenderQueue.Enqueue(Packet);
+	return normedValue * normedValue * (3.0f - 2.0f * normedValue);
 }

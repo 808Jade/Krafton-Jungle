@@ -6,12 +6,15 @@ cbuffer constants : register(b0)
 struct VS_INPUT
 {
 	float3 position : POSITION;
+    float2 uv : TEXCOORD0;
 	float4 color : COLOR; 
+
 };
 
 struct PS_INPUT
 {
     float4 position : SV_POSITION;
+    float2 uv : TEXCOORD0;
 	float4 color : COLOR;
 };
 
@@ -22,6 +25,7 @@ PS_INPUT mainVS(VS_INPUT input)
     output.position = mul(float4(input.position, 1.0f), MVP);
     //output.position = float4(input.position, 1.0f);
     output.color = float4(input.position, 1.0f);
+    output.uv = input.uv;
 	return output;
 }
 

@@ -106,6 +106,7 @@ void UWorld::ClearScene()
 {
 	// 렌더링 대상 제거
 	PrimitiveComponents.Reset();
+	TextComponents.Reset();
 
 	// BeginPlay 대기 중인 Actor 제거
 	while (!BeginPlayList.IsEmpty())

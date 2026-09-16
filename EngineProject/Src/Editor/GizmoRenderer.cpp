@@ -35,7 +35,7 @@ bool FGizmoRenderer::Init(FRenderer* InRenderer)
 	AxisDataArray.Add({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(0.0f, 0.0f, 1.0f, 1.0f) });
 	AxisDataArray.Add({ FRotator(0.0f, 0.0f, 0.0f) ,FVector4(1.0f, 1.0f, 1.0f, 1.0f) }); // ScreenAxis
 
-	Shader = RenderCommand::CreateShader(L"Assets/Shader/GizmoShader.hlsl", FVertex::GetLayout());
+	Shader = RenderCommand::CreateShader(L"Resources/Shader/GizmoShader.hlsl", FVertex::GetLayout());
 
 	PipelineState.Shader = Shader.get();
 	PipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
@@ -117,12 +117,12 @@ void FGizmoRenderer::OnRender(const FGizmo& Gizmo, const FMatrix& ViewProj)
 		FVector Right = FVector(0, 0, 1).Cross(Forward).Normalized();
 		FVector Up = Forward.Cross(Right);
 
-		FMatrix Rot = Identity;
+		FMatrix Rot = FMatrix::Identity;
 		Rot.M[0][0] = Right.X;   Rot.M[0][1] = Right.Y;   Rot.M[0][2] = Right.Z;
 		Rot.M[1][0] = Up.X;      Rot.M[1][1] = Up.Y;      Rot.M[1][2] = Up.Z;
 		Rot.M[2][0] = Forward.X; Rot.M[2][1] = Forward.Y; Rot.M[2][2] = Forward.Z;
 
-		FMatrix Scale = Identity;
+		FMatrix Scale = FMatrix::Identity;
 		Scale.M[0][0] = Scale.M[1][1] = Scale.M[2][2] = 1.3f;
 
 		FMatrix Trans = FMatrix::MakeTranslation(GizmoLocation);

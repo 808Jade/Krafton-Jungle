@@ -14,7 +14,7 @@ bool FLineBatcher::Init(FRenderer* InRenderer, UWorld* InWorld)
 	Renderer = InRenderer;
 	World = InWorld;
 
-	LineShader = RenderCommand::CreateShader(L"Assets/Shader/BoundingBoxShader.hlsl", FVertex::GetLayout());
+	LineShader = RenderCommand::CreateShader(L"Resources/Shader/BoundingBoxShader.hlsl", FVertex::GetLayout());
 
 	PipelineState.Shader = LineShader.get();
 	PipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;

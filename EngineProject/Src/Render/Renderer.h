@@ -2,13 +2,12 @@
 
 #include "RenderPacket.h"
 #include "Texture2D.h"
-#include "Text/FontAtlas.h"
+#include "Text/Font.h"
 
 
 #include "RenderingInfo.h"
 
-
-
+class UCameraComponent;
 
 class FRenderer
 {
@@ -20,25 +19,9 @@ public:
 	UStaticMesh* CreateMesh(const FStaticMeshData& InMeshData);
 	UStaticMesh* CreateMesh(TUniquePtr<FVertexBuffer> VertexBuffer, TUniquePtr<FIndexBuffer> IndexBuffer);
 
-	void RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP);
+	void RenderAll(TQueue<FRenderPacket>& InQueue, UCameraComponent* CameraComponent);
 
 private:
-
-
-	// Camera 
-	struct FConstants
-	{
-		FMatrix MVP;
-	};
-
-	struct FSubUVConstants
-	{
-		float CurrentFrame;
-		float AtlasRowSize;
-		float AtlasColSize;
-		float Padding = 0.0f;
-	};
-
 	TUniquePtr<FConstantBuffer> CB;
 	TUniquePtr<FConstantBuffer> Temp;
 

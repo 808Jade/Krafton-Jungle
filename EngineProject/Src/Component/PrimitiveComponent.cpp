@@ -32,7 +32,8 @@ namespace
 void UPrimitiveComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	Shader = RenderCommand::CreateShader(L"Assets/Shader/DefaultShader.hlsl", FVertex::GetLayout());
+	SetMaterial(UAssetManager::GetAssetByPath<UMaterial>("DefaultMaterial"));
+	GetOwner()->GetWorld()->AddPrimitive(this);
 }
 
 void UPrimitiveComponent::ApplyPrimitiveType(EPrimitiveType Type)
@@ -44,21 +45,19 @@ void UPrimitiveComponent::ApplyPrimitiveType(EPrimitiveType Type)
 
 void UPrimitiveComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue)
 {
-	if (Mesh && Shader)
+	if (Mesh && Material)
 	{
 		FRenderPacket rp;
 		rp.mesh = Mesh;
-		rp.shader = Shader.get();
+		rp.material = Material;
 		rp.model = GetWorldMatrix();
 
 		// Todo: subuv
-		rp.bSubUV = false;
+		//rp.bSubUV = false;
 
 		RenderQueue.Enqueue(rp);
 	}
 }
 
-void UPrimitiveComponent::SetMesh(UStaticMesh* InMesh)
-{
-	Mesh = InMesh;
-}
+
+

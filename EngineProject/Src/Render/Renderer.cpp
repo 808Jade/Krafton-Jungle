@@ -5,16 +5,16 @@
 
 #include "RenderCommand.h"
 
+#include "Camera/CameraComponent.h"
+
+#include <algorithm>
+
 bool FRenderer::Init()
 {
-	CB = RenderCommand::CreateConstantBuffer(sizeof(FSubUVConstants));
 	Temp = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
 
 	return true;
 }
-
-
-
 
 UStaticMesh* FRenderer::CreateMesh(const FStaticMeshData& InMeshData)
 {
@@ -26,7 +26,6 @@ UStaticMesh* FRenderer::CreateMesh(const FStaticMeshData& InMeshData)
 	return Mesh;
 }
 
-
 UStaticMesh* FRenderer::CreateMesh(TUniquePtr<FVertexBuffer> VertexBuffer, TUniquePtr<FIndexBuffer> IndexBuffer)
 {
 	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
@@ -36,12 +35,6 @@ UStaticMesh* FRenderer::CreateMesh(TUniquePtr<FVertexBuffer> VertexBuffer, TUniq
 
 	return Mesh;
 }
-
-
-
-
-
-
 
 //void FRenderer::Prepare()
 //{
@@ -56,38 +49,78 @@ UStaticMesh* FRenderer::CreateMesh(TUniquePtr<FVertexBuffer> VertexBuffer, TUniq
 
 // Todo: subuv, Fix function
 
-void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
+void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, UCameraComponent* CameraComponent)
 {
+	FMatrix VP = CameraComponent->GetViewProjectionMatrix();
+	TArray<FRenderPacket> RenderPackets;
+
 	while (InQueue.IsEmpty() == false)
 	{
-		FRenderPacket rp = InQueue.Peek();
+		RenderPackets.Add(InQueue.Peek());
+		InQueue.Dequeue();
+	}
 
-		RenderCommand::BindShader(rp.shader);
-		RenderCommand::BindMesh(rp.mesh);
+	// 불투명 먼저, 반투명은 먼 것부터
+	std::stable_sort(
+		RenderPackets.begin(),
+		RenderPackets.end(),
+		[](const FRenderPacket& First, const FRenderPacket& Second) -> bool
+		{
+			const bool bFirstTranslucent = First.material->BlendState != EBlendState::Opaque;
+			const bool bSecondTranslucent = Second.material->BlendState != EBlendState::Opaque;
+
+			if (bFirstTranslucent != bSecondTranslucent)
+			{
+				return !bFirstTranslucent;
+			}
+
+			if (bFirstTranslucent)
+			{
+				return First.CameraToParticleDistance > Second.CameraToParticleDistance;
+			}
+
+			return false;
+		});
+
+	for (const FRenderPacket& RenderPacket : RenderPackets)
+	{
+		RenderCommand::BindMesh(RenderPacket.mesh);
+		RenderCommand::BindShader(RenderPacket.material->Shader);
+		RenderCommand::SetBlendState(RenderPacket.material->BlendState);
+
+		if (RenderPacket.material->ParamBuffer)
+		{
+			RenderCommand::BindConstantBuffer(1, RenderPacket.material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
+		}
+
+		for (int i = 0; i < RenderPacket.material->Textures.size(); i++)
+		{
+			RenderCommand::BindShaderResource(i, RenderPacket.material->Textures[i], EShaderBindFlagBits::Pixel);
+		}
+		RenderCommand::BindSamplerState(0, ESamplerState::LinearClamp, EShaderBindFlagBits::Pixel);
 
 		// rp.Transform 과 Camera VP 행렬 곱
 		// 행렬곱의 결과 (MVP Matrix) Constant Buffer 업데이트 필요
-		FMatrix MVP = (rp.model * VP).GetTransposed();
+		FMatrix MVP = (RenderPacket.model * VP).GetTransposed();
 		RenderCommand::UpdateBufferData(Temp.get(), &MVP);
 		RenderCommand::BindConstantBuffer(0, Temp.get(), EShaderBindFlagBits::Vertex);
 
+
 		// Todo: subuv
-		if (rp.bSubUV)
+		/*if (rp.bSubUV)
 		{
 			FSubUVConstants subUVConstans;
 			subUVConstans.CurrentFrame = rp.CurrentFrame;
 			subUVConstans.AtlasColSize = rp.AtlasColumns;
-			subUVConstans.AtlasRowSize = rp.AtlasRows;
+			subUVConstans.AtlasRowSize = rp.AtlasRows;*/
 
-			RenderCommand::UpdateBufferData(CB.get(), &subUVConstans);
-			RenderCommand::BindConstantBuffer(1, CB.get(), EShaderBindFlagBits::Pixel);
-			RenderCommand::BindShaderResource(0, rp.texture, EShaderBindFlagBits::Pixel);
-			RenderCommand::SetBlendState(EBlendState::AlphaBlend);
-		}
+			//RenderCommand::UpdateBufferData(CB.get(), &subUVConstans);
+			//RenderCommand::BindConstantBuffer(1, CB.get(), EShaderBindFlagBits::Pixel);
+			//RenderCommand::BindShaderResource(0, rp.texture, EShaderBindFlagBits::Pixel);
+			//RenderCommand::SetBlendState(EBlendState::AlphaBlend);
+		//}
 
-		RenderCommand::DrawIndexed(rp.mesh->IndexBuffer->GetIndexCount());
-
-		InQueue.Dequeue();
+		RenderCommand::DrawIndexed(RenderPacket.mesh->IndexBuffer->GetIndexCount());
 	}
 }
 
