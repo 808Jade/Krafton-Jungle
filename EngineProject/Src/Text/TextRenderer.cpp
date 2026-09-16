@@ -47,13 +47,13 @@ void FTextRenderer::Init(FRenderer* InRenderer, uint32 InMaxCharacters)
 	MVP = RenderCommand::CreateConstantBuffer(sizeof(TextTransformData));
 	ScreenPx = RenderCommand::CreateConstantBuffer(sizeof(MSDFData));
 
-	TextShader = RenderCommand::CreateShader(L"Assets/Shader/TextShader.hlsl", FTextVertex::GetLayout());
+	TextShader = RenderCommand::CreateShader(L"Resources/Shader/TextShader.hlsl", FTextVertex::GetLayout());
 
 	PipelineState.Shader = TextShader.get();
 	PipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFontAtlas& Atlas,
+void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFont& Atlas,
 	TArray<FTextVertex>& OutVertices, TArray<uint32>& OutIndices)
 {
 	TArray<uint32> CodePoints = DecodeUTF8(Text);
@@ -112,7 +112,7 @@ void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFo
 }
 
 void FTextRenderer::OnRender(const FString& Text, const FVector& WorldPos, float TextSize,
-	const UFontAtlas& Atlas, UCameraComponent* CameraComponent)
+	const UFont& Atlas, UCameraComponent* CameraComponent)
 {
 	if (Text.empty() || !Atlas.AtlasTexture)
 	{

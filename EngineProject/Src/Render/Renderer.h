@@ -2,13 +2,10 @@
 
 #include "RenderPacket.h"
 #include "Texture2D.h"
-#include "Text/FontAtlas.h"
+#include "Text/Font.h"
 
 
 #include "RenderingInfo.h"
-
-
-
 
 class FRenderer
 {
@@ -23,8 +20,6 @@ public:
 	void RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP);
 
 private:
-
-
 	// Camera 
 	struct FConstants
 	{

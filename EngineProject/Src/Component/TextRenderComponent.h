@@ -2,13 +2,16 @@
 
 #include "BillboardComponent.h"
 
-class UTextRenderComponent : public UBillboardComponent
+class UTextRenderComponent : public UPrimitiveComponent
 {
-	DECLARE_CLASS(UTextRenderComponent, UBillboardComponent)
+	DECLARE_CLASS(UTextRenderComponent, UPrimitiveComponent)
 public:
 	UTextRenderComponent();
 	virtual ~UTextRenderComponent();
+
+	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime) override;
 private:
-	FString Text;
+	UFont Font;
 };
 

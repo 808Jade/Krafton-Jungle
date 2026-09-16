@@ -31,6 +31,8 @@ public:
 	void LoadAsset(const FString& Key, const FString& Path);
 
 	void Init();
+	void CreateDefaultMeshes();
+	void CreateDefaultMaterials();
 	void Shutdown();
 
 	template <typename T>
@@ -47,10 +49,9 @@ public:
 
 	//UStaticMesh* GetMesh(FString InName);
 	//UStaticMesh* GetMesh(EPrimitiveType Type); // 오버로드(수정 중)
-	FShader* GetShader(FString InName);
 
 	UTexture2D* LoadTexture(const FString& InPath);
-	UFontAtlas* LoadFontAtlas(const FString& JsonPath, const FString& AtlasTexturePath);
+	UFont* LoadFontAtlas(const FString& JsonPath, const FString& AtlasTexturePath);
 
 private:
 	TMap<FString, FString> AssetPathMap;

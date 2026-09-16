@@ -22,7 +22,7 @@ void UParticleSubUVComponent::BeginPlay()
 	FrameRate = 12.0f;
 	AtlasTexture = nullptr;
 
-	Shader = RenderCommand::CreateShader(L"Assets/Shader/ParticleSubUVShader.hlsl", FParticleVertex::GetLayout());
+	//Shader = RenderCommand::CreateShader(L"Resources/Shader/ParticleSubUVShader.hlsl", FParticleVertex::GetLayout());
 	Mesh = UAssetManager::GetAssetByPath<UStaticMesh>("ParticleQuad");
 	AtlasTexture = UAssetManager::GetAssetByPath<UTexture2D>(AtlasTexturePath);
 
@@ -49,6 +49,7 @@ void UParticleSubUVComponent::SetFrameRate(float InFrameRate)
 
 void UParticleSubUVComponent::TickComponent(float DeltaTime)
 {
+	Super::TickComponent(DeltaTime);
 	FrameTimer += DeltaTime;
 
 	const float FrameDuration = 1.0f / FrameRate;
@@ -67,8 +68,7 @@ void UParticleSubUVComponent::TickComponent(float DeltaTime)
 void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue)
 {
 	assert(Mesh != nullptr);
-	assert(Shader != nullptr);
-	assert(AtlasTexture != nullptr);
+	assert(Material != nullptr);
 
 	// TextRenderer와 동일하게 Camera Transform 획득
 	AActor* Owner = GetOwner();
@@ -133,13 +133,13 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 	FRenderPacket Packet;
 	Packet.model = WorldMatrix;
 	Packet.mesh = Mesh;
-	Packet.shader = Shader.get();
+	Packet.material = Material;
 
-	Packet.bSubUV = true;
+	/*Packet.bSubUV = true;
 	Packet.texture = AtlasTexture;
 	Packet.CurrentFrame = CurrentFrame;
 	Packet.AtlasColumns = ColSize;
-	Packet.AtlasRows = RowSize;
+	Packet.AtlasRows = RowSize;*/
 
 	RenderQueue.Enqueue(Packet);
 }

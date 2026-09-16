@@ -6,6 +6,8 @@
 #include "Render/Texture2D.h"
 #include "Render/RenderCommand.h"
 
+#include "Render/RenderResourceManager.h"
+
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -57,9 +59,25 @@ void UAssetManager::LoadAsset(const FString& Key, const FString& Path)
 			AssetMap[Key] = Texture;
 		}
 	}
+	if (Extension == ".json")
+	{
+		FString TexturePath = fs::path(Path).replace_extension(".png").string();
+		if (UFont* Font = LoadFontAtlas(Path, TexturePath))
+		{
+			AssetMap[Key] = Font;
+		}
+	}
 }
 
 void UAssetManager::Init()
+{
+	CreateDefaultMeshes();
+	CreateDefaultMaterials();
+
+	ScanAssets("Assets");
+}
+
+void UAssetManager::CreateDefaultMeshes()
 {
 	// 메시 데이터 업로드
 	FStaticMeshData* CubeData = FGeometryGenerator::GetMeshData("Cube");
@@ -98,50 +116,21 @@ void UAssetManager::Init()
 		ARRAYSIZE(Indices));
 
 	AssetMap["ParticleQuad"] = Mesh;
+}
 
-	ScanAssets("Assets");
+void UAssetManager::CreateDefaultMaterials()
+{
+	UMaterial* DefaultMat = FObjectFactory::ConstructObject<UMaterial>();
+	DefaultMat->Shader = FRenderResourceManager::GetShader("Resources/Shader/DefaultShader.hlsl");
+
+	AssetMap["DefaultMaterial"] = DefaultMat;
+
 }
 
 void UAssetManager::Shutdown()
 {
 }
 
-FShader* UAssetManager::GetShader(FString InName)
-{
-		//auto it = ShaderMap.find(InName);
-	auto* foundShaderOrNull = ShaderMap.FindOrNull(InName);
-
-	//if (it == ShaderMap.end())
-	if (foundShaderOrNull == nullptr)
-	{
-		std::wstring wstr(InName.begin(), InName.end());
-
-		// Todo: subuv
-		if (InName == "Assets/Shader/ParticleSubUVShader.hlsl")
-		{
-			ShaderMap[InName] = RenderCommand::CreateShader(wstr.c_str(), FParticleVertex::GetLayout());
-		}
-		else
-		{
-			D3D11_INPUT_ELEMENT_DESC inputDesc[] =
-			{
-				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-				{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-			};
-
-			ShaderMap[InName] = RenderCommand::CreateShader(wstr.c_str(), inputDesc, 2);
-		}
-
-		//D3D11_INPUT_ELEMENT_DESC inputDesc[] =
-		//{
-		//    {"POSITION" , 0 , DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		//    {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		//};
-
-		//ShaderMap[InName] = Renderer->CreateShader(wstr.c_str(), inputDesc, 2);
-	}
-	return ShaderMap[InName].get();
-}
 
 UTexture2D* UAssetManager::LoadTexture(const FString& InPath)
 {
@@ -181,9 +170,9 @@ UTexture2D* UAssetManager::LoadTexture(const FString& InPath)
 	return Asset;
 }
 
-UFontAtlas* UAssetManager::LoadFontAtlas(const FString& JsonPath, const FString& AtlasTexturePath)
+UFont* UAssetManager::LoadFontAtlas(const FString& JsonPath, const FString& AtlasTexturePath)
 {
-	UFontAtlas* Atlas = FObjectFactory::ConstructObject<UFontAtlas>();
+	UFont* Atlas = FObjectFactory::ConstructObject<UFont>();
 
 	if (!Atlas->LoadFontAtlasJson(JsonPath))
 	{
@@ -196,5 +185,6 @@ UFontAtlas* UAssetManager::LoadFontAtlas(const FString& JsonPath, const FString&
 		return nullptr;
 	}
 
+	AssetMap.Add(JsonPath, Atlas);
 	return Atlas;
 }

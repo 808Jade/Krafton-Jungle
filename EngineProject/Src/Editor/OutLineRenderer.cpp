@@ -6,7 +6,7 @@
 void FOutlineRenderer::Init(FRenderer* InRenderer)
 {
 	Renderer = InRenderer;
-	Shader = RenderCommand::CreateShader(L"Assets/Shader/OutlineShader.hlsl", FVertex::GetLayout());
+	Shader = RenderCommand::CreateShader(L"Resources/Shader/OutlineShader.hlsl", FVertex::GetLayout());
 
 	PipelineState.Shader = Shader.get();
 	PipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;

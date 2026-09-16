@@ -117,6 +117,9 @@
     <ClInclude Include="Src\Container\SparseArray.h">
       <Filter>Src\Container</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Container\StringView.h">
+      <Filter>Src\Container</Filter>
+    </ClInclude>
     <ClInclude Include="Src\Core\EngineLog.h">
       <Filter>Src\Core</Filter>
     </ClInclude>
@@ -129,7 +132,7 @@
     <ClInclude Include="Src\Core\EngineTimer.h">
       <Filter>Src\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Core\Name.h">
+    <ClInclude Include="Src\Core\NameTypes.h">
       <Filter>Src\Core</Filter>
     </ClInclude>
     <ClInclude Include="Src\Core\Types.h">
@@ -174,6 +177,9 @@
     <ClInclude Include="Src\Editor\PropertyPanel.h">
       <Filter>Src\Editor</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Editor\SceneOutliner.h">
+      <Filter>Src\Editor</Filter>
+    </ClInclude>
     <ClInclude Include="Src\Editor\ViewportPanel.h">
       <Filter>Src\Editor</Filter>
     </ClInclude>
@@ -191,6 +197,9 @@
     </ClInclude>
     <ClInclude Include="Src\GameFramework\Actor.h">
       <Filter>Src\GameFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\GameFramework\Actor\BillboardActor.h">
+      <Filter>Src\GameFramework\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Src\GameFramework\Actor\ParticleActor.h">
       <Filter>Src\GameFramework\Actor</Filter>
@@ -273,6 +282,9 @@
     <ClInclude Include="Src\Render\LineBatcher.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
+    <ClInclude Include="Src\Render\Material.h">
+      <Filter>Src\Render</Filter>
+    </ClInclude>
     <ClInclude Include="Src\Render\Mesh.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
@@ -312,10 +324,7 @@
     <ClInclude Include="Src\Render\Vertex.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
-    <ClInclude Include="Src\SceneManager.h">
-      <Filter>Src</Filter>
-    </ClInclude>
-    <ClInclude Include="Src\Text\FontAtlas.h">
+    <ClInclude Include="Src\Text\Font.h">
       <Filter>Src\Text</Filter>
     </ClInclude>
     <ClInclude Include="Src\Text\ImageLoader.h">
@@ -354,7 +363,7 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h">
       <Filter>ThirdParty\stb</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Render\Material.h" />
+    <ClInclude Include="Src\Render\RenderResourceManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Asset\AssetManager.cpp">
@@ -372,6 +381,9 @@
     <ClCompile Include="Src\Component\ActorComponent.cpp">
       <Filter>Src\Component</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Component\BillboardComponent.cpp">
+      <Filter>Src\Component</Filter>
+    </ClCompile>
     <ClCompile Include="Src\Component\ParticleSubUVComponent.cpp">
       <Filter>Src\Component</Filter>
     </ClCompile>
@@ -387,7 +399,7 @@
     <ClCompile Include="Src\Core\EngineTimer.cpp">
       <Filter>Src\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Core\Name.cpp">
+    <ClCompile Include="Src\Core\UnrealNames.cpp">
       <Filter>Src\Core</Filter>
     </ClCompile>
     <ClCompile Include="Src\Core\Window.cpp">
@@ -423,6 +435,9 @@
     <ClCompile Include="Src\Editor\PropertyPanel.cpp">
       <Filter>Src\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Editor\SceneOutliner.cpp">
+      <Filter>Src\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Src\Editor\ViewportPanel.cpp">
       <Filter>Src\Editor</Filter>
     </ClCompile>
@@ -440,6 +455,9 @@
     </ClCompile>
     <ClCompile Include="Src\GameFramework\Actor.cpp">
       <Filter>Src\GameFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameFramework\Actor\BillboardActor.cpp">
+      <Filter>Src\GameFramework\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Src\GameFramework\Actor\ParticleActor.cpp">
       <Filter>Src\GameFramework\Actor</Filter>
@@ -495,7 +513,13 @@
     <ClCompile Include="Src\Render\LineBatcher.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Render\Material.cpp">
+      <Filter>Src\Render</Filter>
+    </ClCompile>
     <ClCompile Include="Src\Render\Mesh.cpp">
+      <Filter>Src\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\Render\PipelineState.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
     <ClCompile Include="Src\Render\RenderCommand.cpp">
@@ -519,10 +543,7 @@
     <ClCompile Include="Src\Render\Vertex.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
-    <ClCompile Include="Src\SceneManager.cpp">
-      <Filter>Src</Filter>
-    </ClCompile>
-    <ClCompile Include="Src\Text\FontAtlas.cpp">
+    <ClCompile Include="Src\Text\Font.cpp">
       <Filter>Src\Text</Filter>
     </ClCompile>
     <ClCompile Include="Src\Text\TextRenderer.cpp">
@@ -552,6 +573,6 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
-    <ClCompile Include="Src\Render\PipelineState.cpp" />
+    <ClCompile Include="Src\Render\RenderResourceManager.cpp" />
   </ItemGroup>
 </Project>

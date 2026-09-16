@@ -83,17 +83,10 @@ public:
 	FMatrix operator - (const FMatrix& Other) const;
 	FMatrix& operator -= (const FMatrix& Other);
 
-
+	static FMatrix Identity;
 };
 
-/* Constants */
-/* Constants */
-inline static const FMatrix Identity = FMatrix(
-	1.0f, 0.0f, 0.0f, 0.0f,
-	0.0f, 1.0f, 0.0f, 0.0f,
-	0.0f, 0.0f, 1.0f, 0.0f,
-	0.0f, 0.0f, 0.0f, 1.0f
-);
+
 
 /* Global Operator*/
 std::ostream& operator << (std::ostream& OS, const FMatrix& M);

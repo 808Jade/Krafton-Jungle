@@ -17,6 +17,7 @@
 #include "Camera/CameraComponent.h"
 
 #include "Asset/AssetManager.h"
+#include "Render/RenderResourceManager.h"
 
 #include "Render/RenderCommand.h"
 
@@ -85,8 +86,7 @@ bool Engine::Init(HINSTANCE hInstance)
 
 	Outline = MakeUnique<FOutline>();
 
-	TextShader = RenderCommand::CreateShader(L"Assets/Shader/TextShader.hlsl", FTextVertex::GetLayout());
-	Atlas = UAssetManager::Get().LoadFontAtlas("Assets/atlas.json", "Assets/atlas.png");
+	Atlas = UAssetManager::Get().LoadFontAtlas("Assets/Fonts/atlas.json", "Assets/Fonts/atlas.png");
 
 	TextRenderer = MakeUnique<FTextRenderer>();
 	TextRenderer->Init(Renderer.get());
@@ -253,6 +253,12 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 	if (Gizmo->GetTarget())
 	{
 		auto Target = Gizmo->GetTarget()->GetOwner();
+
+
+		RenderCommand::ClearDepthStencil(ViewportPanel->GetViewportRenderingInfo().DepthSteincil.Texture);
+		GizmoRenderer->OnRender(*Gizmo, ViewProj);
+
+		RenderCommand::ClearDepthStencil(ViewportPanel->GetViewportRenderingInfo().DepthSteincil.Texture);
 		FString Text = "UUID : " + std::to_string(Target->GetUUID());
 
 		if (ConfigPanel->GetSettings().bShowUUID)
@@ -264,12 +270,9 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 				*Atlas,
 				World->GetMainCamera()->GetCameraComponent()
 			);
-
 		}
-
-		RenderCommand::ClearDepthStencil(ViewportPanel->GetViewportRenderingInfo().DepthSteincil.Texture);
-		GizmoRenderer->OnRender(*Gizmo, ViewProj);
 	}
+
 	RenderCommand::EndRenderPass(ViewportPanel->GetViewportRenderingInfo());
 
 	// Swapchain 렌더링
@@ -288,6 +291,7 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 void Engine::Shutdown()
 {
 	UAssetManager::Get().Shutdown();
+	FRenderResourceManager::Shutdown();
 	for (int32 i = GUObjectArray.Num() - 1; i >= 0; --i)
 		delete GUObjectArray[i];
 	ImGuiRenderer->Shutdown();

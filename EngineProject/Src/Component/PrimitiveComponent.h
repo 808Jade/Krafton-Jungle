@@ -22,30 +22,33 @@ class UPrimitiveComponent :public USceneComponent
 	DECLARE_CLASS(UPrimitiveComponent, USceneComponent)
 
 	REFLECT_START(ClassName)
-	REFLECT_END()
+		REFLECT_END()
 public:
 	virtual void BeginPlay() override;
 
 	void ApplyPrimitiveType(EPrimitiveType Type);
 
-	void SetMeshData(const FStaticMeshData& data) { MeshData = data; }
-	//void SetMeshShader(UStaticMesh* InMesh, FShader* InShader) { Mesh = InMesh; Shader = InShader; }
-	
 	// Todo: subuv
 	//void SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue);
 	virtual void SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue);
 
-	FStaticMeshData GetMeshData() const { return MeshData; }
-	void SetMesh(UStaticMesh* InMesh);
-	UStaticMesh* GetMesh() const { return Mesh; };
-	FShader* GetShader() const { return Shader.get(); };
+	inline void SetMeshData(const FStaticMeshData& data) { MeshData = data; }
+	inline FStaticMeshData GetMeshData() const { return MeshData; }
+
+	inline void SetMesh(UStaticMesh* InMesh) {Mesh = InMesh;}
+	inline UStaticMesh* GetMesh() const { return Mesh; };
+
+	inline void SetMaterial(UMaterial* InMaterial) { Material = InMaterial; }
+	inline UMaterial* GetMaterial() const { return Material; };
+	//
+	// FShader* GetShader() const { return Shader.get(); };
 
 	EPrimitiveType GetType() const { return Type; }
 	void SetType(EPrimitiveType Ptype) { Type = Ptype; }
 
 protected:
 	EPrimitiveType Type = EPrimitiveType::Cube;
-	TUniquePtr<FShader> Shader = nullptr;
 	UStaticMesh* Mesh = nullptr;
+	UMaterial* Material = nullptr;
 	FStaticMeshData MeshData;
 };

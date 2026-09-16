@@ -13,9 +13,6 @@ bool FRenderer::Init()
 	return true;
 }
 
-
-
-
 UStaticMesh* FRenderer::CreateMesh(const FStaticMeshData& InMeshData)
 {
 	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
@@ -26,7 +23,6 @@ UStaticMesh* FRenderer::CreateMesh(const FStaticMeshData& InMeshData)
 	return Mesh;
 }
 
-
 UStaticMesh* FRenderer::CreateMesh(TUniquePtr<FVertexBuffer> VertexBuffer, TUniquePtr<FIndexBuffer> IndexBuffer)
 {
 	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
@@ -36,12 +32,6 @@ UStaticMesh* FRenderer::CreateMesh(TUniquePtr<FVertexBuffer> VertexBuffer, TUniq
 
 	return Mesh;
 }
-
-
-
-
-
-
 
 //void FRenderer::Prepare()
 //{
@@ -62,8 +52,9 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 	{
 		FRenderPacket rp = InQueue.Peek();
 
-		RenderCommand::BindShader(rp.shader);
 		RenderCommand::BindMesh(rp.mesh);
+		RenderCommand::BindShader(rp.material->Shader);
+		RenderCommand::SetBlendState(rp.material->BlendState);
 
 		// rp.Transform 과 Camera VP 행렬 곱
 		// 행렬곱의 결과 (MVP Matrix) Constant Buffer 업데이트 필요
@@ -72,18 +63,18 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 		RenderCommand::BindConstantBuffer(0, Temp.get(), EShaderBindFlagBits::Vertex);
 
 		// Todo: subuv
-		if (rp.bSubUV)
+		/*if (rp.bSubUV)
 		{
 			FSubUVConstants subUVConstans;
 			subUVConstans.CurrentFrame = rp.CurrentFrame;
 			subUVConstans.AtlasColSize = rp.AtlasColumns;
-			subUVConstans.AtlasRowSize = rp.AtlasRows;
+			subUVConstans.AtlasRowSize = rp.AtlasRows;*/
 
-			RenderCommand::UpdateBufferData(CB.get(), &subUVConstans);
-			RenderCommand::BindConstantBuffer(1, CB.get(), EShaderBindFlagBits::Pixel);
-			RenderCommand::BindShaderResource(0, rp.texture, EShaderBindFlagBits::Pixel);
-			RenderCommand::SetBlendState(EBlendState::AlphaBlend);
-		}
+			//RenderCommand::UpdateBufferData(CB.get(), &subUVConstans);
+			//RenderCommand::BindConstantBuffer(1, CB.get(), EShaderBindFlagBits::Pixel);
+			//RenderCommand::BindShaderResource(0, rp.texture, EShaderBindFlagBits::Pixel);
+			//RenderCommand::SetBlendState(EBlendState::AlphaBlend);
+		//}
 
 		RenderCommand::DrawIndexed(rp.mesh->IndexBuffer->GetIndexCount());
 

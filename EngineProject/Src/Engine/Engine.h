@@ -25,7 +25,7 @@
 #include "Editor/OutLineRenderer.h"
 
 //Temp
-#include "Text/FontAtlas.h"
+#include "Text/Font.h"
 #include "Text/TextRenderer.h"
 
 #include "../Editor/SceneOutliner.h"
@@ -54,7 +54,6 @@ private:
 	bool bIsRunning = false;
 	bool bIsResized = false;
 
-	// 가장 먼저 선언 → 가장 나중에 해제 (Swapchain, 버퍼들보다 오래 살아야 함)
 	TUniquePtr<FRenderDevice> RenderDevice;
 
 	TArray<FWindowContext> Windows;
@@ -62,8 +61,6 @@ private:
 	FSwapchain* MainWindowSC;
 
 	UWorld* World;
-
-	
 
 	TUniquePtr<FEditorUI> EditorUI;
 
@@ -73,18 +70,15 @@ private:
 	TUniquePtr<FGizmoRenderer> GizmoRenderer;
 	TUniquePtr<FTextRenderer> TextRenderer;
 	TUniquePtr<FLineBatcher> LineBatcher;
-	//TUniquePtr<FGizmo> Gizmo;
 	TUniquePtr<FGizmo> Gizmo;
 	TUniquePtr<FOutline> Outline;
 	TUniquePtr<FOutlineRenderer> OutlineRenderer;
 
-	TUniquePtr<FShader> TextShader;
-	UFontAtlas* Atlas;
-
-
+	UFont* Atlas;
 
 	// UE_LOG 매크로용 전역 콘솔
 	inline static FConsolePanel* ConsolePanel = nullptr;
+
 	FPropertyPanel* PropertyPanel = nullptr;
 	FControlPanel* ControlPanel = nullptr;
 	FConfigPanel* ConfigPanel = nullptr;

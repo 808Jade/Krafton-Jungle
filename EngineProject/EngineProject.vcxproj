@@ -108,9 +108,6 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Src\Container\StringView.h" />
-    <ClInclude Include="Src\Core\NameTypes.h" />
-    <ClInclude Include="Src\Editor\SceneOutliner.h" />
     <ClInclude Include="Src\Asset\AssetManager.h" />
     <ClInclude Include="Src\Asset\RenderAsset.h" />
     <ClInclude Include="Src\Camera\CameraActor.h" />
@@ -128,10 +125,12 @@
     <ClInclude Include="Src\Container\Queue.h" />
     <ClInclude Include="Src\Container\Set.h" />
     <ClInclude Include="Src\Container\SparseArray.h" />
+    <ClInclude Include="Src\Container\StringView.h" />
     <ClInclude Include="Src\Core\EngineLog.h" />
     <ClInclude Include="Src\Core\EngineStatics.h" />
     <ClInclude Include="Src\Core\EngineString.h" />
     <ClInclude Include="Src\Core\EngineTimer.h" />
+    <ClInclude Include="Src\Core\NameTypes.h" />
     <ClInclude Include="Src\Core\Types.h" />
     <ClInclude Include="Src\Core\Window.h" />
     <ClInclude Include="Src\Editor\AssetBrowserPanel.h" />
@@ -146,12 +145,14 @@
     <ClInclude Include="Src\Editor\OutLineRenderer.h" />
     <ClInclude Include="Src\Editor\Outline.h" />
     <ClInclude Include="Src\Editor\PropertyPanel.h" />
+    <ClInclude Include="Src\Editor\SceneOutliner.h" />
     <ClInclude Include="Src\Editor\ViewportPanel.h" />
     <ClInclude Include="Src\Engine\Engine.h" />
     <ClInclude Include="Src\Engine\Level.h" />
     <ClInclude Include="Src\Engine\World.h" />
     <ClInclude Include="Src\EnginePCH.h" />
     <ClInclude Include="Src\GameFramework\Actor.h" />
+    <ClInclude Include="Src\GameFramework\Actor\BillboardActor.h" />
     <ClInclude Include="Src\GameFramework\Actor\ParticleActor.h" />
     <ClInclude Include="Src\GameFramework\Actor\StaticMeshActor.h" />
     <ClInclude Include="Src\ImGuiRenderer.h" />
@@ -188,12 +189,13 @@
     <ClInclude Include="Src\Render\RenderStates.h" />
     <ClInclude Include="Src\Render\Renderer.h" />
     <ClInclude Include="Src\Render\RenderingInfo.h" />
+    <ClInclude Include="Src\Render\RenderResourceManager.h" />
     <ClInclude Include="Src\Render\Shader.h" />
     <ClInclude Include="Src\Render\StaticMeshData.h" />
     <ClInclude Include="Src\Render\Swapchain.h" />
     <ClInclude Include="Src\Render\Texture2D.h" />
     <ClInclude Include="Src\Render\Vertex.h" />
-    <ClInclude Include="Src\Text\FontAtlas.h" />
+    <ClInclude Include="Src\Text\Font.h" />
     <ClInclude Include="Src\Text\ImageLoader.h" />
     <ClInclude Include="Src\Text\TextRenderer.h" />
     <ClInclude Include="ThirdParty\ImGui\backends\imgui_impl_dx11.h" />
@@ -208,18 +210,18 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Src\Core\UnrealNames.cpp" />
-    <ClCompile Include="Src\Editor\SceneOutliner.cpp" />
     <ClCompile Include="Src\Asset\AssetManager.cpp" />
     <ClCompile Include="Src\Camera\CameraActor.cpp" />
     <ClCompile Include="Src\Camera\CameraComponent.cpp" />
     <ClCompile Include="Src\Collision\Ray.cpp" />
     <ClCompile Include="Src\Component\ActorComponent.cpp" />
+    <ClCompile Include="Src\Component\BillboardComponent.cpp" />
     <ClCompile Include="Src\Component\ParticleSubUVComponent.cpp" />
     <ClCompile Include="Src\Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Src\Component\SceneComponent.cpp" />
     <ClCompile Include="Src\Component\TextRenderComponent.cpp" />
     <ClCompile Include="Src\Core\EngineTimer.cpp" />
+    <ClCompile Include="Src\Core\UnrealNames.cpp" />
     <ClCompile Include="Src\Core\Window.cpp" />
     <ClCompile Include="Src\Editor\AssetBrowserPanel.cpp" />
     <ClCompile Include="Src\Editor\ConfigPanel.cpp" />
@@ -231,6 +233,7 @@
     <ClCompile Include="Src\Editor\GridRenderer.cpp" />
     <ClCompile Include="Src\Editor\OutLineRenderer.cpp" />
     <ClCompile Include="Src\Editor\PropertyPanel.cpp" />
+    <ClCompile Include="Src\Editor\SceneOutliner.cpp" />
     <ClCompile Include="Src\Editor\ViewportPanel.cpp" />
     <ClCompile Include="Src\Engine\Engine.cpp" />
     <ClCompile Include="Src\Engine\Level.cpp" />
@@ -239,6 +242,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Src\GameFramework\Actor.cpp" />
+    <ClCompile Include="Src\GameFramework\Actor\BillboardActor.cpp" />
     <ClCompile Include="Src\GameFramework\Actor\ParticleActor.cpp" />
     <ClCompile Include="Src\GameFramework\Actor\StaticMeshActor.cpp" />
     <ClCompile Include="Src\ImGuiRenderer.cpp" />
@@ -257,16 +261,18 @@
     <ClCompile Include="Src\Render\Buffer.cpp" />
     <ClCompile Include="Src\Render\GeometryGenerator.cpp" />
     <ClCompile Include="Src\Render\LineBatcher.cpp" />
+    <ClCompile Include="Src\Render\Material.cpp" />
     <ClCompile Include="Src\Render\Mesh.cpp" />
     <ClCompile Include="Src\Render\PipelineState.cpp" />
     <ClCompile Include="Src\Render\RenderCommand.cpp" />
     <ClCompile Include="Src\Render\RenderDevice.cpp" />
     <ClCompile Include="Src\Render\Renderer.cpp" />
+    <ClCompile Include="Src\Render\RenderResourceManager.cpp" />
     <ClCompile Include="Src\Render\Shader.cpp" />
     <ClCompile Include="Src\Render\Swapchain.cpp" />
     <ClCompile Include="Src\Render\Texture2D.cpp" />
     <ClCompile Include="Src\Render\Vertex.cpp" />
-    <ClCompile Include="Src\Text\FontAtlas.cpp" />
+    <ClCompile Include="Src\Text\Font.cpp" />
     <ClCompile Include="Src\Text\TextRenderer.cpp" />
     <ClCompile Include="Src\main.cpp" />
     <ClCompile Include="ThirdParty\ImGui\backends\imgui_impl_dx11.cpp">

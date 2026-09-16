@@ -41,7 +41,7 @@ void FControlPanel::AddActor(EPrimitiveType Type)
 	FTransform Transform;
 	AStaticMeshActor* NewActor = World->SpawnActor<AStaticMeshActor>(&Transform);
 	NewActor->SetPrimitiveType(Type);
-
+	
 	ActorNum = World->GetActorNum();
 }
 
