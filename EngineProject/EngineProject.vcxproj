@@ -233,7 +233,6 @@
     <ClCompile Include="Src\Component\SceneComponent.cpp" />
     <ClCompile Include="Src\Component\TextRenderComponent.cpp" />
     <ClCompile Include="Src\Core\EngineTimer.cpp" />
-    <ClCompile Include="Src\Core\UnrealNames.cpp" />
     <ClCompile Include="Src\Core\Window.cpp" />
     <ClCompile Include="Src\Editor\AssetBrowserPanel.cpp" />
     <ClCompile Include="Src\Editor\ConfigPanel.cpp" />

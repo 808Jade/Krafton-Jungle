@@ -106,7 +106,7 @@ void FControlPanel::OnRender()
 		Transform.Location = FVector(5.0f, 0.0f, 0.0f);
 		Transform.Scale = FVector(2.0f, 2.0f, 2.0f);
 
-		ATextRenderActor* TextRenderActor = World->SpawnActor<ATextRenderActor>(&Transform);
+		ATextRenderActor* TextRenderActor = World->SpawnActor<ATextRenderActor>("Test", &Transform);
 		assert(TextRenderActor != nullptr);
 
 		// Set atlas image settings
