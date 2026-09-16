@@ -14,7 +14,8 @@ enum class EPrimitiveType
 	Plane,
 
 	// Todo: subuv
-	Particle
+	Particle,
+	ParticleQuad
 };
 
 class UPrimitiveComponent :public USceneComponent
