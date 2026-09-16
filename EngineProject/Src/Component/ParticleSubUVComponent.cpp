@@ -117,7 +117,7 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 	WorldMatrix.M[1][1] = BbUp.Y;
 	WorldMatrix.M[1][2] = BbUp.Z;
 	WorldMatrix.M[1][3] = 0.0f;
-
+	
 	// X -> Billboard Forward
 	WorldMatrix.M[2][0] = -BbFwd.X;
 	WorldMatrix.M[2][1] = -BbFwd.Y;
@@ -130,6 +130,18 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 	WorldMatrix.M[3][2] = WorldPos.Z;
 	WorldMatrix.M[3][3] = 1.0f;
 
+
+	// Calculate camera to particle distance
+	const FVector CameraPos = CameraComponent->GetWorldLocation();
+	const FVector ParticlePos = GetWorldLocation();
+
+	const FVector CameraToParticleVec = ParticlePos - CameraPos;
+	const float CameraToParticleDistance =
+		CameraToParticleVec.X * CameraToParticleVec.X +
+		CameraToParticleVec.Y * CameraToParticleVec.Y +
+		CameraToParticleVec.Z * CameraToParticleVec.Z;
+
+	// Set RenderPacket
 	FRenderPacket Packet;
 	Packet.model = WorldMatrix;
 	Packet.mesh = Mesh;
@@ -140,6 +152,8 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 	Packet.CurrentFrame = CurrentFrame;
 	Packet.AtlasColumns = ColSize;
 	Packet.AtlasRows = RowSize;
+
+	Packet.CameraToParticleDistance = CameraToParticleDistance;
 
 	RenderQueue.Enqueue(Packet);
 }

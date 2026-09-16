@@ -18,4 +18,6 @@ struct FRenderPacket {
 	uint32 CurrentFrame;
 	uint32 AtlasColumns;
 	uint32 AtlasRows;
+
+	float CameraToParticleDistance;
 };
