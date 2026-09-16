@@ -109,7 +109,7 @@ void UAssetManager::CreateDefaultMeshes()
 	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
 	Mesh->VertexBuffer = RenderCommand::CreateStaticVertexBuffer(
 		Vertices,
-		sizeof(Vertices), sizeof(FVertex));
+		sizeof(Vertices), sizeof(FParticleVertex));
 	Mesh->IndexBuffer = RenderCommand::CreateStaticIndexBuffer(
 		Indices,
 		ARRAYSIZE(Indices));
@@ -131,7 +131,6 @@ void UAssetManager::CreateDefaultMaterials()
 	ParticleMat->BlendState = EBlendState::AlphaBlend;
 
 	AssetMap["SubUVMaterial"] = ParticleMat;
-
 }
 
 void UAssetManager::Shutdown()

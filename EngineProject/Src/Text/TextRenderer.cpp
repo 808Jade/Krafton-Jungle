@@ -53,8 +53,7 @@ void FTextRenderer::Init(FRenderer* InRenderer, uint32 InMaxCharacters)
 	PipelineState.Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFont& Atlas,
-	TArray<FTextVertex>& OutVertices, TArray<uint32>& OutIndices)
+void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFont& Atlas)
 {
 	TArray<uint32> CodePoints = DecodeUTF8(Text);
 
@@ -92,19 +91,19 @@ void FTextRenderer::BuildTextMesh(const FString& Text, float TextSize, const UFo
 			float URight = Glyph->AtlasRight / Atlas.Width;
 			float VTop = 1.0f - (Glyph->AtlasTop / Atlas.Height);
 
-			uint32 BaseIndex = static_cast<uint32>(OutVertices.Num());
+			uint32 BaseIndex = static_cast<uint32>(Vertices.Num());
 
-			OutVertices.Add({ FVector(Bottom,Left, 0.0f), FVector2(ULeft, VBottom) });
-			OutVertices.Add({ FVector(Top,Left, 0.0f), FVector2(ULeft, VTop) });
-			OutVertices.Add({ FVector(Top, Right,  0.0f), FVector2(URight, VTop) });
-			OutVertices.Add({ FVector(Bottom, Right, 0.0f), FVector2(URight,VBottom) });
+			Vertices.Add({ FVector(0.0f,Left, Bottom), FVector2(ULeft, VBottom) });
+			Vertices.Add({ FVector(0.0f,Left, Top), FVector2(ULeft, VTop) });
+			Vertices.Add({ FVector(0.0f, Right,  Top), FVector2(URight, VTop) });
+			Vertices.Add({ FVector(0.0f, Right, Bottom), FVector2(URight,VBottom) });
 
-			OutIndices.Add(BaseIndex + 0);
-			OutIndices.Add(BaseIndex + 1);
-			OutIndices.Add(BaseIndex + 2);
-			OutIndices.Add(BaseIndex + 0);
-			OutIndices.Add(BaseIndex + 2);
-			OutIndices.Add(BaseIndex + 3);
+			Indices.Add(BaseIndex + 0);
+			Indices.Add(BaseIndex + 1);
+			Indices.Add(BaseIndex + 2);
+			Indices.Add(BaseIndex + 0);
+			Indices.Add(BaseIndex + 2);
+			Indices.Add(BaseIndex + 3);
 		}
 
 		PenY += Glyph->Advance * TextSize;
@@ -118,10 +117,6 @@ void FTextRenderer::OnRender(const FString& Text, const FVector& WorldPos, float
 	{
 		return;
 	}
-
-	TArray<FTextVertex> Vertices;
-	TArray<uint32> Indices;
-	BuildTextMesh(Text, TextSize, Atlas, Vertices, Indices);
 
 	if (Vertices.IsEmpty())
 	{
@@ -138,33 +133,30 @@ void FTextRenderer::OnRender(const FString& Text, const FVector& WorldPos, float
 	RenderCommand::UpdateBufferData(VertexBuffer.get(), Vertices.GetData(), sizeof(FTextVertex) * Vertices.Num());
 	RenderCommand::UpdateBufferData(IndexBuffer.get(), Indices.GetData(), sizeof(uint32) * Indices.Num());
 
-	const FTransform &Transform = CameraComponent->GetTransform();
+	const FTransform& Transform = CameraComponent->GetTransform();
 
 	//// 빌보드 Worl d 행렬: CameraRight/Up을 축으로, WorldPos에 위치
 	FVector Right = Transform.GetRight().Normalized();
 	FVector Up = Transform.GetUp().Normalized();
 	FVector Forward = Transform.GetForward().Normalized();   // 또는 Cross로 계산
 
-	FVector BbUp = Transform.GetUp().Normalized();                         // Z-up 월드
-	FVector BbRight = FVector::Cross(BbUp, Forward).Normalized();
-	FVector BbFwd = FVector::Cross(BbUp, BbRight);          // 자기모순 없게 외적으로 유도
-
-	// 카메라가 수직으로 내려다볼 때 폴백
-	if (BbRight.Length() <= 1e-6f)
-	{
-		BbRight = Right;
-		BbFwd = FVector::Cross(BbUp, BbRight);
-	}
+	//// 카메라가 수직으로 내려다볼 때 폴백
+	//if (Right.Length() <= 1e-6f)
+	//{
+	//	Right = ;
+	//	Forward = FVector::Cross(Up, Right);
+	//}
 
 	FMatrix World;
 	World.SetIdentity();
-	// row0 = 로컬 +X = up
-	World.M[0][0] = BbUp.X;    World.M[0][1] = BbUp.Y;    World.M[0][2] = BbUp.Z;    World.M[0][3] = 0;
-	// row1 = 로컬 +Y = right
-	World.M[1][0] = BbRight.X; World.M[1][1] = BbRight.Y; World.M[1][2] = BbRight.Z; World.M[1][3] = 0;
-	// row2 = 로컬 +Z = forward
-	World.M[2][0] = BbFwd.X;         World.M[2][1] = BbFwd.Y;         World.M[2][2] = BbFwd.Z;         World.M[2][3] = 0;
-	World.M[3][0] = WorldPos.X;      World.M[3][1] = WorldPos.Y;      World.M[3][2] = WorldPos.Z;      World.M[3][3] = 1;
+	// row0 = 로컬 +X → Forward
+	World.M[0][0] = Forward.X; World.M[0][1] = Forward.Y; World.M[0][2] = Forward.Z; World.M[0][3] = 0;
+	// row1 = 로컬 +Y → Right (글자 가로)
+	World.M[1][0] = Right.X;   World.M[1][1] = Right.Y;   World.M[1][2] = Right.Z;   World.M[1][3] = 0;
+	// row2 = 로컬 +Z → Up (글자 세로)
+	World.M[2][0] = Up.X;      World.M[2][1] = Up.Y;      World.M[2][2] = Up.Z;      World.M[2][3] = 0;
+	// row3 = 위치
+	World.M[3][0] = WorldPos.X; World.M[3][1] = WorldPos.Y; World.M[3][2] = WorldPos.Z; World.M[3][3] = 1;
 
 	//World.M[0][0] = Right.X;   World.M[0][1] = Right.Y;   World.M[0][2] = Right.Z;   World.M[0][3] = 0.0f;
 	//World.M[1][0] = Up.X;      World.M[1][1] = Up.Y;      World.M[1][2] = Up.Z;      World.M[1][3] = 0.0f;
@@ -189,4 +181,7 @@ void FTextRenderer::OnRender(const FString& Text, const FVector& WorldPos, float
 	RenderCommand::BindVertexBuffer(VertexBuffer.get());
 	RenderCommand::BindIndexBuffer(IndexBuffer.get());
 	RenderCommand::DrawIndexed(Indices.Num());
+
+	Vertices.Reset();
+	Indices.Reset();
 }

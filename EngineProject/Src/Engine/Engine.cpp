@@ -242,6 +242,23 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 		Renderer->RenderAll(RenderQueue, World->GetMainCamera()->GetCameraComponent());
 	}
 
+	// TextRenderComponent 렌더링
+	for (UTextRenderComponent* TextComponent : World->GetTextComponents())
+	{
+		if (!TextComponent || !TextComponent->GetFont() || !TextComponent->IsVisible())
+		{
+			continue;
+		}
+
+		TextRenderer->OnRender(
+			TextComponent->GetText(),
+			TextComponent->GetWorldLocation(),
+			TextComponent->GetTextSize(),
+			*TextComponent->GetFont(),
+			World->GetMainCamera()->GetCameraComponent()
+		);
+	}
+
 	FVector4 CamLoc =
 		World->GetMainCamera()->GetCameraComponent()->GetWorldLocation();
 
@@ -260,9 +277,9 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 
 		RenderCommand::ClearDepthStencil(ViewportPanel->GetViewportRenderingInfo().DepthSteincil.Texture);
 		FString Text = "UUID : " + std::to_string(Target->GetUUID());
-
 		if (ConfigPanel->GetSettings().bShowUUID)
 		{
+			TextRenderer->BuildTextMesh(Text, 1.0f, *Atlas);
 			TextRenderer->OnRender(
 				Text,
 				Gizmo->GetLocation(),

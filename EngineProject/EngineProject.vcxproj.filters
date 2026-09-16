@@ -201,6 +201,9 @@
     <ClInclude Include="Src\GameFramework\Actor\BillboardActor.h">
       <Filter>Src\GameFramework\Actor</Filter>
     </ClInclude>
+    <ClInclude Include="Src\GameFramework\Actor\TextRenderActor.h">
+      <Filter>Src\GameFramework\Actor</Filter>
+    </ClInclude>
     <ClInclude Include="Src\GameFramework\Actor\ParticleActor.h">
       <Filter>Src\GameFramework\Actor</Filter>
     </ClInclude>
@@ -457,6 +460,9 @@
       <Filter>Src\GameFramework</Filter>
     </ClCompile>
     <ClCompile Include="Src\GameFramework\Actor\BillboardActor.cpp">
+      <Filter>Src\GameFramework\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameFramework\Actor\TextRenderActor.cpp">
       <Filter>Src\GameFramework\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Src\GameFramework\Actor\ParticleActor.cpp">

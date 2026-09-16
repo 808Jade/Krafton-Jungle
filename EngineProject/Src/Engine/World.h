@@ -4,6 +4,7 @@
 #include "ObjectSystem/Class.h"
 #include "GameFramework/Actor.h"
 #include "Component/PrimitiveComponent.h"
+#include "Component/TextRenderComponent.h"
 #include "Math/Transform.h"
 #include "Render/Renderer.h"
 #include "PathTracker.h"
@@ -43,6 +44,9 @@ public:
 	inline void AddPrimitive(UPrimitiveComponent* Primitive) { PrimitiveComponents.Add(Primitive); }
 	TArray<UPrimitiveComponent*> GetPrimitiveComponents() const { return PrimitiveComponents; }
 
+	inline void AddTextComponent(UTextRenderComponent* TextComponent) { TextComponents.Add(TextComponent); }
+	const TArray<UTextRenderComponent*>& GetTextComponents() const { return TextComponents; }
+
 	void GatherRenderPackets(TQueue<FRenderPacket>& RenderQueue);
 	UPrimitiveComponent* TryPicking(FVector2 MousePos, float ScreenW, float ScreenH);
 
@@ -74,7 +78,8 @@ private:
 	TQueue<AActor*> BeginPlayList;
 	
 	TArray<UPrimitiveComponent*> PrimitiveComponents;
-		
+	TArray<UTextRenderComponent*> TextComponents;
+
 	//메인 카메라 
 	ACameraActor* MainCamera = nullptr;
 

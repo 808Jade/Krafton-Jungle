@@ -155,6 +155,7 @@
     <ClInclude Include="Src\GameFramework\Actor\BillboardActor.h" />
     <ClInclude Include="Src\GameFramework\Actor\ParticleActor.h" />
     <ClInclude Include="Src\GameFramework\Actor\StaticMeshActor.h" />
+    <ClInclude Include="Src\GameFramework\Actor\TextRenderActor.h" />
     <ClInclude Include="Src\ImGuiRenderer.h" />
     <ClInclude Include="Src\Input\InputSystem.h" />
     <ClInclude Include="Src\Input\KeyCode.h" />
@@ -245,6 +246,7 @@
     <ClCompile Include="Src\GameFramework\Actor\BillboardActor.cpp" />
     <ClCompile Include="Src\GameFramework\Actor\ParticleActor.cpp" />
     <ClCompile Include="Src\GameFramework\Actor\StaticMeshActor.cpp" />
+    <ClCompile Include="Src\GameFramework\Actor\TextRenderActor.cpp" />
     <ClCompile Include="Src\ImGuiRenderer.cpp" />
     <ClCompile Include="Src\Input\InputSystem.cpp" />
     <ClCompile Include="Src\Math\Matrix.cpp" />
