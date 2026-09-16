@@ -73,6 +73,8 @@ private:
 	FString AtlasTexturePath;
 	UTexture2D* AtlasTexture;
 
+	TArray<FSubUVConstants> Constants;
+
 	uint32 ColSize;
 	uint32 RowSize;
 	float FrameTimer;

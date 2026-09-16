@@ -87,9 +87,14 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, UCameraComponent* Came
 		RenderCommand::BindMesh(RenderPacket.mesh);
 		RenderCommand::BindShader(RenderPacket.material->Shader);
 		RenderCommand::SetBlendState(RenderPacket.material->BlendState);
+		RenderCommand::SetDepthStencilState(RenderPacket.material->DepthStencilState);
 
 		if (RenderPacket.material->ParamBuffer)
 		{
+			if (RenderPacket.Data != nullptr)
+			{
+				RenderCommand::UpdateBufferData(RenderPacket.material->ParamBuffer.get(), RenderPacket.Data, RenderPacket.DataSize);
+			}
 			RenderCommand::BindConstantBuffer(1, RenderPacket.material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
 		}
 

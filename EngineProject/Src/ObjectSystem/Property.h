@@ -3,7 +3,7 @@
 #include "Core/EngineString.h"
 #include "Math/EngineMath.h"
 
-enum class EPropertyType { Unknown, Float, Int, String, Bool, Vector };
+enum class EPropertyType { Unknown, Float, Int, String, Bool, Vector,  };
 
 template <typename T>
 constexpr EPropertyType GetPropertyType()

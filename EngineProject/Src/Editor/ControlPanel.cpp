@@ -111,6 +111,7 @@ void FControlPanel::OnRender()
 
 		// Set atlas image settings
 		UTextRenderComponent* Particle = TextRenderActor->GetTextRenderComponent();
+		Particle->ApplyPrimitiveType(EPrimitiveType::Plane);
 	}
 
 	ImGui::Separator();

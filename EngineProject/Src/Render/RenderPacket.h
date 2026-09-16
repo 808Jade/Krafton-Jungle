@@ -14,4 +14,7 @@ struct FRenderPacket {
 
 	// 카메라와의 거리 제곱. 반투명 정렬에 사용
 	float CameraToParticleDistance = 0.0f;
+
+	void* Data = nullptr;
+	uint32 DataSize = 0;
 };

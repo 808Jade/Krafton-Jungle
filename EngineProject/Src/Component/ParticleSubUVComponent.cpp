@@ -114,6 +114,9 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 {
 	assert(Mesh != nullptr);
 	assert(Material != nullptr);
+	
+	Constants.Reset();
+	Constants.Reserve(Particles.Num());
 
 	const FVector CameraPos = GetOwner()->GetWorld()->GetMainCamera()->GetCameraComponent()->GetWorldLocation();
 	for (FParticle& Particle : Particles)
@@ -122,6 +125,7 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 		{
 			continue;
 		}
+
 
 		FMatrix WorldMatrix = FMatrix::Identity; 
 		Super::GetWorldTransformedMatrix(&WorldMatrix);
@@ -171,7 +175,11 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 		C.AtlasRowSize = RowSize;
 		C.Alpha = Particle.Alpha;
 
-		RenderCommand::UpdateBufferData(Material->ParamBuffer.get(), &C);
+		Constants.Add(C);
+
+		Packet.Data = &Constants.Last();
+		Packet.DataSize = sizeof(FSubUVConstants);
+
 		/*Packet.texture = AtlasTexture;
 
 		Packet.CurrentFrame = Particle.SubUVFrame;
