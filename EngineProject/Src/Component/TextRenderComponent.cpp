@@ -18,7 +18,7 @@ void UTextRenderComponent::BeginPlay()
 
 	Mesh = UAssetManager::GetAssetByPath<UStaticMesh>("ParticleQuad");
 	Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");
-
+	
 	if (!Font)
 	{
 		Font = UAssetManager::GetAssetByPath<UFont>("Fonts/atlas.json");

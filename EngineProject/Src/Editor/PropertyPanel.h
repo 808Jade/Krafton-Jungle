@@ -19,8 +19,12 @@ public:
 
 	void SetWorld(UWorld* InWorld) { World = InWorld; }
 
+	ImFont* GetCustomFont() { return CustomFont; }
+
 private:
 	UWorld* World;
 	USceneComponent* Target;
+
+	ImFont* CustomFont;
 };
 
