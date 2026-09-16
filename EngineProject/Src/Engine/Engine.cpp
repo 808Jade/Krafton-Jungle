@@ -20,6 +20,7 @@
 #include "Render/RenderResourceManager.h"
 
 #include "Render/RenderCommand.h"
+#include "Editor/SceneOutliner.h"
 
 bool Engine::Init(HINSTANCE hInstance)
 {
@@ -190,6 +191,11 @@ void Engine::UpdateGizmoAndPicking(FMatrix& ViewProj)
 		Gizmo->SetTarget(PickedComponent);
 		Outline->SetTarget(PickedComponent);
 		PropertyPanel->SetTarget(PickedComponent);
+
+		if (PickedComponent)
+		{
+			SceneOutliner->SelectActor(PickedComponent->GetOwner());
+		}
 	}
 }
 
