@@ -5,6 +5,10 @@
 
 #include "RenderCommand.h"
 
+#include "Camera/CameraComponent.h"
+
+#include <algorithm>
+
 bool FRenderer::Init()
 {
 	CB = RenderCommand::CreateConstantBuffer(sizeof(FSubUVConstants));
@@ -46,27 +50,59 @@ UStaticMesh* FRenderer::CreateMesh(TUniquePtr<FVertexBuffer> VertexBuffer, TUniq
 
 // Todo: subuv, Fix function
 
-void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
+void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, UCameraComponent* CameraComponent)
 {
+	FMatrix VP = CameraComponent->GetViewProjectionMatrix();
+	TArray<FRenderPacket> RenderPackets;
+
 	while (InQueue.IsEmpty() == false)
 	{
-		FRenderPacket rp = InQueue.Peek();
+		RenderPackets.Add(InQueue.Peek());
+		InQueue.Dequeue();
+	}
 
-		RenderCommand::BindMesh(rp.mesh);
-		RenderCommand::BindShader(rp.material->Shader);
-		RenderCommand::SetBlendState(rp.material->BlendState);
-
-		RenderCommand::BindConstantBuffer(1, rp.material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
-
-		for (int i = 0; i < rp.material->Textures.size(); i++)
+	// 불투명 먼저, 반투명은 먼 것부터
+	std::stable_sort(
+		RenderPackets.begin(),
+		RenderPackets.end(),
+		[](const FRenderPacket& First, const FRenderPacket& Second) -> bool
 		{
-			RenderCommand::BindShaderResource(i, rp.material->Textures[i], EShaderBindFlagBits::Pixel);
+			const bool bFirstTranslucent = First.material->BlendState != EBlendState::Opaque;
+			const bool bSecondTranslucent = Second.material->BlendState != EBlendState::Opaque;
+
+			if (bFirstTranslucent != bSecondTranslucent)
+			{
+				return !bFirstTranslucent;
+			}
+
+			if (bFirstTranslucent)
+			{
+				return First.CameraToParticleDistance > Second.CameraToParticleDistance;
+			}
+
+			return false;
+		});
+
+	for (const FRenderPacket& RenderPacket : RenderPackets)
+	{
+		RenderCommand::BindMesh(RenderPacket.mesh);
+		RenderCommand::BindShader(RenderPacket.material->Shader);
+		RenderCommand::SetBlendState(RenderPacket.material->BlendState);
+
+		if (RenderPacket.material->ParamBuffer)
+		{
+			RenderCommand::BindConstantBuffer(1, RenderPacket.material->ParamBuffer.get(), EShaderBindFlagBits::Pixel);
+		}
+
+		for (int i = 0; i < RenderPacket.material->Textures.size(); i++)
+		{
+			RenderCommand::BindShaderResource(i, RenderPacket.material->Textures[i], EShaderBindFlagBits::Pixel);
 		}
 		RenderCommand::BindSamplerState(0, ESamplerState::LinearClamp, EShaderBindFlagBits::Pixel);
 
 		// rp.Transform 과 Camera VP 행렬 곱
 		// 행렬곱의 결과 (MVP Matrix) Constant Buffer 업데이트 필요
-		FMatrix MVP = (rp.model * VP).GetTransposed();
+		FMatrix MVP = (RenderPacket.model * VP).GetTransposed();
 		RenderCommand::UpdateBufferData(Temp.get(), &MVP);
 		RenderCommand::BindConstantBuffer(0, Temp.get(), EShaderBindFlagBits::Vertex);
 
@@ -85,9 +121,7 @@ void FRenderer::RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP)
 			//RenderCommand::SetBlendState(EBlendState::AlphaBlend);
 		//}
 
-		RenderCommand::DrawIndexed(rp.mesh->IndexBuffer->GetIndexCount());
-
-		InQueue.Dequeue();
+		RenderCommand::DrawIndexed(RenderPacket.mesh->IndexBuffer->GetIndexCount());
 	}
 }
 

@@ -6,6 +6,7 @@
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 
+#include "BillboardComponent.h"
 
 void UParticleSubUVComponent::BeginPlay()
 {
@@ -69,66 +70,23 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 	assert(Mesh != nullptr);
 	assert(Material != nullptr);
 
-	// TextRenderer와 동일하게 Camera Transform 획득
-	AActor* Owner = GetOwner();
-	assert(Owner != nullptr);
+	FMatrix WorldMatrix = FMatrix::Identity;
+	
 
-	UWorld* World= Owner->GetWorld();
-	assert(World!= nullptr);
-
-	ACameraActor* Camera = World->GetMainCamera();
-	assert(Camera != nullptr);
-
-	UCameraComponent* CameraComponent = Camera->GetCameraComponent();
+	UCameraComponent* CameraComponent = GetOwner()->GetWorld()->GetMainCamera()->GetCameraComponent();
 	assert(CameraComponent != nullptr);
 
-	const FTransform& Transform = CameraComponent->GetTransform();
+	// Calculate camera to particle distance
+	const FVector CameraPos = CameraComponent->GetWorldLocation();
+	const FVector ParticlePos = GetWorldLocation();
 
-	// TextRenderer와 동일
-	FVector Right = Transform.GetRight().Normalized();
-	FVector Up = Transform.GetUp().Normalized();
-	FVector Forward = Transform.GetForward().Normalized();
+	const FVector CameraToParticleVec = ParticlePos - CameraPos;
+	const float CameraToParticleDistance =
+		CameraToParticleVec.X * CameraToParticleVec.X +
+		CameraToParticleVec.Y * CameraToParticleVec.Y +
+		CameraToParticleVec.Z * CameraToParticleVec.Z;
 
-	FVector BbUp = Transform.GetUp().Normalized();
-	FVector BbRight = FVector::Cross(BbUp, Forward).Normalized();
-	FVector BbFwd = FVector::Cross(BbUp, BbRight);
-
-	if (BbRight.Length() <= 1e-6f)
-	{
-		BbRight = Right;
-		BbFwd = FVector::Cross(BbUp, BbRight);
-	}
-
-	const FVector WorldPos = GetWorldLocation();
-	const FVector WorldScale = GetWorldScale3D();
-
-	FMatrix WorldMatrix;
-	WorldMatrix.SetIdentity();
-
-	// Y -> Billboard Right
-	WorldMatrix.M[0][0] = -BbRight.X;
-	WorldMatrix.M[0][1] = -BbRight.Y;
-	WorldMatrix.M[0][2] = -BbRight.Z;
-	WorldMatrix.M[0][3] = 0.0f;
-
-	// Z -> Billboard Up
-	WorldMatrix.M[1][0] = BbUp.X;
-	WorldMatrix.M[1][1] = BbUp.Y;
-	WorldMatrix.M[1][2] = BbUp.Z;
-	WorldMatrix.M[1][3] = 0.0f;
-
-	// X -> Billboard Forward
-	WorldMatrix.M[2][0] = -BbFwd.X;
-	WorldMatrix.M[2][1] = -BbFwd.Y;
-	WorldMatrix.M[2][2] = -BbFwd.Z;
-	WorldMatrix.M[2][3] = 0.0f;
-
-	// Position
-	WorldMatrix.M[3][0] = WorldPos.X;
-	WorldMatrix.M[3][1] = WorldPos.Y;
-	WorldMatrix.M[3][2] = WorldPos.Z;
-	WorldMatrix.M[3][3] = 1.0f;
-
+	// Set RenderPacket
 	FRenderPacket Packet;
 	Packet.model = WorldMatrix;
 	Packet.mesh = Mesh;
@@ -146,6 +104,8 @@ void UParticleSubUVComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQ
 	subUVConstans.AtlasRowSize = RowSize;
 
 	RenderCommand::UpdateBufferData(Packet.material->ParamBuffer.get(), &subUVConstans);
+
+	Packet.CameraToParticleDistance = CameraToParticleDistance;
 
 	RenderQueue.Enqueue(Packet);
 }

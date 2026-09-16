@@ -3,7 +3,9 @@
 #include "../GameFramework/Actor.h"
 #include "ObjectSystem/Class.h"
 
-class UCameraComponent;
+#include "CameraComponent.h"
+
+//class UCameraComponent;
 
 class ACameraActor : public AActor
 {

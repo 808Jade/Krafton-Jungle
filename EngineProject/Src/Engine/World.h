@@ -8,9 +8,10 @@
 #include "Render/Renderer.h"
 #include "PathTracker.h"
 
-class ACameraActor;
-class ULevel;
+#include "Camera/CameraActor.h"
 
+//class ACameraActor;
+class ULevel;
 
 class UWorld : public UObject
 {

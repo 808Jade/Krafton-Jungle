@@ -109,8 +109,7 @@ void UAssetManager::CreateDefaultMeshes()
 	UStaticMesh* Mesh = FObjectFactory::ConstructObject<UStaticMesh>();
 	Mesh->VertexBuffer = RenderCommand::CreateStaticVertexBuffer(
 		Vertices,
-		sizeof(Vertices),
-		sizeof(FParticleVertex));
+		sizeof(Vertices), sizeof(FVertex));
 	Mesh->IndexBuffer = RenderCommand::CreateStaticIndexBuffer(
 		Indices,
 		ARRAYSIZE(Indices));

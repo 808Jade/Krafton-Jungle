@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Component/PrimitiveComponent.h"
+#include "BillboardComponent.h"
 
 struct FSubUVConstants
 {
@@ -13,9 +13,9 @@ struct FSubUVConstants
 // Todo: subuv
 // 가장 단순한 SubUV 파티클입니다.
 // Atlas 전체를 Col x Row로 나누고 CurrentFrame 하나만 변경합니다.
-class UParticleSubUVComponent : public UPrimitiveComponent
+class UParticleSubUVComponent : public UBillboardComponent
 {
-	DECLARE_CLASS(UParticleSubUVComponent, UPrimitiveComponent)
+	DECLARE_CLASS(UParticleSubUVComponent, UBillboardComponent)
 
 	REFLECT_START(ClassName)
 		REFLECT_END()

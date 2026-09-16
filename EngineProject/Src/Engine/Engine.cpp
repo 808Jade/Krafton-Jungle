@@ -239,7 +239,7 @@ void Engine::RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue)
 			RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		}
 
-		Renderer->RenderAll(RenderQueue, ViewProj);
+		Renderer->RenderAll(RenderQueue, World->GetMainCamera()->GetCameraComponent());
 	}
 
 	FVector4 CamLoc =

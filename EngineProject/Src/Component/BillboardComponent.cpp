@@ -23,7 +23,7 @@ void UBillboardComponent::TickComponent(float DeltaTime)
 }
 
 FMatrix UBillboardComponent::GetBillboardWorldMatrix(const FMatrix& ViewMatrix)
-{
+	{
 	FVector R = { ViewMatrix.M[0][0], ViewMatrix.M[1][0], ViewMatrix.M[2][0] };
 	FVector U = { ViewMatrix.M[0][1], ViewMatrix.M[1][1], ViewMatrix.M[2][1] };
 	FVector F = { ViewMatrix.M[0][2], ViewMatrix.M[1][2], ViewMatrix.M[2][2] };
@@ -38,7 +38,7 @@ FMatrix UBillboardComponent::GetBillboardWorldMatrix(const FMatrix& ViewMatrix)
 	M.M[3][0] = P.X;       M.M[3][1] = P.Y;       M.M[3][2] = P.Z;       M.M[3][3] = 1;
 
 	return M;
-}
+	}
 
 void UBillboardComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue)
 {
@@ -52,4 +52,9 @@ void UBillboardComponent::SubmitToRenderQueue(TQueue<FRenderPacket>& RenderQueue
 
 	RenderQueue.Enqueue(rp);
 
+	//// Position
+	//OutWorldMatrix->M[3][0] = WorldPos.X;
+	//OutWorldMatrix->M[3][1] = WorldPos.Y;
+	//OutWorldMatrix->M[3][2] = WorldPos.Z;
+	//OutWorldMatrix->M[3][3] = 1.0f;
 }

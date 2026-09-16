@@ -7,6 +7,8 @@
 
 #include "RenderingInfo.h"
 
+class UCameraComponent;
+
 class FRenderer
 {
 	friend class UTexture2D;
@@ -17,7 +19,7 @@ public:
 	UStaticMesh* CreateMesh(const FStaticMeshData& InMeshData);
 	UStaticMesh* CreateMesh(TUniquePtr<FVertexBuffer> VertexBuffer, TUniquePtr<FIndexBuffer> IndexBuffer);
 
-	void RenderAll(TQueue<FRenderPacket>& InQueue, FMatrix VP);
+	void RenderAll(TQueue<FRenderPacket>& InQueue, UCameraComponent* CameraComponent);
 
 private:
 	TUniquePtr<FConstantBuffer> CB;
