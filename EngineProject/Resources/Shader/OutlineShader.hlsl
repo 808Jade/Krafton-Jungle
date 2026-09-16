@@ -23,7 +23,7 @@ PS_INPUT mainVS2(VS_INPUT input)
     PS_INPUT output;
     float3 localPos = input.position;
     
-    float3 dir = sign(localPos);
+    float3 dir = normalize(localPos);
     
     float thickness = 0.025f;
 
@@ -47,7 +47,7 @@ PS_INPUT mainVS(VS_INPUT input)
     float distanceFactor = dist * 0.005f;
     float finalThickness = baseTickness * distanceFactor;
     
-    float3 dir = sign(localPos);
+    float3 dir = normalize(localPos);
     
     float3 adjustThickness = dir * (finalThickness / Scale.xyz);
     float3 outlinePos = localPos + adjustThickness;
