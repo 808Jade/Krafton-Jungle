@@ -3,7 +3,7 @@
 
 #include "../Core/EngineLog.h"
 #include <commdlg.h>
-#include "../JsonArchive.h"
+#include "Serialization/JsonArchive.h"
 
 FString FEditorFileUtils::CurrentScenePath = "";
 
@@ -17,8 +17,6 @@ bool FEditorFileUtils::NewScene(UWorld* World)
 
 	// 라인 트래커도 삭제
 	World->GetPathTracker().ClearPath();
-
-	FEngineStatics::NextUUID = 0;
 
 	CurrentScenePath.clear();
 

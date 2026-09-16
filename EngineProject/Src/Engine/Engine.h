@@ -44,6 +44,7 @@ public:
 	void UpdateGizmoAndPicking(FMatrix& ViewProj);
 	void RenderFrame(FMatrix& ViewProj, TQueue<FRenderPacket>& RenderQueue);
 	void Shutdown();
+	void DeleteActor(AActor* Actor);
 
 	static FConsolePanel* GetConsolePanel() { return ConsolePanel; }
 

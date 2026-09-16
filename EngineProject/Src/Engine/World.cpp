@@ -229,7 +229,79 @@ int32 UWorld::GetActorNum()
 
 bool UWorld::DestroyActor(AActor* Actor)
 {
-	return false;
+	if (!Actor)
+		return false;
+
+	ULevel* Level = Actor->GetLevel();
+
+	if (!Level)
+		return false;
+
+	// 1. BeginPlay 대기열에서 제거
+	TQueue<AActor*> NewBeginPlayList;
+
+	while (!BeginPlayList.IsEmpty())
+	{
+		AActor* PendingActor = BeginPlayList.Peek();
+		BeginPlayList.Dequeue();
+
+		if (PendingActor != Actor)
+		{
+			NewBeginPlayList.Enqueue(PendingActor);
+		}
+	}
+
+	BeginPlayList = std::move(NewBeginPlayList);
+
+	// 2. PathTracker에서 제거
+	PathTracker.OnObjectDestroyed(Actor);
+
+	// 3. PrimitiveComponents에서 제거
+	for (UActorComponent* Component : Actor->Components)
+	{
+		UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component);
+
+		if (!Primitive)
+			continue;
+
+		for (int32 i = PrimitiveComponents.Num() - 1; i >= 0; --i)
+		{
+			if (PrimitiveComponents[i] == Primitive)
+			{
+				PrimitiveComponents.RemoveAt(i, 1);
+				break;
+			}
+		}
+	}
+
+	// 4. Level의 Actors에서 제거
+	for (int32 i = Level->Actors.Num() - 1; i >= 0; --i)
+	{
+		if (Level->Actors[i] == Actor)
+		{
+			Level->Actors.RemoveAt(i, 1);
+			break;
+		}
+	}
+
+	// 5. Actor가 소유한 Component 삭제
+	for (UActorComponent* Component : Actor->Components)
+	{
+		delete Component;
+	}
+
+	Actor->Components.Reset();
+	Actor->RootComponent = nullptr;
+
+	FString ActorName = Actor->GetName();
+	uint32 ActorUUID = Actor->GetUUID();
+
+	// 6. Actor 삭제
+	delete Actor;
+
+	LOG(Info, "Destroy Actor : {} UUID {}", ActorName, ActorUUID);
+
+	return true;
 }
 
 void UWorld::BeginPlay()

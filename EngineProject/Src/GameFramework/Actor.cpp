@@ -88,9 +88,8 @@ FTransform AActor::GetActorTransform() const
 
 bool AActor::Destroy()
 {
-    if (World)
-    {
-        return World->DestroyActor(this);
-    }
-    return false;
+    if (!World)
+        return false;
+
+    return World->DestroyActor(this);
 }

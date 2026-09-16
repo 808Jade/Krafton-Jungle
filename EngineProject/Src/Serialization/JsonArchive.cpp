@@ -163,13 +163,14 @@ bool FJsonArchive::LoadWorld(UWorld* World, const FString& Path)
 		return false;
 
 	// 파일 검증이 끝난 뒤 Clear
+	uint64 SavedNextUUID = Json["NextUUID"].get<uint64>();
+
 	World->ClearScene();
 
-	uint64 SavedNextUUID = Json["NextUUID"].get<uint64>();
+	FEngineStatics::NextUUID = SavedNextUUID;
 
 	if (!Json.contains("Primitives"))
 	{
-		FEngineStatics::NextUUID = SavedNextUUID;
 		return true;
 	}
 

@@ -8,6 +8,7 @@ class UActorComponent;
 class UPrimitiveComponent;
 
 using SelectionCallback = std::function<void(UPrimitiveComponent*)>;
+using DeleteActorCallback = std::function<void(AActor*)>;
 
 class FSceneOutliner : public IEditorPanel
 {
@@ -16,6 +17,7 @@ public:
     ~FSceneOutliner() = default;
 
     void SetSelectionCallback(SelectionCallback InCallback) { Callback = InCallback; }
+    void SetDeleteActorCallback(DeleteActorCallback InCallback) { DeleteCallback = InCallback;}
 
 public:
     bool Init() override;
@@ -28,10 +30,14 @@ public:
     void DrawActorNode(AActor* Actor);
     void SelectActor(AActor* Actor);
 
+    AActor* GetSelectedActor() const;
+
 
 private:
     UWorld* World = nullptr;
     UObject* SelectedObject = nullptr;
 
     SelectionCallback Callback;
+    DeleteActorCallback DeleteCallback;
+    AActor* PendingDeleteActor = nullptr;
 };
