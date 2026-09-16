@@ -129,9 +129,6 @@
     <ClInclude Include="Src\Core\EngineTimer.h">
       <Filter>Src\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Src\Core\Name.h">
-      <Filter>Src\Core</Filter>
-    </ClInclude>
     <ClInclude Include="Src\Core\Types.h">
       <Filter>Src\Core</Filter>
     </ClInclude>
@@ -312,9 +309,6 @@
     <ClInclude Include="Src\Render\Vertex.h">
       <Filter>Src\Render</Filter>
     </ClInclude>
-    <ClInclude Include="Src\SceneManager.h">
-      <Filter>Src</Filter>
-    </ClInclude>
     <ClInclude Include="Src\Text\FontAtlas.h">
       <Filter>Src\Text</Filter>
     </ClInclude>
@@ -355,6 +349,9 @@
       <Filter>ThirdParty\stb</Filter>
     </ClInclude>
     <ClInclude Include="Src\Render\Material.h" />
+    <ClInclude Include="Src\Container\StringView.h" />
+    <ClInclude Include="Src\Core\NameTypes.h" />
+    <ClInclude Include="Src\Editor\SceneOutliner.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Src\Asset\AssetManager.cpp">
@@ -385,9 +382,6 @@
       <Filter>Src\Component</Filter>
     </ClCompile>
     <ClCompile Include="Src\Core\EngineTimer.cpp">
-      <Filter>Src\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Src\Core\Name.cpp">
       <Filter>Src\Core</Filter>
     </ClCompile>
     <ClCompile Include="Src\Core\Window.cpp">
@@ -519,9 +513,6 @@
     <ClCompile Include="Src\Render\Vertex.cpp">
       <Filter>Src\Render</Filter>
     </ClCompile>
-    <ClCompile Include="Src\SceneManager.cpp">
-      <Filter>Src</Filter>
-    </ClCompile>
     <ClCompile Include="Src\Text\FontAtlas.cpp">
       <Filter>Src\Text</Filter>
     </ClCompile>
@@ -553,5 +544,10 @@
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="Src\Render\PipelineState.cpp" />
+    <ClCompile Include="Src\Core\UnrealNames.cpp" />
+    <ClCompile Include="Src\Editor\SceneOutliner.cpp" />
+    <ClCompile Include="Src\Component\BillboardComponent.cpp">
+      <Filter>Src\Component</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -208,6 +208,7 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Src\Component\BillboardComponent.cpp" />
     <ClCompile Include="Src\Core\UnrealNames.cpp" />
     <ClCompile Include="Src\Editor\SceneOutliner.cpp" />
     <ClCompile Include="Src\Asset\AssetManager.cpp" />
