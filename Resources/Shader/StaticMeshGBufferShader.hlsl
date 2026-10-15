@@ -20,11 +20,11 @@ cbuffer MaterialParams : register(b1)
 
 struct VS_INPUT
 {
-    float3 Position : POSITION;
-    float3 Normal : NORMAL;
-    float4 Color : COLOR;
-    float2 UV : TEXCOORD;
-    float4 Tangent : TANGENT;
+	float3 Position : POSITION;
+	float3 Normal : NORMAL;
+	float4 Tangent : TANGENT;
+	float2 UV : TEXCOORD;
+	float4 Color : COLOR;
 };
 
 struct PS_INPUT

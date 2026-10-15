@@ -27,10 +27,11 @@ cbuffer TranslucentFogConstants : register(b3)
 
 struct VS_INPUT
 {
-    float3 p : POSITION;
-    float3 n : NORMAL;
-    float4 c : COLOR;
-    float2 t : TEXCOORD;
+	float3 p : POSITION;
+	float3 n : NORMAL;
+	float4 tangent : TANGENT;
+	float2 t : TEXCOORD;
+	float4 c : COLOR;
 };
 
 struct PS_INPUT

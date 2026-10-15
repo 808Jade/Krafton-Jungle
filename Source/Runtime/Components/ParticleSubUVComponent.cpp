@@ -30,11 +30,22 @@ UParticleSubUVComponent::UParticleSubUVComponent()
 	//Shader = RenderCommand::CreateShader(L"Resources/Shader/ParticleSubUVShader.hlsl", FParticleVertex::GetLayout());
 }
 
-// 파티클 에셋과 배열을 준비하고 초기 상태를 채운다.
+// 파티클 에셋과 배열을 준비하고 초기 상태를 채운다
 void UParticleSubUVComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	SetParticles(10);
+}
 
+void UParticleSubUVComponent::SetParticles(int32 InParticleCount)
+{
+	if (ParticleCount == InParticleCount && !Particles.IsEmpty())
+	{
+		return;
+	}
+
+	ParticleCount = InParticleCount;
+	Particles.Reset();
 	Particles.Reserve(ParticleCount);
 	for (int32 i = 0; i < ParticleCount; ++i)
 	{

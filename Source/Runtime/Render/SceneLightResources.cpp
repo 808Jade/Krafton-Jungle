@@ -30,21 +30,23 @@ bool FSceneLightResources::UploadViewLights(
 	const TArray<FDirectionalLightRenderData>& DirectionalLights,
 	const TArray<FPointLightRenderData>& PointLights,
 	const TArray<FSpotLightRenderData>& SpotLights,
+	const TArray<FRectLightRenderData>& RectLights,
 	uint32 (&Counts)[4], uint32 (&Offsets)[4])
 {
 	const uint64 DirectionalCount = DirectionalLights.Num();
 	const uint64 PointCount = PointLights.Num();
 	const uint64 SpotCount = SpotLights.Num();
-	const uint64 TotalCount = DirectionalCount + PointCount + SpotCount;
+	const uint64 RectCount = RectLights.Num();
+	const uint64 TotalCount = DirectionalCount + PointCount + SpotCount + RectCount;
 	if (TotalCount > UINT32_MAX / sizeof(FSceneLightRenderInfo)) return false;
 	Counts[0] = static_cast<uint32>(PointCount);
 	Counts[1] = static_cast<uint32>(SpotCount);
 	Counts[2] = static_cast<uint32>(DirectionalCount);
-	Counts[3] = 0;
+	Counts[3] = static_cast<uint32>(RectCount);
 	Offsets[2] = 0;
 	Offsets[0] = Counts[2];
 	Offsets[1] = Counts[2] + Counts[0];
-	Offsets[3] = 0;
+	Offsets[3] = Counts[2] + Counts[0] + Counts[1];
 	if (!TotalCount) return true;
 
 	TArray<FSceneLightRenderInfo> PackedLights;
@@ -72,6 +74,17 @@ bool FSceneLightResources::UploadViewLights(
 		Info.DirectionOuterCos = Light.DirectionOuterCos;
 		Info.ColorIntensity = Light.ColorIntensity;
 		Info.Parameters = Light.InnerCosFalloff;
+		PackedLights.Add(Info);
+	}
+	for (const FRectLightRenderData& Light : RectLights)
+	{
+		FSceneLightRenderInfo Info{};
+		Info.PositionRadius = Light.PositionRadius;
+		Info.DirectionOuterCos = Light.DirectionBarnDoor;
+		Info.ColorIntensity = Light.ColorIntensity;
+		Info.Parameters = Light.Parameters;
+		Info.RectRightWidth = Light.RectRightWidth;
+		Info.RectBarnDoorHeight = Light.RectHeight;
 		PackedLights.Add(Info);
 	}
 	const uint32 Count = static_cast<uint32>(PackedLights.Num());

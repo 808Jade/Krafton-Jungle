@@ -1,7 +1,7 @@
 #include "EnginePCH.h"
 #include "Components/SpotLightComponent.h"
 
-#include "Engine/SpotLightSceneProxy.h"
+#include "Engine/LightSceneProxy.h"
 
 #include "Render/LineBatcher.h"
 #include "Math/Color.h"

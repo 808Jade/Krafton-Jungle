@@ -1,7 +1,7 @@
 #include "EnginePCH.h"
 #include "DirectionalLightComponent.h"
 
-#include "Engine/DirectionalLightSceneProxy.h"
+#include "Engine/LightSceneProxy.h"
 
 UDirectionalLightComponent::UDirectionalLightComponent()
 {

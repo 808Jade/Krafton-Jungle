@@ -52,6 +52,7 @@ struct FSceneRenderData
 	TArray<FDirectionalLightRenderData> VisibleDirectionalLights;
 	TArray<FPointLightRenderData> VisiblePointLights;
 	TArray<FSpotLightRenderData> VisibleSpotLights;
+	TArray<FRectLightRenderData> VisibleRectLights;
 
 	void ResetScene()
 	{
@@ -77,6 +78,7 @@ struct FSceneRenderData
 		VisibleDirectionalLights.Reset();
 		VisiblePointLights.Reset();
 		VisibleSpotLights.Reset();
+		VisibleRectLights.Reset();
 		for (FGatherChunk& Chunk : GatherChunks)
 		{
 			Chunk.Packets.Reset();

@@ -2,7 +2,7 @@
 #include "RectLightComponent.h"
 #include "Render/LineBatcher.h"
 
-#include "Engine/RectLightSceneProxy.h"
+#include "Engine/LightSceneProxy.h"
 
 URectLightComponent::URectLightComponent() {}
 URectLightComponent::~URectLightComponent() {}

@@ -100,6 +100,9 @@ void FEditorControlsPanel::OnRender()
 	if (ImGui::Button("Point Light"))
 		World->SpawnActor(APointLightActor::StaticClass());
 	ImGui::SameLine();
+	if (ImGui::Button("Rect Light"))
+		World->SpawnActor(ARectLightActor::StaticClass());
+	ImGui::SameLine();
 	if (ImGui::Button("Sky Light"))
 		World->SpawnActor(ASkyLightActor::StaticClass());
 

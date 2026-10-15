@@ -24,6 +24,7 @@ public:
 	bool UploadViewLights(const TArray<FDirectionalLightRenderData>& DirectionalLights,
 		const TArray<FPointLightRenderData>& PointLights,
 		const TArray<FSpotLightRenderData>& SpotLights,
+		const TArray<FRectLightRenderData>& RectLights,
 		uint32 (&Counts)[4], uint32 (&Offsets)[4]);
 	FStructuredBuffer* GetSceneLights() const { return SceneLightBuffer.get(); }
 	FConstantBuffer* GetForwardConstants() const { return ForwardLightCB.get(); }

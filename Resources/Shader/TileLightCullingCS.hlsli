@@ -9,10 +9,12 @@
 // CPU 렌더 데이터의 크기와 필드 순서를 유지한다.
 struct FSceneLightRenderInfo
 {
-    float4 PositionRadius;
-    float4 DirectionOuterCos;
-    float4 ColorIntensity;
-    float4 Parameters;
+	float4 PositionRadius;
+	float4 DirectionOuterCos;
+	float4 ColorIntensity;
+	float4 Parameters;
+	float4 RectRightWidth;
+	float4 RectBarnDoorHeight;
 };
 
 Texture2D<float> SceneDepth : register(t0);

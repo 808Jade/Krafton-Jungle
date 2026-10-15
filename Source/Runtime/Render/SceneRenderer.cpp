@@ -106,10 +106,18 @@ void FSceneRenderer::InitViews(FRenderer* Renderer)
 		//if (!IntersectSphereFrustum(Data.PositionRadius, View.Frustum.Planes)) continue;
 		RenderData.VisibleSpotLights.Add(Data);
 	}
+
+	for (const FRectLightSceneProxy* Light : World->GetScene().GetRectLights())
+	{
+		if (!Light->IsEnabled() || !Light->IsShown(View.bGameView)) continue;
+		const FRectLightRenderData& Data = Light->GetRenderData();
+		RenderData.VisibleRectLights.Add(Data);
+	}
+
 	if (RenderData.ViewLightResources.Init())
 		bLightUploadSucceeded = RenderData.ViewLightResources.UploadViewLights(
 			RenderData.VisibleDirectionalLights, RenderData.VisiblePointLights,
-			RenderData.VisibleSpotLights, LightCounts, LightOffsets);
+			RenderData.VisibleSpotLights, RenderData.VisibleRectLights, LightCounts, LightOffsets);
 }
 
 bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uint32 Height)
@@ -134,7 +142,7 @@ bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uin
 	Constants.ViewportSize = FVector4(static_cast<float>(Width), static_cast<float>(Height), 0.0f, 0.0f);
 	Renderer->UpdateConstant(LightResources.GetDeferredConstants(), &Constants, sizeof(Constants));
 	Renderer->BindConstant(0, LightResources.GetDeferredConstants(), EShaderBindFlagBits::Pixel);
-	Renderer->BindStructured(3, LightCounts[0] || LightCounts[1] || LightCounts[2] ? LightResources.GetSceneLights() : nullptr, EShaderBindFlagBits::Pixel);
+	Renderer->BindStructured(3, LightCounts[0] || LightCounts[1] || LightCounts[2] || LightCounts[3] ? LightResources.GetSceneLights() : nullptr, EShaderBindFlagBits::Pixel);
 	Renderer->BindCube(4, Sky ? Sky->GetIrradianceCube() : nullptr, EShaderBindFlagBits::Pixel);
 	Renderer->BindSampler(1, ESamplerState::LinearClamp, EShaderBindFlagBits::Pixel);
 	return true;

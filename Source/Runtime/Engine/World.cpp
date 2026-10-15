@@ -16,6 +16,7 @@
 
 #include "Collision/Ray.h"
 #include "Components/BillboardComponent.h"
+#include "Components/ParticleSubUVComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
 
 #include "Components/StaticMeshComponent.h"
@@ -119,7 +120,7 @@ void UWorld::Tick(float DeltaTime)
 		Scene.UpdateAllTransforms();
 	}
 
-	// 에디터 월드면 더이상 틱을 돌리지 않는다.
+	// 에디터 월드가 아니면 액터 틱을 돌린다
 	if (WorldType != EWorldType::Editor)
 	{
 		while (!BeginPlayList.IsEmpty())
@@ -132,13 +133,29 @@ void UWorld::Tick(float DeltaTime)
 		if (!bIsPaused)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ActorTick);
-			// 모든 Actor를 도는 대신 등록된 Tick 함수(메인 카메라 포함)만 실행한다.
+			// 모든 Actor를 도는 대신 등록된 Tick 함수만 실행한다
 			TickTaskManager.RunAllTickGroups(DeltaTime);
 
 			for (ULevel* Level : Levels)
 			{
 				PathTracker.Tick(Level->GetActors(), DeltaTime);
 			}
+		}
+	}
+	else
+	{
+		// 에디터 월드에서도 파티클 시뮬레이션은 틱이 돌아야 한다
+		for (TObjectIterator<UParticleSubUVComponent> Comp; Comp; ++Comp)
+		{
+			if (!Comp || !Comp->IsRegistered() || Comp->GetWorld() != this)
+			{
+				continue;
+			}
+			if (Comp->GetParticlesForView().IsEmpty())
+			{
+				Comp->SetParticles(10);
+			}
+			Comp->TickComponent(DeltaTime);
 		}
 	}
 

@@ -109,6 +109,10 @@ void FScene::AddLight(ULightComponent* Component)
 		{
 			SpotLightProxies.Add(static_cast<FSpotLightSceneProxy*>(Proxy));
 		}
+		else if (Component->GetLightType() == ELightType::Rect)
+		{
+			RectLightProxies.Add(static_cast<FRectLightSceneProxy*>(Proxy));
+		}
 	}
 }
 
@@ -151,6 +155,11 @@ void FScene::RemoveLight(ULightComponent* Component)
 			const int32 Found = SpotLightProxies.Find(static_cast<FSpotLightSceneProxy*>(Proxy));
 			if (Found != INDEX_NONE) SpotLightProxies.RemoveAtSwap(Found);
 		}
+		else if (Component->GetLightType() == ELightType::Rect)
+		{
+			const int32 Found = RectLightProxies.Find(static_cast<FRectLightSceneProxy*>(Proxy));
+			if (Found != INDEX_NONE) RectLightProxies.RemoveAtSwap(Found);
+		}
 	}
 
 	Component->SceneProxy = nullptr;
@@ -166,6 +175,7 @@ void FScene::RemoveAllLights()
 	LocalLightParameters.Reset();
 	PointLightProxies.Reset();
 	SpotLightProxies.Reset();
+	RectLightProxies.Reset();
 	SkyLights.Reset();
 	SkyLightEnvironments.clear();
 }

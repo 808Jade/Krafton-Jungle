@@ -2,8 +2,6 @@
 
 #include "PrimitiveSceneProxy.h"
 #include "LightSceneProxy.h"
-#include "LocalLightSceneProxy.h"
-#include "DirectionalLightSceneProxy.h"
 #include "Components/BillboardComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/LightComponent.h"
@@ -11,9 +9,6 @@
 #include "Math/Frustum.h"
 #include "Math/BVH.h"
 #include "Render/Renderer.h"
-
-#include "PointLightSceneProxy.h"
-#include "SpotLightSceneProxy.h"
 #include "Render/SkyLightEnvironment.h"
 #include "Render/LightRenderData.h"
 #include <unordered_map>
@@ -46,6 +41,7 @@ public:
 	const TArray<FDirectionalLightSceneProxy*>& GetDirectionalLights() const { return DirectionalLightProxies; }
 	const TArray<FPointLightSceneProxy*>& GetPointLights() const { return PointLightProxies; }
 	const TArray<FSpotLightSceneProxy*>& GetSpotLights() const { return SpotLightProxies; }
+	const TArray<FRectLightSceneProxy*>& GetRectLights() const { return RectLightProxies; }
 
 	void UpdateAllTransforms();
 
@@ -75,6 +71,7 @@ public:
 	TArray<FDirectionalLightSceneProxy*>  DirectionalLightProxies;
 	TArray<FPointLightSceneProxy*>        PointLightProxies;
 	TArray<FSpotLightSceneProxy*>         SpotLightProxies;
+	TArray<class FRectLightSceneProxy*>   RectLightProxies;
 	TArray<USkyLightComponent*>           SkyLights;               // 프록시 없음
 
 private:

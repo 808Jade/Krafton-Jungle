@@ -24,8 +24,10 @@
 #include "GameFramework/Actor/LightActorBase.h"
 #include "GameFramework/Actor/PointLightActor.h"
 #include "GameFramework/Actor/SpotLightActor.h"
+#include "GameFramework/Actor/RectLightActor.h"
 #include "Components/PointLightComponent.h"
 #include "Components/SpotLightComponent.h"
+#include "Components/RectLightComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Components/FireBallComponent.h"
 #include "Components/TextRenderComponent.h"
@@ -966,7 +968,8 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 		
 		const bool bDrawSelectedLight = bIsActiveViewport && Gizmo->GetTarget() &&
 			(Cast<ASpotLightActor>(Gizmo->GetTarget()->GetOwner()) ||
-			 Cast<APointLightActor>(Gizmo->GetTarget()->GetOwner()));
+			 Cast<APointLightActor>(Gizmo->GetTarget()->GetOwner()) ||
+			 Cast<ARectLightActor>(Gizmo->GetTarget()->GetOwner()));
 
 		if (SettingsPanel->GetSettings().bDrawBatchLine || bDrawSelectedLight)
 		{
@@ -984,6 +987,8 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 							Light->GetSpotLightComponent()->DrawDebug(LineBatcher.get());
 						else if (APointLightActor* Light = Cast<APointLightActor>(Gizmo->GetTarget()->GetOwner()))
 							Light->GetPointLightComponent()->DrawDebug(LineBatcher.get());
+						else if (ARectLightActor* Light = Cast<ARectLightActor>(Gizmo->GetTarget()->GetOwner()))
+							Light->GetRectLightComponent()->DrawDebug(LineBatcher.get());
 					}
 					LineBatcher->OnRender(SceneView.ViewProjectionMatrix);
 				};

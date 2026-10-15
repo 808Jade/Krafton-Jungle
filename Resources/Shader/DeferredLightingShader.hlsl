@@ -9,9 +9,11 @@ SamplerState SkySampler : register(s1);
 struct FSceneLightRenderInfo
 {
     float4 PositionRadius;    // 방향광에서는 xyz가 빛의 진행 방향
-    float4 DirectionOuterCos; // 스포트: xyz 진행 방향, w 바깥 각도의 코사인
+    float4 DirectionOuterCos; // 스포트 또는 렉트라이트 방향과 도어 길이
     float4 ColorIntensity;    // rgb: 색상, w: 광도
-    float4 Parameters;        // 포인트: x 거리 감쇠, 스포트: x 안쪽 각도의 코사인, y 거리 감쇠
+    float4 Parameters;        // 포인트: x 거리 감쇠, 스포트: x 안쪽 각도의 코사인, y 거리 감쇠, 렉트: x BarnDoorCos, y BarnDoorSin, z Falloff
+    float4 RectRightWidth;    // 렉트: xyz Right, w HalfWidth
+    float4 RectBarnDoorHeight;// 렉트: w HalfHeight
 };
 
 cbuffer DeferredLightConstants : register(b0)
@@ -21,7 +23,7 @@ cbuffer DeferredLightConstants : register(b0)
     float4 CameraForward;
     float4 ViewportSize; // xy: 뷰포트 크기
     float4 AmbientColorIntensity;
-    uint4 LightCounts; // x: 포인트 개수, y: 스포트 개수, z: 방향광 개수
+    uint4 LightCounts; // x: 포인트 개수, y: 스포트 개수, z: 방향광 개수, w: 렉트 개수
     uint4 LightOffsets; // SceneLights에서 각 종류가 시작되는 위치, 순서는 위와 같음
     float4 SkyColorIntensity;
 };
@@ -91,7 +93,7 @@ float4 mainPS(FPSInput Input) : SV_Target
     }
 
     float3 Lighting = Albedo * BaseLighting;
-    if (LightCounts.x == 0 && LightCounts.y == 0)
+    if (LightCounts.x == 0 && LightCounts.y == 0 && LightCounts.w == 0)
         return float4(Lighting, 1.0f);
 
     float2 UV = (float2(Pixel) + 0.5f) / ViewportSize.xy;
@@ -154,6 +156,61 @@ float4 mainPS(FPSInput Input) : SV_Target
             Albedo, Metallic, Roughness, N, V, L, Radiance);
     }
     
+    [loop]
+    for (uint RectIndex = 0; RectIndex < LightCounts.w; ++RectIndex)
+    {
+        FSceneLightRenderInfo Light = SceneLights[LightOffsets.w + RectIndex];
+        float3 Position = Light.PositionRadius.xyz;
+        float Radius = Light.PositionRadius.w;
+        float3 Direction = Light.DirectionOuterCos.xyz;
+        float BarnDoorLength = Light.DirectionOuterCos.w;
+        float3 Color = Light.ColorIntensity.rgb;
+        float Intensity = Light.ColorIntensity.w;
+        float BarnDoorCos = Light.Parameters.x;
+        float BarnDoorSin = Light.Parameters.y;
+        float FalloffExponent = Light.Parameters.z;
+        float3 Right = Light.RectRightWidth.xyz;
+        float HalfWidth = Light.RectRightWidth.w;
+        float HalfHeight = Light.RectBarnDoorHeight.w;
+
+        float3 Up = cross(Direction, Right);
+        float3 CenterToSurface = WorldPosition - Position;
+
+        float RectX = clamp(dot(CenterToSurface, Right), -HalfWidth, HalfWidth);
+        float RectY = clamp(dot(CenterToSurface, Up), -HalfHeight, HalfHeight);
+        float3 ClosestPoint = Position + Right * RectX + Up * RectY;
+
+        float3 ToLight = ClosestPoint - WorldPosition;
+        float DistanceSquared = dot(ToLight, ToLight);
+        float RadiusSquared = Radius * Radius;
+        if (RadiusSquared <= 0.0f || DistanceSquared >= RadiusSquared || DistanceSquared < 1.0e-8f)
+            continue;
+
+        float Distance = sqrt(max(DistanceSquared, 1.0e-6f));
+        float3 L = ToLight / Distance;
+
+        float Attenuation = pow(saturate(1.0f - Distance / max(Radius, 0.001f)), max(FalloffExponent, 0.001f));
+        float FrontFace = saturate(dot(-L, Direction));
+        if (FrontFace <= 0.0f || Attenuation <= 0.0f)
+            continue;
+
+        float BarnDoorMask = 1.0f;
+        if (BarnDoorLength > 0.0f)
+        {
+            float3 EmitterToSurface = WorldPosition - ClosestPoint;
+            float EmitterDist = max(length(EmitterToSurface), 0.0001f);
+            float ForwardDist = dot(EmitterToSurface, Direction);
+            float LateralX = abs(dot(EmitterToSurface, Right));
+            float LateralY = abs(dot(EmitterToSurface, Up));
+            float SlackX = (ForwardDist * BarnDoorSin - LateralX * BarnDoorCos) / EmitterDist;
+            float SlackY = (ForwardDist * BarnDoorSin - LateralY * BarnDoorCos) / EmitterDist;
+            BarnDoorMask = smoothstep(-0.05f, 0.0f, SlackX) * smoothstep(-0.05f, 0.0f, SlackY);
+        }
+
+        float3 Radiance = Color * max(Intensity, 0.0f) * Attenuation * FrontFace * BarnDoorMask;
+        AccumulateLocalLight(LocalDiffuse, LocalSpecular,
+            Albedo, Metallic, Roughness, N, V, L, Radiance);
+    }
     
     return float4(Lighting + LocalDiffuse + LocalSpecular, 1.0f);
     
