@@ -10,23 +10,14 @@
 #include "Math/Matrix.h"
 #include "Math/Frustum.h"
 #include "Collision/Ray.h"
+#include "Math/Rect.h"
 
 // 좌표 규약: +X Forward, +Y Right, +Z Up.
 using ObjectId = uint32;
 inline constexpr ObjectId InvalidObjectId = 0;
 inline constexpr int32 InvalidViewIndex = -1;
 
-// 화면상의 2차원 좌표나 크기를 담는다.
-// 위 엔진 헤더의 동일 값 타입을 직접 사용한다(중복 정의 없음).
-// 월드의 3차원 위치나 방향을 담는다.
-// 위 엔진 헤더의 동일 값 타입을 직접 사용한다(중복 정의 없음).
-// 3차원 회전을 나타내는 단위 quaternion 성분을 담는다.
-// 위 엔진 헤더의 동일 값 타입을 직접 사용한다(중복 정의 없음).
-// 행렬은 엔진 FMatrix의 row-vector 규약을 사용하며 이동은 M[3][0..2]에 둔다.
-
-
-// 화면상의 좌상단 위치와 너비·높이를 담는다.
-struct FRect { float X, Y, Width, Height; };
+// FRect is shared with runtime viewport clients; matrices use the engine's row-vector convention.
 
 enum class EProjectionMode { Perspective, Orthographic };
 enum class ELayoutMode { Single, QuadSplit };

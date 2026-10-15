@@ -1,7 +1,32 @@
 #pragma once
 
 #include "Shader.h"
-#include "ViewMode.h"
+#include "PipelineState.h"
+
+// 렌더링에 사용할 파이프라인 종류 정의
+enum class EPSOType : uint8
+{
+	StaticMesh_Opaque,       // 기본 불투명
+	StaticMesh_Translucent,  // 반투명
+	StaticMesh_Wireframe,    
+	Particle_AlphaBlend,     
+	Particle_Additive,       
+	Skybox,                  
+	Grid,                    
+	Outline_Mask,            
+	Outline_Draw,
+	StaticMesh_GBuffer,
+	DeferredLighting,
+	DeferredPointLighting,      // 이전 재질 파일의 PSOType 숫자와 호환을 위해 ID 유지
+	ToneMap,
+	FireBall,
+	Billboard,
+	StaticMesh_Forward,
+	StaticMesh_WorldNormal,
+	StaticMesh_DepthOnly,
+	LightCullingDebug,
+	Count
+};
 
 class FRenderResourceManager
 {
@@ -15,29 +40,23 @@ public:
 	static void Init()
 	{
 		Get().ScanShaders("Resources/Shader");
+		Get().InitPipelineStates(); // PSO 초기화 추가
 	}
 
 	void ScanShaders(const fs::path& ShaderRoot);
-	void LoadUberLit(const fs::path& ShaderRoot);
-
 	static void Shutdown();
+	static FShaderProgram* GetShaderProgram(const FString& InPath);
 
-	static FComputeShader* GetComputeShader(const FString& InPath);
-	static FShaderProgram* GetShaderProgram(const FString& InPath, const D3D_SHADER_MACRO* Macro = nullptr);
-
-	// 뷰모드에 맞는 UberLit 변형. 컴파일에 실패했으면 nullptr.
-	static FShaderProgram* GetUberLitProgram(EViewMode Mode);
-	// 머티리얼 셰이더가 UberLit(기본 키 또는 변형)인지. 아니면 뷰모드로 바꾸지 않는다.
-	static bool IsUberLitProgram(const FShaderProgram* Program);
+	static FPipelineState* GetPSO(const EPSOType& InType);
+	static FShaderProgram* GetForwardShaderProgram(ELightingModel Model);
 private:
-	void LoadOrCompileShader(const FString& Path, const D3D_SHADER_MACRO* Macro = nullptr);
+	
+	void LoadOrCompileShader(const FString& Path);
+	void InitPipelineStates();
 
 	TMap<FString, TUniquePtr<FVertexShader>> VertexShaderMap;
-	TMap<FString, TUniquePtr<FPixelShader>> PixelShaderMap;
-	TMap<FString, TUniquePtr<FComputeShader>> ComputeShaderMap;
+	TMap<FString, TUniquePtr<FPixelShader>>  PixelShaderMap;
 	TMap<FString, TUniquePtr<FShaderProgram>> ShaderProgramMap;
 
-	// LoadUberLit이 채운다. 맵 안의 프로그램을 가리키기만 하고 소유하지 않는다.
-	FShaderProgram* UberLitDefault = nullptr;
-	FShaderProgram* UberLitPrograms[static_cast<int32>(EViewMode::Count)]{};
-}; 
+	TMap<EPSOType, TUniquePtr<FPipelineState>> PipelineStateMap;
+};

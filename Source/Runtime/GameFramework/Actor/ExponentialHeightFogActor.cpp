@@ -12,10 +12,11 @@ AExponentialHeightFogActor::AExponentialHeightFogActor()
 
 	BillboardComponent = CreateDefaultSubobject<UBillboardComponent>("UBillboardComponent");
 	BillboardComponent->SetEditorIcon(true);
+	BillboardComponent->SetHiddenInGame(true);
 	BillboardComponent->SetupAttachment(ExponentialHeightFogComponent);
 	BillboardComponent->SetHiddenInDetails(true);
 
-	UMaterial* Base = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");
+	UMaterial* Base = UAssetManager::GetAssetByPath<UMaterial>("BillboardMaterial");
     UTexture2D* Icon = UAssetManager::Get().LoadTexture("Assets/Icons/Fog.png");
     if (Base && Icon)
     {

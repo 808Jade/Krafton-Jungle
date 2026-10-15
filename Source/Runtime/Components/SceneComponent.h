@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "../Math/Transform.h"
 #include "ActorComponent.h"
@@ -21,6 +21,8 @@ class USceneComponent : public UActorComponent
 		REFLECT_END()
 
 public:
+	enum class EVisibilityPropagation : uint8 { NoPropagation, DirtyOnly, Propagate };
+
 	USceneComponent() = default;
 	virtual ~USceneComponent() override;
 
@@ -80,12 +82,27 @@ public:
 	void SetWorldTransform(const FMatrix& InWorldMatrix, bool bSweep);
 
 	virtual bool MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* Hit = nullptr);
+	virtual float GetCollisionRadius() const;
+	void SetCollisionRadiusOverride(float Radius) { CollisionRadiusOverride = Radius; }
 
 	void MarkTransformDirty();
 	virtual void OnTransformDirty() {};
 
 	using Super::Serialize;
 	virtual void Serialize(FStructuredArchive::FRecord Record) override;
+	virtual bool IsShown(bool bGameView) const override;
+	void SetVisibility(bool bNewVisibility) override
+	{ SetVisibility(bNewVisibility, EVisibilityPropagation::NoPropagation); }
+	void SetVisibility(bool bNewVisibility, EVisibilityPropagation Propagation);
+	void SetVisibility(bool bNewVisibility, bool bPropagateToChildren)
+	{ SetVisibility(bNewVisibility, bPropagateToChildren ? EVisibilityPropagation::Propagate : EVisibilityPropagation::NoPropagation); }
+	void SetHiddenInGame(bool bNewHidden) override
+	{ SetHiddenInGame(bNewHidden, EVisibilityPropagation::NoPropagation); }
+	void SetHiddenInGame(bool bNewHidden, EVisibilityPropagation Propagation);
+	void SetHiddenInGame(bool bNewHidden, bool bPropagateToChildren)
+	{ SetHiddenInGame(bNewHidden, bPropagateToChildren ? EVisibilityPropagation::Propagate : EVisibilityPropagation::NoPropagation); }
+	virtual void MarkRenderStateDirty() override {}
+
 public:
 	FVector ComponentVelocity;
 
@@ -100,4 +117,5 @@ protected:
 	bool bAbsoluteLocation = false;
 	bool bAbsoluteRotation = false;
 	bool bAbsoluteScale = false;
+	float CollisionRadiusOverride = -1.0f;
 };

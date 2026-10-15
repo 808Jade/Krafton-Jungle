@@ -12,8 +12,7 @@ struct FSubUVConstants
 	//float Padding = 0.0f;
 	float Alpha;
 	FVector4 Tint = FVector4(1, 1, 1, 1);	// default 흰색
-	// 1이면 텍스처·Tint를 sRGB -> 선형으로 바꾼다 (HDR 씬에 그리는 파티클·빌보드).
-	// 에디터 아이콘은 톤 매핑 이후 LDR 타깃에 그리므로 0 (sRGB 값 그대로).
+	// 1이면 sRGB -> 선형 변환한다. 현재 반투명 패스는 LDR이므로 0을 전달한다.
 	float DecodeSRGB = 1.0f;
 	float Padding[3]{};
 };
@@ -44,11 +43,12 @@ public:
 	void SetTintSource(const ULightComponentBase* InSource) { TintSource = InSource; }
 
 	virtual const FStaticMeshData* GetMeshData() const override { return QuadMesh ? &QuadMesh->GetMeshData() : nullptr; }
+	virtual FBox CalcLocalBounds() const override;
 
 	void GetWorldTransformedMatrix(FMatrix* OutWorldMatrix) const;
-	// 기본 카메라 기준 월드 행렬로 Billboard 렌더 패킷을 제출한다.
-	virtual void SubmitToRenderQueue(FRenderQueue& RenderQueue) override;
-	// View별 Adapter가 계산한 Billboard 행렬을 사용해 같은 렌더 패킷 형식으로 제출한다.
+	// 뷰 컨텍스트 기준 월드 행렬로 Billboard 렌더 패킷을 제출한다.
+	virtual void SubmitToRenderQueue(FRenderQueue& RenderQueue, const FViewContext& ViewContext) override;
+	// View별 ViewportLayout가 계산한 Billboard 행렬을 사용해 같은 렌더 패킷 형식으로 제출한다.
 	void SubmitToRenderQueue(FRenderQueue& RenderQueue, const FMatrix& BillboardWorldMatrix);
 
 	virtual void Serialize(json& Handle, bool bIsLoading) override;

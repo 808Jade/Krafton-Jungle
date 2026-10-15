@@ -5,17 +5,15 @@
 
 #include "GameFramework/Actor/ParticleActor.h"
 #include "GameFramework/Actor/StaticMeshActor.h"
-#include "GameFramework/Actor/LightActorBase.h"
-#include "GameFramework/Actor/TextRenderActor.h"
-#include "GameFramework/Actor/FireBallActor.h"
-#include "GameFramework/Actor/RectLightActor.h"
-#include "GameFramework/Actor/SpotLightActor.h"
-#include "GameFramework/Actor/PointLightActor.h"
 #include "GameFramework/Actor/DirectionalLightActor.h"
+#include "GameFramework/Actor/PointLightActor.h"
+#include "GameFramework/Actor/SpotLightActor.h"
 #include "GameFramework/Actor/SkyLightActor.h"
+#include "GameFramework/Actor/TextRenderActor.h"
 #include "GameFramework/Actor/ExponentialHeightFogActor.h"
-
-class FMultipleViewportsAdapter;
+#include "GameFramework/Actor/FireBallActor.h"
+#include "GameFramework/Actor/ProjectileActor.h"
+class FViewportsPanel;
 
 // 액터 생성과 카메라·기즈모 편집에 필요한 패널 상태를 보관한다.
 class FEditorControlsPanel : public IEditorPanel
@@ -27,27 +25,18 @@ public:
 	const char* GetPanelName() const override { return "Editor Controls"; }
 	inline void SetGizmo(FGizmo* InGizmo) { Gizmo = InGizmo; }
 	inline void SetWorld(UWorld* InWorld) { World = InWorld; }
+	inline void SetViewportsPanel(FViewportsPanel* InPanel) { ViewportsPanel = InPanel; }
 	inline void SetIsPlayingQuery(std::function<bool()> InQuery) { IsPlayingQuery = InQuery; }
 
 	float DeltaTime = 1.0f;
-	UWorld* World = nullptr; // SpawnActor MainCamera
+	UWorld* World = nullptr;
+	FViewportsPanel* ViewportsPanel = nullptr;
 
 	void AddActor(uint32 Index);
 
 	int32 SelectedIndex = 0;
 
-	const char* Items[11] ={
-		"Actor",
-		"StaticMesh",
-		"Particle",
-		"Text",
-		"SkyLight",
-		"DirectionalLight",
-		"PointLight",
-		"RectLight",
-		"SpotLight",
-		"ExponentialHeightFog",
-		"FireBall"};
+	const char* Items[6] = {"StaticMesh", "Particle", "Text", "HeightFog", "FireBall", "Projectile" };
 
 	FGizmo* Gizmo = nullptr;
 	int32 GizmoSelectedIndex = 0;
@@ -58,27 +47,19 @@ public:
 
 	TArray<UClass*> Classes
 	{
-		AActor::StaticClass(),
-		AStaticMeshActor::StaticClass(),  
+		AStaticMeshActor::StaticClass(),
 		AParticleActor::StaticClass(),
 		ATextRenderActor::StaticClass(),
-		ASkyLightActor::StaticClass(),
-		ADirectionalLightActor::StaticClass(),
-		APointLightActor::StaticClass(),
-		ARectLightActor::StaticClass(),
-		ASpotLightActor::StaticClass(),
 		AExponentialHeightFogActor::StaticClass(),
-		AFireBallActor::StaticClass()
+		AFireBallActor::StaticClass(),
+		AProjectileActor::StaticClass(),
 	};
-
-    void SetViewportAdapter(FMultipleViewportsAdapter* InAdapter) { ViewportAdapter = InAdapter; }
 
 private:
 	static constexpr float SectionGap = 10.0f;
 	static constexpr float SubsectionGap = 4.0f;
 
     void DrawCameraProperties();
-    FMultipleViewportsAdapter* ViewportAdapter = nullptr;
 	std::function<bool()> IsPlayingQuery;
-
 };
+

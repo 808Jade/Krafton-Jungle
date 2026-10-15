@@ -3,7 +3,7 @@
 #include "Input/InputSystem.h"
 #include "../Collision/Ray.h"
 
-// 외부 입력 관리 시 기본 입력을 생략해 Adapter와 카메라의 중복 갱신을 막는다.
+// 외부 입력 관리 시 기본 입력을 생략해 ViewportLayout와 카메라의 중복 갱신을 막는다.
 void UCameraComponent::TickComponent(float DeltaTime)
 {
     Super::TickComponent(DeltaTime);

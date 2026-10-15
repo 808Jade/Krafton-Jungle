@@ -50,20 +50,8 @@ void UPrimitiveComponent::BeginPlay()
 }
 
 
-void UPrimitiveComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue)
+void UPrimitiveComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const FViewContext& ViewContext)
 {
-	//if (Mesh && Material)
-	//{
-	//	FRenderPacket rp;
-	//	rp.mesh = Mesh;
-	//	rp.material = Material;
-	//	rp.model = GetWorldMatrix();
-
-	//	// Todo: subuv
-	//	//rp.bSubUV = false;
-
-	//	RenderQueue.Enqueue(rp);
-	//}
 }
 
 bool UPrimitiveComponent::LineTraceComponent(const FRay& WorldRay, FHitResult& OutHit)
@@ -92,27 +80,7 @@ void UPrimitiveComponent::OnTransformDirty()
 
 bool UPrimitiveComponent::MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* Hit)
 {
-	if (!bSweep)
-	{
-		SetWorldLocationAndRotation(Transform.Location + Delta, NewRotation, bSweep);
-	}
-	else
-	{
-		// Simple hit check by ray		
-
-		const FVector TraceStart = Transform.Location;
-		const FVector TraceEnd = TraceStart + Delta;
-		const FRotator InitialRotation = NewRotation;
-
-		FHitResult BlockingHit;
-		BlockingHit.bBlockingHit = false;
-		BlockingHit.Time = 1.0f;
-
-		TArray<FHitResult> Hits;
-		FVector NewLocation = TraceStart;
-	}
-
-	return true;
+	return Super::MoveComponent(Delta, NewRotation, bSweep, Hit);
 }
 
 void UPrimitiveComponent::CreateRenderState()

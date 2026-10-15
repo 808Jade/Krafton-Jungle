@@ -11,11 +11,12 @@ void ALightActorBase::SetupLightRoot(ULightComponent* LightComponent, const FStr
 
     BillboardComponent = CreateDefaultSubobject<UBillboardComponent>("UBillboardComponent");
     BillboardComponent->SetEditorIcon(true);
+	BillboardComponent->SetHiddenInGame(true);
     BillboardComponent->SetIconSize(2.0f);
     BillboardComponent->SetupAttachment(LightComponent);
     BillboardComponent->SetTintSource(LightComponent);
 
-    UMaterial* Base = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");
+    UMaterial* Base = UAssetManager::GetAssetByPath<UMaterial>("BillboardMaterial");
     UTexture2D* Icon = UAssetManager::Get().LoadTexture(IconPath);
     if (Base && Icon)
     {

@@ -1,25 +1,9 @@
 #pragma once
 #include "Core/Types.h"
 #include "Engine/PrimitiveSceneProxy.h"
+#include "Render/RenderPacket.h"
 
-struct FLODViewContext
-{
-    uint32 Width = 0;
-    uint32 Height = 0;
-    FVector CameraPosition;
-    FVector CameraForward;
-    float ProjectionScaleSquared = 0.0f;
-    float NearZ = 0.0f;
-    bool bOrthographic = false;
-    float CameraDepth = 0.0f;
-    FMatrix ViewProjection; // Current view used by the GPU occlusion pass.
-
-    void Prepare()
-    {
-        CameraDepth = CameraPosition.X * CameraForward.X
-            + CameraPosition.Y * CameraForward.Y + CameraPosition.Z * CameraForward.Z;
-    }
-};
+using FLODViewContext = FViewContext;
 
 template<bool Orthographic>
 inline uint32 SelectSphereLOD(const FLODSelectionInput& Input, const FLODViewContext& View)

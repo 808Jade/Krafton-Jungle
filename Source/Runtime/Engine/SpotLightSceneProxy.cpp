@@ -18,3 +18,15 @@ void FSpotLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out)
     Out.InnerConeCos = std::cos(FMath::DegreesToRadians(Inner));
     Out.OuterConeCos = std::cos(FMath::DegreesToRadians(Outer));
 }
+
+FSpotLightRenderData FSpotLightSceneProxy::GetRenderData() const
+{
+    FLightRenderParameters P{};
+    GetLightShaderParameters(P);
+    FSpotLightRenderData Data{};
+    Data.PositionRadius = FVector4(P.Position.X, P.Position.Y, P.Position.Z, P.Radius);
+    Data.DirectionOuterCos = FVector4(P.Direction.X, P.Direction.Y, P.Direction.Z, P.OuterConeCos);
+    Data.ColorIntensity = FVector4(P.Color.X, P.Color.Y, P.Color.Z, P.Intensity);
+    Data.InnerCosFalloff = FVector4(P.InnerConeCos, P.FalloffExponent, 0.0f, 0.0f);
+    return Data;
+}

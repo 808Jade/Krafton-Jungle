@@ -25,7 +25,9 @@ public:
 	virtual void GetLightShaderParameters(FLightRenderParameters& OutParameters) const = 0;
 
 	const ULightComponent* GetLightComponent() const { return LightComponent; }
-	bool IsVisible() const { return LightComponent->IsVisible(); }
+	bool IsVisible() const { return LightComponent ? LightComponent->IsVisible() : false; }
+	bool IsEnabled() const { return LightComponent && LightComponent->GetIntensity() > 0.0f; }
+	bool IsShown(bool bGameView) const { return LightComponent ? LightComponent->IsShown(bGameView) : false; }
 
 protected:
 	const ULightComponent* LightComponent = nullptr;
@@ -35,9 +37,28 @@ private:
 	FScene* Scene = nullptr;
     int32 PackedIndex = INDEX_NONE;
 };
+#include "Render/LightRenderData.h"
 
+class FAmbientLightSceneProxy
+{
+public:
+	bool IsEnabled() const { return false; }
+	bool IsShown(bool) const { return false; }
+	const FAmbientLightRenderData& GetRenderData() const { return RenderData; }
 
+private:
+	FAmbientLightRenderData RenderData{};
+};
 
+class FSkyLightSceneProxy
+{
+public:
+	bool IsEnabled() const { return false; }
+	bool IsShown(bool) const { return false; }
+	const FSkyLightRenderData& GetRenderData() const { return RenderData; }
 
+private:
+	FSkyLightRenderData RenderData{};
+};
 
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Editor/EditorUI/EditorPanel.h"
-
 #include "Editor/LevelEditor/LevelEditorToolbar.h"
 
 #include <functional>
@@ -20,7 +19,7 @@ public:
 		T* Ret = newPanel.get();
 		Ret->Init();
 		Panels.Add(std::move(newPanel));
-		
+
 		return Ret;
 	}
 
@@ -39,7 +38,6 @@ private:
 
 	TArray<TUniquePtr<IEditorPanel>> Panels;
 	TUniquePtr<FLevelEditorToolbar> Toolbar;
-
 
 	std::function<void()> OnNewScene;
 	std::function<void()> OnOpenScene;

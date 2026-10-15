@@ -11,7 +11,7 @@
 UBillboardComponent::UBillboardComponent()
 {
 	QuadMesh = UAssetManager::GetAssetByPath<UStaticMesh>("ParticleQuad");
-	Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");
+	Material = UAssetManager::GetAssetByPath<UMaterial>("BillboardMaterial");
 }
 
 // Billboard 컴포넌트의 소멸을 처리한다.
@@ -48,18 +48,32 @@ bool UBillboardComponent::LineTraceComponentForView(
 	return QuadMesh && TraceMesh(WorldRay, QuadMesh->GetMeshData(), BillboardWorldMatrix, OutHit);
 }
 
-// 기본 카메라용 행렬을 구해 공통 렌더 패킷 제출 경로로 전달한다.
-void UBillboardComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue)
+FBox UBillboardComponent::CalcLocalBounds() const
 {
-	// 렌더러가 역참조하므로 둘 중 하나라도 없으면 보내지 않는다
+	// 카메라 방향에 따라 회전하므로 얇은 쿼드 AABB로는 컬링할 수 없다.
+	const float Extent = bEditorIcon ? std::max(0.5f, IconSize) : 0.5f;
+	return FBox{ FVector(-Extent, -Extent, -Extent), FVector(Extent, Extent, Extent) };
+}
+
+void UBillboardComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const FViewContext& ViewContext)
+{
 	if (QuadMesh == nullptr || Material == nullptr)
 	{
 		return;
 	}
 
-	FMatrix BillboardWorldMatrix;
-	GetWorldTransformedMatrix(&BillboardWorldMatrix);
+	const FVector WorldPos = GetWorldLocation();
+	const FVector WorldScale = GetWorldScale3D();
+	const float Width = bEditorIcon ? IconSize : WorldScale.Y;
+	const float Height = bEditorIcon ? IconSize : WorldScale.Z;
+	const FMatrix BillboardWorldMatrix = ViewContext.BuildBillboardMatrix(WorldPos, Width, Height);
+	const uint32 PacketIndex = RenderQueue.Num();
 	SubmitToRenderQueue(RenderQueue, BillboardWorldMatrix);
+	if (static_cast<uint32>(RenderQueue.Num()) > PacketIndex)
+	{
+		const FVector Delta = WorldPos - ViewContext.CameraPosition;
+		RenderQueue[PacketIndex].CameraToParticleDistance = Delta.Dot(Delta);
+	}
 }
 
 // View별 Billboard 행렬과 Material을 렌더 패킷에 담는다.
@@ -70,8 +84,8 @@ void UBillboardComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const F
 
 	// Light Component light 가져와서 IconParams로 전달
 	IconParams.Tint = TintSource ? TintSource->GetLightColor().ToVector4() : FVector4(1, 1, 1, 1);
-	// 에디터 아이콘은 Overlay 패스(톤 매핑 이후 LDR)에, 일반 빌보드는 HDR 씬에 그려진다.
-	IconParams.DecodeSRGB = bEditorIcon ? 0.0f : 1.0f;
+	// 현재 반투명 패스는 톤 매핑 이후 SceneColor(LDR)에 그려진다.
+	IconParams.DecodeSRGB = 0.0f;
 	FRenderPacket Packet;
 	Packet.Mesh = QuadMesh;
 	Packet.Material = Material;

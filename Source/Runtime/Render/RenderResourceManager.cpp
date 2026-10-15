@@ -4,21 +4,111 @@
 #include "RenderCommand.h"
 
 #include "RenderUtil.h"
+#include <cstring>
 
-namespace
+
+
+struct FPipelineTableEntry
 {
-	FString MakeShaderKey(const FString& Path, const D3D_SHADER_MACRO* Macros)
+	EPSOType Type;
+	const char* ShaderPath;
+	D3D11_PRIMITIVE_TOPOLOGY Topology;
+	ERasterizerState RasterizerState;
+	EBlendState BlendState;
+	EDepthStencilState DepthStencilState;
+};
+
+constexpr FPipelineTableEntry PipelineTable[] =
+{
+	{ EPSOType::StaticMesh_Opaque,       "Resources/Shader/StaticMeshShader.hlsl",            D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidBack, EBlendState::Opaque,       EDepthStencilState::Default },
+	{ EPSOType::StaticMesh_Translucent,  "Resources/Shader/StaticMeshTranslucentShader.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidBack, EBlendState::AlphaBlend,   EDepthStencilState::ReadOnly },
+	{ EPSOType::StaticMesh_Wireframe,    "Resources/Shader/StaticMeshShader.hlsl",    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::Wireframe, EBlendState::Opaque,       EDepthStencilState::Default },
+	{ EPSOType::Particle_AlphaBlend,     "Resources/Shader/ParticleSubUVShader.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::AlphaBlend,   EDepthStencilState::ReadOnly },
+	{ EPSOType::Particle_Additive,       "Resources/Shader/ParticleSubUVShader.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::Additive,     EDepthStencilState::ReadOnly },
+	{ EPSOType::Skybox,                  "Resources/Shader/SkyboxShader.hlsl",        D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::Opaque,       EDepthStencilState::ReadOnly },
+	{ EPSOType::Grid,                    "Resources/Shader/GridShader.hlsl",          D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidBack, EBlendState::AlphaBlend,   EDepthStencilState::Default },
+	{ EPSOType::Outline_Mask,            "Resources/Shader/OutlineShader.hlsl",       D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::NoColorWrite, EDepthStencilState::StencilMask },
+	{ EPSOType::Outline_Draw,            "Resources/Shader/OutlineShader.hlsl",       D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::Opaque,       EDepthStencilState::StencilOutline },
+	{ EPSOType::StaticMesh_GBuffer,		 "Resources/Shader/StaticMeshGBufferShader.hlsl",	D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,	ERasterizerState::SolidBack,	EBlendState::Opaque,  EDepthStencilState::Default },
+	{ EPSOType::DeferredLighting,       "Resources/Shader/DeferredLightingShader.hlsl",    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::Opaque,       EDepthStencilState::Disabled },
+	{ EPSOType::DeferredPointLighting,  "Resources/Shader/DeferredLightingShader.hlsl",    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::Additive,     EDepthStencilState::Disabled },
+	{ EPSOType::ToneMap,                "Resources/Shader/ToneMapShader.hlsl",              D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::Opaque,       EDepthStencilState::Disabled },
+	{ EPSOType::FireBall,               "Resources/Shader/FireBallShader.hlsl",             D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::Additive,     EDepthStencilState::ReadOnly },
+	{ EPSOType::Billboard,              "Resources/Shader/BillboardShader.hlsl",            D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::AlphaBlend,   EDepthStencilState::ReadOnly },
+	{ EPSOType::StaticMesh_Forward,		"Resources/Shader/UberLit.hlsl",			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,			ERasterizerState::SolidBack, EBlendState::Opaque, EDepthStencilState::Default },
+	{ EPSOType::StaticMesh_WorldNormal, "Resources/Shader/UberLit.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidBack, EBlendState::Opaque, EDepthStencilState::Default },
+	{ EPSOType::StaticMesh_DepthOnly, "Resources/Shader/DepthPrepass.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidBack, EBlendState::NoColorWrite, EDepthStencilState::Default },
+	{ EPSOType::LightCullingDebug, "Resources/Shader/LightCullingDebug.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::AlphaBlend, EDepthStencilState::Disabled },
+};
+
+static_assert(sizeof(PipelineTable) / sizeof(PipelineTable[0]) == static_cast<size_t>(EPSOType::Count));
+
+void FRenderResourceManager::InitPipelineStates()
+{
+	for (size_t i = 0; i < static_cast<size_t>(EPSOType::Count); ++i)
 	{
-		FString Key = Path;
-		while (Macros && Macros->Name)
+		const auto& Entry = PipelineTable[i];
+		const EPSOType Type = static_cast<EPSOType>(i);
+		PipelineStateMap[Type] = MakeUnique<FPipelineState>();
+		FPipelineState* State = PipelineStateMap[Type].get();
+		// World Normal은 전용 매크로 변형이 성공했을 때만 연결한다.
+		State->Shader = Type == EPSOType::StaticMesh_WorldNormal ? nullptr : GetShaderProgram(Entry.ShaderPath);
+		State->Topology = Entry.Topology;
+		State->RasterizerState = Entry.RasterizerState;
+		State->BlendState = Entry.BlendState;
+		State->DepthStencilState = Entry.DepthStencilState;
+	}
+	const char* Names[] = { "LIGHTING_MODEL_GOURAUD", "LIGHTING_MODEL_LAMBERT", "LIGHTING_MODEL_PHONG", "VIEW_MODE_WORLD_NORMAL" };
+	for (const char* Name : Names)
+	{
+		const D3D_SHADER_MACRO Defines[] = { { Name, "1" }, { nullptr, nullptr } };
+		const FString Path = "Resources/Shader/UberLit.hlsl";
+		FShaderByteCode VSCode = RenderUtil::CompileShader(Path, "mainVS", EShaderType::Vertex, Defines);
+		FShaderByteCode PSCode = RenderUtil::CompileShader(Path, "mainPS", EShaderType::Pixel, Defines);
+		if (!VSCode.IsValid() || !PSCode.IsValid())
 		{
-			Key += "_" + FString(Macros->Name);
-			++Macros;
+			HTR_LOG(Error, "[Shader] UberShader variant compile failed: {}", Name);
+			continue;
 		}
-		return Key;
+		auto VS = RenderCommand::CreateVertexShader(VSCode);
+		auto PS = RenderCommand::CreatePixelShader(PSCode);
+		if (!VS || !VS->IsValid() || !PS || !PS->IsValid())
+		{
+			continue;
+		}
+		FVertexShader* VSRaw = VS.get();
+		FPixelShader* PSRaw = PS.get();
+		const FString Key = Path + "#" + Name;
+		VertexShaderMap[Key + "#VS"] = std::move(VS);
+		PixelShaderMap[Key + "#PS"] = std::move(PS);
+		ShaderProgramMap[Key] = MakeUnique<FShaderProgram>(VSRaw, PSRaw);
+		if (std::strcmp(Name, "VIEW_MODE_WORLD_NORMAL") == 0)
+			PipelineStateMap[EPSOType::StaticMesh_WorldNormal]->Shader = ShaderProgramMap[Key].get();
 	}
 }
 
+FShaderProgram* FRenderResourceManager::GetForwardShaderProgram(ELightingModel Model)
+{
+	const char* Name = "LIGHTING_MODEL_LAMBERT";
+	switch (Model)
+	{
+	case ELightingModel::Gouraud: Name = "LIGHTING_MODEL_GOURAUD"; break;
+	case ELightingModel::Phong: Name = "LIGHTING_MODEL_PHONG"; break;
+	default: break;
+	}
+	const FString Key = FString("Resources/Shader/UberLit.hlsl#") + Name;
+	if (auto* Found = Get().ShaderProgramMap.Find(Key)) return Found->get();
+	return nullptr;
+}
+
+FPipelineState* FRenderResourceManager::GetPSO(const EPSOType& InType)
+{
+	if (auto* Found = Get().PipelineStateMap.Find(InType))
+	{
+		return Found->get();
+	}
+	return nullptr;
+}
 
 void FRenderResourceManager::ScanShaders(const fs::path& ShaderRoot)
 {
@@ -34,93 +124,25 @@ void FRenderResourceManager::ScanShaders(const fs::path& ShaderRoot)
 	{
 		if (!Entry.is_regular_file()) continue;
 		if (Entry.path().extension() != ".hlsl") continue;
-		if (Entry.path().stem() == "UberLit") continue;
 
 		FString Path = Entry.path().generic_string();
 		LoadOrCompileShader(Path);
 	}
-	LoadUberLit(ShaderRoot);
-}
-
-void FRenderResourceManager::LoadUberLit(const fs::path& ShaderRoot)
-{
-	const FString Path = (ShaderRoot / "UberLit.hlsl").generic_string();
-
-	// 같은 UberLit.hlsl을 매크로 조합별로 따로 컴파일한다.
-	// 캐시 키 / CSO 파일명은 "경로_매크로이름" 형태로 구분된다.
-	// 매크로 없는 기본 키("Resources/Shader/UberLit.hlsl")는 기존 머티리얼이 쓰므로 Lambert로 남겨 둔다. (셰이더 쪽 기본값)
-
-	static const D3D_SHADER_MACRO Unlit[] = { { "LIGHTING_MODEL_UNLIT", "1" },{ nullptr, nullptr } };
-	static const D3D_SHADER_MACRO Gouraud[] = { { "LIGHTING_MODEL_GOURAUD", "1" },{ nullptr, nullptr } };
-	static const D3D_SHADER_MACRO Lambert[] = { { "LIGHTING_MODEL_LAMBERT", "1" },{ nullptr, nullptr } };
-	static const D3D_SHADER_MACRO BlinnPhong[] = { { "LIGHTING_MODEL_BLINN_PHONG", "1" },{ nullptr, nullptr } };
-	static const D3D_SHADER_MACRO WorldNormal[] = { { "WORLD_NORMAL", "1" },{ nullptr, nullptr } };
-
-	LoadOrCompileShader(Path);	// 기본 (Lambert)
-	LoadOrCompileShader(Path, Unlit);
-	LoadOrCompileShader(Path, Gouraud);
-	LoadOrCompileShader(Path, Lambert);
-	LoadOrCompileShader(Path, BlinnPhong);
-	LoadOrCompileShader(Path, WorldNormal);
-
-	// 뷰모드 -> 변형 테이블. 컴파일에 실패한 키는 nullptr로 남는다(GetShaderProgram의 폴백을 쓰지 않으려고 맵을 직접 찾는다).
-	auto FindProgram = [this](const FString& Key) -> FShaderProgram*
-		{
-			TUniquePtr<FShaderProgram>* Found = ShaderProgramMap.Find(Key);
-			return Found ? Found->get() : nullptr;
-		};
-
-	UberLitDefault = FindProgram(MakeShaderKey(Path, nullptr));
-	UberLitPrograms[static_cast<int32>(EViewMode::Lit_Gouraud)] = FindProgram(MakeShaderKey(Path, Gouraud));
-	UberLitPrograms[static_cast<int32>(EViewMode::Lit_Lambert)] = FindProgram(MakeShaderKey(Path, Lambert));
-	UberLitPrograms[static_cast<int32>(EViewMode::Lit_BlinnPhong)] = FindProgram(MakeShaderKey(Path, BlinnPhong));
-	UberLitPrograms[static_cast<int32>(EViewMode::Unlit)] = FindProgram(MakeShaderKey(Path, Unlit));
-	UberLitPrograms[static_cast<int32>(EViewMode::WorldNormal)] = FindProgram(MakeShaderKey(Path, WorldNormal));
-}
-
-FShaderProgram* FRenderResourceManager::GetUberLitProgram(EViewMode Mode)
-{
-	const int32 Index = static_cast<int32>(Mode);
-	if (Index < 0 || Index >= static_cast<int32>(EViewMode::Count))
-		return nullptr;
-	return Get().UberLitPrograms[Index];
-}
-
-bool FRenderResourceManager::IsUberLitProgram(const FShaderProgram* Program)
-{
-	if (!Program)
-		return false;
-
-	const FRenderResourceManager& Self = Get();
-	if (Program == Self.UberLitDefault)
-		return true;
-	for (const FShaderProgram* Variant : Self.UberLitPrograms)
-	{
-		if (Program == Variant)
-			return true;
-	}
-	return false;
 }
 
 void FRenderResourceManager::Shutdown()
 {
 	Get().VertexShaderMap.Empty();
 	Get().PixelShaderMap.Empty();
-	Get().ComputeShaderMap.Empty();
 	Get().ShaderProgramMap.Empty();
-	Get().UberLitDefault = nullptr;
-	for (FShaderProgram*& Program : Get().UberLitPrograms)
-		Program = nullptr;
 }
 
-FShaderProgram* FRenderResourceManager::GetShaderProgram(const FString& InPath, const D3D_SHADER_MACRO* Macro)
+FShaderProgram* FRenderResourceManager::GetShaderProgram(const FString& InPath)
 {
-	const FString Key = MakeShaderKey(InPath, Macro);
-
-	if (TUniquePtr<FShaderProgram>* Found = Get().ShaderProgramMap.Find(Key))
+	if (TUniquePtr<FShaderProgram>* Found = Get().ShaderProgramMap.Find(InPath))
 		return Found->get();
 
-	HTR_LOG(Error, "[Shader] not found: {}", Key);
+	HTR_LOG(Error, "[Shader] not found: {}", InPath);
 
 	if (TUniquePtr<FShaderProgram>* Fallback =
 		Get().ShaderProgramMap.Find("Resources/Shader/DefaultShader.hlsl"))
@@ -129,68 +151,37 @@ FShaderProgram* FRenderResourceManager::GetShaderProgram(const FString& InPath, 
 	return nullptr;
 }
 
-FComputeShader* FRenderResourceManager::GetComputeShader(const FString& InPath)
-{
-	if (TUniquePtr<FComputeShader>* Found = Get().ComputeShaderMap.Find(InPath))
-		return Found->get();
-	return nullptr;
-}
-void FRenderResourceManager::LoadOrCompileShader(const FString& Path, const D3D_SHADER_MACRO* Macro)
-{
-	std::ifstream In(Path);
-	const std::string Source((std::istreambuf_iterator<char>(In)), std::istreambuf_iterator<char>());
-
-	const bool bHasVS = Source.find("mainVS") != std::string::npos;
-	const bool bHasPS = Source.find("mainPS") != std::string::npos;
-	const bool bHasCS = Source.find("mainCS") != std::string::npos;
-	const bool HasGraphicsInclude{ !bHasCS && Source.find("#include") != std::string::npos };
-
-	if (bHasVS || bHasPS || HasGraphicsInclude) {
-		FString VSCSOPath;
-		FString PSCSOPath;
-		FShaderByteCode VSCode = RenderUtil::GetOrCompile(Path, "mainVS", EShaderType::Vertex, VSCSOPath, Macro);
-		FShaderByteCode PSCode = RenderUtil::GetOrCompile(Path, "mainPS", EShaderType::Pixel, PSCSOPath, Macro);
-		const FString Key = MakeShaderKey(Path, Macro);
 
 
+void FRenderResourceManager::LoadOrCompileShader(const FString& Path)
+{ 
+	FString VSCSOPath;
+	FString PSCSOPath;
+	FShaderByteCode VSCode = RenderUtil::GetOrCompile(Path, "mainVS", EShaderType::Vertex, VSCSOPath);
+	FShaderByteCode PSCode = RenderUtil::GetOrCompile(Path, "mainPS", EShaderType::Pixel, PSCSOPath);
 
-
-		if (!VSCode.IsValid() || !PSCode.IsValid())
-		{
-			HTR_LOG(Error, "[Shader] compile failed: {}", Key);
-			return;
-		}
-
-		TUniquePtr<FVertexShader> Vs = RenderCommand::CreateVertexShader(VSCode);
-		TUniquePtr<FPixelShader>  Ps = RenderCommand::CreatePixelShader(PSCode);
-
-		if (!Vs || !Vs->IsValid() || !Ps || !Ps->IsValid())
-		{
-			HTR_LOG(Error, "[Shader] device create failed: {}", Key);
-			return;
-		}
-
-		FVertexShader* VsRaw = Vs.get();
-		FPixelShader* PsRaw = Ps.get();
-
-		VertexShaderMap[VSCSOPath] = std::move(Vs);
-		PixelShaderMap[PSCSOPath] = std::move(Ps);
-
-		ShaderProgramMap[Key] = MakeUnique<FShaderProgram>(VsRaw, PsRaw);
-
-		HTR_LOG(Info, "[Shader] Loaded Shader: {}", Path);
-	}
-
-	if (bHasCS)
+	if (!VSCode.IsValid() || !PSCode.IsValid())
 	{
-		FString CSOPath;
-		FShaderByteCode CSCode = RenderUtil::GetOrCompile(Path, "mainCS", EShaderType::Compute, CSOPath);
-		if (!CSCode.IsValid()) { HTR_LOG(Error, "[Shader] compute compile failed: {}", Path); return; }   // 진짜 에러
-
-		ComputeShaderMap[Path] = RenderCommand::CreateComputeShader(CSCode);
-
-		HTR_LOG(Info, "[Shader] Loaded ComputeShader: {}", Path);
-
+		HTR_LOG(Error, "[Shader] compile failed: {}", Path);
+		return;
 	}
+
+	TUniquePtr<FVertexShader> Vs = RenderCommand::CreateVertexShader(VSCode);
+	TUniquePtr<FPixelShader>  Ps = RenderCommand::CreatePixelShader(PSCode);
+
+	if (!Vs || !Vs->IsValid() || !Ps || !Ps->IsValid())
+	{
+		HTR_LOG(Error, "[Shader] device create failed: {}", Path);
+		return;
+	}
+
+	FVertexShader* VsRaw = Vs.get();
+	FPixelShader* PsRaw = Ps.get();
+
+	VertexShaderMap[VSCSOPath] = std::move(Vs);
+	PixelShaderMap[PSCSOPath] = std::move(Ps);
+	ShaderProgramMap[Path] = MakeUnique<FShaderProgram>(VsRaw, PsRaw);
+
+	HTR_LOG(Info, "[Shader] loaded: {}", Path);
 
 }

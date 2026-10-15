@@ -15,12 +15,14 @@ class AActor : public UObject
 {
 	DECLARE_CLASS(AActor, UObject)
 	REFLECT_START(ClassName)
+		PROPERTY(bActorEnableCollision)
 		REFLECT_END()
 public:
 	AActor();
 	virtual ~AActor();
 
 	virtual void BeginPlay(); // xx World->AddPrimitive 책임이동 필요
+	bool HasBegunPlay() const { return bHasBegunPlay; }
 	// 액터 자신의 로직. 컴포넌트는 각자의 PrimaryComponentTick으로 따로 실행된다.
 	virtual void Tick(float DeltaTime) {}
 	virtual void EndPlay() {};
@@ -33,6 +35,8 @@ public:
 	const TArray<UActorComponent*>& GetComponents() const { return Components; }
 	USceneComponent* GetRootComponent() const { return RootComponent; }
 	void SetRootComponent(USceneComponent* SceneComponent) { RootComponent = SceneComponent; }
+	void SetActorEnableCollision(bool bEnabled) { bActorEnableCollision = bEnabled; }
+	bool GetActorEnableCollision() const { return bActorEnableCollision; }
 
 	void RemoveOwnedComponent(UActorComponent* Component);
 	
@@ -74,6 +78,7 @@ protected:
 	UWorld* World = nullptr;
 	ULevel* Level = nullptr;
 private:
-	
+	bool bActorEnableCollision = true;
+	bool bHasBegunPlay = false;
 
 };

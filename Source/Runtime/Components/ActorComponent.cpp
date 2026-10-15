@@ -14,7 +14,83 @@ UActorComponent::~UActorComponent()
 
 void UActorComponent::SetActive(bool bNewActive)
 {
-	bIsActive = bNewActive;
+	if (bNewActive) Activate();
+	else Deactivate();
+}
+
+void UActorComponent::SetVisibility(bool bNewVisibility)
+{
+	if (bVisible == bNewVisibility) return;
+	bVisible = bNewVisibility;
+	MarkRenderStateDirty();
+}
+
+void UActorComponent::SetHiddenInGame(bool bNewHidden)
+{
+	if (bHiddenInGame == bNewHidden) return;
+	bHiddenInGame = bNewHidden;
+	MarkRenderStateDirty();
+}
+
+void UActorComponent::PostEditChangeProperty(const FProperty& Property)
+{
+	Super::PostEditChangeProperty(Property);
+	if (Property.Name == "bVisible" || Property.Name == "bHiddenInGame")
+		MarkRenderStateDirty();
+}
+
+void UActorComponent::BeginPlayComponent()
+{
+	if (!IsRegistered() || !WorldPrivate || !WorldPrivate->HasBegunPlay()) return;
+	if (!bIsInitialized) InitializeComponent();
+	RegisterComponentTickFunctions(true);
+	if (bHasBegunPlay) return;
+	if (bAutoActivate) Activate();
+	else SetComponentTickEnabled(false);
+	bHasBegunPlay = true;
+	BeginPlay();
+}
+
+void UActorComponent::Activate(bool bReset)
+{
+	if (!bReset && !ShouldActivate()) return;
+	SetComponentTickEnabled(true);
+	bIsActive = true;
+}
+
+void UActorComponent::Deactivate()
+{
+	if (!bIsActive) return;
+	SetComponentTickEnabled(false);
+	bIsActive = false;
+}
+
+void UActorComponent::SetAutoActivate(bool bNewAutoActivate)
+{
+	if (IsRegistered())
+	{
+		HTR_LOG(Warning, "SetAutoActivate: cannot change AutoActivate after component registration");
+		return;
+	}
+	bAutoActivate = bNewAutoActivate;
+}
+
+void UActorComponent::SetComponentTickEnabled(bool bEnabled)
+{
+	if (!PrimaryComponentTick.bCanEverTick) return;
+	PrimaryComponentTick.bStartWithTickEnabled = bEnabled;
+	PrimaryComponentTick.SetTickFunctionEnable(bEnabled);
+}
+
+void UActorComponent::RegisterComponentTickFunctions(bool bRegister)
+{
+	if (!bRegister)
+	{
+		PrimaryComponentTick.UnRegisterTickFunction();
+		return;
+	}
+	if (IsRegistered() && WorldPrivate && PrimaryComponentTick.bCanEverTick)
+		PrimaryComponentTick.RegisterTickFunction(WorldPrivate->GetTickTaskManager());
 }
 
 void UActorComponent::Serialize(FStructuredArchive::FRecord Record)
@@ -47,11 +123,14 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 
 	WorldPrivate = InWorld;
 	ExecuteRegisterEvents();
+	if (AActor* MyOwner = GetOwner(); MyOwner && MyOwner->HasBegunPlay())
+		BeginPlayComponent();
 }
 
 void UActorComponent::UnregisterComponent()
 {
 	if (!IsRegistered()) return;
+	RegisterComponentTickFunctions(false);
 	ExecuteUnregisterEvents();
 	WorldPrivate = nullptr;
 }

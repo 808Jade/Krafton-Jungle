@@ -135,6 +135,7 @@ void UAssetManager::Init(const FAssetLoadProgress& OnProgress)
 	Get().CreateDefaultMaterial();
 	Get().ScanAssets("Assets", OnProgress);
 	Get().CreateDefaultMeshes();
+	Get().CreateBillboardMaterial();
 	Get().CreateParticleMaterial();
 	Get().CreateEditorArrowMaterial();
 }
@@ -309,9 +310,22 @@ void UAssetManager::CreateDefaultMaterial() {
 	RegisterAsset("DefaultMaterial", DefaultMat);
 }
 
+void UAssetManager::CreateBillboardMaterial()
+{
+	UMaterial* BillboardMat = NewObject<UMaterial>();
+	BillboardMat->PSOType = EPSOType::Billboard;
+	BillboardMat->Textures.Add(GetAssetByPath<UTexture2D>("WhiteTexture"));
+	BillboardMat->BlendState = EBlendState::AlphaBlend;
+	BillboardMat->DepthStencilState = EDepthStencilState::ReadOnly;
+	BillboardMat->SamplerState = ESamplerState::LinearClamp;
+	BillboardMat->ParamLayout = EMaterialParamLayout::ParticleSubUV;
+	RegisterAsset("BillboardMaterial", BillboardMat);
+}
+
 void UAssetManager::CreateParticleMaterial()
 {
 	UMaterial* ParticleMat = NewObject<UMaterial>();
+	ParticleMat->PSOType = EPSOType::Particle_AlphaBlend;
 	ParticleMat->Shader = FRenderResourceManager::GetShaderProgram("Resources/Shader/ParticleSubUVShader.hlsl");
 	ParticleMat->Textures.Add(GetAssetByPath<UTexture2D>("Assets/SubUV/StarParticle.png"));
 	ParticleMat->BlendState = EBlendState::AlphaBlend;
@@ -346,27 +360,27 @@ UTexture2D* UAssetManager::LoadTexture(const FString& InPath, bool GenerateMips)
 		return Cast<UTexture2D>(*Found);
 	}
 
-	TUniquePtr<FTexture2D> Resource{};
-	if (GetAssetExtension(InPath) == ".dds") {
-		Resource = RenderCommand::LoadDDSTexture(InPath);
-	} else {
-		const FImageData Data{ ImageLoader::LoadAuto(InPath) };
-		if (!Data.IsValid()) {
-			return nullptr;
-		}
-
-		D3D11_TEXTURE2D_DESC Desc{};
-		Desc.Width = Data.Width;
-		Desc.Height = Data.Height;
-		Desc.ArraySize = 1;
-		Desc.Format = Data.Format;
-		Desc.SampleDesc.Count = 1;
-		Desc.MipLevels = GenerateMips ? 0 : 1;
-		Desc.Usage = GenerateMips ? D3D11_USAGE_DEFAULT : D3D11_USAGE_IMMUTABLE;
-		Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (GenerateMips ? D3D11_BIND_RENDER_TARGET : 0);
-		Desc.MiscFlags = GenerateMips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
-		Resource = RenderCommand::CreateTexture2D(Desc, Data);
+	const FImageData Data = ImageLoader::LoadAuto(InPath);
+	if (!Data.IsValid())
+	{
+		return nullptr;
 	}
+
+	const bool bUseDDSLevels = Data.MipRowPitches.Num() > 0;
+	const bool bGenerateGPUmips = GenerateMips && !bUseDDSLevels;
+
+	D3D11_TEXTURE2D_DESC Desc{};
+	Desc.Width = Data.Width;
+	Desc.Height = Data.Height;
+	Desc.ArraySize = 1;
+	Desc.Format = Data.Format;
+	Desc.SampleDesc.Count = 1;
+	Desc.MipLevels = bGenerateGPUmips ? 0 : Data.MipLevels;
+	Desc.Usage = bGenerateGPUmips ? D3D11_USAGE_DEFAULT : D3D11_USAGE_IMMUTABLE;
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | (bGenerateGPUmips ? D3D11_BIND_RENDER_TARGET : 0);
+	Desc.MiscFlags = bGenerateGPUmips ? D3D11_RESOURCE_MISC_GENERATE_MIPS : 0;
+
+	TUniquePtr<FTexture2D> Resource = RenderCommand::CreateTexture2D(Desc, Data);
 
 	if (!Resource || !Resource->GetSRV()) {
 		return nullptr;

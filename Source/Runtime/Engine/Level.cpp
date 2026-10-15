@@ -97,14 +97,9 @@ void ULevel::Serialize(FStructuredArchive::FRecord Record)
 		AActor* Actor = ActorName.empty() ? OwningWorld->SpawnActor(Class)
 			: OwningWorld->SpawnActor(Class, FName(ActorName));
 
-		if (AActor* Actor = OwningWorld->SpawnActor(Class))
+		if (Actor)
 		{
 			Actor->Serialize(ActorRecord);
-
-			// SpawnActor가 기본값으로 등록한 Fog를 방금 읽은 값으로 갱신한다.
-			for (UActorComponent* Component : Actor->GetComponents())
-				if (UExponentialHeightFogComponent* Fog = Cast<UExponentialHeightFogComponent>(Component))
-					OwningWorld->GetScene().UpdateFogInfo(Fog->GetUUID(), Fog->GetFogInfo());
 		}
 	}
 }

@@ -1,5 +1,6 @@
 #include "EnginePCH.h"
 #include "ProjectileMovementComponent.h"
+#include <cmath>
 
 const float UProjectileMovementComponent::MIN_TICK_TIME = 1e-6f;
 
@@ -10,6 +11,9 @@ UProjectileMovementComponent::UProjectileMovementComponent()
 	bSimulationEnabled = true;
 	bSweepCollision = true;
 	bRotationFollowsVelocity = false;
+	bShouldBounce = true;
+	bIsHomingProjectile = false;
+	PreviousHitTime = 1.0f;
 
 	Velocity = FVector(1.0f, 0.0f, 0.0f);
 
@@ -54,7 +58,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime)
 
 	Super::TickComponent(DeltaTime);
 
-	if (UpdatedComponent == nullptr)
+	if (!bSimulationEnabled || DeltaTime <= 0.0f || UpdatedComponent == nullptr)
 	{
 		return;
 	}
@@ -73,7 +77,6 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime)
 	{
 		Iterations++;
 
-		const float InitialTimeRemaining = RemainingTime;
 		const float TimeTick = GetSimulationTimeStep(RemainingTime, Iterations);
 		RemainingTime -= TimeTick;
 
@@ -81,24 +84,17 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime)
 		Hit.Time = 1.0f;
 		const FVector OldVelocity = Velocity;
 		const FVector MoveDelta = ComputeMoveDelta(OldVelocity, TimeTick);
-		FRotator NewRotation = bRotationFollowsVelocity ? FRotator(OldVelocity) : UpdatedComponent->GetRelativeRotation();
-		
-		// Rotation
-		if (bRotationFollowsVelocity)
+		FRotator NewRotation = UpdatedComponent->GetWorldRotation();
+		if (bRotationFollowsVelocity && OldVelocity.SizeSquared() > 0.0f)
 		{
-			// TODO
+			const float HorizontalSpeed = std::sqrt(OldVelocity.X * OldVelocity.X + OldVelocity.Y * OldVelocity.Y);
+			NewRotation = FRotator(
+				FMath::RadiansToDegrees(std::atan2(-OldVelocity.Z, HorizontalSpeed)),
+				FMath::RadiansToDegrees(std::atan2(OldVelocity.Y, OldVelocity.X)), 0.0f);
 		}
 
 		// Move the component
-		if (bShouldBounce)
-		{			
-			// SafeMoveUpdatedComponent( MoveDelta, NewRotaiton, bSweepCollision, Hit);
-			MoveUpdatedComponent(MoveDelta, NewRotation, bSweepCollision, &Hit);
-		}
-		else
-		{
-			MoveUpdatedComponent(MoveDelta, NewRotation, bSweepCollision, &Hit);
-		}
+		MoveUpdatedComponent(MoveDelta, NewRotation, bSweepCollision, &Hit);
 
 		// Handle hit result after movement
 		if (!Hit.bBlockingHit)
@@ -119,11 +115,12 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime)
 			}
 
 			float SubTickTimeRemaining = TimeTick * (1.0f - Hit.Time);
-			HandleDeflection(Hit, OldVelocity, SubTickTimeRemaining);
+			HandleImpact(Hit, SubTickTimeRemaining, MoveDelta);
+			if (!bSimulationEnabled) break;
 			PreviousHitTime = Hit.Time;
 			PreviousHitNormal = ConstrainDirectionToPlane(Hit.Normal);
 
-			if (SubTickTimeRemaining >= MIN_TICK_TIME)
+			if (SubTickTimeRemaining >= MIN_TICK_TIME && Hit.Time > KINDA_SMALL_NUMBER)
 			{
 				RemainingTime += SubTickTimeRemaining;
 			}
@@ -207,7 +204,7 @@ FVector UProjectileMovementComponent::ComputeBounceResult(const FHitResult& Hit,
 
 		// TODO : Set MinFrictionFraction
 		//const float SacledFriction = (bIsSliding) ? FMath::Clamp(-VDotNormal / TempVelocity.Size(), MinFrictionFraction, 1.0f) * Friction : Friction;
-		const float ScaledFriction = (bIsSliding) ? FMath::Clamp(-VDotNormal / TempVelocity.Size(), 0.0f, 1.0f) * Friction : Friction;
+		const float ScaledFriction = (bIsSliding && TempVelocity.Size() > KINDA_SMALL_NUMBER) ? FMath::Clamp(-VDotNormal / TempVelocity.Size(), 0.0f, 1.0f) * Friction : Friction;
 		TempVelocity *= FMath::Clamp(1.0f - ScaledFriction, 0.0f, 1.0f);
 
 		// TODO : Change std::max to FMath::Max
@@ -227,7 +224,17 @@ void UProjectileMovementComponent::HandleImpact(const FHitResult& Hit, float Tim
 		Velocity = ComputeBounceResult(Hit, TimeSlice, MoveDelta);
 
 		Velocity = LimitVelocity(Velocity);
-	}	
+		if (Velocity.SizeSquared() < 0.01f)
+		{
+			Velocity = FVector::ZeroVector;
+			bSimulationEnabled = false;
+		}
+	}
+	else
+	{
+		bSimulationEnabled = false;
+		Velocity = FVector::ZeroVector;
+	}
 }
 
 bool UProjectileMovementComponent::HandleDeflection(FHitResult& Hit, const FVector& OldVelocity, float& SubTickTimeRemaining)

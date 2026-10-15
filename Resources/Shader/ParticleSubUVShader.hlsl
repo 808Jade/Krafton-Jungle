@@ -19,7 +19,7 @@ cbuffer subuv : register(b1)
     float AtlasColSize;
     float ParticleAlpha;
     float4 Tint;
-    // 1: HDR 씬에 그리므로 sRGB -> 선형 변환, 0: 에디터 아이콘(톤 매핑 이후 LDR)이라 그대로
+    // 1: HDR 출력일 때 sRGB -> 선형 변환, 0: 현재 LDR 반투명 패스에서는 그대로 사용
     float DecodeSRGB;
     float3 SubUVPadding;
 };

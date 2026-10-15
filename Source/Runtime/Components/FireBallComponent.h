@@ -15,5 +15,9 @@ public:
 
 	ELightType GetLightType() const { return ELightType::Fireball; }
 
+	float GetRadius() const { return GetAttenuationRadius(); }
+	FVector4 GetColor() const { return GetLightColor().ToVector4(); }
+	float GetRadiusFallOff() const { return GetFalloff(); }
+
 private:
 };

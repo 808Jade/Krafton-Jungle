@@ -4,6 +4,7 @@
 #include "Render/RenderCommand.h"
 
 #include "Engine/PrimitiveSceneProxy.h"
+#include "Asset/LOD/StaticMeshLODSelector.h"
 
 
 // StaticMesh 컴포넌트를 초기화한다.
@@ -57,10 +58,15 @@ UMaterial* UStaticMeshComponent::GetDefaultMaterial(int32 SlotIndex) const
 	return StaticMesh ? StaticMesh->GetMaterial(static_cast<uint32>(SlotIndex)) : nullptr;
 }
 
-// 기존 호출 경로는 LOD0를 사용한다.
-void UStaticMeshComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue)
+void UStaticMeshComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const FViewContext& ViewContext)
 {
-	SubmitToRenderQueue(RenderQueue, 0);
+	if (!StaticMesh) return;
+	uint32 SelectedLOD = 0;
+	if (const FPrimitiveSceneProxy* Proxy = GetSceneProxy())
+	{
+		SelectedLOD = SelectLOD(*Proxy, ViewContext);
+	}
+	SubmitToRenderQueue(RenderQueue, SelectedLOD);
 }
 
 // 지정한 LOD의 Section으로 패킷을 만든다.

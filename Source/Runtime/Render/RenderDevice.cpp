@@ -149,7 +149,7 @@ TUniquePtr<FStructuredBuffer> FRenderDevice::CreateDynamicStructuredBuffer(uint3
 	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 	Desc.StructureByteStride = Stride;
 
-	return MakeUnique<FStructuredBuffer>(Device.Get(), Desc, Stride, Count, nullptr);
+	return MakeUnique<FStructuredBuffer>(Device.Get(), Desc, Count);
 }
 
 TUniquePtr<FStructuredBuffer> FRenderDevice::CreateRWStructuredBuffer(uint32 Stride, uint32 Count)
@@ -161,8 +161,7 @@ TUniquePtr<FStructuredBuffer> FRenderDevice::CreateRWStructuredBuffer(uint32 Str
 	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 	Desc.StructureByteStride = Stride;
 
-
-	return MakeUnique<FStructuredBuffer>(Device.Get(), Desc, Stride, Count, nullptr);
+	return MakeUnique<FStructuredBuffer>(Device.Get(), Desc, Count);
 }
 
 TUniquePtr<FTexture2D> FRenderDevice::CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image)
@@ -333,6 +332,10 @@ void FRenderDevice::CreateStates()
 		Desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 		Device->CreateDepthStencilState(&Desc, DepthStencilStates[(uint8)EDepthStencilState::ReadOnly].GetAddressOf());
 
+		Desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+		Device->CreateDepthStencilState(&Desc, DepthStencilStates[(uint8)EDepthStencilState::PrepassReadOnly].GetAddressOf());
+		Desc.DepthFunc = D3D11_COMPARISON_LESS;
+
 		Desc.DepthEnable = FALSE;
 		Device->CreateDepthStencilState(&Desc, DepthStencilStates[(uint8)EDepthStencilState::Disabled].GetAddressOf());
 
@@ -376,6 +379,13 @@ void FRenderDevice::CreateStates()
 		Desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
 
 		Device->CreateBlendState(&Desc, BlendStates[(uint8)EBlendState::AlphaBlend].GetAddressOf());
+
+		// 라이트 기여분을 HDR 타깃에 더한다. 알파는 기존 값을 유지한다.
+		Desc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+		Desc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+		Desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
+		Desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+		Device->CreateBlendState(&Desc, BlendStates[(uint8)EBlendState::Additive].GetAddressOf());
 
 		// 스텐실 마스크 패스처럼 색은 쓰지 않고 깊이·스텐실만 갱신할 때 쓴다.
 		Desc.RenderTarget[0].BlendEnable = FALSE;

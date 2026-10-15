@@ -12,14 +12,19 @@ class UActorComponent : public UObject
 	DECLARE_CLASS(UActorComponent, UObject)
 
 	REFLECT_START(ClassName)
+		PROPERTY(bAutoActivate)
+		PROPERTY(bVisible)
+		PROPERTY(bHiddenInGame)
 		REFLECT_END()
 
 public:
 	UActorComponent() { PrimaryComponentTick.Target = this; }
 	virtual ~UActorComponent() override;
 
-	virtual void InitializeComponent() {};
+	virtual void InitializeComponent() { bIsInitialized = true; }
 	virtual void BeginPlay() {};
+	void BeginPlayComponent();
+	bool HasBegunPlay() const { return bHasBegunPlay; }
 	virtual void TickComponent(float DeltaTime)
 	{
 	};
@@ -34,8 +39,23 @@ public:
 	// UE와 같이 기본값은 bCanEverTick = false. Tick이 필요한 컴포넌트만 생성자에서 켠다.
 	FActorComponentTickFunction PrimaryComponentTick;
 
+	virtual void Activate(bool bReset = false);
+	virtual void Deactivate();
+	virtual bool ShouldActivate() const { return !bIsActive; }
 	virtual void SetActive(bool bNewActive);
 	bool IsActive() const { return bIsActive; }
+	void SetAutoActivate(bool bNewAutoActivate);
+	bool IsAutoActivate() const { return bAutoActivate; }
+	bool IsVisible() const { return bVisible; }
+	bool IsHiddenInGame() const { return bHiddenInGame; }
+	virtual bool IsShown(bool bGameView) const { return bVisible && !(bGameView && bHiddenInGame); }
+	virtual void SetVisibility(bool bNewVisibility);
+	virtual void SetHiddenInGame(bool bNewHidden);
+	virtual void MarkRenderStateDirty() {}
+	virtual void PostEditChangeProperty(const FProperty& Property) override;
+	void SetComponentTickEnabled(bool bEnabled);
+	bool IsComponentTickEnabled() const { return PrimaryComponentTick.bCanEverTick && PrimaryComponentTick.IsTickFunctionEnabled(); }
+	void RegisterComponentTickFunctions(bool bRegister);
 
 	using Super::Serialize;
 	virtual void Serialize(FStructuredArchive::FRecord Record);
@@ -60,6 +80,9 @@ protected:
 	//원래는 _Concurrent 병렬처리 -> 현재 엔진에서는 멀티 스레드 사용 X 
 	virtual void CreateRenderState();
 	virtual void DestroyRenderState();
+	bool bAutoActivate = true;
+	bool bVisible = true;
+	bool bHiddenInGame = false;
 
 	void ExecuteRegisterEvents();
 	void ExecuteUnregisterEvents();
@@ -67,8 +90,10 @@ protected:
 private:
 	AActor* Owner = nullptr;
 	bool bHiddenInDetails = false;
-	bool bIsActive = true;
+	bool bIsActive = false;
 	bool bRegistered = false;
+	bool bIsInitialized = false;
+	bool bHasBegunPlay = false;
 
 	UWorld* WorldPrivate = nullptr;
 	bool bRenderStateCreated = false;

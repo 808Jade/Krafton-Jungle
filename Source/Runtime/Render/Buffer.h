@@ -48,23 +48,19 @@ class FConstantBuffer : public FBuffer
 public:
 	FConstantBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc);
 	~FConstantBuffer() override = default;
-private:
-};
 
+private:
+
+};
 
 class FStructuredBuffer : public FBuffer
 {
 public:
-	FStructuredBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 InStride, uint32 InElementCount, const void* InitialData = nullptr);
-	~FStructuredBuffer() override = default;
+	FStructuredBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 InCapacity);
+	ID3D11ShaderResourceView* GetSRV() const { return SRV.Get(); }
+	uint32 GetCapacity() const { return Capacity; }
 
-	inline uint32 GetStride() const { return Stride; }
-	inline uint32 GetMaxCount() const { return MaxCount; }
-	inline ID3D11ShaderResourceView* GetSRV() const { return SRV.Get(); }
-	inline ID3D11UnorderedAccessView* GetUAV() const { return UAV.Get(); }
 private:
-	uint32 Stride = 0;
-	uint32 MaxCount = 0;
+	uint32 Capacity = 0;
 	ComPtr<ID3D11ShaderResourceView> SRV;
-	ComPtr<ID3D11UnorderedAccessView> UAV;
 };

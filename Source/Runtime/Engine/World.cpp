@@ -7,6 +7,9 @@
 
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/DefaultPawn.h"
+#include "GameFramework/PlayerController.h"
 #include "Input/InputSystem.h"
 
 #include "UObject/UObjectIterator.h"
@@ -23,8 +26,20 @@
 #include "Core/Stats/LightweightStats.h"
 #include "Core/Stats/EditorStats.h"
 #include "Core/Async/TaskPool.h"
+#include "Render/ObjectConstants.h"
 
 #include "UObject/UObjectGlobals.h"
+
+namespace
+{
+	inline void WritePerObjectConstants(uint8* Dest, const FMatrix& LocalToWorld, const FMatrix& WorldToLocal)
+	{
+		FPerObjectConstants Constants{};
+		Constants.World = LocalToWorld;
+		Constants.NormalMatrix = WorldToLocal.GetTransposed();
+		std::memcpy(Dest, &Constants, sizeof(Constants));
+	}
+}
 
 DECLARE_CYCLE_STAT("Actor Tick", STAT_ActorTick); // Actor 틱 측정
 DECLARE_CYCLE_STAT("Update All Transforms", STAT_UpdateAllTransforms); // 각 Transform의 Update 시간 측정
@@ -87,13 +102,12 @@ AActor* UWorld::SpawnActor(UClass* Class, FName InName, const FTransform* Transf
 		NewActor->GetRootComponent()->SetTransform(SpawnTransform);
 	}
 	
+	// 4. Level->Actors에 등록한 뒤 컴포넌트를 월드에 연결한다.
+	PersistentLevel->AddActor(NewActor);
 	NewActor->RegisterAllComponents();
 
-	// 4. Level->Actors에 등록
-	PersistentLevel->AddActor(NewActor);
-
-	// 5. PlayList에 추가
-	BeginPlayList.Enqueue(NewActor);
+	// 월드가 재생 중일 때 생성된 액터만 별도 BeginPlay 대기열에 넣는다.
+	if (bBegunPlay) BeginPlayList.Enqueue(NewActor);
 
 	return NewActor;
 }
@@ -110,10 +124,12 @@ void UWorld::Tick(float DeltaTime)
 	{
 		while (!BeginPlayList.IsEmpty())
 		{
-			BeginPlayList.Peek()->BeginPlay();
+			AActor* Actor = BeginPlayList.Peek();
 			BeginPlayList.Dequeue();
+			if (Actor) Actor->BeginPlay();
 		}
 
+		if (!bIsPaused)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ActorTick);
 			// 모든 Actor를 도는 대신 등록된 Tick 함수(메인 카메라 포함)만 실행한다.
@@ -131,6 +147,7 @@ void UWorld::Tick(float DeltaTime)
 
 void UWorld::ClearWorld()
 {
+	EndPlay();
 	// BeginPlay 대기 중인 Actor 제거
 	while (!BeginPlayList.IsEmpty())
 	{
@@ -156,11 +173,10 @@ void UWorld::ClearWorld()
 	// 그대로 두면 지워진 컴포넌트를 가리키는 프록시가 FScene에 남아 다음 프레임에 터진다.
 	Scene.RemoveAllLights();
 	Scene.RemoveAllPrimitives();
-	Scene.RemoveAllFogInfo();
 	HTR_LOG(Info, "{} : ", PersistentLevel->GetActorNum());
 }
 
-void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContext* LODView, const FFrustumPlanes* Frustum, FRenderer* Renderer)
+void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FViewContext* LODView, const FFrustumPlanes* Frustum, FRenderer* Renderer)
 {
 	// 멤버로 두어 매 프레임 용량을 재사용한다.
 	RenderStats.Reset();
@@ -241,11 +257,7 @@ void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContex
 		Chunk.StaticDrawCount = 0;
 	}
 
-	// Renderer가 있으면 불투명 스태틱 메시는 패킷 대신 조각별 묶음에 작은 항목으로 넣는다.
-	// 동일 바인딩의 개별 드로우를 묶어 패킷 복사와 항목별 정렬을 줄인다.
-	const bool bStaticGroups = Renderer != nullptr;
-	if (Renderer)
-		Renderer->ResetStaticDrawGroups();
+	const bool bStaticGroups = false;
 
 	{
 		SCOPE_CYCLE_COUNTER(STAT_GatherElements);
@@ -339,18 +351,7 @@ void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContex
 				}
 			});
 
-		// 묶음은 World 메모리 그대로 Renderer에 넘긴다 (복사 없음). 정렬은 Renderer가 묶음 단위로 한다.
 		uint32 StaticDraws = 0;
-		if (Renderer)
-		{
-			for (uint32 c = 0; c < ChunkCount; ++c)
-			{
-				StaticDraws += GatherChunks[c].StaticDrawCount;
-				for (const FStaticDrawGroup& Group : GatherChunks[c].Groups)
-					if (!Group.Items.empty())
-						Renderer->AddStaticDrawGroup(&Group);
-			}
-		}
 
 		uint32 TotalPackets = 0;
 		for (uint32 c = 0; c < ChunkCount; ++c)
@@ -381,7 +382,7 @@ void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContex
 				}
 				else
 				{
-					Primitive->SubmitToRenderQueue(RenderQueue);
+					Primitive->SubmitToRenderQueue(RenderQueue, LODView ? *LODView : FViewContext{});
 				}
 
 				// continue 없이 항상 여기까지 와서 새 패킷에 여유 칸을 배정한다.
@@ -568,6 +569,78 @@ bool UWorld::DestroyActor(AActor* Actor)
 }
 
 // 다른 World의 객체를 제외하고 Component 교차 중 최근접 결과를 선택한다.
+bool UWorld::SweepSingle(const FRay& WorldRay, float MaxDistance, float Radius, FHitResult& OutHit, AActor* IgnoreActor)
+{
+	OutHit = FHitResult(1.0f);
+	if (MaxDistance <= 0.0f || !std::isfinite(MaxDistance) || Radius < 0.0f || !std::isfinite(Radius)) return false;
+	Scene.UpdateAllTransforms();
+	float NearestT = MaxDistance;
+	const FVector Extent(Radius, Radius, Radius);
+	const FPreparedRay PreparedRay(WorldRay);
+	Scene.BVH.TraceClosest(
+		[&](const FBox& Bounds, float& OutEnterT)
+		{
+			return RayIntersectsAABB(PreparedRay, Bounds.Min - Extent, Bounds.Max + Extent, OutEnterT);
+		},
+		[&](FPrimitiveSceneProxy* Proxy, float& InOutNearestT)
+		{
+			UPrimitiveComponent* Component = Proxy ? Proxy->GetComponent() : nullptr;
+			if (!Component || !Component->IsShown(true) ||
+				!Component->GetOwner() || !Component->GetOwner()->GetActorEnableCollision() ||
+				Component->GetOwner() == IgnoreActor || Component->GetOwner()->GetWorld() != this)
+				return false;
+			if (!Proxy->GetMesh())
+			{
+				const FMatrix& WorldToLocal = Proxy->GetWorldToLocal();
+				const FRay LocalRay{
+					.Origin = WorldToLocal.TransformPosition(WorldRay.Origin),
+					.Direction = WorldToLocal.TransformVector(WorldRay.Direction)
+				};
+				float T = InOutNearestT;
+				if (!Component->LineTraceComponentLocal(LocalRay, T) || T > InOutNearestT) return false;
+				OutHit.bBlockingHit = true;
+				OutHit.HitComponent = Component;
+				OutHit.Distance = T;
+				OutHit.Time = T / MaxDistance;
+				OutHit.ImpactPoint = WorldRay.Origin + WorldRay.Direction * T;
+				OutHit.Location = OutHit.ImpactPoint;
+				OutHit.ImpactNormal = -WorldRay.Direction;
+				OutHit.Normal = OutHit.ImpactNormal;
+				InOutNearestT = T;
+				return true;
+			}
+
+			FAABB Bounds = Proxy->GetBounds();
+			Bounds.Extent += Extent;
+			float T = InOutNearestT;
+			if (!RayIntersectsAABB(WorldRay, Bounds.Center - Bounds.Extent, Bounds.Center + Bounds.Extent, T) ||
+				T > InOutNearestT) return false;
+
+			const FVector Point = WorldRay.Origin + WorldRay.Direction * T;
+			const FVector Offset = Point - Bounds.Center;
+			const float X = Bounds.Extent.X > 0.0f ? Offset.X / Bounds.Extent.X : 0.0f;
+			const float Y = Bounds.Extent.Y > 0.0f ? Offset.Y / Bounds.Extent.Y : 0.0f;
+			const float Z = Bounds.Extent.Z > 0.0f ? Offset.Z / Bounds.Extent.Z : 0.0f;
+			const float AX = std::abs(X), AY = std::abs(Y), AZ = std::abs(Z);
+			FVector Normal = AX >= AY && AX >= AZ ? FVector(X >= 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f)
+				: AY >= AZ ? FVector(0.0f, Y >= 0.0f ? 1.0f : -1.0f, 0.0f)
+				: FVector(0.0f, 0.0f, Z >= 0.0f ? 1.0f : -1.0f);
+			if (Normal.Dot(WorldRay.Direction) > 0.0f) return false;
+
+			OutHit.bBlockingHit = true;
+			OutHit.HitComponent = Component;
+			OutHit.Distance = T;
+			OutHit.Time = T / MaxDistance;
+			OutHit.ImpactPoint = Point;
+			OutHit.Location = Point;
+			OutHit.ImpactNormal = Normal;
+			OutHit.Normal = Normal;
+			InOutNearestT = T;
+			return true;
+		}, NearestT);
+	return OutHit.bBlockingHit;
+}
+
 bool UWorld::LineTraceSingle(const FRay& WorldRay, FHitResult& OutHit,
 	FBillboardTraceTransform ResolveBillboard, const void* ViewContext)
 {
@@ -668,10 +741,52 @@ bool UWorld::LineTraceSingle(const FRay& WorldRay, FHitResult& OutHit,
 
 void UWorld::BeginPlay()
 {
+	if (WorldType != EWorldType::PIE || bBegunPlay) return;
+	if (!PlayerPawn)
+	{
+		for (AActor* Actor : PersistentLevel->GetActors())
+		{
+			if (APawn* Pawn = Cast<APawn>(Actor)) { PlayerPawn = Pawn; break; }
+		}
+	}
+	if (!PlayerPawn)
+	{
+		FTransform Transform = MainCamera ? MainCamera->GetActorTransform() : FTransform::Identity;
+		PlayerPawn = SpawnActor<ADefaultPawn>(NAME_None, &Transform);
+	}
+	if (!PlayerController) PlayerController = SpawnActor<APlayerController>();
+	if (PlayerController && PlayerPawn) PlayerController->Possess(PlayerPawn);
+
+	// 기존 액터 목록을 고정한 후 시작한다. BeginPlay 중 생성된 액터는 대기열로 간다.
+	TArray<AActor*> InitialActors;
+	for (ULevel* Level : Levels)
+		if (Level)
+			for (AActor* Actor : Level->GetActors())
+				if (Actor) InitialActors.Add(Actor);
+	bBegunPlay = true;
+	for (AActor* Actor : InitialActors)
+		Actor->BeginPlay();
+
+	// PIE 입력 전에 DefaultPawn의 투사체 풀까지 시작한다.
+	while (!BeginPlayList.IsEmpty())
+	{
+		AActor* Actor = BeginPlayList.Peek();
+		BeginPlayList.Dequeue();
+		if (Actor) Actor->BeginPlay();
+	}
 }
 
 void UWorld::EndPlay()
 {
+	bBegunPlay = false;
+	if (PlayerController)
+	{
+		PlayerController->ClearInputState();
+		PlayerController->UnPossess();
+	}
+	PlayerController = nullptr;
+	PlayerPawn = nullptr;
+	bIsPaused = false;
 }
 
 UWorld* UWorld::CreateWorld(const EWorldType InWorldType, bool bInformEngineOfWorld, FName WorldName)
@@ -732,7 +847,6 @@ void UWorld::PostDuplicate(bool bDuplicateForPIE)
 
 		Actor->RegisterAllComponents();
 
-		BeginPlayList.Enqueue(Actor);   // Tick 등록은 BeginPlay에서 함
 	}
 
 	Scene.BuildBVH();

@@ -1,6 +1,8 @@
 #include "EnginePCH.h"
 #include "ObjViewerApp.h"
 
+#if defined(OBJ_VIEWER)
+
 #include "Asset/AssetManager.h"
 #include "Core/Window.h"
 #include "Launch/LaunchEngineLoop.h"
@@ -253,3 +255,5 @@ FVector UObjViewerEngine::GetCameraEye() const
 
 	return CameraTarget - Forward * CameraDistance;
 }
+
+#endif

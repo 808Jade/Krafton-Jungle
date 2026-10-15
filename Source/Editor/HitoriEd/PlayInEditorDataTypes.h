@@ -9,6 +9,14 @@ enum class EPlayModeType : uint8
 	InEditorFloating,   // 별도 OS 창에서 실행
 };
 
+enum class EPIEState : uint8
+{
+	Stopped,
+	Playing,
+	Paused,
+	Simulating
+};
+
 struct FRequestPlaySessionParams
 {
 public:

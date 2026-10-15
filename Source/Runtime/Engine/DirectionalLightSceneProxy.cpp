@@ -16,3 +16,13 @@ void FDirectionalLightSceneProxy::GetLightShaderParameters(FLightRenderParameter
 	Out.Color = FVector(Color.R, Color.G, Color.B);
 	Out.Intensity = Dir->GetIntensity();
 }
+
+FDirectionalLightRenderData FDirectionalLightSceneProxy::GetRenderData() const
+{
+	FLightRenderParameters P{};
+	GetLightShaderParameters(P);
+	FDirectionalLightRenderData Data{};
+	Data.DirectionIntensity = FVector4(P.Direction.X, P.Direction.Y, P.Direction.Z, P.Intensity);
+	Data.Color = FVector4(P.Color.X, P.Color.Y, P.Color.Z, 1.0f);
+	return Data;
+}

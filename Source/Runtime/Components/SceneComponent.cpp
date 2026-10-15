@@ -2,6 +2,28 @@
 #include "Components/SceneComponent.h"
 
 #include "GameFramework/Actor.h"
+#include "Engine/World.h"
+
+namespace
+{
+	void UpdateChildVisibility(USceneComponent* Root, bool bPropagate, bool bVisible, bool bHidden)
+	{
+		TArray<USceneComponent*> Pending = Root->GetAttachChildren();
+		while (!Pending.IsEmpty())
+		{
+			USceneComponent* Child = Pending[Pending.Num() - 1];
+			Pending.RemoveLast();
+			if (!Child) continue;
+			if (bPropagate)
+			{
+				if (bVisible) Child->UActorComponent::SetVisibility(Root->IsVisible());
+				if (bHidden) Child->UActorComponent::SetHiddenInGame(Root->IsHiddenInGame());
+			}
+			Child->MarkRenderStateDirty();
+			for (USceneComponent* Descendant : Child->GetAttachChildren()) Pending.Add(Descendant);
+		}
+	}
+}
 
 USceneComponent::~USceneComponent()
 {
@@ -28,6 +50,31 @@ void USceneComponent::PostEditChangeProperty(const FProperty& Property)
 	Super::PostEditChangeProperty(Property);
 	if (Property.Name == "Transform") 
 		MarkTransformDirty();
+	else if (Property.Name == "bVisible" || Property.Name == "bHiddenInGame")
+		UpdateChildVisibility(this, false, false, false);
+}
+
+bool USceneComponent::IsShown(bool bGameView) const
+{
+	for (const USceneComponent* Component = this; Component; Component = Component->AttachParent)
+		if (!Component->UActorComponent::IsShown(bGameView)) return false;
+	return true;
+}
+
+void USceneComponent::SetVisibility(bool bNewVisibility, EVisibilityPropagation Propagation)
+{
+	const bool bChanged = bVisible != bNewVisibility;
+	Super::SetVisibility(bNewVisibility);
+	if (bChanged || Propagation == EVisibilityPropagation::Propagate)
+		UpdateChildVisibility(this, Propagation == EVisibilityPropagation::Propagate, true, false);
+}
+
+void USceneComponent::SetHiddenInGame(bool bNewHidden, EVisibilityPropagation Propagation)
+{
+	const bool bChanged = bHiddenInGame != bNewHidden;
+	Super::SetHiddenInGame(bNewHidden);
+	if (bChanged || Propagation == EVisibilityPropagation::Propagate)
+		UpdateChildVisibility(this, Propagation == EVisibilityPropagation::Propagate, false, true);
 }
 
 void USceneComponent::SetupAttachment(USceneComponent* InParent, EAttachmentRule Rule)
@@ -65,6 +112,8 @@ void USceneComponent::SetupAttachment(USceneComponent* InParent, EAttachmentRule
 	}
 
 	MarkTransformDirty();
+	MarkRenderStateDirty();
+	UpdateChildVisibility(this, false, false, false);
 }
 
 void USceneComponent::DetachFromParent(EAttachmentRule Rule)
@@ -101,6 +150,8 @@ void USceneComponent::DetachFromParent(EAttachmentRule Rule)
 	}
 	
 	MarkTransformDirty();
+	MarkRenderStateDirty();
+	UpdateChildVisibility(this, false, false, false);
 }
 
 FRotator USceneComponent::GetWorldRotation() const
@@ -231,7 +282,7 @@ void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, FRotator 
 		NewRelRotation = NewRelQuat.ToFRotator();
 	}
 
-	SetRelativeLocationAndRotation(NewLocation, NewRelRotation);
+	SetRelativeLocationAndRotation(NewRelLocation, NewRelRotation);
 }
 
 void USceneComponent::SetWorldScale3D(FVector NewScale)
@@ -239,10 +290,35 @@ void USceneComponent::SetWorldScale3D(FVector NewScale)
 }
 
 bool USceneComponent::MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* Hit)
-{		
-	SetWorldLocationAndRotation(Transform.Location + Delta, NewRotation, bSweep);
+{
+	FHitResult LocalHit(1.0f);
+	FHitResult& Result = Hit ? *Hit : LocalHit;
+	Result = FHitResult(1.0f);
+	const FVector Start = GetWorldLocation();
+	FVector Destination = Start + Delta;
+	bool bBlocked = false;
+	AActor* Owner = GetOwner();
+	if (bSweep && Delta.SizeSquared() > SMALL_NUMBER && Owner && Owner->GetActorEnableCollision())
+	{
+		if (UWorld* World = Owner->GetWorld())
+		{
+			Result.Init(Start, Destination);
+			bBlocked = World->SweepSingle(FRay(Start, Delta.Normalized()), Delta.Size(), GetCollisionRadius(), Result, Owner);
+			if (bBlocked)
+				Destination = Start + Delta * Result.Time + Result.ImpactNormal * 0.001f;
+		}
+	}
+	SetWorldLocationAndRotation(Destination, NewRotation, false);
+	return !bBlocked;
+}
 
-	return true;
+float USceneComponent::GetCollisionRadius() const
+{
+	if (CollisionRadiusOverride >= 0.0f) return CollisionRadiusOverride;
+	const FBox Bounds = CalcBounds();
+	const FVector Extent = (Bounds.Max - Bounds.Min) * 0.5f;
+	if (Extent.SizeSquared() <= SMALL_NUMBER) return 10.0f;
+	return std::min({ Extent.X, Extent.Y, Extent.Z });
 }
 
 void USceneComponent::MarkTransformDirty()

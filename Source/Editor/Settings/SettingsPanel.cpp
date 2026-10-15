@@ -1,16 +1,19 @@
 #include "EnginePCH.h"
 #include "Editor/Settings/SettingsPanel.h"
-#include "Editor/LevelEditor/MultipleViewports/Adapter/MultipleViewportsAdapter.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 
 #include "Engine/World.h"
+#include "Editor/Viewports/ViewportsPanel.h"
+#include "Editor/Viewports/EditorViewportClient.h"
+#include "GameFramework/DefaultPawn.h"
+#include "Components/StaticMeshComponent.h"
+#include "UObject/UObjectIterator.h"
 
 // 종료 시 렌더·에디터·뷰포트 설정을 함께 저장한다.
 FSettingsPanel::~FSettingsPanel()
 {
-	// 종료 시 다른 객체를 참조하지 않고 보존한 설정만 저장한다.
-	ViewportAdapter = nullptr;
+	ViewportsPanel = nullptr;
 	SaveSettings();
 }
 
@@ -42,14 +45,43 @@ void FSettingsPanel::OnRender()
 	ImGui::Checkbox("Draw Primitives", &Settings.bDrawPrimitives);
 	ImGui::Checkbox("Draw Bounding Box", &Settings.bDrawBoundingBox);
 	ImGui::Checkbox("Show Object UUID", &Settings.bShowUUID);
-	ImGui::Checkbox("FXAA", &Settings.bEnableFXAA);
-	ImGui::SliderFloat("Exposure", &Settings.Exposure, 0.1f, 5.0f, "%.2f");
-	ImGui::Checkbox("Depth View", &Settings.bDepthView);
-	ImGui::Checkbox("Exponential Height Fog", &Settings.bExponentialHeightFog);
-	ImGui::Combo("Light Debug", &Settings.LightDebugMode, "Off\0Cell Heatmap\0Brute Force\0Slices\0");
-	ImGui::Combo("Light Culling", &Settings.LightCullingMode, "Tiled\0Clustered\0Tiled 2.5D\0");
-	const char* Models[] = { "Gouraud", "Lambert", "Blinn-Phong" };
-	ImGui::Combo("Lighting Model", &Settings.LightingModel, Models, IM_ARRAYSIZE(Models));
+	const char* RenderingPaths[] = { "Forward", "Deferred" };
+	int RenderingPathIndex = static_cast<int>(Settings.RenderingPath);
+	ImGui::SetNextItemWidth(200.0f);
+	if (ImGui::Combo("Rendering Path", &RenderingPathIndex, RenderingPaths, IM_ARRAYSIZE(RenderingPaths)))
+		Settings.RenderingPath = static_cast<ERenderingPath>(RenderingPathIndex);
+
+	const char* LightingModels[] = { "Gouraud", "Lambert", "Phong" };
+	int LightingModelIndex = static_cast<int>(Settings.LightingModel);
+	ImGui::SetNextItemWidth(200.0f);
+	if (ImGui::Combo("Lighting Model", &LightingModelIndex, LightingModels, IM_ARRAYSIZE(LightingModels)))
+		Settings.LightingModel = static_cast<ELightingModel>(LightingModelIndex);
+	const char* LightCullingModes[] = { "Off", "Tiled", "Clustered" };
+	int LightCullingModeIndex = static_cast<int>(Settings.LightCullingMode);
+	ImGui::SetNextItemWidth(200.0f);
+	if (ImGui::Combo("Light Culling", &LightCullingModeIndex,
+		LightCullingModes, IM_ARRAYSIZE(LightCullingModes)))
+	{
+		Settings.LightCullingMode = static_cast<ELightCullingMode>(LightCullingModeIndex);
+	}
+	ImGui::TextDisabled("Forward Lambert/Phong only; Off evaluates all uploaded local lights.");
+	ImGui::TextDisabled("Forward Lambert/Phong only; off evaluates all visible local lights.");
+
+	ImGui::Dummy(ImVec2(0.0f, SectionGap));
+	ImGui::SeparatorText("Scene Depth");
+	ImGui::SetNextItemWidth(200.0f);
+	if (ImGui::DragFloat("Max Distance", &Settings.SceneDepthMaxRange, 0.5f,
+		0.1f, 10000.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp))
+		ApplySceneDepthRange();
+	ImGui::TextDisabled("White represents this distance from the camera.");
+
+	//////////////////////////////////////////////////////////
+
+	ImGui::Dummy(ImVec2(0.0f, SectionGap));
+	ImGui::SeparatorText("Anti-Aliasing");
+
+	ImGui::Checkbox("Enable FXAA", &Settings.bEnableFXAA);
+
 	//////////////////////////////////////////////////////////
 
 	ImGui::Dummy(ImVec2(0.0f, SectionGap));
@@ -78,7 +110,9 @@ void FSettingsPanel::OnRender()
 	CamCom->SetMoveSpeed(Settings.CameraSpeed);
 
 	//////////////////////////////////////////////////////////
+	DrawDefaultPawnSettings();
 
+	//////////////////////////////////////////////////////////
 	ImGui::Dummy(ImVec2(0.0f, SectionGap));
 	ImGui::SeparatorText("Load Settings");
 
@@ -124,8 +158,12 @@ bool FSettingsPanel::SaveSettings() const
 	File << "ShowUUID=" << Settings.bShowUUID << "\n";
 	File << "DrawBatchLine=" << Settings.bDrawBatchLine << "\n";
 	File << "DrawPSGrid=" << Settings.bDrawPSGrid << "\n";
+	File << "SceneDepthMaxRange=" << Settings.SceneDepthMaxRange << "\n";
 	File << "EnableFXAA=" << Settings.bEnableFXAA << "\n";
-	File << "LightingModel=" << Settings.LightingModel << "\n";
+	File << "LightCullingMode=" << (Settings.LightCullingMode == ELightCullingMode::Off ? "Off" : Settings.LightCullingMode == ELightCullingMode::Tiled ? "Tiled" : "Clustered") << "\n";
+	File << "RenderingPath=" << (Settings.RenderingPath == ERenderingPath::Forward ? "Forward" : "Deferred") << "\n";
+	File << "LightingModel=" << (Settings.LightingModel == ELightingModel::Gouraud ? "Gouraud" :
+		Settings.LightingModel == ELightingModel::Lambert ? "Lambert" : "Phong") << "\n";
 	File << "\n";
 
 	File << "[Editor]\n";
@@ -146,6 +184,7 @@ bool FSettingsPanel::SaveSettings() const
         File << "View" << Index << "OrthoWidth=" << Snapshot.ViewOrthoWidth[Index] << "\n";
         File << "View" << Index << "Preset=" << Snapshot.ViewPreset[Index] << "\n";
         File << "View" << Index << "Wireframe=" << Snapshot.ViewWireframe[Index] << "\n";
+        File << "View" << Index << "Mode=" << Snapshot.ViewMode[Index] << "\n";
         File << "View" << Index << "LocationX=" << Snapshot.ViewLocation[Index].X << "\n";
         File << "View" << Index << "LocationY=" << Snapshot.ViewLocation[Index].Y << "\n";
         File << "View" << Index << "LocationZ=" << Snapshot.ViewLocation[Index].Z << "\n";
@@ -204,6 +243,9 @@ bool FSettingsPanel::LoadSettings()
                         Settings.ViewPreset[Index] = static_cast<int32>(Value);
                     else if (Key == Prefix + "Wireframe" && (Value == 0 || Value == 1))
                         Settings.ViewWireframe[Index] = static_cast<int32>(Value);
+					else if (Key == Prefix + "Mode" && Value >= 0 &&
+						Value <= static_cast<int32>(EViewportMode::LightCulling) && Value == static_cast<int32>(Value))
+						Settings.ViewMode[Index] = static_cast<int32>(Value);
                     else if (Key == Prefix + "LocationX")
                     {
                         Settings.ViewLocation[Index].X = Value;
@@ -246,12 +288,33 @@ bool FSettingsPanel::LoadSettings()
 				else if (Key == "ShowUUID") Settings.bShowUUID = std::stoi(ValueStr);
 				else if (Key == "DrawBatchLine") Settings.bDrawBatchLine = std::stoi(ValueStr);
 				else if (Key == "DrawPSGrid") Settings.bDrawPSGrid = std::stoi(ValueStr);
+				else if (Key == "SceneDepthMaxRange") Settings.SceneDepthMaxRange = std::stof(ValueStr);
 				else if (Key == "EnableFXAA") Settings.bEnableFXAA = std::stoi(ValueStr);
-				else if (Key == "LightingModel") Settings.LightingModel = std::stoi(ValueStr);
+				else if (Key == "LightCullingMode")
+				{
+					if (ValueStr == "Off") Settings.LightCullingMode = ELightCullingMode::Off;
+					else if (ValueStr == "Tiled") Settings.LightCullingMode = ELightCullingMode::Tiled;
+					else if (ValueStr == "Clustered") Settings.LightCullingMode = ELightCullingMode::Clustered;
+				}
+				else if (Key == "EnableTiledLightCulling" || Key == "EnableClusteredLightCulling")
+				{
+					Settings.LightCullingMode = std::stoi(ValueStr) != 0 ? ELightCullingMode::Tiled : ELightCullingMode::Off;
+				}
+				else if (Key == "RenderingPath")
+				{
+					if (ValueStr == "Forward") Settings.RenderingPath = ERenderingPath::Forward;
+					else if (ValueStr == "Deferred") Settings.RenderingPath = ERenderingPath::Deferred;
+				}
+				else if (Key == "LightingModel")
+				{
+					if (ValueStr == "Gouraud") Settings.LightingModel = ELightingModel::Gouraud;
+					else if (ValueStr == "Lambert") Settings.LightingModel = ELightingModel::Lambert;
+					else if (ValueStr == "Phong") Settings.LightingModel = ELightingModel::Phong;
+				}
 
 				else if (Key == "CameraMoveSpeed") Settings.CameraSpeed = std::stof(ValueStr);
 				else if (Key == "CameraRotateSensitivity") Settings.MouseSensitivity = std::stof(ValueStr);
-				else if (Key == "GridSpacing") Settings.GridSpacing = std::stof(ValueStr);
+				else if (Key == "GridSpacing") Settings.GridSpacing = std::stoi(ValueStr);
 				else if (Key == "Horizontal") Settings.MultipleViewportsHorizontal = std::stof(ValueStr);
 				else if (Key == "Vertical") Settings.MultipleViewportsVertical = std::stof(ValueStr);
 				else if (Key == "Layout") Settings.bMultipleViewportsSingle = ValueStr == "Single";
@@ -265,6 +328,9 @@ bool FSettingsPanel::LoadSettings()
 	}
 
 	File.close();
+	if (!std::isfinite(Settings.SceneDepthMaxRange))
+		Settings.SceneDepthMaxRange = 50.0f;
+	Settings.SceneDepthMaxRange = FMath::Clamp(Settings.SceneDepthMaxRange, 0.1f, 10000.0f);
 	for (int32 Index = 0; Index < 4; ++Index)
 	{
 		Settings.bViewLocationSaved[Index] = LocationComponentMasks[Index] == 0x7;
@@ -284,56 +350,131 @@ bool FSettingsPanel::LoadSettings()
 	return true;
 }
 
-// 초기화된 카메라에 파일 설정을 적용하고 미저장 값은 초기 설정으로 채운다.
-void FSettingsPanel::SetViewportAdapter(FMultipleViewportsAdapter* Value)
-{
-    ViewportAdapter = Value;
-    ApplyViewportSettings();
-    CaptureViewportSettings();
-}
-
-// Transform·투영·표시·레이아웃을 저장용 설정에 복사한다.
+// 뷰포트 설정 복사
 void FSettingsPanel::ReadViewportSettings(FEditorSettings& Out) const
 {
-    if (!ViewportAdapter) return;
-    Out.MultipleViewportsHorizontal = ViewportAdapter->GetSplitRatio().Horizontal;
-    Out.MultipleViewportsVertical = ViewportAdapter->GetSplitRatio().Vertical;
-    Out.bMultipleViewportsSingle = ViewportAdapter->GetLayoutMode() == ELayoutMode::Single;
-    Out.MultipleViewportsSingleViewIndex = ViewportAdapter->GetSingleViewIndex();
-    for (int32 Index = 0; Index < 4; ++Index)
-    {
-        const auto& Camera = ViewportAdapter->GetViewCamera(Index);
-        Out.ViewFov[Index] = Camera.Projection.FovDegrees;
-        Out.ViewOrthoWidth[Index] = Camera.Projection.OrthoWidth;
-        Out.ViewPreset[Index] = static_cast<int32>(ViewportAdapter->GetCameraPreset(Index));
-        Out.ViewWireframe[Index] = ViewportAdapter->IsViewWireframe(Index) ? 1 : 0;
-        Out.ViewLocation[Index] = Camera.Transform.Location;
-        Out.ViewRotation[Index] = Camera.Transform.Rotation;
-        Out.bViewLocationSaved[Index] = true;
-        Out.bViewRotationSaved[Index] = true;
-    }
+	if (!ViewportsPanel)
+		return;
+
+	for (int32 Index = 0; Index < 4; ++Index)
+	{
+		FEditorViewportClient* Client = ViewportsPanel->GetViewportClient(Index);
+		if (!Client)
+			continue;
+
+		Out.ViewFov[Index] = Client->GetViewFOV();
+		Out.ViewOrthoWidth[Index] = Client->GetOrthoWidth();
+		Out.ViewWireframe[Index] = Client->IsWireframe() ? 1 : 0;
+		Out.ViewMode[Index] = static_cast<int32>(Client->GetViewportMode());
+		Out.ViewLocation[Index] = Client->GetViewLocation();
+		Out.ViewRotation[Index] = Client->GetViewRotation().Quaternion();
+	}
 }
 
-// 종료 시 Adapter를 읽지 않도록 살아 있는 동안 저장용 설정을 갱신한다.
+// 종료 시 설정 갱신
 void FSettingsPanel::CaptureViewportSettings() { ReadViewportSettings(Settings); }
 
-// 저장 프리셋·투영·표시를 슬롯별로 복원하며 구형 ini는 초기값과 공통 Wireframe을 사용한다.
+// 뷰포트 설정 적용
 void FSettingsPanel::ApplyViewportSettings()
 {
-    if (!ViewportAdapter) return;
-    ViewportAdapter->SetSplitRatio({Settings.MultipleViewportsHorizontal, Settings.MultipleViewportsVertical});
-    ViewportAdapter->SetSingleViewIndex(Settings.MultipleViewportsSingleViewIndex);
-    ViewportAdapter->SetLayoutMode(Settings.bMultipleViewportsSingle ? ELayoutMode::Single : ELayoutMode::QuadSplit);
-    for (int32 Index = 0; Index < 4; ++Index)
+	if (!ViewportsPanel)
+		return;
+	ApplySceneDepthRange();
+
+	for (int32 Index = 0; Index < 4; ++Index)
+	{
+		FEditorViewportClient* Client = ViewportsPanel->GetViewportClient(Index);
+		if (!Client)
+			continue;
+
+		if (Settings.ViewFov[Index] > 0.0f)
+			Client->SetViewFOV(Settings.ViewFov[Index]);
+		if (Settings.ViewWireframe[Index] >= 0)
+			Client->SetViewportMode(Settings.ViewWireframe[Index] == 1 ? EViewportMode::Wireframe : EViewportMode::Solid);
+		if (Settings.ViewMode[Index] >= 0)
+			Client->SetViewportMode(static_cast<EViewportMode>(Settings.ViewMode[Index]));
+	}
+}
+
+void FSettingsPanel::ApplySceneDepthRange()
+{
+	if (!ViewportsPanel)
+		return;
+
+	for (int32 Index = 0; Index < 4; ++Index)
+	{
+		if (FEditorViewportClient* Client = ViewportsPanel->GetViewportClient(Index))
+			Client->SetMaxRange(Settings.SceneDepthMaxRange);
+	}
+}
+
+void FSettingsPanel::DrawDefaultPawnSettings()
+{
+    ImGui::Dummy(ImVec2(0.0f, SectionGap));
+    ImGui::SeparatorText("DefaultPawn Settings");
+    ADefaultPawn* Pawn = World ? Cast<ADefaultPawn>(World->GetPlayerPawn()) : nullptr;
+    if (!Pawn)
     {
-        if (Settings.ViewPreset[Index] >= 0 && Settings.ViewPreset[Index] <= 7)
-            ViewportAdapter->ApplyCameraPreset(Index, static_cast<EMultipleViewportsCameraPreset>(Settings.ViewPreset[Index]));
-        FViewCamera Camera = ViewportAdapter->GetViewCamera(Index);
-        if (Settings.ViewFov[Index] > 0) Camera.Projection.FovDegrees = Settings.ViewFov[Index];
-        if (Settings.ViewOrthoWidth[Index] > 0) Camera.Projection.OrthoWidth = Settings.ViewOrthoWidth[Index];
-        if (Settings.bViewLocationSaved[Index]) Camera.Transform.Location = Settings.ViewLocation[Index];
-        if (Settings.bViewRotationSaved[Index]) Camera.Transform.Rotation = Settings.ViewRotation[Index];
-        ViewportAdapter->ApplyCameraProperties(Index, Camera, false);
-        ViewportAdapter->SetViewWireframe(Index, Settings.ViewWireframe[Index] < 0 ? Settings.bWireframe : Settings.ViewWireframe[Index] == 1);
+        ImGui::TextDisabled("Start PIE with a DefaultPawn to edit these settings.");
+        return;
     }
+
+    const auto DrawMeshPicker = [](const char* Label, UStaticMesh*& SelectedMesh)
+    {
+        const auto GetMeshDisplayName = [](const UStaticMesh* Mesh) -> FString
+        {
+            if (!Mesh) return "None";
+            const fs::path Path(Mesh->GetPath());
+            return Path.stem() == "Atlas"
+                ? Path.parent_path().filename().string()
+                : Path.stem().string();
+        };
+        const FString Preview = GetMeshDisplayName(SelectedMesh);
+        bool bChanged = false;
+        const bool bOpen = ImGui::BeginCombo(Label, Preview.c_str());
+        if (SelectedMesh && ImGui::IsItemHovered())
+            ImGui::SetTooltip("%s", SelectedMesh->GetPath().c_str());
+        if (bOpen)
+        {
+            if (ImGui::Selectable("None", SelectedMesh == nullptr))
+            {
+                SelectedMesh = nullptr;
+                bChanged = true;
+            }
+            for (TObjectIterator<UStaticMesh> Mesh; Mesh; ++Mesh)
+            {
+                const FString Name = GetMeshDisplayName(*Mesh);
+                const bool bSelected = *Mesh == SelectedMesh;
+                ImGui::PushID(*Mesh);
+                if (ImGui::Selectable(Name.c_str(), bSelected))
+                {
+                    SelectedMesh = *Mesh;
+                    bChanged = true;
+                }
+                if (bSelected) ImGui::SetItemDefaultFocus();
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Mesh->GetPath().c_str());
+                ImGui::PopID();
+            }
+            ImGui::EndCombo();
+        }
+        return bChanged;
+    };
+
+    UStaticMeshComponent* PawnMesh = Pawn->GetStaticMeshComponent();
+    if (PawnMesh)
+    {
+        UStaticMesh* Mesh = PawnMesh->GetStaticMesh();
+        if (DrawMeshPicker("Pawn Mesh", Mesh)) PawnMesh->SetStaticMesh(Mesh);
+    }
+    int Type = Pawn->UsesStaticMeshProjectiles() ? 1 : 0;
+    const char* Types[] = {"FireBall", "StaticMesh"};
+    if (ImGui::Combo("Projectile Type", &Type, Types, IM_ARRAYSIZE(Types)))
+        Pawn->SetUseStaticMeshProjectiles(Type == 1);
+    if (Pawn->UsesStaticMeshProjectiles())
+    {
+        UStaticMesh* Mesh = Pawn->GetProjectileMesh();
+        if (DrawMeshPicker("Projectile Mesh", Mesh)) Pawn->SetProjectileMesh(Mesh);
+        if (!Mesh) ImGui::TextDisabled("Select a projectile mesh to fire.");
+    }
+    ImGui::TextDisabled("Projectile settings apply to the next shot.");
 }

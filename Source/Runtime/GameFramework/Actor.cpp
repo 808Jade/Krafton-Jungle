@@ -31,21 +31,11 @@ AActor::~AActor()
 
 void AActor::BeginPlay()
 {
-	//if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(RootComponent))
-	//{
-	//	World->AddPrimitive(Cast<UPrimitiveComponent>(RootComponent));
-	//}
-
+	if (bHasBegunPlay || !World || !World->HasBegunPlay()) return;
+	RegisterAllComponents();
+	bHasBegunPlay = true;
 	for (UActorComponent* Component : Components)
-	{
-		Component->InitializeComponent();
-	}
-
-	for (UActorComponent* Component : Components)
-	{
-		Component->BeginPlay();
-	}
-
+		if (Component) Component->BeginPlayComponent();
 	RegisterAllActorTickFunctions(true);
 }
 
@@ -67,7 +57,7 @@ void AActor::RegisterAllActorTickFunctions(bool bRegister)
 	for (UActorComponent* Component : Components)
 	{
 		if (Component)
-			Apply(Component->PrimaryComponentTick);
+			Component->RegisterComponentTickFunctions(bRegister);
 	}
 }
 
@@ -213,15 +203,14 @@ FVector AActor::GetActorLocation() const
 	return FVector::ZeroVector;
 }
 
-//FRotator AActor::GetActorRotation() const
-//{
-//    if (RootComponent)
-//    {
-//        // USceneComponent의 GetWorldRotation() 호출
-//        return RootComponent->GetWorldRotation();
-//    }
-//    return FRotator::ZeroRotator;
-//}
+FRotator AActor::GetActorRotation() const
+{
+	if (RootComponent)
+	{
+		return RootComponent->GetWorldRotation();
+	}
+	return FRotator();
+}
 
 FVector AActor::GetActorScale3D() const
 {
@@ -232,14 +221,14 @@ FVector AActor::GetActorScale3D() const
 	return FVector::OneVector;
 }
 
-//FQuat AActor::GetActorQuat() const
-//{
-//    if (RootComponent)
-//    {
-//        return FQuat(RootComponent->GetWorldRotation());
-//    }
-//    return FQuat::Identity;
-//}
+FQuat AActor::GetActorQuat() const
+{
+	if (RootComponent)
+	{
+		return RootComponent->GetWorldRotation().Quaternion();
+	}
+	return FQuat::Identity();
+}
 
 FTransform AActor::GetActorTransform() const
 {
@@ -287,20 +276,7 @@ UActorComponent* AActor::AddComponent(UClass* ComponentClass, FName Name)
 
 	NewComponent->SetOwner(this);
 	Components.Add(NewComponent);
-	NewComponent->InitializeComponent();
 	NewComponent->RegisterComponent();
-
-	//if (UParticleSubUVComponent* ParticleSubUV = Cast<UParticleSubUVComponent>(NewComponent))
-	//{
-	//    ParticleSubUV->BeginPlay();
-	//    RegisterAllActorTickFunctions(true);
-	//}
-
-	if (World)
-	{
-		NewComponent->BeginPlay();
-		RegisterAllActorTickFunctions(true);
-	}
 
 	return NewComponent;
 }

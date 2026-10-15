@@ -1,274 +1,149 @@
-Texture2D InputTexture : register(t0);
-SamplerState LinearClamp : register(s0);
-
-//절대 임계값
-#define EDGE_THRESHOLD_MIN 0.0312f
-//상대 임계값
-#define EDGE_THRESHOLD_MAX 0.125f
-
-#define QUALITY(q) ((q) < 5 ? 1.0 : ((q) > 5 ? ((q) < 10 ? 2.0 : ((q) < 11 ? 4.0 : 8.0)) : 1.5))
-
-static const int ITERATIONS = 12;
-
-static const float SUBPIXEL_QUALITY = 0.75f;
-
 cbuffer FXAAConstants : register(b0)
 {
-    float2 InverseScreenSize;
+    // 한 픽셀의 UV 크기
+    float InvWidth;
+    float InvHeight;
     float2 Padding;
 };
 
-struct PSInput
+// 입력은 color buffer 한 장뿐. 깊이·법선은 읽지 않는다.
+Texture2D<float4> OriginalColorBufferTexture : register(t0);
+// bilinear 샘플러. 쌍 평균과 최종 섞기를 하드웨어 보간에 맡기는 전제
+SamplerState LinearClampSampler : register(s0);
+
+
+static const float EdgeThreshold = 0.166; // 상대 임계값 (rangeMax에 비례)
+static const float EdgeThresholdMin = 0.0833; // 절대 임계값 (어두운 곳 제외)
+static const float SubpixelStrength = 0.75;
+// UE Quality 4 = FXAA preset 29. 마지막 간격은 미발견 방향의 거리 확장에만 사용한다.
+static const int SearchSampleCount = 11;
+static const float SearchSteps[12] = { 1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 4.0, 8.0 };
+
+// luma = 0.299R + 0.587G + 0.114B (Rec.601). UE의 FxaaLuma와 같음
+float GetLuma(float3 Color)
 {
-    float4 Position : SV_POSITION;
-    float2 UV : TEXCOORD0;
+    return dot(Color, float3(0.299, 0.587, 0.114));
+}
+
+// bilinear로 읽은 색의 luma.
+float SampleLuma(float2 UV)
+{
+    return GetLuma(OriginalColorBufferTexture.SampleLevel(LinearClampSampler, UV, 0).rgb);
+}
+
+struct VSOutput
+{
+    float4 Position : SV_Position;
 };
 
-PSInput mainVS(uint VertexID : SV_VertexID)
+// 풀스크린 패스 (큰 삼각형)
+VSOutput mainVS(uint VertexID : SV_VertexID)
 {
-    PSInput Output;
-    float2 UV = float2((VertexID << 1) & 2, VertexID & 2); // (0,0) (2,0) (0,2)
-    Output.Position = float4(UV * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f), 0.0f, 1.0f);
-    Output.UV = UV;
+    float2 UV = float2((VertexID << 1) & 2, VertexID & 2);
+    VSOutput Output;
+    Output.Position = float4(UV * float2(2, -2) + float2(-1, 1), 0, 1);
     return Output;
 }
 
-//밝기 구하는 함수
-float rgb2luma(float3 rgb)
+
+float4 mainPS(VSOutput Input) : SV_Target
 {
-    return dot(rgb, float3(0.299f, 0.587f, 0.114f));
-}
-
-//루프 안에서도 쓰므로 미분값이 필요 없는 SampleLevel로 읽는다 
-float3 SampleColor(float2 uv)
-{
-    return InputTexture.SampleLevel(LinearClamp, uv, 0).rgb;
-}
-
-//현재 UV에서 픽셀 (x, y)칸 떨어진 곳의 밝기. D3D는 v가 아래로 증가하므로 y = -1이 위쪽이다
-float SampleLumaOffset(float2 uv, float x, float y)
-{
-    return rgb2luma(SampleColor(uv + float2(x, y) * InverseScreenSize));
-}
-
-float4 mainPS(PSInput input) : SV_Target
-{
-    float3 colorCenter = SampleColor(input.UV);
-
-    //해당 픽셀의 밝기
-    float lumaCenter = rgb2luma(colorCenter);
-
-    //1.AA를 적용할 픽셀인지 판단
-    //-----------------------------------------------------------------------------------
-    float lumaDown = SampleLumaOffset(input.UV, 0.0f, 1.0f);
-    float lumaUp = SampleLumaOffset(input.UV, 0.0f, -1.0f);
-    float lumaLeft = SampleLumaOffset(input.UV, -1.0f, 0.0f);
-    float lumaRight = SampleLumaOffset(input.UV, 1.0f, 0.0f);
-
-    //최소,최대 밝기
-    float lumaMin = min(lumaCenter, min(min(lumaDown, lumaUp), min(lumaLeft, lumaRight)));
-    float lumaMax = max(lumaCenter, max(max(lumaDown, lumaUp), max(lumaLeft, lumaRight)));
+    float2 TexelSize = float2(InvWidth, InvHeight);
+    float2 UV = Input.Position.xy * TexelSize;
+    float4 OriginalColor = OriginalColorBufferTexture.SampleLevel(LinearClampSampler, UV, 0);
     
-    float lumaRange = lumaMax - lumaMin;
+    // M과 상하좌우 4개의 luma
+    float M = GetLuma(OriginalColor.rgb);
+    float N = SampleLuma(UV + float2(0, -TexelSize.y));
+    float S = SampleLuma(UV + float2(0, TexelSize.y));
+    float W = SampleLuma(UV + float2(-TexelSize.x, 0));
+    float E = SampleLuma(UV + float2(TexelSize.x, 0));
+
+    // range = 주변 5픽셀의 최대 − 최소, 기준은 상대값과 절대 하한 중 큰 값
+    float MinLuma = min(M, min(min(N, S), min(W, E)));
+    float MaxLuma = max(M, max(max(N, S), max(W, E)));
+    float Range = MaxLuma - MinLuma;
+    if (Range < max(EdgeThresholdMin, MaxLuma * EdgeThreshold))
+        return OriginalColor;
+
+    // 모서리 4개는 조기 종료 뒤에야 읽는다 
+    float NW = SampleLuma(UV + float2(-TexelSize.x, -TexelSize.y));
+    float NE = SampleLuma(UV + float2(TexelSize.x, -TexelSize.y));
+    float SW = SampleLuma(UV + float2(-TexelSize.x, TexelSize.y));
+    float SE = SampleLuma(UV + float2(TexelSize.x, TexelSize.y));
     
-    //밝기의 변화가 임계값보다 작으면 AA를 적용하지 않음
-    //0에 가까운 매우 어두운 픽셀은 절대 임계값을 사용하게하고, 밝은 픽셀들은 상대 임계값을 사용하게 함(밝을 수록 높게 임계값을 잡은것)
-    if (lumaRange < max(EDGE_THRESHOLD_MIN, lumaMax * EDGE_THRESHOLD_MAX))
+    // 3×3 이차 차분, 가운데 줄 ×2 : 양옆 줄 ×1
+    float EdgeH = 2 * abs(N + S - 2 * M) + abs(NW + SW - 2 * W) + abs(NE + SE - 2 * E);
+    float EdgeV = 2 * abs(W + E - 2 * M) + abs(NW + NE - 2 * N) + abs(SW + SE - 2 * S);
+    bool Horizontal = EdgeH >= EdgeV;
+
+    // 가로·세로를 한 코드로 처리하려고 선을 가로지르는 두 이웃을 Negative/Positive로 재정의
+    float NegativeLuma = Horizontal ? N : W;
+    float PositiveLuma = Horizontal ? S : E;
+    // 반대편 이웃 고르기. 기울기가 큰 쪽, 동점이면 위/왼쪽 (pairN)
+    bool UseNegative = abs(NegativeLuma - M) >= abs(PositiveLuma - M);
+    float NeighborLuma = UseNegative ? NegativeLuma : PositiveLuma;
+    // 반대편 이웃 쪽으로 한 픽셀 (선에 수직)
+    float2 BlendStep = Horizontal ? float2(0, TexelSize.y) : float2(TexelSize.x, 0);
+    BlendStep *= UseNegative ? -1.0 : 1.0;
+    // 선을 따라가는 한 픽셀 (탐색 방향)
+    float2 SearchStep = Horizontal ? float2(TexelSize.x, 0) : float2(0, TexelSize.y);
+
+    // 경계를 가로질러 반 픽셀 이동하면 bilinear 샘플이 쌍 평균이 된다.
+    float PairAverage = (M + NeighborLuma) * 0.5;
+    // 탐색 끝 판정 기준 = contrast0 / 4 (gradientScaled)
+    float EndThreshold = abs(NeighborLuma - M) * 0.25;
+    // M과 반대편 이웃 사이 경계선 위. 여기서 bilinear로 읽으면 쌍 평균이 한 번에 나온다.
+    float2 SearchOrigin = UV + BlendStep * 0.5;
+    bool FoundNegative = false;
+    bool FoundPositive = false;
+    float DistanceNegative = 0;
+    float DistancePositive = 0;
+    float EndDeltaNegative = 0;
+    float EndDeltaPositive = 0;
+
+    // 샘플 거리: 1, 2.5, 4.5, ..., 18.5, 22.5픽셀. 발견한 방향은 멈춘다.
+    [loop]
+    for (int Step = 0; Step < SearchSampleCount; ++Step)
     {
-        return float4(colorCenter, 1.0f);
-    };
-    //-----------------------------------------------------------------------------------   
-    
-    
-    //2. AA를 적용할 픽셀이라면, 주변 픽셀의 색을 샘플링하여 경계선의 방향을 계산
-    //-----------------------------------------------------------------------------------
-    //대각선 방향 계산
-    float lumaDownLeft = SampleLumaOffset(input.UV, -1.0f, 1.0f);
-    float lumaUpRight = SampleLumaOffset(input.UV, 1.0f, -1.0f);
-    float lumaUpLeft = SampleLumaOffset(input.UV, -1.0f, -1.0f);
-    float lumaDownRight = SampleLumaOffset(input.UV, 1.0f, 1.0f);
-
-
-    float lumaDownUp = lumaDown + lumaUp;
-    float lumaLeftRight = lumaLeft + lumaRight;
-
-
-    float lumaLeftCorners = lumaDownLeft + lumaUpLeft;
-    float lumaDownCorners = lumaDownLeft + lumaDownRight;
-    float lumaRightCorners = lumaDownRight + lumaUpRight;
-    float lumaUpCorners = lumaUpRight + lumaUpLeft;
-
-
-    float edgeHorizontal = abs(-2.0 * lumaLeft + lumaLeftCorners) + abs(-2.0 * lumaCenter + lumaDownUp) * 2.0 + abs(-2.0 * lumaRight + lumaRightCorners);
-    float edgeVertical = abs(-2.0 * lumaUp + lumaUpCorners) + abs(-2.0 * lumaCenter + lumaLeftRight) * 2.0 + abs(-2.0 * lumaDown + lumaDownCorners);
-
-    bool isHorizontal = (edgeHorizontal >= edgeVertical);
-    //-----------------------------------------------------------------------------------
-    
-    
-    //3. 경계선의 방향에 따라, 해당 방향으로의 밝기 변화량을 계산해서 오른쪽인지 왼쪽인지 판단
-    //-----------------------------------------------------------------------------------
-    
-    //수평방향이면 위, 아래 픽셀의 밝기 변화량을 계산하고, 수직방향이면 좌, 우 픽셀의 밝기 변화량을 계산
-    float luma1 = isHorizontal ? lumaUp : lumaLeft;
-    float luma2 = isHorizontal ? lumaDown : lumaRight;
-    
-    //밝기 변화량 계산
-    float gradient1 = luma1 - lumaCenter;
-    float gradient2 = luma2 - lumaCenter;
-
-    //밝기 변화량이 큰 쪽이 경계선의 방향
-    bool is1Steepest = abs(gradient1) >= abs(gradient2);
-
-    //밝기 변화량이 큰 쪽의 절대값을 0.25배로 줄여서, 경계선의 방향으로 이동할 픽셀의 밝기 변화량을 계산
-    float gradientScaled = 0.25 * max(abs(gradient1), abs(gradient2));
-
-    //경계선의 방향으로 이동할 픽셀의 밝기 변화량을 계산
-    float stepLength = isHorizontal ? InverseScreenSize.y : InverseScreenSize.x;
-
-    float lumaLocalAverage = 0.0;
-
-    if (is1Steepest)
-    {
-        //방향 전환
-        stepLength = -stepLength;
-        lumaLocalAverage = 0.5 * (luma1 + lumaCenter);
-    }
-    else
-    {
-        lumaLocalAverage = 0.5 * (luma2 + lumaCenter);
-    }
-
-    //픽셀의 중간 위치를 계산
-    float2 currentUV = input.UV;
-    if (isHorizontal)
-    {
-        currentUV.y += stepLength * 0.5;
-    }
-    else
-    {
-        currentUV.x += stepLength * 0.5;
-    }
-    //--------------------------------------------------------------------------------
-    
-    //4. 경계선의 방향으로 이동하면서, 밝기 변화량이 gradientScaled보다 작아지는 지점을 찾음
-    //--------------------------------------------------------------------------------
-
-    float2 offset = isHorizontal ? float2(InverseScreenSize.x, 0.0) : float2(0.0, InverseScreenSize.y);
-
-    float2 uv1 = currentUV - offset;
-    float2 uv2 = currentUV + offset;
-
-
-    float lumaEnd1 = rgb2luma(SampleColor(uv1));
-    float lumaEnd2 = rgb2luma(SampleColor(uv2));
-    lumaEnd1 -= lumaLocalAverage;
-    lumaEnd2 -= lumaLocalAverage;
-
-    bool reached1 = abs(lumaEnd1) >= gradientScaled;
-    bool reached2 = abs(lumaEnd2) >= gradientScaled;
-    bool reachedBoth = reached1 && reached2;
-
-
-    if (!reached1)
-    {
-        uv1 -= offset;
-    }
-    if (!reached2)
-    {
-        uv2 += offset;
-    }
-    if (!reachedBoth)
-    {
-
-        for (int i = 2; i < ITERATIONS; i++)
+        if (!FoundNegative)
         {
-
-            if (!reached1)
-            {
-                lumaEnd1 = rgb2luma(SampleColor(uv1));
-                lumaEnd1 = lumaEnd1 - lumaLocalAverage;
-            }
-
-            if (!reached2)
-            {
-                lumaEnd2 = rgb2luma(SampleColor(uv2));
-                lumaEnd2 = lumaEnd2 - lumaLocalAverage;
-            }
-
-            reached1 = abs(lumaEnd1) >= gradientScaled;
-            reached2 = abs(lumaEnd2) >= gradientScaled;
-            reachedBoth = reached1 && reached2;
-
-
-            if (!reached1)
-            {
-                uv1 -= offset * QUALITY(i);
-            }
-            if (!reached2)
-            {
-                uv2 += offset * QUALITY(i);
-            }
-
-
-            if (reachedBoth)
-            {
-                break;
-            }
+            DistanceNegative += SearchSteps[Step];
+            EndDeltaNegative = SampleLuma(SearchOrigin - SearchStep * DistanceNegative) - PairAverage;
+            FoundNegative = abs(EndDeltaNegative) >= EndThreshold;
         }
-    }
-    //--------------------------------------------------------------------------------
-    
-    //5. Offset 계산
-    //--------------------------------------------------------------------------------
-
-    float distance1 = isHorizontal ? (input.UV.x - uv1.x) : (input.UV.y - uv1.y);
-    float distance2 = isHorizontal ? (uv2.x - input.UV.x) : (uv2.y - input.UV.y);
-
-
-    bool isDirection1 = distance1 < distance2;
-    float distanceFinal = min(distance1, distance2);
-
-
-    float edgeThickness = (distance1 + distance2);
-
-
-    float pixelOffset = -distanceFinal / edgeThickness + 0.5;
-    
-
-    bool isLumaCenterSmaller = lumaCenter < lumaLocalAverage;
-
-    bool correctVariation = ((isDirection1 ? lumaEnd1 : lumaEnd2) < 0.0) != isLumaCenterSmaller;
-
-
-    float finalOffset = correctVariation ? pixelOffset : 0.0;
-    //--------------------------------------------------------------------------------
-    
-    //6.subpixel AA적용
-    //--------------------------------------------------------------------------------
-    // Sub-pixel shifting
-    float lumaAverage = (1.0 / 12.0) * (2.0 * (lumaDownUp + lumaLeftRight) + lumaLeftCorners + lumaRightCorners);
-
-    float subPixelOffset1 = clamp(abs(lumaAverage - lumaCenter) / lumaRange, 0.0, 1.0);
-    float subPixelOffset2 = (-2.0 * subPixelOffset1 + 3.0) * subPixelOffset1 * subPixelOffset1;
-
-    float subPixelOffsetFinal = subPixelOffset2 * subPixelOffset2 * SUBPIXEL_QUALITY;
-
-
-    finalOffset = max(finalOffset, subPixelOffsetFinal);
-    //--------------------------------------------------------------------------------
-    
-    //7. 최종 픽셀 색상 계산
-    float2 finalUv = input.UV;
-    if (isHorizontal)
-    {
-        finalUv.y += finalOffset * stepLength;
-    }
-    else
-    {
-        finalUv.x += finalOffset * stepLength;
+        if (!FoundPositive)
+        {
+            DistancePositive += SearchSteps[Step];
+            EndDeltaPositive = SampleLuma(SearchOrigin + SearchStep * DistancePositive) - PairAverage;
+            FoundPositive = abs(EndDeltaPositive) >= EndThreshold;
+        }
+        if (FoundNegative && FoundPositive)
+            break;
     }
 
-    float3 finalColor = SampleColor(finalUv);
-    return float4(finalColor, 1.0f);
+    // UE처럼 미발견 방향은 30.5픽셀까지 거리만 확장한다.
+    // 부호 검사에는 마지막으로 실제 샘플링한 밝기 차이를 사용한다.
+    if (!FoundNegative)
+        DistanceNegative += SearchSteps[SearchSampleCount];
+    if (!FoundPositive)
+        DistancePositive += SearchSteps[SearchSampleCount];
+
+    float EdgeOffset = 0;
+    float NearestEndDelta = DistanceNegative < DistancePositive ? EndDeltaNegative : EndDeltaPositive;
+    if ((NearestEndDelta < 0) != (M - PairAverage < 0))
+        // 양쪽 미발견이면 거리가 같아 자연스럽게 0이 된다.
+        EdgeOffset = 0.5 - min(DistanceNegative, DistancePositive) / (DistanceNegative + DistancePositive);
+
+    // 서브픽셀: 주변 8픽셀 가중평균 (상하좌우 2, 모서리 1, 합 12). M 제외
+    float NeighborhoodAverage = (2 * (N + S + W + E) + NW + NE + SW + SE) / 12.0;
+    float ContrastRatio = saturate(abs(NeighborhoodAverage - M) / max(Range, 1e-6));
+    float SmoothContrast = ContrastRatio * ContrastRatio * (3 - 2 * ContrastRatio);
+    float SubpixelOffset = SmoothContrast * SmoothContrast * SubpixelStrength;
+    
+    // t나 subpixel 값 중에서 더 큰 값을 바탕으로 섞는다.
+    float2 FinalUV = UV + BlendStep * max(EdgeOffset, SubpixelOffset);
+    
+    // bilinear 보간으로 RGB와 알파를 함께 섞는다.
+    return OriginalColorBufferTexture.SampleLevel(LinearClampSampler, FinalUV, 0);
 }

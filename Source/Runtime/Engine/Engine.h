@@ -10,10 +10,16 @@
 
 #include "Asset/AssetManager.h"
 
+class UGameInstance;
+class FGameViewportClient;
+
 struct FWorldContext
 {
 	EWorldType WorldType;
 	FName ContextHandle;
+	UGameInstance* OwningGameInstance = nullptr;
+	int32 PIEInstance = 0;
+	TSharedPtr<FGameViewportClient> GameViewport;
 
 	void SetCurrentWorld(UWorld* World);
 
@@ -71,6 +77,11 @@ public:
 
 	FWorldContext& CreateNewWorldContext(EWorldType WorldType);
 	FWorldContext* GetWorldContextFromWorld(const UWorld* InWorld);
+	FWorldContext* GetWorldContextFromType(EWorldType WorldType);
+	FWorldContext* GetWorldContextFromPIEInstance(int32 PIEInstance);
+	UWorld* GetEditorWorld() const;
+	virtual UWorld* CreatePIEWorldByDuplication(FWorldContext& Context, UWorld* SourceWorld);
+	// PIE 컨텍스트는 게임 인스턴스와 복제 월드까지 함께 정리한다.
 	void DestroyWorldContext(UWorld* InWorld);
 
 protected:
@@ -78,7 +89,7 @@ protected:
 
 	FEngineLoop& GetEngineLoop() const { return *EngineLoop; }
 
-	TIndirectArray<FWorldContext> WorldList;
+	TIndirectArray<FWorldContext> WorldContextlist;
 	//UWorld* World = nullptr;
 	int32 NextWorldContextHandle = 0;
 private:

@@ -11,10 +11,13 @@ struct FImageData
 	uint32 GetRowPitch() const { return RowPitch != 0 ? RowPitch : Width * BytesPerPixel; }
 
 	TArray<uint8> Pixels;
+	TArray<uint32> MipOffsets;
+	TArray<uint32> MipRowPitches;
 	uint32 Width = 0;
 	uint32 Height = 0;
 	uint32 BytesPerPixel = 0;   // BC 압축 포맷이면 0
 	uint32 RowPitch = 0;        // 0이면 Width * BytesPerPixel
+	uint32 MipLevels = 1;
 	DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
 };
 

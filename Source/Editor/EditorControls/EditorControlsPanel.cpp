@@ -1,15 +1,15 @@
 #include "EnginePCH.h"
 
 #include "Editor/EditorControls/EditorControlsPanel.h"
-#include "Editor/LevelEditor/MultipleViewports/Adapter/MultipleViewportsAdapter.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 
 #include "Engine/World.h"
+#include "Editor/Viewports/ViewportsPanel.h"
+#include "Editor/Viewports/EditorViewportClient.h"
 
 #include "Input/InputSystem.h"
 
-#include <algorithm>
 #include <cmath>
 
 // 패널 초기화 성공을 반환한다.
@@ -34,16 +34,14 @@ void FEditorControlsPanel::Tick(float DeltaTime)
 // 선택한 클래스의 액터를 월드에 생성한다.
 void FEditorControlsPanel::AddActor(uint32 Index)
 {
-	if (IsPlayingQuery && IsPlayingQuery())
-		return;
-
+	if (Index >= static_cast<uint32>(Classes.Num())) return;
 	World->SpawnActor(Classes[Index]);
 }
 
 // 액터 생성·카메라 속성·기즈모·경로 추적 UI를 그린다.
 void FEditorControlsPanel::OnRender()
 {
-	ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
 	ImGui::Begin("Editor Controls");
 	ImGui::Spacing();
 
@@ -75,30 +73,35 @@ void FEditorControlsPanel::OnRender()
 	const float Available = ImGui::GetContentRegionAvail().x;
 	const float Spacing = ImGui::GetStyle().ItemSpacing.x;
 
-	// 패널 폭이 충분하면 Combo/Spawn/개수를 한 줄에, 좁으면 줄을 나눠 배치한다.
-	const bool bInline = Available >= SpawnButtonWidth + CountWidth + Spacing * 2.0f + 120.0f;
-	const float ComboWidth = bInline ? Available - SpawnButtonWidth - CountWidth - Spacing * 2.0f : Available;
+	const float ComboWidth =
+		Available - SpawnButtonWidth - CountWidth - Spacing * 2.0f;
 
-	ImGui::SetNextItemWidth(std::max(1.0f, ComboWidth));
+	ImGui::SetNextItemWidth(ComboWidth);
 	ImGui::Combo("##ActorType", &SelectedIndex, Items, IM_ARRAYSIZE(Items));
 
-	if (bInline)
-		ImGui::SameLine();
+	ImGui::SameLine();
 
-	// PIE 중에는 보이지 않는 에디터 월드에 스폰되므로 막는다.
-	const bool bPlaying = IsPlayingQuery && IsPlayingQuery();
-
-	ImGui::BeginDisabled(bPlaying);
 	if (ImGui::Button("Spawn", ImVec2(SpawnButtonWidth, 0)))
 	{
 		AddActor(SelectedIndex);
 	}
-	ImGui::EndDisabled();
 
-	if (bInline)
-		ImGui::SameLine();
-
+	ImGui::SameLine();
 	ImGui::TextDisabled("%s", CountText);
+
+	ImGui::Dummy(ImVec2(0.0f, SubsectionGap));
+	ImGui::SeparatorText("Light Spawn");
+	if (ImGui::Button("Directional Light"))
+		World->SpawnActor(ADirectionalLightActor::StaticClass());
+	ImGui::SameLine();
+	if (ImGui::Button("Spot Light"))
+		World->SpawnActor(ASpotLightActor::StaticClass());
+	ImGui::SameLine();
+	if (ImGui::Button("Point Light"))
+		World->SpawnActor(APointLightActor::StaticClass());
+	ImGui::SameLine();
+	if (ImGui::Button("Sky Light"))
+		World->SpawnActor(ASkyLightActor::StaticClass());
 
 	//////////////////////////////////////////////////////
 
@@ -203,38 +206,16 @@ void FEditorControlsPanel::DrawCameraProperties()
 	ImGui::SeparatorText("Viewport");
 
 	UCameraComponent* CamCom = World && World->GetMainCamera() ? World->GetMainCamera()->GetCameraComponent() : nullptr;
-	if (!ViewportAdapter && !CamCom) return;
+	if (!CamCom) return;
 
-	int32 CameraViewIndex = 0;
-	FViewCamera Camera{};
+	FEditorViewportClient* ActiveClient = ViewportsPanel ? ViewportsPanel->GetViewportClient(ViewportsPanel->GetActiveViewIndex()) : nullptr;
 
-	if (ViewportAdapter)
-	{
-		const char* ViewNames[] = { "View 0", "View 1", "View 2", "View 3" };
-		CameraViewIndex = ViewportAdapter->GetEditorViewIndex();
-
-		const bool bSingle = ViewportAdapter->GetLayoutMode() == ELayoutMode::Single;
-		if (bSingle) CameraViewIndex = ViewportAdapter->GetSingleViewIndex();
-
-		ImGui::SetNextItemWidth(-1.0f);
-		ImGui::BeginDisabled(bSingle);
-
-		if (ImGui::Combo("##CameraView", &CameraViewIndex, ViewNames, 4))
-		{
-			ViewportAdapter->SetEditorViewIndex(CameraViewIndex);
-		}
-		ImGui::EndDisabled();
-
-		Camera = ViewportAdapter->GetViewCamera(CameraViewIndex);
-	}
-
-	bool bChanged = false;
-	bool bOrthogonal = ViewportAdapter ? Camera.Projection.Mode == EProjectionMode::Orthographic : CamCom->GetIsOrthogonal();
+	bool bOrthogonal = CamCom->GetIsOrthogonal();
 
 	ImGui::Dummy(ImVec2(0.0f, SubsectionGap));
 	ImGui::TextDisabled("Projection");
 
-	// Camera Projection Table
+	// 카메라 투영 설정 표
 	if (ImGui::BeginTable("Camera Projection", 2))
 	{
 		ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 100.0f);
@@ -250,50 +231,33 @@ void FEditorControlsPanel::DrawCameraProperties()
 
 		if (bOrthogonal)
 		{
-			float OrthoWidth = ViewportAdapter ? Camera.Projection.OrthoWidth : CamCom->GetOrthoWidth();
+			float OrthoWidth = CamCom->GetOrthoWidth();
 			if (ImGui::DragFloat("##OrthoWidth", &OrthoWidth, 0.1f) && std::isfinite(OrthoWidth))
 			{
 				OrthoWidth = FMath::Clamp(OrthoWidth, 0.01f, 1000000.0f);
-
-				if (ViewportAdapter)
-				{
-					Camera.Projection.OrthoWidth = OrthoWidth;
-					bChanged = true;
-				}
-				else
-				{
-					CamCom->SetOrthoWidth(OrthoWidth);
-				}
+				CamCom->SetOrthoWidth(OrthoWidth);
+				if (ActiveClient) ActiveClient->SetOrthoWidth(OrthoWidth);
 			}
 		}
 		else
 		{
-			float FOV = ViewportAdapter ? Camera.Projection.FovDegrees : CamCom->GetFieldOfView();
+			float FOV = CamCom->GetFieldOfView();
 			if (ImGui::DragFloat("##FOV", &FOV, 0.1f) && std::isfinite(FOV))
 			{
 				FOV = FMath::Clamp(FOV, 1.0f, 179.0f);
-
-				if (ViewportAdapter)
-				{
-					Camera.Projection.FovDegrees = FOV;
-					bChanged = true;
-				}
-				else
-				{
-					CamCom->SetFieldOfView(FOV);
-				}
+				CamCom->SetFieldOfView(FOV);
+				if (ActiveClient) ActiveClient->SetViewFOV(FOV);
 			}
 		}
 
-		// Near / Far
+		// 가까운 평면과 먼 평면
 		ImGui::TableNextRow();
 
 		ImGui::TableSetColumnIndex(0);
 		ImGui::Text("Near");
 
 		ImGui::TableSetColumnIndex(1);
-		float Width = ImGui::GetContentRegionAvail().x;
-		float Near = ViewportAdapter ? Camera.Projection.NearClip : CamCom->GetNearZ();
+		float Near = CamCom->GetNearZ();
 
 		ImGui::SetNextItemWidth(-1.0f);
 		bool Changed = ImGui::InputFloat("##Near", &Near);
@@ -304,28 +268,19 @@ void FEditorControlsPanel::DrawCameraProperties()
 		ImGui::Text("Far");
 
 		ImGui::TableSetColumnIndex(1);
-		float Far = ViewportAdapter ? Camera.Projection.FarClip : CamCom->GetFarZ();
+		float Far = CamCom->GetFarZ();
 		ImGui::SetNextItemWidth(-1.0f);
 		Changed |= ImGui::InputFloat("##Far", &Far);
 
 		if (Changed && std::isfinite(Near) && std::isfinite(Far) && Near > 0 && Far > Near)
 		{
-			if (ViewportAdapter)
-			{
-				Camera.Projection.NearClip = Near;
-				Camera.Projection.FarClip = Far;
-				bChanged = true;
-			}
-			else
-			{
-				CamCom->SetNearZ(Near);
-				CamCom->SetFarZ(Far);
-			}
+			CamCom->SetNearZ(Near);
+			CamCom->SetFarZ(Far);
 		}
 		ImGui::EndTable();
 	}
 
-	// Camera Transform Table
+	// 카메라 변환 설정 표
 	ImGui::Dummy(ImVec2(0.0f, SubsectionGap));
 	ImGui::TextDisabled("Transform");
 
@@ -339,7 +294,7 @@ void FEditorControlsPanel::DrawCameraProperties()
 
 		ImGui::TableNextRow();
 
-		// Camera Location
+		// 카메라 위치
 		ImGui::TableSetColumnIndex(0);
 		ImGui::Text("Location");
 
@@ -347,9 +302,7 @@ void FEditorControlsPanel::DrawCameraProperties()
 		float Available = ImGui::GetContentRegionAvail().x;
 		float ItemWidth = (Available - ImGui::GetStyle().ItemSpacing.x * 2.0f) / 3.0f;
 
-		FVector Location = ViewportAdapter ?
-			FVector(Camera.Transform.Location.X, Camera.Transform.Location.Y, Camera.Transform.Location.Z) :
-			CamCom->GetRelativeLocation();
+		FVector Location = CamCom->GetRelativeLocation();
 
 		ImGui::SetNextItemWidth(ItemWidth);
 		bLocationChanged |= ImGui::DragFloat("##LocationX", &Location.X, 0.1f);
@@ -366,24 +319,18 @@ void FEditorControlsPanel::DrawCameraProperties()
 
 		if (bLocationChanged && std::isfinite(Location.X) && std::isfinite(Location.Y) && std::isfinite(Location.Z))
 		{
-			if (ViewportAdapter)
-			{
-				Camera.Transform.Location = { Location.X, Location.Y, Location.Z };
-				bChanged = true;
-			}
-			else CamCom->SetRelativeLocation(Location);
+			CamCom->SetRelativeLocation(Location);
+			if (ActiveClient) ActiveClient->SetViewLocation(Location);
 		}
 
 		ImGui::TableNextRow();
 
-		// Camera Rotation
+		// 카메라 회전
 		ImGui::TableSetColumnIndex(0);
 		ImGui::Text("Rotation");
 
 		ImGui::TableSetColumnIndex(1);
-		FRotator Rotation = ViewportAdapter ?
-			FQuat(Camera.Transform.Rotation.X, Camera.Transform.Rotation.Y, Camera.Transform.Rotation.Z, Camera.Transform.Rotation.W).ToFRotator() :
-			CamCom->GetRelativeRotation();
+		FRotator Rotation = CamCom->GetRelativeRotation();
 
 		ImGui::SetNextItemWidth(ItemWidth);
 		bRotationChanged |= ImGui::DragFloat("##Pitch", &Rotation.Pitch, 0.1f);
@@ -402,23 +349,9 @@ void FEditorControlsPanel::DrawCameraProperties()
 
 		if (bRotationChanged && std::isfinite(Rotation.Pitch) && std::isfinite(Rotation.Yaw) && std::isfinite(Rotation.Roll))
 		{
-			if (ViewportAdapter)
-			{
-				if (!bOrthogonal)
-				{
-					Rotation.Pitch = FMath::Clamp(Rotation.Pitch, -89.0f, 89.0f);
-					Rotation.Roll = 0.0f;
-				}
-				const FQuat Q = Rotation.Quaternion();
-				Camera.Transform.Rotation = { Q.X, Q.Y, Q.Z, Q.W };
-				bChanged = true;
-			}
-			else CamCom->SetRelativeRotation(Rotation);
+			CamCom->SetRelativeRotation(Rotation);
+			if (ActiveClient) ActiveClient->SetViewRotation(Rotation);
 		}
 		ImGui::EndTable();
-	}
-	if (ViewportAdapter && bChanged)
-	{
-		ViewportAdapter->ApplyCameraProperties(CameraViewIndex, Camera, bRotationChanged);
 	}
 }

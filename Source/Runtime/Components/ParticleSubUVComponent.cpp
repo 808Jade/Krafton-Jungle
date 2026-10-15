@@ -20,6 +20,7 @@ UParticleSubUVComponent::UParticleSubUVComponent()
 	ColSize = 8;
 	RowSize = 8;
 	FrameRate = 12.0f;
+	Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");
 
 	// Todo: Default setting, set value from arguments
 	//AtlasTexturePath = "ParticleAtlas.png";
@@ -27,7 +28,6 @@ UParticleSubUVComponent::UParticleSubUVComponent()
 	// AtlasTexture = nullptr;
 
 	//Shader = RenderCommand::CreateShader(L"Resources/Shader/ParticleSubUVShader.hlsl", FParticleVertex::GetLayout());
-	//Material = UAssetManager::GetAssetByPath<UMaterial>("SubUVMaterial");	
 }
 
 // 파티클 에셋과 배열을 준비하고 초기 상태를 채운다.
@@ -52,6 +52,14 @@ void UParticleSubUVComponent::BeginPlay()
 
 		Particles.Add(Particle);
 	}
+}
+
+FBox UParticleSubUVComponent::CalcLocalBounds() const
+{
+	// 파티클은 컴포넌트 원점에서 생성되어 수명 동안 위로 이동한다.
+	// 프록시의 경계가 원점 쿼드에 고정되면 화면 안의 파티클도 컬링된다.
+	const float Extent = std::max(StartScale, EndScale) + MaxLifeTime * MaxRiseSpeed;
+	return FBox{ FVector(-Extent, -Extent, -Extent), FVector(Extent, Extent, Extent) };
 }
 
 // 열·행 개수가 양수인지 검사해 SubUV 분할 수를 설정한다.
@@ -114,80 +122,19 @@ void UParticleSubUVComponent::TickComponent(float DeltaTime)
 	}
 }
 
-// 기본 카메라 기준으로 파티클 상수와 렌더 패킷을 구성한다.
-void UParticleSubUVComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue)
+// 뷰 기준으로 파티클 상수와 렌더 패킷을 구성
+void UParticleSubUVComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const FViewContext& ViewContext)
 {
-	assert(QuadMesh != nullptr);
-	assert(Material != nullptr);
-	
-	Constants.Reset();
-	Constants.Reserve(Particles.Num());
-
-	const FVector CameraPos = GetOwner()->GetWorld()->GetMainCamera()->GetCameraComponent()->GetWorldLocation();
-	for (FParticle& Particle : Particles)
+	if (!QuadMesh || !Material || Particles.IsEmpty()) return;
+	BeginViewSubmission();
+	for (int32 Index = 0; Index < Particles.Num(); ++Index)
 	{
-		if (Particle.bAlive == false)
-		{
-			continue;
-		}
-
-
-		FMatrix WorldMatrix = FMatrix::Identity; 
-		Super::GetWorldTransformedMatrix(&WorldMatrix);
-
-		// Scale, Move
-		WorldMatrix.M[0][0] *= Particle.Scale;
-		WorldMatrix.M[0][1] *= Particle.Scale;
-		WorldMatrix.M[0][2] *= Particle.Scale;
-		WorldMatrix.M[0][3] *= Particle.Scale;
-
-		WorldMatrix.M[1][0] *= Particle.Scale;
-		WorldMatrix.M[1][1] *= Particle.Scale;
-		WorldMatrix.M[1][2] *= Particle.Scale;
-		WorldMatrix.M[1][3] *= Particle.Scale;
-
-		WorldMatrix.M[2][0] *= Particle.Scale;
-		WorldMatrix.M[2][1] *= Particle.Scale;
-		WorldMatrix.M[2][2] *= Particle.Scale;
-		WorldMatrix.M[2][3] *= Particle.Scale;
-
-		WorldMatrix.M[3][0] = Particle.Location.X;
-		WorldMatrix.M[3][1] = Particle.Location.Y;
-		WorldMatrix.M[3][2] = Particle.Location.Z;
-		WorldMatrix.M[3][3] = 1.0f;
-
-		const FVector ParticlePos = Particle.Location;
-		const FVector CameraToParticleVec = ParticlePos - CameraPos;
-
-		const float CameraToParticleDistance = 
-			CameraToParticleVec.X *
-			CameraToParticleVec.X +
-
-			CameraToParticleVec.Y *
-			CameraToParticleVec.Y +
-
-			CameraToParticleVec.Z *
-			CameraToParticleVec.Z;
-
-		FRenderPacket Packet;
-		Packet.Model = RenderQueue.StoreWorldMatrix(WorldMatrix);
-		Packet.Mesh = QuadMesh;
-		Packet.Material = Material;
-
-		FSubUVConstants C;
-		C.CurrentFrame =  Particle.SubUVFrame;
-		C.AtlasColSize = ColSize;
-		C.AtlasRowSize = RowSize;
-		C.Alpha = Particle.Alpha;
-
-		Constants.Add(C);
-
-		Packet.MaterialParamData = &Constants.Last();
-		Packet.MaterialParamDataSize = sizeof(FSubUVConstants);
-
-		Packet.CameraToParticleDistance = CameraToParticleDistance;
-
-		RenderQueue.Add(Packet);
+		const FParticle& Particle = Particles[Index];
+		if (!Particle.bAlive) continue;
+		const FMatrix WorldMatrix = ViewContext.BuildBillboardMatrix(
+			Particle.Location, Particle.Scale, Particle.Scale);
+		const FVector Delta = Particle.Location - ViewContext.CameraPosition;
+		SubmitParticleToRenderQueue(RenderQueue, Index, WorldMatrix, Delta.Dot(Delta));
 	}
 }
 
@@ -267,6 +214,7 @@ void UParticleSubUVComponent::BeginViewSubmission()
         Value.AtlasColSize = static_cast<float>(ColSize);
         Value.AtlasRowSize = static_cast<float>(RowSize);
         Value.Alpha = Particle.Alpha;
+		Value.DecodeSRGB = 0.0f;
         Constants.Add(Value);
     }
 }

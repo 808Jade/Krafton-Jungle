@@ -23,8 +23,8 @@ public:
 	virtual const FStaticMeshData* GetMeshData() const override;
 
 
-	// 텍스트는 FTextRenderer가 따로 그리므로 렌더 패킷을 만들지 않음
-	virtual void SubmitToRenderQueue(FRenderQueue& RenderQueue) override {}
+	// 텍스트는 별도 렌더러에서 처리하므로 렌더 패킷을 생성하지 않음
+	virtual void SubmitToRenderQueue(FRenderQueue& RenderQueue, const FViewContext& ViewContext) override {}
 
 	const FString& GetText() const { return Text; }
 	void SetText(const FString& InText) { Text = InText; }

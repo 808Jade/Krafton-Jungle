@@ -1,6 +1,8 @@
 #include "EnginePCH.h"
 #include "BenchmarkApp.h"
 
+#if defined(BENCHMARK)
+
 #include "Asset/AssetManager.h"
 #include "Core/Window.h"
 #include "Core/EngineLog.h"
@@ -577,3 +579,5 @@ namespace
 		ImGui::TextUnformatted(Text);
 	}
 }
+
+#endif

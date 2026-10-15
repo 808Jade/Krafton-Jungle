@@ -38,8 +38,11 @@ UMaterial* UMaterial::CreateInstance(const UMaterial* Source)
 	Instance->DepthStencilState = Source->DepthStencilState;
 	Instance->SamplerState = Source->SamplerState;
 	Instance->BaseColor = Source->BaseColor;
-	Instance->UVScrollSpeed = Source->UVScrollSpeed;
+	Instance->SpecularColor = Source->SpecularColor;
 	Instance->Shininess = Source->Shininess;
+	Instance->UVScrollSpeed = Source->UVScrollSpeed;
+	Instance->bFlipNormalY = Source->bFlipNormalY;
+	Instance->PSOType = Source->PSOType;
 
 	// ParamBuffer는 TUniquePtr라 복사할 수 없다.
 	// 원본이 갖고 있으면 같은 크기로 새로 만들어 준다. 내용은 매 프레임 갱신되므로 옮기지 않는다.
@@ -81,13 +84,15 @@ json UMaterial::SaveMaterial(const UMaterial* Material)
 
 	const UMaterial* Base = Material->GetBaseAsset();
 	Out["Base"] = Base ? Base->GetPath() : FString("DefaultMaterial");
+	Out["PSOType"] = static_cast<uint8>(Material->PSOType);
 	Out["BaseColor"] = Material->BaseColor;
+	Out["SpecularColor"] = Material->SpecularColor;
 	Out["Shininess"] = Material->Shininess;
+	Out["FlipNormalY"] = Material->bFlipNormalY;
 	Out["UVScrollSpeed"] = {
 		Material->UVScrollSpeed.X,
 		Material->UVScrollSpeed.Y
 	};
-	Out["Shininess"] = Material->Shininess;
 	Out["SamplerState"] = Material->SamplerState == ESamplerState::LinearWrap ? "LinearWrap" : "LinearClamp";
 	Out["BlendState"] = Material->BlendState == EBlendState::AlphaBlend ? "AlphaBlend" : "Opaque";
 
@@ -131,10 +136,17 @@ UMaterial* UMaterial::LoadMaterial(const json& In)
 	{
 		In["BaseColor"].get_to(Instance->BaseColor);
 	}
-
+	if (In.contains("SpecularColor"))
+	{
+		In["SpecularColor"].get_to(Instance->SpecularColor);
+	}
 	if (In.contains("Shininess"))
 	{
-		In["Shininess"].get_to(Instance->Shininess);
+		Instance->Shininess = std::max(1.0f, In["Shininess"].get<float>());
+	}
+	if (In.contains("FlipNormalY"))
+	{
+		Instance->bFlipNormalY = In["FlipNormalY"].get<bool>();
 	}
 
 	if (In.contains("Textures"))
@@ -150,18 +162,21 @@ UMaterial* UMaterial::LoadMaterial(const json& In)
 		const auto& UV = In["UVScrollSpeed"];
 		Instance->UVScrollSpeed = FVector2(UV[0].get<float>(), UV[1].get<float>());
 	}
-	if (In.contains("Shininess"))
-	{
-		Instance->Shininess = In["Shininess"].get<float>();
-	}
 	if (In.contains("SamplerState"))
 	{
 		const FString State = In["SamplerState"].get<FString>();
 		Instance->SamplerState = State == "LinearWrap" ? ESamplerState::LinearWrap : ESamplerState::LinearClamp;
 	}
-	if (In.contains("BlendState"))
+	if (In.contains("PSOType"))
+	{
+		Instance->PSOType = static_cast<EPSOType>(In["PSOType"].get<uint8>());
+	}
+	else if (In.contains("BlendState"))
 	{
 		const FString State = In["BlendState"].get<FString>();
+		Instance->PSOType = (State == "AlphaBlend")
+			? EPSOType::StaticMesh_Translucent
+			: EPSOType::StaticMesh_Opaque;
 		Instance->BlendState = State == "AlphaBlend" ? EBlendState::AlphaBlend : EBlendState::Opaque;
 	}
 
@@ -226,8 +241,10 @@ void UMaterial::Serialize(FStructuredArchive::FRecord Record)
 	FArchive& Ar = Record.GetUnderlyingArchive();
 
 	Record 	<< SA_VALUE("BaseColor", BaseColor)
+			<< SA_VALUE("SpecularColor", SpecularColor)
 			<< SA_VALUE("Shininess", Shininess)
-			<< SA_VALUE("UVScrollSpeed", UVScrollSpeed);
+			<< SA_VALUE("UVScrollSpeed", UVScrollSpeed)
+			<< SA_VALUE("FlipNormalY", bFlipNormalY);
 
 	// enum은 이름 문자열로 (UE 텍스트 포맷도 enum을 이름으로 쓴다)
 	FString Sampler = SamplerState == ESamplerState::LinearWrap ? "LinearWrap" : "LinearClamp";
@@ -239,6 +256,11 @@ void UMaterial::Serialize(FStructuredArchive::FRecord Record)
 	Record << SA_VALUE("BlendState", Blend);
 	if (Ar.IsLoading())
 		BlendState = Blend == "AlphaBlend" ? EBlendState::AlphaBlend : EBlendState::Opaque;
+
+	uint8 PSOVal = static_cast<uint8>(PSOType);
+	Record << SA_VALUE("PSOType", PSOVal);
+	if (Ar.IsLoading())
+		PSOType = static_cast<EPSOType>(PSOVal);
 
 	// 텍스처: 경로 문자열 배열. 없는 칸은 빈 문자열
 	int32 Num = Textures.Num();

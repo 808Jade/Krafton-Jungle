@@ -27,7 +27,7 @@ public:
 	virtual FString GetMaterialSlotName(int32 SlotIndex) const override;
 	virtual UMaterial* GetDefaultMaterial(int32 SlotIndex) const override;
 
-	void SubmitToRenderQueue(FRenderQueue& Queue) override;
+	void SubmitToRenderQueue(FRenderQueue& RenderQueue, const FViewContext& ViewContext) override;
 	void SubmitToRenderQueue(FRenderQueue& Queue, uint32 LODIndex);
 
 	bool IsEditorIcon() const { return bEditorIcon; }

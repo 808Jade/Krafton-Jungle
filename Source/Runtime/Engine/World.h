@@ -15,24 +15,15 @@
 #include "Camera/CameraActor.h"
 #include "Asset/LOD/StaticMeshLODSelector.h"
 #include "Engine/EngineTypes.h"
+#include "Render/SceneRenderData.h"
 
 //class ACameraActor;
 class ULevel;
 class UBillboardComponent;
+class APawn;
+class APlayerController;
 
-struct FLODViewContext;
-
-struct FRenderStats
-{
-	uint32 TotalPrimitives = 0;
-	uint32 VisiblePrimitives = 0;
-	uint32 DrawCalls = 0;
-	uint64 Triangles = 0;
-	uint32 LODCounts[4] = {};
-	uint64 LODTriangles[4] = {};
-
-	void Reset() { *this = FRenderStats(); }
-};
+struct FViewContext;
 
 class UWorld : public UObject
 {
@@ -56,7 +47,7 @@ public:
 
 	void ClearWorld();
 
-	void GatherRenderPackets(FRenderQueue& RenderArray, const FLODViewContext* LODView = nullptr, const FFrustumPlanes* Frustum = nullptr, FRenderer* Renderer = nullptr);
+	void GatherRenderPackets(FRenderQueue& RenderArray, const FViewContext* LODView = nullptr, const FFrustumPlanes* Frustum = nullptr, FRenderer* Renderer = nullptr);
 
 	void CreateMainCamera();
 
@@ -66,6 +57,7 @@ public:
 
 	// Level
 	ULevel* GetPersistentLevel() const { return PersistentLevel; }
+	const TArray<ULevel*>& GetLevels() const { return Levels; }
 	void SetPersistentLevel(ULevel* InLevel) { PersistentLevel = InLevel; }
 
 	ULevel* GetCurrentLevel() const { return CurrentLevel; }
@@ -82,9 +74,15 @@ public:
 	// 현재 World의 Component에 Ray를 전달하고 가장 가까운 유효 교차를 반환한다.
 	bool LineTraceSingle(const FRay& WorldRay, FHitResult& OutHit,
 		FBillboardTraceTransform ResolveBillboard = nullptr, const void* ViewContext = nullptr);
+	bool SweepSingle(const FRay& WorldRay, float MaxDistance, float Radius, FHitResult& OutHit, AActor* IgnoreActor = nullptr);
 
 	void BeginPlay();
 	void EndPlay();
+	bool HasBegunPlay() const { return bBegunPlay; }
+	APawn* GetPlayerPawn() const { return PlayerPawn; }
+	APlayerController* GetPlayerController() const { return PlayerController; }
+	bool IsPaused() const { return bIsPaused; }
+	void SetPaused(bool bPaused) { bIsPaused = bPaused; }
 
 	FScene& GetScene() { return Scene; }
 	FTickTaskManager& GetTickTaskManager() { return TickTaskManager; }
@@ -128,6 +126,10 @@ private:
 
 	//메인 카메라 
 	ACameraActor* MainCamera = nullptr;
+	APawn* PlayerPawn = nullptr;
+	APlayerController* PlayerController = nullptr;
+	bool bIsPaused = false;
+	bool bBegunPlay = false;
 
 	FPathTracker PathTracker;
 

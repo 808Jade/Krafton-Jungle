@@ -80,7 +80,7 @@ public:
 	void ClearPendingForce(bool bClearImmediateForce = false);
 
 	float GetSimulationTimeStep(float RemainingTime, int32 Iterations) const;
-	bool HasStoppedSimulation() { return UpdatedComponent == nullptr; }
+	bool HasStoppedSimulation() const { return !bSimulationEnabled || UpdatedComponent == nullptr; }
 
 private:
 	FVector PendingForce;

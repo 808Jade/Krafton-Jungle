@@ -1,8 +1,6 @@
 #pragma once
 #include "SceneComponent.h"
-#include "Render/Foginfo.h"
-#include "Math/Color.h"
-
+#include "Math/Vector4.h"
 
 class UExponentialHeightFogComponent final : public USceneComponent
 {
@@ -10,39 +8,41 @@ class UExponentialHeightFogComponent final : public USceneComponent
 	REFLECT_START(UExponentialHeightFogComponent)
 		PROPERTY(FogDensity)
 		PROPERTY(FogHeightFalloff)
+		PROPERTY_TYPE(FogColor, Color)
 		PROPERTY(StartDistance)
-		PROPERTY(FogCutoffDistance)
 		PROPERTY(FogMaxOpacity)
-		PROPERTY_TYPE(FogColor, LinearColor)
+		PROPERTY(FogCutoffDistance)
 	REFLECT_END()
 
 public:
 	UExponentialHeightFogComponent() = default;
 	~UExponentialHeightFogComponent() override = default;
 
-	UExponentialHeightFogComponent(const UExponentialHeightFogComponent&) = delete;
-	UExponentialHeightFogComponent& operator=(const UExponentialHeightFogComponent&) = delete;
+	float GetFogDensity() const { return FogDensity; }
+	void SetFogDensity(float InDensity) { FogDensity = InDensity; }
 
-	FFogInfo GetFogInfo() const;
+	float GetFogHeightFalloff() const { return FogHeightFalloff; }
+	void SetFogHeightFalloff(float InFalloff) { FogHeightFalloff = InFalloff; }
 
-	virtual void PostEditChangeProperty(const FProperty& Property) override;
-protected:
-	virtual bool ShouldCreateRenderState() const override
-	{
-		return true;
-	}
+	const FVector4& GetFogColor() const { return FogColor; }
+	void SetFogColor(const FVector4& InColor) { FogColor = InColor; }
 
-	virtual void CreateRenderState() override;
-	virtual void DestroyRenderState() override;
+	float GetStartDistance() const { return StartDistance; }
+	void SetStartDistance(float InDistance) { StartDistance = InDistance; }
+
+	float GetFogMaxOpacity() const { return FogMaxOpacity; }
+	void SetFogMaxOpacity(float InOpacity) { FogMaxOpacity = InOpacity; }
+
+	float GetFogCutoffDistance() const { return FogCutoffDistance; }
+	void SetFogCutoffDistance(float InDistance) { FogCutoffDistance = InDistance; }
+
+	float GetFogHeight() const { return GetWorldLocation().Z; }
 
 private:
-	//포그의 밀도, 높이에 따른 감소율, 시작 거리, 최대 불투명도, 색상 등을 설정하는 변수들
-	float    FogDensity = 0.02f;
-	float    FogHeightFalloff = 0.2f;
-	float    StartDistance = 10.0;
-	float    FogCutoffDistance = 0.0f;
-	float    FogMaxOpacity = 1.0f;
-	FLinearColor FogColor = { 1.0f, 0.4f, 0.7f, 1.0f };
-
-
+	float FogDensity = 0.02f;
+	float FogHeightFalloff = 0.02f;
+	FVector4 FogColor = FVector4(0.5f, 0.6f, 0.7f, 1.0f);
+	float StartDistance = 0.0f;
+	float FogMaxOpacity = 1.0f;
+	float FogCutoffDistance = 0.0f;
 };

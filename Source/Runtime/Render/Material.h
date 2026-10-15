@@ -1,12 +1,11 @@
 #pragma once
 
 #include "MaterialInterface.h"
+#include "RenderResourceManager.h"
 #include "Render/RenderStates.h"
 #include "Render/Texture2D.h"
 
 class FShader;
-
-
 
 enum class EMaterialParamLayout
 {
@@ -19,10 +18,9 @@ struct FStaticMeshMaterialParams
 {
 	FVector4 BaseColor;
 	FVector2 UVOffset;
-	float bOpaque; // 1이면 PS가 알파를 1로 출력한다
-	float Shininess; // Blinn-Phong 광택 지수.
+	FVector2 TextureFlags; // 텍스처 플래그 및 노멀 반전
 };
-static_assert(sizeof(FStaticMeshMaterialParams) == 32, "UberLit.hlsl cbuffer MaterialParams 크기와 맞아야 한다");
+static_assert(sizeof(FStaticMeshMaterialParams) == 32);
 
 class UMaterial : public UMaterialInterface
 {
@@ -33,16 +31,19 @@ public:
 	virtual ~UMaterial() override = default;
 
 	EMaterialParamLayout ParamLayout = EMaterialParamLayout::None;
-	FShaderProgram* Shader;
+	FShaderProgram* Shader = nullptr;
 	TArray<UTexture2D*> Textures;
 	TUniquePtr<FConstantBuffer> ParamBuffer;
+	EPSOType PSOType = EPSOType::StaticMesh_Opaque;
 	EBlendState BlendState = EBlendState::Opaque;
 	EDepthStencilState DepthStencilState = EDepthStencilState::Default;
 	ESamplerState SamplerState = ESamplerState::LinearClamp;
 
 	FVector4 BaseColor = FVector4(1, 1, 1, 1);
-	float Shininess = 32.0f; // Blinn-Phong Specular의 pow 지수
+	FVector SpecularColor = FVector(1.0f, 1.0f, 1.0f);
+	float Shininess = 32.0f;
 	FVector2 UVScrollSpeed = FVector2(0.0f, 0.0f);
+	bool bFlipNormalY = false;
 
 	bool bIsInstance = false;
 

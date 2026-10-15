@@ -13,7 +13,7 @@
 #include "Render/Renderer.h"
 #include "Render/LineBatcher.h"
 
-class FImGuiRenderer;
+#include "Editor/EditorUI/ImGuiRenderer.h"
 class FOutlinerPanel;
 class FDetailsPanel;
 class FEditorControlsPanel;

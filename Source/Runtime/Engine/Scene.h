@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "PrimitiveSceneProxy.h"
 #include "LightSceneProxy.h"
@@ -10,14 +10,13 @@
 #include "Components/SkyLightComponent.h"
 #include "Math/Frustum.h"
 #include "Math/BVH.h"
-#include "Render/FogInfo.h"
 #include "Render/Renderer.h"
- 
-struct FExponentialHeightFogSceneInfo
-{
-	uint32 Id;
-	FFogInfo FogInfo;
-};
+
+#include "PointLightSceneProxy.h"
+#include "SpotLightSceneProxy.h"
+#include "Render/SkyLightEnvironment.h"
+#include "Render/LightRenderData.h"
+#include <unordered_map>
 
 struct FLightSceneInfo
 {
@@ -37,12 +36,17 @@ public:
 	void RemoveLight(ULightComponent* Component);
 
 	void RemoveAllLights();
-	void UpdateLights(FRenderer* Renderer);
 
-	void AddFogInfo(uint32 Id, const FFogInfo& FogInfo);
-	void RemoveFogInfo(uint32 Id);
-	void RemoveAllFogInfo();
-	void UpdateFogInfo(uint32 Id, const FFogInfo& FogInfo);
+	const class FAmbientLightSceneProxy* GetActiveAmbientLight(bool bGameView) const { return nullptr; }
+	FAmbientLightRenderData GetSkyAmbientLight(bool bGameView) const;
+	void PrepareSkyLight(const FSkyLightRenderData& SkyLight);
+	const FSkyLightEnvironment* FindSkyLightEnvironment(const FString& SourcePath) const;
+	FSkyLightEnvironment* FindPendingSkyLightEnvironment(const FString& SourcePath);
+
+	const TArray<FDirectionalLightSceneProxy*>& GetDirectionalLights() const { return DirectionalLightProxies; }
+	const TArray<FPointLightSceneProxy*>& GetPointLights() const { return PointLightProxies; }
+	const TArray<FSpotLightSceneProxy*>& GetSpotLights() const { return SpotLightProxies; }
+
 	void UpdateAllTransforms();
 
 	void BuildBVH();
@@ -55,8 +59,6 @@ public:
 	TArray<FPrimitiveSceneProxy*> RenderStateDirtyProxies;
 	TArray<FAABB> PrimitiveBounds;
 	TArray<uint8> PrimitiveFlags;
-	
-	TArray<FExponentialHeightFogSceneInfo> FogInfos;
 
 	// 컬링 결과로 프록시를 바로 내보내 컴포넌트를 역참조하지 않는다. 경계는 Build/Refit 때만 계산한다.
 	TBVH<FPrimitiveSceneProxy*> BVH{
@@ -71,5 +73,10 @@ public:
 	TArray<FLocalLightSceneProxy*>        LocalLightProxies;      // ↔ PackedIndex ↔
 	TArray<FLightRenderParameters>        LocalLightParameters;   // GPU 업로드용, 같은 순서
 	TArray<FDirectionalLightSceneProxy*>  DirectionalLightProxies;
+	TArray<FPointLightSceneProxy*>        PointLightProxies;
+	TArray<FSpotLightSceneProxy*>         SpotLightProxies;
 	TArray<USkyLightComponent*>           SkyLights;               // 프록시 없음
+
+private:
+	std::unordered_map<FString, TUniquePtr<FSkyLightEnvironment>> SkyLightEnvironments;
 };

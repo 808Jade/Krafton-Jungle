@@ -28,6 +28,18 @@ FConstantBuffer::FConstantBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& 
 {
 }
 
+FStructuredBuffer::FStructuredBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 InCapacity)
+	: FBuffer(Device, Desc), Capacity(InCapacity)
+{
+	if (!Buffer) return;
+	D3D11_SHADER_RESOURCE_VIEW_DESC ViewDesc{};
+	ViewDesc.Format = DXGI_FORMAT_UNKNOWN;
+	ViewDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+	ViewDesc.Buffer.NumElements = InCapacity;
+	if (FAILED(Device->CreateShaderResourceView(Buffer.Get(), &ViewDesc, SRV.GetAddressOf())))
+		HTR_LOG(Warning, "Failed to create structured buffer SRV");
+}
+
 FVertexBuffer::FVertexBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 InStride, const void* InitialData)
 	:FBuffer(Device, Desc, InitialData)
 {
@@ -38,26 +50,4 @@ FIndexBuffer::FIndexBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, 
 	:FBuffer(Device, Desc, InitialData), Format(InFormat)
 {
 	IndexCount = Count;
-}
-
-FStructuredBuffer::FStructuredBuffer(ID3D11Device* Device, const D3D11_BUFFER_DESC& Desc, uint32 InStride, uint32 InElementCount, const void* InitialData)
-	:FBuffer(Device, Desc, InitialData)
-{
-	Stride = InStride;
-	MaxCount = InElementCount;
-
-	HRESULT hr;
-	if (Desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
-	{
-		hr = Device->CreateShaderResourceView(Buffer.Get(), nullptr, SRV.GetAddressOf());
-		if (FAILED(hr))
-			HTR_LOG(Error, "[StructuredBuffer] CreateShaderResourceView failed (hr=0x{:08X})", (uint32)hr);
-	}
-
-	if (Desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
-	{
-		hr = Device->CreateUnorderedAccessView(Buffer.Get(), nullptr, UAV.GetAddressOf());
-		if (FAILED(hr))
-			HTR_LOG(Error, "[StructuredBuffer] CreateUnorderedAccessView failed (hr=0x{:08X})", (uint32)hr);
-	}
 }

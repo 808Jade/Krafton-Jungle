@@ -8,6 +8,7 @@
 #include "Texture2D.h"
 #include "TextureCube.h"
 #include "RenderingInfo.h"
+#include <algorithm>
 
 void RenderCommand::Init(FRenderDevice* InRenderDevice)
 {
@@ -44,33 +45,31 @@ TUniquePtr<FConstantBuffer> RenderCommand::CreateConstantBuffer(uint32 BufferSiz
 	return RenderDevice->CreateConstantBuffer(BufferSize);
 }
 
+TUniquePtr<FStructuredBuffer> RenderCommand::CreateDynamicStructuredBuffer(uint32 Capacity, uint32 Stride)
+{
+	assert(RenderDevice);
+	if (!Capacity || !Stride || Capacity > UINT32_MAX / Stride)
+		return nullptr;
+	D3D11_BUFFER_DESC Desc{};
+	Desc.ByteWidth = Capacity * Stride;
+	Desc.Usage = D3D11_USAGE_DYNAMIC;
+	Desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+	Desc.StructureByteStride = Stride;
+	return std::make_unique<FStructuredBuffer>(RenderDevice->GetDevice(), Desc, Capacity);
+}
+
 TUniquePtr<FTexture2D> RenderCommand::CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image)
 {
 	assert(RenderDevice);
 	return RenderDevice->CreateTexture2D(Desc, Image);
 }
 
-TUniquePtr<FStructuredBuffer> RenderCommand::CreateDynamicStructuredBuffer(uint32 Stride, uint32 Count)
-{
-	assert(RenderDevice);
-	return RenderDevice->CreateDynamicStructuredBuffer(Stride, Count);
-}
-
-TUniquePtr<FStructuredBuffer> RenderCommand::CreateRWStructuredBuffer(uint32 Stride, uint32 Count)
-{
-	assert(RenderDevice);
-	return RenderDevice->CreateRWStructuredBuffer(Stride, Count);
-}
-
 TUniquePtr<FTexture2D> RenderCommand::CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const void* InitialData)
 {
 	assert(RenderDevice);
 	return RenderDevice->CreateTexture2D(Desc, InitialData);
-}
-
-TUniquePtr<FTexture2D> RenderCommand::LoadDDSTexture(const FString& Path) {
-	assert(RenderDevice);
-	return RenderDevice->LoadDDSTexture(Path);
 }
 
 TUniquePtr<FTextureCube> RenderCommand::CreateTextureCube(const D3D11_TEXTURE2D_DESC& Desc, const TArray<const void*>& InitialDatas)
@@ -89,12 +88,6 @@ TUniquePtr<FPixelShader> RenderCommand::CreatePixelShader(const FShaderByteCode&
 {
 	assert(RenderDevice);
 	return RenderDevice->CreatePixelShader(ByteCode);
-}
-
-TUniquePtr<FComputeShader> RenderCommand::CreateComputeShader(const FShaderByteCode& ByteCode)
-{
-	assert(RenderDevice);
-	return RenderDevice->CreateComputeShader(ByteCode);
 }
 
 void RenderCommand::BindPipelineState(const FPipelineState& PipelineState)
@@ -163,13 +156,11 @@ void RenderCommand::BindIndexBuffer(FIndexBuffer* IndexBuffer)
 
 void RenderCommand::BindConstantBuffer(uint32 Slot, FConstantBuffer* ConstantBuffer, EShaderBindFlagBits FlagBits)
 {
-	ID3D11Buffer* Buffer = ConstantBuffer->GetBuffer();
+	ID3D11Buffer* Buffer = ConstantBuffer ? ConstantBuffer->GetBuffer() : nullptr;
 	if (HasFlag(FlagBits, EShaderBindFlagBits::Vertex))
 		RenderDevice->GetContext()->VSSetConstantBuffers(Slot, 1, &Buffer);
 	if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
 		RenderDevice->GetContext()->PSSetConstantBuffers(Slot, 1, &Buffer);
-	if (HasFlag(FlagBits, EShaderBindFlagBits::Compute))
-		RenderDevice->GetContext()->CSSetConstantBuffers(Slot, 1, &Buffer);
 
 }
 
@@ -186,8 +177,6 @@ void RenderCommand::BindConstantBufferRange(uint32 Slot, FConstantBuffer* Consta
 		Context->VSSetConstantBuffers1(Slot, 1, &Buffer, &FirstConstant, &NumConstants);
 	if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
 		Context->PSSetConstantBuffers1(Slot, 1, &Buffer, &FirstConstant, &NumConstants);
-	if (HasFlag(FlagBits, EShaderBindFlagBits::Compute))
-		Context->CSSetConstantBuffers1(Slot, 1, &Buffer, &FirstConstant, &NumConstants);
 }
 
 void* RenderCommand::MapWriteDiscard(FBuffer* InBuffer)
@@ -205,59 +194,84 @@ void RenderCommand::Unmap(FBuffer* InBuffer)
 
 void RenderCommand::BindShaderResource(uint32 Slot, FTexture2D* Texture2D, EShaderBindFlagBits FlagBits)
 {
-	ID3D11ShaderResourceView* SRV = Texture2D->GetSRV();
-	BindShaderResource(Slot, SRV, FlagBits);
+	ID3D11ShaderResourceView* SRV = Texture2D ? Texture2D->GetSRV() : nullptr;
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Vertex))
+	{
+		RenderDevice->GetContext()->VSSetShaderResources(Slot, 1, &SRV);
+	}
+
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
+	{
+		RenderDevice->GetContext()->PSSetShaderResources(Slot, 1, &SRV);
+	}
 }
 
 void RenderCommand::BindShaderResource(uint32 Slot, UTexture2D* Texture2D, EShaderBindFlagBits FlagBits)
 {
-	BindShaderResource(Slot, Texture2D->GetResource(), FlagBits);
+	BindShaderResource(Slot, Texture2D ? Texture2D->GetResource() : nullptr, FlagBits);
 }
 
-void RenderCommand::UnbindShaderResource(uint32 Slot, EShaderBindFlagBits FlagBits)
+void RenderCommand::BindShaderResource(uint32 Slot, const FTextureCube* TextureCube, EShaderBindFlagBits FlagBits)
 {
-	ID3D11ShaderResourceView* NullSRV = nullptr;
-	BindShaderResource(Slot, NullSRV, FlagBits);
+	ID3D11ShaderResourceView* SRV = TextureCube ? TextureCube->GetSRV() : nullptr;
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Vertex))
+		RenderDevice->GetContext()->VSSetShaderResources(Slot, 1, &SRV);
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
+		RenderDevice->GetContext()->PSSetShaderResources(Slot, 1, &SRV);
 }
 
-void RenderCommand::CopyTexture(FTexture2D* Dst, FTexture2D* Src)
+void RenderCommand::BindShaderResource(uint32 Slot, FStructuredBuffer* StructuredBuffer, EShaderBindFlagBits FlagBits)
 {
-	RenderDevice->GetContext()->CopyResource(Dst->GetRawPtr(), Src->GetRawPtr());
+	ID3D11ShaderResourceView* SRV = StructuredBuffer ? StructuredBuffer->GetSRV() : nullptr;
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Vertex))
+		RenderDevice->GetContext()->VSSetShaderResources(Slot, 1, &SRV);
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
+		RenderDevice->GetContext()->PSSetShaderResources(Slot, 1, &SRV);
 }
 
-void RenderCommand::BeginRenderPass(const FRenderingInfo& RenderingInfo)
+
+void RenderCommand::UnbindShaderResources(uint32 FirstSlot, uint32 Count, EShaderBindFlagBits FlagBits)
 {
-	TArray<ID3D11RenderTargetView*> RTVs;
-	for (const FRenderingDesc& RenderTargetDesc : RenderingInfo.ColorRenderTargets)
+    constexpr uint32 MaxSlots = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
+    if (FirstSlot >= MaxSlots || Count == 0) return;
+    Count = std::min(Count, MaxSlots - FirstSlot);
+    ID3D11ShaderResourceView* NullResources[MaxSlots]{};
+    if (HasFlag(FlagBits, EShaderBindFlagBits::Vertex))
+        RenderDevice->GetContext()->VSSetShaderResources(FirstSlot, Count, NullResources);
+    if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
+        RenderDevice->GetContext()->PSSetShaderResources(FirstSlot, Count, NullResources);
+}
+
+// 텍스처 기반 렌더 패스 시작
+void RenderCommand::BeginRenderPass(FTexture2D* ColorTarget, FTexture2D* DepthTarget, uint32 Width, uint32 Height)
+{
+	ID3D11RenderTargetView* RTV = ColorTarget ? ColorTarget->GetRTV() : nullptr;
+	ID3D11DepthStencilView* DSV = DepthTarget ? DepthTarget->GetDSV() : nullptr;
+
+	if (RTV)
 	{
-		FClearValue ClearValue = RenderTargetDesc.ClearValue;
-		if (RenderTargetDesc.LoadOp == ERenderTargetLoadOp::Clear)
-		{
-			RenderDevice->GetContext()->ClearRenderTargetView(RenderTargetDesc.Texture->GetRTV(), &RenderTargetDesc.ClearValue.ColorClearValue.V[0]);
-		}
-		RTVs.Add(RenderTargetDesc.Texture->GetRTV());
+		float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+		RenderDevice->GetContext()->ClearRenderTargetView(RTV, ClearColor);
+	}
+	if (DSV)
+	{
+		RenderDevice->GetContext()->ClearDepthStencilView(DSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	}
 
-	ID3D11DepthStencilView* DSV = nullptr;
-	if (RenderingInfo.DepthStencil.Texture != nullptr)
-	{
-		FClearValue dsvClearValue = RenderingInfo.DepthStencil.ClearValue;
-		DSV = RenderingInfo.DepthStencil.Texture->GetDSV();
-		if (RenderingInfo.DepthStencil.LoadOp == ERenderTargetLoadOp::Clear)
-		{
-			RenderDevice->GetContext()->ClearDepthStencilView(RenderingInfo.DepthStencil.Texture->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, dsvClearValue.DepthClearValue, dsvClearValue.StencilClearValue);
-		}
-	}
-	RenderDevice->GetContext()->OMSetRenderTargets((uint32)RTVs.Num(), RTVs.GetData(), DSV);
-
-
-	SetViewport(RenderingInfo.ViewportSetting.StartX,
-		RenderingInfo.ViewportSetting.StartY,
-		RenderingInfo.ViewportSetting.Width,
-		RenderingInfo.ViewportSetting.Height);
+	RenderDevice->GetContext()->OMSetRenderTargets(RTV ? 1 : 0, RTV ? &RTV : nullptr, DSV);
+	SetViewport(0, 0, Width, Height);
 }
 
-void RenderCommand::EndRenderPass(const FRenderingInfo& RenderingInfo)
+void RenderCommand::BindRenderPassNoClear(FTexture2D* ColorTarget, FTexture2D* DepthTarget, uint32 Width, uint32 Height)
+{
+	ID3D11RenderTargetView* RTV = ColorTarget ? ColorTarget->GetRTV() : nullptr;
+	ID3D11DepthStencilView* DSV = DepthTarget ? DepthTarget->GetDSV() : nullptr;
+	RenderDevice->GetContext()->OMSetRenderTargets(RTV ? 1 : 0, RTV ? &RTV : nullptr, DSV);
+	SetViewport(0, 0, Width, Height);
+}
+
+// 렌더 패스 종료
+void RenderCommand::EndRenderPass()
 {
 	RenderDevice->GetContext()->OMSetRenderTargets(0, nullptr, nullptr);
 }
@@ -271,6 +285,28 @@ void RenderCommand::ClearDepthStencil(FTexture2D* DepthStencilTexture, float Dep
 
 	RenderDevice->GetContext()->ClearDepthStencilView(DepthStencilTexture->GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, Depth, Stencil);
 }
+
+void RenderCommand::SetRenderTargets(FTexture2D* ColorTarget, FTexture2D* DepthTarget)
+{
+	SetRenderTargets(ColorTarget ? 1u : 0u, ColorTarget ? &ColorTarget : nullptr, DepthTarget);
+}
+
+void RenderCommand::SetRenderTargets(uint32 ColorTargetCount, FTexture2D* const* ColorTargets,
+	FTexture2D* DepthTarget)
+{
+	assert(ColorTargetCount <= D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
+	ID3D11RenderTargetView* RTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT]{};
+	for (uint32 Index = 0; Index < ColorTargetCount; ++Index)
+		RTVs[Index] = ColorTargets[Index] ? ColorTargets[Index]->GetRTV() : nullptr;
+	RenderDevice->GetContext()->OMSetRenderTargets(ColorTargetCount,
+		ColorTargetCount ? RTVs : nullptr, DepthTarget ? DepthTarget->GetDSV() : nullptr);
+}
+
+void RenderCommand::ClearRenderTarget(FTexture2D* ColorTarget, const float (&Color)[4])
+{
+	RenderDevice->GetContext()->ClearRenderTargetView(ColorTarget->GetRTV(), Color);
+}
+
 
 void RenderCommand::SetViewport(uint32 InX, uint32 InY, uint32 InWidth, uint32 InHeight)
 {
@@ -313,51 +349,4 @@ void RenderCommand::BindSamplerState(uint32 Slot, ESamplerState SamplerState, ES
 		RenderDevice->GetContext()->PSSetSamplers(Slot, 1, &Sampler);
 	}
 }
-
-void RenderCommand::BindComputeShader(FComputeShader* ComputeShader)
-{
-	RenderDevice->GetContext()->CSSetShader(ComputeShader->GetShader(), nullptr, 0);
-}
-
-void RenderCommand::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY, UINT ThreadGroupCountZ)
-{
-	RenderDevice->GetContext()->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
-}
-
-void RenderCommand::BindUnorderedAccess(uint32 Slot, FStructuredBuffer* StructuredBuffer)
-{
-	ID3D11UnorderedAccessView* UAV = StructuredBuffer->GetUAV();
-	RenderDevice->GetContext()->CSSetUnorderedAccessViews(Slot, 1, &UAV, nullptr);
-}
-
-void RenderCommand::UnbindUnorderedAccess(uint32 Slot)
-{
-	ID3D11UnorderedAccessView* NullUAV = nullptr;
-	RenderDevice->GetContext()->CSSetUnorderedAccessViews(Slot, 1, &NullUAV, nullptr);
-
-}
-
-void RenderCommand::BindShaderResource(uint32 Slot, FStructuredBuffer* StructuredBuffer, EShaderBindFlagBits FlagBits) {
-	ID3D11ShaderResourceView* SRV{ StructuredBuffer ? StructuredBuffer->GetSRV() : nullptr };
-	BindShaderResource(Slot, SRV, FlagBits);
-}
-
-inline void RenderCommand::BindShaderResource(uint32 Slot, ID3D11ShaderResourceView* SRV, EShaderBindFlagBits FlagBits)
-{
-	if (HasFlag(FlagBits, EShaderBindFlagBits::Vertex))
-	{
-		RenderDevice->GetContext()->VSSetShaderResources(Slot, 1, &SRV);
-	}
-
-	if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
-	{
-		RenderDevice->GetContext()->PSSetShaderResources(Slot, 1, &SRV);
-	}
-
-	if (HasFlag(FlagBits, EShaderBindFlagBits::Compute))
-	{
-		RenderDevice->GetContext()->CSSetShaderResources(Slot, 1, &SRV);
-	}
-}
-
 
