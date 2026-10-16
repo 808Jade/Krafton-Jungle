@@ -754,6 +754,7 @@ void UEditorEngine::RenderGameFrame(FGameViewportClient* GameClient, const FScen
 		Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
 		Options.LightCullingMode = SettingsPanel->GetSettings().LightCullingMode;
 	}
+
 	FSceneViewTargets& Targets = GameClient->GetViewTargets();
 	const bool bRendered = RenderScene(Targets, SceneView, SceneRenderer, GameClient->GetWorld(), Options,
 		[this, &Targets, &SceneView, bIsSIEMode](FSceneOverlayCallbacks& Overlays)
