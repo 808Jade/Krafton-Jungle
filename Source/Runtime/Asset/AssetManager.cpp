@@ -367,7 +367,8 @@ UTexture2D* UAssetManager::LoadTexture(const FString& InPath, bool GenerateMips)
 	}
 
 	const bool bUseDDSLevels = Data.MipRowPitches.Num() > 0;
-	const bool bGenerateGPUmips = GenerateMips && !bUseDDSLevels;
+	// BC 압축 DDS는 렌더 타깃으로 바인딩할 수 없으므로 GPU mip 생성 대상에서 제외한다.
+	const bool bGenerateGPUmips = GenerateMips && !bUseDDSLevels && Data.BytesPerPixel != 0;
 
 	D3D11_TEXTURE2D_DESC Desc{};
 	Desc.Width = Data.Width;

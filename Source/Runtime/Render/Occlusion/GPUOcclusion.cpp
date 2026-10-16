@@ -3,6 +3,7 @@
 
 #include "Render/Renderer.h"
 #include "Render/RenderCommand.h"
+#include "Render/RenderResourceManager.h"
 #include "Render/Mesh.h"
 #include "Render/Material.h"
 #include "Render/Shader.h"
@@ -189,12 +190,11 @@ void Cull(uint3 Id : SV_DispatchThreadID)
 		uint32 IndexCount;
 	};
 
-	// 메시·LOD·셰이더가 같은 드로우 묶음. 조합은 몇 개뿐이라 정렬 없이 묶음에 바로 넣는다.
+	// 메시·LOD가 같은 드로우 묶음. 모든 가림막은 같은 깊이 전용 셰이더를 쓴다.
 	struct FOccluderBucket
 	{
 		UStaticMesh* Mesh;
 		uint32 LOD;
-		FShaderProgram* Shader;
 		std::vector<FOccluderDraw> Draws;
 	};
 	std::vector<FOccluderBucket> OccluderBuckets;   // 용량 재사용 (렌더 스레드 하나만 쓴다)
@@ -511,13 +511,13 @@ void FGPUOcclusion::DrawOccluders(const FPrimitiveSceneProxy* const* Proxies, co
 
 			FOccluderBucket* Target = nullptr;
 			for (FOccluderBucket& Bucket : OccluderBuckets)
-				if (Bucket.Mesh == Proxy->GetMesh() && Bucket.LOD == LOD && Bucket.Shader == Section.Material->Shader)
+				if (Bucket.Mesh == Proxy->GetMesh() && Bucket.LOD == LOD)
 				{
 					Target = &Bucket;
 					break;
 				}
 			if (!Target)
-				Target = &OccluderBuckets.emplace_back(FOccluderBucket{ Proxy->GetMesh(), LOD, Section.Material->Shader, {} });
+				Target = &OccluderBuckets.emplace_back(FOccluderBucket{ Proxy->GetMesh(), LOD, {} });
 			Target->Draws.push_back({ Selected, Section.StartIndex, Section.IndexCount });
 			Stats.OccluderTriangles += Section.IndexCount / 3;
 			bAnyOpaque = true;
@@ -545,19 +545,20 @@ void FGPUOcclusion::DrawOccluders(const FPrimitiveSceneProxy* const* Proxies, co
 	RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
 	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	Context->VSSetConstantBuffers(0, 1, ViewCB.GetAddressOf());
+	FPipelineState* DepthPipeline = FRenderResourceManager::GetPSO(EPSOType::StaticMesh_DepthOnly);
+	if (!DepthPipeline || !DepthPipeline->Shader || !DepthPipeline->Shader->VertexShader)
+	{
+		Context->OMSetRenderTargets(0, nullptr, nullptr);
+		return;
+	}
+	RenderCommand::BindShaderProgram(DepthPipeline->Shader);
+	Context->PSSetShader(nullptr, nullptr, 0);
 
 	constexpr uint32 SlotConstants = ObjectSlotBytes / 16;
-	FShaderProgram* BoundShader = nullptr;
 	for (const FOccluderBucket& Bucket : OccluderBuckets)
 	{
 		if (Bucket.Draws.empty())
 			continue;
-		if (Bucket.Shader != BoundShader)
-		{
-			BoundShader = Bucket.Shader;
-			RenderCommand::BindShaderProgram(BoundShader);
-			Context->PSSetShader(nullptr, nullptr, 0);   // 깊이만 쓰므로 픽셀 셰이더 없음
-		}
 		RenderCommand::BindMesh(Bucket.Mesh, Bucket.LOD);
 
 		for (const FOccluderDraw& Draw : Bucket.Draws)

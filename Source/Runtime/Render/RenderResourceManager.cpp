@@ -5,6 +5,8 @@
 
 #include "RenderUtil.h"
 #include <cstring>
+#include <fstream>
+#include <iterator>
 
 
 
@@ -124,6 +126,12 @@ void FRenderResourceManager::ScanShaders(const fs::path& ShaderRoot)
 	{
 		if (!Entry.is_regular_file()) continue;
 		if (Entry.path().extension() != ".hlsl") continue;
+		// 컴퓨트 전용 .hlsl에는 mainVS/mainPS가 없다. VS/PS로 컴파일하지 않는다.
+		std::ifstream SourceFile(Entry.path(), std::ios::binary);
+		if (!SourceFile) continue;
+		const std::string Source(std::istreambuf_iterator<char>{ SourceFile }, std::istreambuf_iterator<char>{});
+		if (Source.find("mainVS(") == std::string::npos ||
+			Source.find("mainPS(") == std::string::npos) continue;
 
 		FString Path = Entry.path().generic_string();
 		LoadOrCompileShader(Path);
