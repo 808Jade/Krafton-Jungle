@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "Containers/Array.h"
 
 #include <array>
 #include <functional>
@@ -40,14 +41,24 @@ struct FRenderGraphDepthAttachment // 패스에 필요한 DepthTextrue 핸들
 	uint8 ClearStencil = 0;
 };
 
+struct FShadowAtlasRect
+{
+	uint32 X = 0;
+	uint32 Y = 0;
+	uint32 Width = 0;
+	uint32 Height = 0;
+};
+
 struct FRenderGraphRasterPassDesc // draw pass용
 {
 	std::string Name;
 	std::vector<FRenderGraphTextureRef> ReadTextures;
 	std::vector<FRenderGraphColorAttachment> ColorAttachments;
-	FRenderGraphDepthAttachment DepthAttachment;
+	// 첫 번째 DSV를 기본 바인딩한다. 콜백에서 목록 내 다른 DSV로 전환할 수 있다.
+	TArray<FRenderGraphDepthAttachment> DepthAttachments;
 	uint32 Width = 0;  // 0이면 첫 출력 텍스처의 크기를 사용한다.
 	uint32 Height = 0;
+	FShadowAtlasRect Viewport{}; // 0 크기면 출력 전체. Atlas 타일은 부분 영역을 지정한다.
 };
 
 struct FRenderGraphComputePassDesc // compute pass용
@@ -66,7 +77,7 @@ struct FRenderGraphTextureDesc
 };
 
 // 1단계: 외부 텍스처와 순차 래스터 패스만 지원한다.
-// 패스의 실행 함수는 바인딩된 RTV/DSV를 변경하지 않아야 한다.
+// 실행 함수는 RTV를 유지하고, DSV는 선언된 DepthAttachments 내에서만 전환한다.
 class FRenderGraphBuilder
 {
 public:

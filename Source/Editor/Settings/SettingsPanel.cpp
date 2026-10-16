@@ -43,6 +43,7 @@ void FSettingsPanel::OnRender()
 
 	ImGui::TextDisabled("Fill mode is configured per viewport.");
 	ImGui::Checkbox("Draw Primitives", &Settings.bDrawPrimitives);
+	ImGui::Checkbox("Show Shadow", &Settings.bShowShadow);
 	ImGui::Checkbox("Draw Bounding Box", &Settings.bDrawBoundingBox);
 	ImGui::Checkbox("Show Object UUID", &Settings.bShowUUID);
 	const char* RenderingPaths[] = { "Forward", "Deferred" };
@@ -154,6 +155,7 @@ bool FSettingsPanel::SaveSettings() const
 	File << "[Rendering]\n";
 	File << "Wireframe=" << Settings.bWireframe << "\n";
 	File << "DrawPrimitives=" << Settings.bDrawPrimitives << "\n";
+	File << "ShowShadow=" << Settings.bShowShadow << "\n";
 	File << "DrawBoundingBox=" << Settings.bDrawBoundingBox << "\n";
 	File << "ShowUUID=" << Settings.bShowUUID << "\n";
 	File << "DrawBatchLine=" << Settings.bDrawBatchLine << "\n";
@@ -284,6 +286,7 @@ bool FSettingsPanel::LoadSettings()
                 }
                 if (Key == "Wireframe") Settings.bWireframe = std::stoi(ValueStr);
 				else if (Key == "DrawPrimitives") Settings.bDrawPrimitives = std::stoi(ValueStr);
+				else if (Key == "ShowShadow") Settings.bShowShadow = std::stoi(ValueStr);
 				else if (Key == "DrawBoundingBox") Settings.bDrawBoundingBox = std::stoi(ValueStr);
 				else if (Key == "ShowUUID") Settings.bShowUUID = std::stoi(ValueStr);
 				else if (Key == "DrawBatchLine") Settings.bDrawBatchLine = std::stoi(ValueStr);

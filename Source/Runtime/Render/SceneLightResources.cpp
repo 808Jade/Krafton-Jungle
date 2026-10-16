@@ -1,6 +1,8 @@
 #include "EnginePCH.h"
 #include "Render/SceneLightResources.h"
 #include "Render/RenderCommand.h"
+#include "Render/MeshPassProcessor.h"
+#include "Render/Renderer.h"
 #include "Components/LightComponentBase.h"
 #include <algorithm>
 #include <cstring>
@@ -41,9 +43,14 @@ bool FSceneLightResources::Init()
 	if (bInitialized) return true;
 	ForwardLightCB = RenderCommand::CreateConstantBuffer(sizeof(FForwardLightingConstants));
 	DeferredLightCB = RenderCommand::CreateConstantBuffer(sizeof(FDeferredLightConstants));
+	ShadowCB = RenderCommand::CreateConstantBuffer(sizeof(FShadowConstants));
+	ShadowParameterBuffer = RenderCommand::CreateDynamicStructuredBuffer(1, sizeof(FShadowParameters));
+	LightShadowRangeBuffer = RenderCommand::CreateDynamicStructuredBuffer(1, sizeof(FLightShadowRange));
 	if (!ForwardTileGrid.Init())
 		HTR_LOG(Warning, "Forward tile culling compute shader unavailable");
-	bInitialized = ForwardLightCB && DeferredLightCB;
+	bInitialized = ForwardLightCB && DeferredLightCB && ShadowCB &&
+		ShadowParameterBuffer && ShadowParameterBuffer->GetBuffer() && ShadowParameterBuffer->GetSRV() &&
+		LightShadowRangeBuffer && LightShadowRangeBuffer->GetBuffer() && LightShadowRangeBuffer->GetSRV();
 	return bInitialized;
 }
 
@@ -70,6 +77,11 @@ bool FSceneLightResources::UploadViewLights(const TArray<FLightRenderParameters>
 	Offsets[3] = Counts[2] + Counts[0] + Counts[1];
 
 	const uint32 Total = Counts[0] + Counts[1] + Counts[2] + Counts[3];
+	PackedLightCount = Total;
+	PackedLightIndices.SetNum(Lights.Num());
+	for (uint32& Index : PackedLightIndices) Index = UINT32_MAX;
+	ShadowParameters.Reset();
+	LightShadowRanges.Reset();
 	if (!Total) return true;
 
 	uint32 Next[TypeCount] = {};
@@ -80,7 +92,75 @@ bool FSceneLightResources::UploadViewLights(const TArray<FLightRenderParameters>
 
 	TArray<FLightRenderParameters> Packed;
 	Packed.SetNum(static_cast<int32>(Total));
-	for (const FLightRenderParameters& Light : Lights)
-		if (Light.Type < TypeCount) Packed[Next[Light.Type]++] = Light;
+	for (int32 Index = 0; Index < Lights.Num(); ++Index)
+	{
+		const FLightRenderParameters& Light = Lights[Index];
+		if (Light.Type >= TypeCount) continue;
+		const uint32 PackedIndex = Next[Light.Type]++;
+		Packed[PackedIndex] = Light;
+		PackedLightIndices[Index] = PackedIndex;
+	}
 	return UploadStructured(SceneLightBuffer, Packed.GetData(), Total, sizeof(FLightRenderParameters));
+}
+
+bool FSceneLightResources::BuildViewShadowParameters(const TArray<FShadowDrawPass>& Passes)
+{
+	bShadowsUploaded = false;
+	ShadowParameters.Reset();
+	ShadowParameters.Reserve(Passes.Num());
+	LightShadowRanges.Reset();
+	LightShadowRanges.SetNum(static_cast<int32>(PackedLightCount));
+
+	for (const FShadowDrawPass& Pass : Passes)
+	{
+		if (Pass.LightIndex >= static_cast<uint32>(PackedLightIndices.Num())) return false;
+		const uint32 PackedIndex = PackedLightIndices[Pass.LightIndex];
+		if (PackedIndex >= PackedLightCount || Pass.Parameters.AtlasIndex == UINT32_MAX) return false;
+
+		FLightShadowRange& Range = LightShadowRanges[PackedIndex];
+		if (Range.ViewCount == 0)
+			Range.StartIndex = static_cast<uint32>(ShadowParameters.Num());
+
+		// 같은 조명의 면들을 FaceIndex 순서대로 연속 저장한다.
+		if (Pass.FaceIndex != Range.ViewCount ||
+			Range.StartIndex + Range.ViewCount != static_cast<uint32>(ShadowParameters.Num())) return false;
+		ShadowParameters.Add(Pass.Parameters);
+		++Range.ViewCount;
+	}
+	return true;
+}
+
+bool FSceneLightResources::UploadViewShadows(bool bEnabled, uint32 AtlasCount)
+{
+	if (!bInitialized) return false;
+	bShadowsUploaded = false;
+	FShadowConstants Constants{};
+	// 비활성 프레임과 업로드 실패 시에도 이전 프레임의 활성 상태가 남지 않는다.
+	RenderCommand::UpdateBufferData(ShadowCB.get(), &Constants, sizeof(Constants));
+	if (!bEnabled || ShadowParameters.IsEmpty()) return true;
+	if (AtlasCount == 0 || AtlasCount > MaxShadowAtlases)
+	{
+		HTR_LOG(Error, "[Shadow] Deferred lighting supports up to {} atlases; requested {}", MaxShadowAtlases, AtlasCount);
+		return false;
+	}
+	if (LightShadowRanges.Num() != static_cast<int32>(PackedLightCount)) return false;
+	for (const FShadowParameters& Parameters : ShadowParameters)
+		if (Parameters.AtlasIndex >= AtlasCount) return false;
+
+	if (!UploadStructured(ShadowParameterBuffer, ShadowParameters.GetData(),
+		static_cast<uint32>(ShadowParameters.Num()), sizeof(FShadowParameters)) ||
+		!UploadStructured(LightShadowRangeBuffer, LightShadowRanges.GetData(),
+		static_cast<uint32>(LightShadowRanges.Num()), sizeof(FLightShadowRange))) return false;
+
+	Constants.ShadowsEnabled = 1;
+	RenderCommand::UpdateBufferData(ShadowCB.get(), &Constants, sizeof(Constants));
+	bShadowsUploaded = true;
+	return true;
+}
+
+void FSceneLightResources::BindDeferredShadows(FRenderer* Renderer) const
+{
+	Renderer->BindStructured(5, bShadowsUploaded ? ShadowParameterBuffer.get() : nullptr, EShaderBindFlagBits::Pixel);
+	Renderer->BindStructured(6, bShadowsUploaded ? LightShadowRangeBuffer.get() : nullptr, EShaderBindFlagBits::Pixel);
+	Renderer->BindConstant(1, ShadowCB.get(), EShaderBindFlagBits::Pixel);
 }

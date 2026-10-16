@@ -750,6 +750,7 @@ void UEditorEngine::RenderGameFrame(FGameViewportClient* GameClient, const FScen
 	Options.bEnableFXAA = SettingsPanel && SettingsPanel->GetSettings().bEnableFXAA;
 	if (SettingsPanel)
 	{
+		Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
 		Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;
 		Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
 		Options.LightCullingMode = SettingsPanel->GetSettings().LightCullingMode;
@@ -949,6 +950,7 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 	if (!ViewClient || !SettingsPanel) return;
 	FSceneRenderOptions Options;
 	Options.bDrawPrimitives = bIsPIE || SettingsPanel->GetSettings().bDrawPrimitives;
+	Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
 	Options.bEnableFog = ViewClient->GetViewportMode() == EViewportMode::Solid;
 	Options.bEnableFXAA = SettingsPanel->GetSettings().bEnableFXAA;
 	Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;

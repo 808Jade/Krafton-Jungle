@@ -52,6 +52,8 @@ public:
 	uint8* BeginObjectConstants(uint32 MaxSlots);
 	void EndObjectConstants();
 
+
+
 private:
 	void EnsurePerObjectSlotCapacity(uint32 SlotCount);
 	void BindBatch(const FMeshDrawBatch& Batch);

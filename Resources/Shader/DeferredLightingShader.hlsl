@@ -21,6 +21,33 @@ cbuffer DeferredLightConstants : register(b0)
 
 StructuredBuffer<FLightRenderParameters> SceneLights : register(t3);
 
+struct FShadowParameters
+{
+    row_major float4x4 LightVP;
+    float4 AtlasRect; // xy: 픽셀 위치, zw: 너비와 높이
+    uint AtlasIndex;
+    uint3 Padding;
+};
+
+struct FLightShadowRange
+{
+    uint StartIndex;
+    uint ViewCount;
+};
+
+#define MAX_SHADOW_ATLASES 4
+StructuredBuffer<FShadowParameters> ShadowParameters : register(t5);
+StructuredBuffer<FLightShadowRange> LightShadowRanges : register(t6);
+Texture2D<float> ShadowAtlases[MAX_SHADOW_ATLASES] : register(t7);
+
+cbuffer ShadowConstants : register(b1)
+{
+    uint ShadowsEnabled;
+    float ShadowDepthBias;
+    uint2 ShadowPadding;
+};
+
+
 struct FPSInput
 {
     float4 Position : SV_POSITION;
@@ -54,6 +81,58 @@ void AccumulateLocalLight(inout float3 Diffuse, inout float3 Specular,
     Specular += F0 * Radiance * pow(saturate(dot(N, H)), Shininess) * NdotL;
 }
 
+float LoadShadowDepth(uint AtlasIndex, int2 Pixel)
+{
+    float Depth = 1.0f;
+    switch (AtlasIndex)
+    {
+    case 0: Depth = ShadowAtlases[0].Load(int3(Pixel, 0)); break;
+    case 1: Depth = ShadowAtlases[1].Load(int3(Pixel, 0)); break;
+    case 2: Depth = ShadowAtlases[2].Load(int3(Pixel, 0)); break;
+    case 3: Depth = ShadowAtlases[3].Load(int3(Pixel, 0)); break;
+    }
+    return Depth;
+}
+
+uint GetPointShadowFace(float3 Direction)
+{
+    float3 Axis = abs(Direction);
+    if (Axis.x >= Axis.y && Axis.x >= Axis.z)
+        return Direction.x >= 0.0f ? 0u : 1u;
+    if (Axis.y >= Axis.z)
+        return Direction.y >= 0.0f ? 2u : 3u;
+    return Direction.z >= 0.0f ? 4u : 5u;
+}
+
+float GetShadowVisibility(uint LightIndex,
+    FLightRenderParameters Light, float3 WorldPosition)
+{
+    if (ShadowsEnabled == 0) return 1.0f;
+
+    FLightShadowRange Range = LightShadowRanges[LightIndex];
+    if (Range.ViewCount == 0) return 1.0f;
+
+    uint FaceIndex = 0;
+    if (Light.Type == LIGHT_TYPE_POINT)
+        FaceIndex = GetPointShadowFace(WorldPosition - Light.Position);
+    if (FaceIndex >= Range.ViewCount) return 1.0f;
+
+    FShadowParameters Shadow = ShadowParameters[Range.StartIndex + FaceIndex];
+    if (Shadow.AtlasIndex >= MAX_SHADOW_ATLASES) return 1.0f;
+
+    float4 Clip = mul(float4(WorldPosition, 1.0f), Shadow.LightVP);
+    if (Clip.w <= 0.0f) return 1.0f;
+
+    float3 NDC = Clip.xyz / Clip.w;
+    float2 UV = NDC.xy * float2(0.5f, -0.5f) + 0.5f;
+    if (any(UV < 0.0f) || any(UV >= 1.0f) || NDC.z < 0.0f || NDC.z > 1.0f)
+        return 1.0f;
+
+    int2 AtlasPixel = int2(Shadow.AtlasRect.xy + UV * Shadow.AtlasRect.zw);
+    float StoredDepth = LoadShadowDepth(Shadow.AtlasIndex, AtlasPixel);
+    return NDC.z - ShadowDepthBias <= StoredDepth ? 1.0f : 0.0f;
+}
+
 float4 mainPS(FPSInput Input) : SV_Target
 {
     int2 Pixel = int2(Input.Position.xy);
@@ -68,6 +147,13 @@ float4 mainPS(FPSInput Input) : SV_Target
     float Roughness = NormalData.a;
     float3 N = NormalData.xyz * rsqrt(max(dot(NormalData.xyz, NormalData.xyz), 1.0e-8f));
     
+    float2 UV = (float2(Pixel) + 0.5f) / ViewportSize.xy;
+    float2 NDC = float2(UV.x * 2.0f - 1.0f, 1.0f - UV.y * 2.0f);
+    float4 WorldH = mul(float4(NDC, Depth, 1.0f), InverseViewProjection);
+    if (!isfinite(WorldH.w) || abs(WorldH.w) < 1.0e-6f)
+        return 0.0f;
+    float3 WorldPosition = WorldH.xyz / WorldH.w;
+
     float3 AmbientColor = AmbientColorIntensity.rgb * max(AmbientColorIntensity.a, 0.0f);
     float3 BaseLighting = AmbientColor;
     if (SkyColorIntensity.a > 0.0f)
@@ -76,23 +162,19 @@ float4 mainPS(FPSInput Input) : SV_Target
     [loop]
     for (uint DirectionalIndex = 0; DirectionalIndex < LightCounts.z; ++DirectionalIndex)
     {
-        FLightRenderParameters Light = SceneLights[LightOffsets.z + DirectionalIndex];
+        uint LightIndex = LightOffsets.z + DirectionalIndex;
+        FLightRenderParameters Light = SceneLights[LightIndex];
         if (Light.Intensity <= 0.0f) continue;
         float3 LightDir = normalize(Light.Direction);
         float3 LightColor = Light.Color * Light.Intensity;
-        BaseLighting += LightColor * saturate(dot(N, -LightDir));
+        float Visibility = GetShadowVisibility(LightIndex, Light, WorldPosition);
+        BaseLighting += LightColor * saturate(dot(N, -LightDir)) * Visibility;
     }
 
     float3 Lighting = Albedo * BaseLighting;
     if (LightCounts.x == 0 && LightCounts.y == 0 && LightCounts.w == 0)
         return float4(Lighting, 1.0f);
 
-    float2 UV = (float2(Pixel) + 0.5f) / ViewportSize.xy;
-    float2 NDC = float2(UV.x * 2.0f - 1.0f, 1.0f - UV.y * 2.0f);
-    float4 WorldH = mul(float4(NDC, Depth, 1.0f), InverseViewProjection);
-    if (!isfinite(WorldH.w) || abs(WorldH.w) < 1.0e-6f)
-        return 0.0f;
-    float3 WorldPosition = WorldH.xyz / WorldH.w;
     // 직교 투영의 시선 광선은 평행하므로 시선 방향이 위치에 따라 달라지지 않는다.
     float3 ToCamera = CameraPosition.w > 0.5f
         ? CameraPosition.xyz - WorldPosition : -CameraForward.xyz;
@@ -104,7 +186,8 @@ float4 mainPS(FPSInput Input) : SV_Target
     [loop]
     for (uint PointIndex = 0; PointIndex < LightCounts.x; ++PointIndex)
     {
-        FLightRenderParameters Light = SceneLights[LightOffsets.x + PointIndex];
+        uint LightIndex = LightOffsets.x + PointIndex;
+        FLightRenderParameters Light = SceneLights[LightIndex];
         float3 ToLight = Light.Position - WorldPosition;
         float DistanceSquared = dot(ToLight, ToLight);
         float RadiusSquared = Light.Radius * Light.Radius;
@@ -119,6 +202,7 @@ float4 mainPS(FPSInput Input) : SV_Target
         float Attenuation = pow(saturate(1.0 - x), max(Light.FalloffExponent, 0.0f));
 
         float3 Radiance = Light.Color * max(Light.Intensity, 0.0f) * Attenuation;
+        Radiance *= GetShadowVisibility(LightIndex, Light, WorldPosition);
         AccumulateLocalLight(LocalDiffuse, LocalSpecular,
             Albedo, Metallic, Roughness, N, V, L, Radiance);
 
@@ -127,7 +211,8 @@ float4 mainPS(FPSInput Input) : SV_Target
     [loop]
     for (uint SpotIndex = 0; SpotIndex < LightCounts.y; ++SpotIndex)
     {
-        FLightRenderParameters Light = SceneLights[LightOffsets.y + SpotIndex];
+        uint LightIndex = LightOffsets.y + SpotIndex;
+        FLightRenderParameters Light = SceneLights[LightIndex];
         float3 ToLight = Light.Position - WorldPosition;
         float DistanceSquared = dot(ToLight, ToLight);
         float RadiusSquared = Light.Radius * Light.Radius;
@@ -143,6 +228,7 @@ float4 mainPS(FPSInput Input) : SV_Target
 		float RadiusFade = DistanceFactor * DistanceFactor;
 		float3 Radiance = Light.Color * max(Light.Intensity, 0.0f)
 			* ConeFade * RadiusFade;
+        Radiance *= GetShadowVisibility(LightIndex, Light, WorldPosition);
         AccumulateLocalLight(LocalDiffuse, LocalSpecular,
             Albedo, Metallic, Roughness, N, V, L, Radiance);
     }
@@ -150,7 +236,8 @@ float4 mainPS(FPSInput Input) : SV_Target
     [loop]
     for (uint RectIndex = 0; RectIndex < LightCounts.w; ++RectIndex)
     {
-        FLightRenderParameters Light = SceneLights[LightOffsets.w + RectIndex];
+        uint LightIndex = LightOffsets.w + RectIndex;
+        FLightRenderParameters Light = SceneLights[LightIndex];
         float3 Position = Light.Position;
         float Radius = Light.Radius;
         float3 Direction = Light.Direction;
@@ -199,6 +286,7 @@ float4 mainPS(FPSInput Input) : SV_Target
         }
 
         float3 Radiance = Color * max(Intensity, 0.0f) * Attenuation * FrontFace * BarnDoorMask;
+        Radiance *= GetShadowVisibility(LightIndex, Light, WorldPosition);
         AccumulateLocalLight(LocalDiffuse, LocalSpecular,
             Albedo, Metallic, Roughness, N, V, L, Radiance);
     }

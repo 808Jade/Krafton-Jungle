@@ -102,7 +102,7 @@ void RenderCommand::BindPipelineState(const FPipelineState& PipelineState)
 void RenderCommand::BindShaderProgram(FShaderProgram* Shader)
 {
 	RenderDevice->GetContext()->VSSetShader(Shader->VertexShader->GetShader(), nullptr, 0);
-	RenderDevice->GetContext()->PSSetShader(Shader->PixelShader->GetShader(), nullptr, 0);
+	RenderDevice->GetContext()->PSSetShader(Shader->PixelShader ? Shader->PixelShader->GetShader() : nullptr, nullptr, 0);
 	RenderDevice->GetContext()->IASetInputLayout(Shader->VertexShader->GetLayout());
 }
 

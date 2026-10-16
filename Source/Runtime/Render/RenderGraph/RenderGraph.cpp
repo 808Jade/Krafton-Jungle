@@ -81,6 +81,7 @@ namespace
 	struct FPooledTexture
 	{
 		TUniquePtr<FTexture2D> Texture;
+		FRenderGraphTextureDesc Desc{};
 		bool bInUse = false;
 	};
 	static std::vector<FPooledTexture> GTexturePool;
@@ -90,9 +91,10 @@ namespace
 		for (auto& Item : GTexturePool)
 		{
 			if (!Item.bInUse && Item.Texture &&
-				Item.Texture->GetWidth() == Desc.Width &&
-				Item.Texture->GetHeight() == Desc.Height &&
-				Item.Texture->GetFormat() == Desc.Format)
+				Item.Desc.Width == Desc.Width &&
+				Item.Desc.Height == Desc.Height &&
+				Item.Desc.Format == Desc.Format &&
+				Item.Desc.BindFlags == Desc.BindFlags)
 			{
 				Item.bInUse = true;
 				return Item.Texture.get();
@@ -110,9 +112,12 @@ namespace
 		D3DDesc.Format = Desc.Format;
 
 		auto NewTex = RenderCommand::CreateTexture2D(D3DDesc);
-		if (!NewTex) return nullptr;
+		if (!NewTex || !NewTex->GetRawPtr() ||
+			((Desc.BindFlags & D3D11_BIND_RENDER_TARGET) && !NewTex->GetRTV()) ||
+			((Desc.BindFlags & D3D11_BIND_DEPTH_STENCIL) && !NewTex->GetDSV()) ||
+			((Desc.BindFlags & D3D11_BIND_SHADER_RESOURCE) && !NewTex->GetSRV())) return nullptr;
 		FTexture2D* Ptr = NewTex.get();
-		GTexturePool.push_back({ std::move(NewTex), true });
+		GTexturePool.push_back({ std::move(NewTex), Desc, true });
 		return Ptr;
 	}
 }
@@ -177,7 +182,7 @@ bool FRenderGraphBuilder::ValidatePass(const FRenderGraphRasterPassDesc& Desc,
 	uint32& OutWidth, uint32& OutHeight) const
 {
 	if (Desc.Name.empty() || Desc.ColorAttachments.size() > D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT ||
-		(Desc.ColorAttachments.empty() && !Desc.DepthAttachment.Texture))
+		(Desc.ColorAttachments.empty() && Desc.DepthAttachments.IsEmpty()))
 		return false;
 	std::vector<uint32> OutputIndices;
 	const auto ValidateOutput = [&](FRenderGraphTextureRef Ref, bool bDepth) -> bool
@@ -201,7 +206,17 @@ bool FRenderGraphBuilder::ValidatePass(const FRenderGraphRasterPassDesc& Desc,
 	if ((OutWidth == 0) != (OutHeight == 0)) return false;
 	for (const FRenderGraphColorAttachment& Color : Desc.ColorAttachments)
 		if (!ValidateOutput(Color.Texture, false)) return false;
-	if (Desc.DepthAttachment.Texture && !ValidateOutput(Desc.DepthAttachment.Texture, true)) return false;
+	for (const FRenderGraphDepthAttachment& Attachment : Desc.DepthAttachments)
+		if (!ValidateOutput(Attachment.Texture, true)) return false;
+	const FShadowAtlasRect& Viewport = Desc.Viewport;
+	if ((Viewport.Width == 0) != (Viewport.Height == 0)) return false;
+	if (Viewport.Width == 0)
+	{
+		if (Viewport.X != 0 || Viewport.Y != 0) return false;
+	}
+	else if (Viewport.X >= OutWidth || Viewport.Y >= OutHeight ||
+		Viewport.Width > OutWidth - Viewport.X || Viewport.Height > OutHeight - Viewport.Y)
+		return false;
 	for (FRenderGraphTextureRef Read : Desc.ReadTextures)
 	{
 		if (Read.Owner != this || Read.Index >= Textures.size()) return false;
@@ -254,6 +269,7 @@ bool FRenderGraphBuilder::Execute() // 등록되어 있던
 		if (Entry.bTransient && !Entry.Texture)
 		{
 			Entry.Texture = AcquireTexture(Entry.Desc);
+			if (!Entry.Texture) return false;
 		}
 	}
 
@@ -283,10 +299,11 @@ bool FRenderGraphBuilder::Execute() // 등록되어 있던
 			if (Texture) Outputs.push_back(Texture->GetRawPtr());
 		}
 
-		FTexture2D* Depth = Pass.Desc.DepthAttachment.Texture
-			? Resolve(Pass.Desc.DepthAttachment.Texture) : nullptr;
+		FTexture2D* Depth = Pass.Desc.DepthAttachments.IsEmpty()
+			? nullptr : Resolve(Pass.Desc.DepthAttachments[0].Texture);
 
-		if (Depth) Outputs.push_back(Depth->GetRawPtr());
+		for (const FRenderGraphDepthAttachment& Attachment : Pass.Desc.DepthAttachments)
+			Outputs.push_back(Resolve(Attachment.Texture)->GetRawPtr());
 		UnbindConflictingViews(Context, Outputs);
 		
 		for (uint32 Index = 0; Index < Pass.Desc.ColorAttachments.size(); ++Index)
@@ -300,11 +317,17 @@ bool FRenderGraphBuilder::Execute() // 등록되어 있던
 			}
 		}
 
-		if (Depth && Pass.Desc.DepthAttachment.LoadAction == ERenderGraphLoadAction::Clear)
-			RenderCommand::ClearDepthStencil(Depth, Pass.Desc.DepthAttachment.ClearDepth, Pass.Desc.DepthAttachment.ClearStencil);
+		for (const FRenderGraphDepthAttachment& Attachment : Pass.Desc.DepthAttachments)
+		{
+			if (Attachment.LoadAction == ERenderGraphLoadAction::Clear)
+				RenderCommand::ClearDepthStencil(Resolve(Attachment.Texture), Attachment.ClearDepth, Attachment.ClearStencil);
+		}
 		
 		RenderCommand::SetRenderTargets(static_cast<uint32>(Pass.Desc.ColorAttachments.size()), ColorTargets, Depth);
-		RenderCommand::SetViewport(0, 0, Pass.Width, Pass.Height);
+		const FShadowAtlasRect& Viewport = Pass.Desc.Viewport;
+		RenderCommand::SetViewport(Viewport.Width ? Viewport.X : 0, Viewport.Height ? Viewport.Y : 0,
+			Viewport.Width ? Viewport.Width : Pass.Width,
+			Viewport.Height ? Viewport.Height : Pass.Height);
 		Pass.Execute();
 		RenderCommand::EndRenderPass();
 	}

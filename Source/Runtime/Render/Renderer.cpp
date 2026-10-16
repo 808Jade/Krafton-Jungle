@@ -124,7 +124,7 @@ void FRenderer::BindBatch(const FMeshDrawBatch& Batch)
 	
 	if (Batch.bBindViewConstants)
 		RenderCommand::BindConstantBuffer(0, ViewCB.get(), EShaderBindFlagBits::Vertex);
-	for (uint32 Index = 0; Index < Batch.Textures.size(); ++Index)
+	for (uint32 Index = 0; Index < Batch.Textures.Num(); ++Index)
 		RenderCommand::BindShaderResource(Index, Batch.Textures[Index].Texture,
 			Batch.Textures[Index].Stages);
 	
@@ -158,12 +158,12 @@ void FRenderer::DrawMeshes(std::span<const FMeshDrawBatch> Batches)
 	for (const FMeshDrawBatch& Batch : Batches)
 	{
 		BindBatch(Batch);
-		if (PreviousTextureCount > Batch.Textures.size())
-			RenderCommand::UnbindShaderResources(static_cast<uint32>(Batch.Textures.size()),
-				PreviousTextureCount - static_cast<uint32>(Batch.Textures.size()),
+		if (PreviousTextureCount > Batch.Textures.Num())
+			RenderCommand::UnbindShaderResources(static_cast<uint32>(Batch.Textures.Num()),
+				PreviousTextureCount - static_cast<uint32>(Batch.Textures.Num()),
 				EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 		
-		PreviousTextureCount = static_cast<uint32>(Batch.Textures.size());
+		PreviousTextureCount = static_cast<uint32>(Batch.Textures.Num());
 		for (const FMeshDrawBatch::FItem& Item : Batch.Items)
 		{
 			BindObject(Batch, Item);
@@ -218,7 +218,7 @@ FOcclusionMeasureResult FRenderer::MeasureDrawVisibility(std::span<const FMeshDr
 {
 	FOcclusionMeasureResult Result;
 	uint32 Count = 0;
-	for (const FMeshDrawBatch& Batch : Batches) Count += static_cast<uint32>(Batch.Items.size());
+	for (const FMeshDrawBatch& Batch : Batches) Count += static_cast<uint32>(Batch.Items.Num());
 	if (!Count) return Result;
 	ID3D11Device* Device = RenderCommand::GetDevice();
 	ID3D11DeviceContext* Context = RenderCommand::GetContext();

@@ -1,4 +1,4 @@
-#include "EnginePCH.h"
+﻿#include "EnginePCH.h"
 #include "Render/SceneRenderer.h"
 #include "Render/Renderer.h"
 #include "Render/SceneLightResources.h"
@@ -14,6 +14,7 @@
 #include "Render/SkyLightEnvironment.h"
 
 #include <cmath>
+#include <algorithm>
 #include <cstring>
 #include <utility>
 
@@ -29,7 +30,7 @@ namespace
 		FRenderGraphRasterPassDesc Pass{};
 		Pass.Name = Name;
 		Pass.ColorAttachments = { { Color, ERenderGraphLoadAction::Load } };
-		if (DepthTarget) Pass.DepthAttachment = { DepthTarget, DepthLoad, 1.0f, 0 };
+		if (DepthTarget) Pass.DepthAttachments = { { DepthTarget, DepthLoad, 1.0f, 0 } };
 		return Pass;
 	}
 
@@ -131,6 +132,7 @@ bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uin
 	Renderer->BindStructured(3, LightCounts[0] || LightCounts[1] || LightCounts[2] || LightCounts[3] ? LightResources.GetSceneLights() : nullptr, EShaderBindFlagBits::Pixel);
 	Renderer->BindCube(4, Sky ? Sky->GetIrradianceCube() : nullptr, EShaderBindFlagBits::Pixel);
 	Renderer->BindSampler(1, ESamplerState::LinearClamp, EShaderBindFlagBits::Pixel);
+	LightResources.BindDeferredShadows(Renderer);
 	return true;
 }
 
@@ -194,17 +196,76 @@ bool FSceneRenderer::AddWorldNormalPass(FRenderGraphBuilder& Graph, FRenderer* R
 	FRenderGraphRasterPassDesc Pass{};
 	Pass.Name = "WorldNormal";
 	Pass.ColorAttachments = { { SceneColor, ERenderGraphLoadAction::Clear, { 0.0f, 0.0f, 0.0f, 1.0f } } };
-	Pass.DepthAttachment = { Depth, ERenderGraphLoadAction::Clear, 1.0f, 0 };
+	Pass.DepthAttachments = { { Depth, ERenderGraphLoadAction::Clear, 1.0f, 0 } };
 	return Graph.AddRasterPass(std::move(Pass), [this, Renderer, bDrawPrimitives = Options.bDrawPrimitives]
 		{
 			if (!bDrawPrimitives) return;
 			FMeshPassProcessor Processor;
-			std::vector<FMeshDrawBatch> Batches;
+			TArray<FMeshDrawBatch> Batches;
 			bCorePassSucceeded = Processor.Build(View, RenderData.RenderQueue,
 				&RenderData, EMeshPassType::WorldNormal, Batches);
 			if (bCorePassSucceeded)
 				Renderer->DrawMeshes(Batches);
 		});
+}
+
+bool FSceneRenderer::AssignShadowAtlasRects(TArray<FShadowDrawPass>& Passes, uint32& OutAtlasCount)
+{
+	constexpr float AtlasSize = static_cast<float>(FSceneViewTargets::ShadowAtlasSize);
+	OutAtlasCount = 0;
+	TArray<FShadowDrawPass*> Requests;
+	Requests.Reserve(Passes.Num());
+	for (FShadowDrawPass& Pass : Passes)
+	{
+		if (!Pass.Resolution || static_cast<float>(Pass.Resolution) > AtlasSize)
+			return false;
+		Requests.Add(&Pass);
+	}
+	// 큰 영역부터 배정하되 조명/face 순서로 저장된 원본 목록은 유지한다.
+	std::stable_sort(Requests.begin(), Requests.end(), [](const auto* A, const auto* B)
+	{
+		return A->Resolution > B->Resolution;
+	});
+	TArray<TArray<FRect>> FreeRects; // FreeRects[0] 은 0번 atlas의 빈 사각형 목록, FreeRects[0][0]은 첫 번째 빈 사각형
+	for (FShadowDrawPass* Pass : Requests)
+	{
+		const float Size = static_cast<float>(Pass->Resolution);
+		bool bAssigned = false;
+		for (uint32 AtlasIndex = 0; !bAssigned; ++AtlasIndex)
+		{
+			if (AtlasIndex == FreeRects.Num())
+				FreeRects.Add({ FRect{ 0, 0, AtlasSize, AtlasSize } }); // 새로운 atlas 추가하고 atlas 크기의 빈 사각형 하나 넣음
+			auto& Rects = FreeRects[AtlasIndex]; // 새 atlas라면 Rects.Num() == 1
+			for (size_t RectIndex = 0; RectIndex < Rects.Num(); ++RectIndex)
+			{
+				const FRect Free = Rects[RectIndex];
+				if (Free.Width < Size || Free.Height < Size) continue; // 안 들어가면 다음 빈 영역 검사
+				Rects.RemoveAt(static_cast<uint32>(RectIndex)); // 배정할 빈 사각형을 원본 목록에서 제거
+				// 빈 영역을 겹치지 않는 오른쪽/아래쪽 사각형으로 분할한다.
+				if (Free.Width > Size) // 오른쪽에 남은 빈 영역 추가
+					Rects.Add({
+						Free.X + Size,     // 사용한 영역의 오른쪽부터
+						Free.Y,            // 같은 Y 위치
+						Free.Width - Size, // 남은 너비
+						Size               // 사용한 영역과 같은 높이
+					});
+				if (Free.Height > Size) // 아래쪽에 공간이 남았다면
+					Rects.Add({
+						Free.X,            // 기존 왼쪽 위치
+						Free.Y + Size,     // 배치한 그림자 맵 아래부터
+						Free.Width,        // 기존 영역의 전체 너비
+						Free.Height - Size // 남은 높이
+					});
+				Pass->Parameters.AtlasIndex = AtlasIndex; // 이 Pass가 사용할 atlas 번호
+				Pass->Parameters.AtlasRect = { Free.X, Free.Y,
+					static_cast<float>(Pass->Resolution), static_cast<float>(Pass->Resolution) }; // atlas 안의 위치와 크기
+				bAssigned = true;
+				break;
+			}
+		}
+	}
+	OutAtlasCount = static_cast<uint32>(FreeRects.Num());
+	return true;
 }
 
 bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Renderer, FSceneViewTargets& Targets,
@@ -251,6 +312,30 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 	if (!SceneColor || !Depth)
 		return false;
 
+	TArray<FRenderGraphTextureRef> ShadowAtlases;
+	TArray<FShadowDrawPass> ShadowPasses;
+	if (Options.bShowShadow)
+	{
+		uint32 RequiredAtlasCount = 0;
+		FMeshPassProcessor Processor;
+		if (!Processor.Build(View, World->GetScene(), RenderData.VisibleLights,
+			ShadowPasses)) return false;
+		if (!AssignShadowAtlasRects(ShadowPasses, RequiredAtlasCount)) return false;
+		if (!Targets.InitShadowAtlases(RequiredAtlasCount)) return false;
+		ShadowAtlases.Reserve(RequiredAtlasCount);
+		for (uint32 AtlasIndex = 0; AtlasIndex < RequiredAtlasCount; ++AtlasIndex)
+		{
+			const std::string Name = "ShadowAtlas_" + std::to_string(AtlasIndex);
+			const FRenderGraphTextureRef ShadowAtlas = Graph.ImportTexture(
+				Targets.ShadowAtlases[AtlasIndex].get(), Name.c_str());
+			if (!ShadowAtlas) return false;
+			ShadowAtlases.Add(ShadowAtlas);
+
+		}
+	}
+
+	if (!RenderData.ViewLightResources.BuildViewShadowParameters(ShadowPasses)) return false;
+
 	const FRenderGraphTextureDesc HDRDesc{ Width, Height, DXGI_FORMAT_R16G16B16A16_FLOAT };
 	const FRenderGraphTextureRef LightingHDR = Graph.CreateTexture(HDRDesc, "LightingHDR");
 	if (!LightingHDR)
@@ -285,13 +370,13 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 				{ Normal, ERenderGraphLoadAction::Clear, { 0.0f, 0.0f, 0.0f, 0.0f } }
 			}; // GBuffer Pass 에는 BaseColor 와 Normal Texture가 Clear된 상태로 필요하다
 
-			GBuffer.DepthAttachment = { Depth, ERenderGraphLoadAction::Clear, 1.0f, 0 }; // GBuffer Pass 에는 Depth Texture가 Clear된 상태로 필요하다
+			GBuffer.DepthAttachments = { { Depth, ERenderGraphLoadAction::Clear, 1.0f, 0 } }; // GBuffer Pass 에는 Depth Texture가 Clear된 상태로 필요하다
 			
 
 			if (!Graph.AddRasterPass(std::move(GBuffer), [this, Renderer]
 				{
 					PrepareDrawData(Renderer, RenderData);
-					std::vector<FMeshDrawBatch> Batches;
+					TArray<FMeshDrawBatch> Batches;
 					FMeshPassProcessor Processor;
 					bCorePassSucceeded = Processor.Build(View, RenderData.RenderQueue,
 						&RenderData, EMeshPassType::GBuffer, Batches);
@@ -302,19 +387,62 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 					}
 				})) return false;
 
+			if (Options.bShowShadow && !ShadowPasses.IsEmpty())
+			{
+				FRenderGraphRasterPassDesc ShadowMap{};
+				ShadowMap.Name = "ShadowMap";
+
+				// 사용 atlas마다 한 번만 지우고, 조명별 영역에 이어서 그린다.
+				for (FRenderGraphTextureRef Atlas : ShadowAtlases)
+					ShadowMap.DepthAttachments.Add({ Atlas, ERenderGraphLoadAction::Clear, 1.0f, 0 });
+
+				if (!Graph.AddRasterPass(std::move(ShadowMap),
+					[this, Renderer, &Graph, Atlases = ShadowAtlases, Passes = std::move(ShadowPasses)]
+					{
+						if (!bCorePassSucceeded) return;
+						for (uint32 AtlasIndex = 0; AtlasIndex < Atlases.Num(); ++AtlasIndex)
+						{
+							// 같은 atlas에 배정된 조명들을 묶어서 그린다.
+							RenderCommand::SetRenderTargets(0, nullptr, Graph.Resolve(Atlases[AtlasIndex]));
+							for (const FShadowDrawPass& Pass : Passes)
+							{
+								if (Pass.Parameters.AtlasIndex != AtlasIndex) continue;
+								RenderCommand::SetViewport(
+									static_cast<uint32>(Pass.Parameters.AtlasRect.X),
+									static_cast<uint32>(Pass.Parameters.AtlasRect.Y),
+									static_cast<uint32>(Pass.Parameters.AtlasRect.Width),
+									static_cast<uint32>(Pass.Parameters.AtlasRect.Height));
+								Renderer->UploadViewMatrix(Pass.Parameters.LightVP);
+								Renderer->DrawMeshes(Pass.Batches);
+							}
+						}
+						Renderer->UploadViewMatrix(View.ViewProjectionMatrix);
+					})) return false;
+			}
+
 			FRenderGraphRasterPassDesc LightingPass{};
 			LightingPass.Name = "DeferredLighting";
 			LightingPass.ReadTextures = { BaseColor, Normal, Depth };
+			for (FRenderGraphTextureRef Atlas : ShadowAtlases)
+				LightingPass.ReadTextures.push_back(Atlas);
 			LightingPass.ColorAttachments = {
 				{ LightingHDR, ERenderGraphLoadAction::Load }
 			};
-			if (!Graph.AddRasterPass(std::move(LightingPass), [this, Renderer, &Graph, BaseColor, Normal, Depth, Width, Height]
+			if (!Graph.AddRasterPass(std::move(LightingPass), [this, Renderer, &Graph, BaseColor, Normal, Depth, Width, Height,
+				Atlases = std::move(ShadowAtlases), bShowShadow = Options.bShowShadow]
 				{
 					if (!bCorePassSucceeded) return;
-					if (!BindDeferredLighting(Renderer, Width, Height))
+					if (!RenderData.ViewLightResources.UploadViewShadows(bShowShadow, static_cast<uint32>(Atlases.Num())) ||
+						!BindDeferredLighting(Renderer, Width, Height))
 					{
 						bCorePassSucceeded = false;
 						return;
+					}
+					for (uint32 Index = 0; Index < FSceneLightResources::MaxShadowAtlases; ++Index)
+					{
+						FTexture2D* Atlas = bShowShadow && Index < static_cast<uint32>(Atlases.Num())
+							? Graph.Resolve(Atlases[Index]) : nullptr;
+						RenderCommand::BindShaderResource(7 + Index, Atlas, EShaderBindFlagBits::Pixel);
 					}
 					const std::array<FTexture2D*, 3> Textures =
 						{ Graph.Resolve(BaseColor), Graph.Resolve(Normal), Graph.Resolve(Depth) };
@@ -324,19 +452,21 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 					else
 						bCorePassSucceeded = false;
 					Renderer->UnbindResources(3, 2, EShaderBindFlagBits::Pixel);
+					Renderer->UnbindResources(5, 2 + FSceneLightResources::MaxShadowAtlases, EShaderBindFlagBits::Pixel);
+					Renderer->BindConstant(1, nullptr, EShaderBindFlagBits::Pixel);
 				})) return false;
 		}
 		else
 		{
 			FRenderGraphRasterPassDesc ClearDepth{};
 			ClearDepth.Name = "ClearSceneDepth";
-			ClearDepth.DepthAttachment = { Depth, ERenderGraphLoadAction::Clear, 1.0f, 0 };
+			ClearDepth.DepthAttachments = { { Depth, ERenderGraphLoadAction::Clear, 1.0f, 0 } };
 			if (!Graph.AddRasterPass(std::move(ClearDepth), [] {})) return false;
 		}
 	}
 	else // Forward Rendering
 	{
-		ForwardBatches.clear();
+		ForwardBatches.Reset();
 		if (Options.bDrawPrimitives)
 		{
 			FMeshPassProcessor Processor;
@@ -367,15 +497,15 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 			// 기존 프리패스를 유지해 ForwardOpaque에서 깊이를 재사용한다.
 			FRenderGraphRasterPassDesc Prepass{};
 			Prepass.Name = "DepthPrepass";
-			Prepass.DepthAttachment = { Depth, ERenderGraphLoadAction::Clear, 1.0f, 0 };
+			Prepass.DepthAttachments = { { Depth, ERenderGraphLoadAction::Clear, 1.0f, 0 } };
 			if (!Graph.AddRasterPass(std::move(Prepass), [this, Renderer, DepthPipeline]
 				{
 					PrepareDrawData(Renderer, RenderData);
-					if (ForwardBatches.empty()) return;
+					if (ForwardBatches.IsEmpty()) return;
 
 					// 실제 메시 패스와 같은 VS를 사용해 깊이 계산을 일치시킨다.
-					FShaderProgram DepthProgram(ForwardBatches.front().Pipeline.Shader->VertexShader, DepthPipeline->Shader->PixelShader);
-					std::vector<FMeshDrawBatch> DepthBatches = ForwardBatches;
+					FShaderProgram DepthProgram(ForwardBatches.Front().Pipeline.Shader->VertexShader, DepthPipeline->Shader->PixelShader);
+					TArray<FMeshDrawBatch> DepthBatches = ForwardBatches;
 					for (FMeshDrawBatch& Batch : DepthBatches)
 					{
 						Batch.Pipeline = *DepthPipeline;
@@ -407,7 +537,7 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 		Forward.ColorAttachments = {
 			{ LightingHDR, ERenderGraphLoadAction::Load }
 		};
-		Forward.DepthAttachment = { Depth, bUseDepthPrepass ? ERenderGraphLoadAction::Load : ERenderGraphLoadAction::Clear, 1.0f, 0 };
+		Forward.DepthAttachments = { { Depth, bUseDepthPrepass ? ERenderGraphLoadAction::Load : ERenderGraphLoadAction::Clear, 1.0f, 0 } };
 		if (!Graph.AddRasterPass(std::move(Forward), [this, Renderer, LightingOptions = Options, bUseDepthPrepass]
 			{
 				if (!LightingOptions.bDrawPrimitives) return;
@@ -547,7 +677,7 @@ bool FSceneRenderer::AddViewportPasses(FRenderGraphBuilder& Graph, FRenderer* Re
 	{
 		FRenderGraphRasterPassDesc ClearDepth{};
 		ClearDepth.Name = "EditorClearDepth";
-		ClearDepth.DepthAttachment = { Depth, ERenderGraphLoadAction::Clear, 1.0f, 0 };
+		ClearDepth.DepthAttachments = { { Depth, ERenderGraphLoadAction::Clear, 1.0f, 0 } };
 		if (!Graph.AddRasterPass(std::move(ClearDepth), [] {})) return false;
 	}
 	if (!AddOverlayPass(Graph, "EditorUUID", FinalColor, Depth, Overlay.EditorUUID)) return false;
@@ -565,7 +695,7 @@ void FSceneRenderer::RenderTranslucent(FRenderer* Renderer, FConstantBuffer* Fog
 
 	Renderer->BindPixelConstant(3, FogConstants);
 	PrepareDrawData(Renderer, RenderData);
-	std::vector<FMeshDrawBatch> Batches;
+	TArray<FMeshDrawBatch> Batches;
 	FMeshPassProcessor Processor;
 	if (Processor.Build(View, RenderData.RenderQueue, &RenderData,
 		EMeshPassType::Translucent, Batches))
@@ -623,7 +753,7 @@ void FSceneRenderer::GatherRenderPackets(FScene& Scene, FSceneRenderData& Data,
 		FGPUOcclusion& Occlusion = Renderer->GetGPUOcclusion();
 		if (Occlusion.Run(VisibleProxies.GetData(), VisibleProxies.Num(), View))
 		{
-			const std::vector<uint8>& Occluded = Occlusion.GetOccluded();
+			const auto& Occluded = Occlusion.GetOccluded();
 			if (Occlusion.GetSettings().bCull)
 			{
 				uint32 Kept = 0;

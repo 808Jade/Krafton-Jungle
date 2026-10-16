@@ -6,11 +6,16 @@
 #include "Render/RenderEnums.h"
 #include "Render/Buffer.h"
 #include "Render/RenderCommand.h"
+#include "Containers/Array.h"
+#include "Math/Rect.h"
+#include "Render/LightRenderData.h"
 #include <array>
-#include <vector>
+#include <Engine\PrimitiveSceneProxy.h>
 
 struct FSceneView;
 struct FSceneRenderData;
+class FScene;
+struct FLightRenderParameters;
 
 // 한 패스에서 함께 바인딩할 GPU 상태. UObject 메시/재질 포인터는 보관하지 않는다.
 struct FMeshDrawBatch
@@ -37,7 +42,7 @@ struct FMeshDrawBatch
 	FVertexBuffer* VertexBuffer = nullptr;
 	FIndexBuffer* IndexBuffer = nullptr;
 
-	std::vector<FTextureBinding> Textures;
+	TArray<FTextureBinding> Textures;
 	ESamplerState Sampler = ESamplerState::LinearClamp;
 	EShaderBindFlagBits SamplerStages = EShaderBindFlagBits::Pixel;
 	std::array<uint8, sizeof(FForwardMaterialConstants)> MaterialData{};
@@ -49,7 +54,17 @@ struct FMeshDrawBatch
 	bool bUseObjectSlots = true;
 	bool bBindViewConstants = true;
 	bool bForceWireframe = false;
-	std::vector<FItem> Items;
+	TArray<FItem> Items;
+};
+
+// 조명 시점 하나의 공통 파라미터와 CPU 전용 드로우 배치.
+struct FShadowDrawPass
+{
+	FShadowParameters Parameters;
+	uint32 LightIndex = 0;
+	uint32 FaceIndex = 0;
+	uint32 Resolution = 0;
+	TArray<FMeshDrawBatch> Batches;
 };
 
 struct FOcclusionMeasureResult
@@ -73,6 +88,7 @@ enum class EMeshPassType : uint8
 	Forward,
 	Translucent,
 	WorldNormal,
+	ShadowDepth,
 };
 
 // CPU에서 프록시/패킷을 패스별 GPU 배치로 변환한다. GPU 명령은 호출하지 않는다.
@@ -81,5 +97,10 @@ class FMeshPassProcessor
 public:
 	bool Build(const FSceneView& View, const FRenderQueue& Queue,
 		const FSceneRenderData* SceneData, EMeshPassType Pass,
-		std::vector<FMeshDrawBatch>& Out, ELightingModel LightingModel = ELightingModel::Gouraud) const;
+		TArray<FMeshDrawBatch>& Out, ELightingModel LightingModel = ELightingModel::Gouraud) const;
+
+	bool Build(const FSceneView& CameraView, FScene& Scene,
+		const TArray<FLightRenderParameters>& Lights,
+		TArray<FShadowDrawPass>& OutPasses) const;
+
 };

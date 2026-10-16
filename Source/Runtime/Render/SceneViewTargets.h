@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "Containers/Array.h"
 #include "Render/RenderCommand.h"
 #include "Render/Texture2D.h"
 
@@ -9,6 +10,33 @@ struct FSceneViewTargets
 {
 	TUniquePtr<FTexture2D> SceneColor;
 	TUniquePtr<FTexture2D> Depth;
+	static constexpr uint32 ShadowAtlasSize = 2048;
+	TArray<TUniquePtr<FTexture2D>> ShadowAtlases;
+
+	// 이미 확보한 atlas는 유지하고 필요한 개수까지 추가한다.
+	bool InitShadowAtlases(uint32 RequiredCount)
+	{
+		if (static_cast<uint32>(ShadowAtlases.Num()) >= RequiredCount)
+			return true;
+
+		D3D11_TEXTURE2D_DESC Desc{};
+		Desc.Width = ShadowAtlasSize;
+		Desc.Height = ShadowAtlasSize;
+		Desc.MipLevels = 1;
+		Desc.ArraySize = 1;
+		Desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+		Desc.SampleDesc.Count = 1;
+		Desc.Usage = D3D11_USAGE_DEFAULT;
+		Desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+		while (static_cast<uint32>(ShadowAtlases.Num()) < RequiredCount)
+		{
+			auto Atlas = RenderCommand::CreateTexture2D(Desc);
+			if (!Atlas || !Atlas->GetRawPtr() || !Atlas->GetDSV() || !Atlas->GetSRV())
+				return false;
+			ShadowAtlases.Add(std::move(Atlas));
+		}
+		return true;
+	}
 
 	// FXAA처리가 된 SceneColor로 swap하기 위해 사용된다.
 	FTexture2D* SwapSceneColorAndBind(TUniquePtr<FTexture2D>& Output)
@@ -27,6 +55,7 @@ struct FSceneViewTargets
 	{
 		SceneColor.reset();
 		Depth.reset();
+		ShadowAtlases.Empty();
 	}
 
 	bool IsValidFor(uint32 Width, uint32 Height) const
@@ -46,7 +75,9 @@ struct FSceneViewTargets
 		if (IsValidFor(Width, Height))
 			return true;
 
-		Reset();
+		// 뷰포트 크기가 바뀌어도 고정 크기 shadow atlas는 유지한다.
+		SceneColor.reset();
+		Depth.reset();
 		if (Width == 0 || Height == 0)
 			return false;
 
@@ -69,7 +100,8 @@ struct FSceneViewTargets
 
 		if (!IsValidFor(Width, Height))
 		{
-			Reset();
+			SceneColor.reset();
+			Depth.reset();
 			return false;
 		}
 		return true;
