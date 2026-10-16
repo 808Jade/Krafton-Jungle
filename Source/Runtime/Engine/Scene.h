@@ -39,9 +39,8 @@ public:
 	FSkyLightEnvironment* FindPendingSkyLightEnvironment(const FString& SourcePath);
 
 	const TArray<FDirectionalLightSceneProxy*>& GetDirectionalLights() const { return DirectionalLightProxies; }
-	const TArray<FPointLightSceneProxy*>& GetPointLights() const { return PointLightProxies; }
-	const TArray<FSpotLightSceneProxy*>& GetSpotLights() const { return SpotLightProxies; }
-	const TArray<FRectLightSceneProxy*>& GetRectLights() const { return RectLightProxies; }
+	// Point·Spot·Rect를 한 배열로 다룬다. 종류는 GetLightShaderParameters가 채우는 Type으로 구분한다.
+	const TArray<FLocalLightSceneProxy*>& GetLocalLights() const { return LocalLightProxies; }
 
 	void UpdateAllTransforms();
 
@@ -67,11 +66,7 @@ public:
 	bool bElementListChanged = false;
 
 	TArray<FLocalLightSceneProxy*>        LocalLightProxies;      // ↔ PackedIndex ↔
-	TArray<FLightRenderParameters>        LocalLightParameters;   // GPU 업로드용, 같은 순서
 	TArray<FDirectionalLightSceneProxy*>  DirectionalLightProxies;
-	TArray<FPointLightSceneProxy*>        PointLightProxies;
-	TArray<FSpotLightSceneProxy*>         SpotLightProxies;
-	TArray<class FRectLightSceneProxy*>   RectLightProxies;
 	TArray<USkyLightComponent*>           SkyLights;               // 프록시 없음
 
 private:

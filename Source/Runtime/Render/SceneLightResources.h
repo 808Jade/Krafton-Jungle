@@ -21,11 +21,11 @@ class FSceneLightResources
 {
 public:
 	bool Init();
-	bool UploadViewLights(const TArray<FDirectionalLightRenderData>& DirectionalLights,
-		const TArray<FPointLightRenderData>& PointLights,
-		const TArray<FSpotLightRenderData>& SpotLights,
-		const TArray<FRectLightRenderData>& RectLights,
+	// 광원을 종류별 구간(방향광, 포인트, 스포트, 렉트 순)으로 정렬해 업로드한다.
+	// Counts/Offsets 순서는 x: 포인트, y: 스포트, z: 방향광, w: 렉트다.
+	bool UploadViewLights(const TArray<FLightRenderParameters>& Lights,
 		uint32 (&Counts)[4], uint32 (&Offsets)[4]);
+
 	FStructuredBuffer* GetSceneLights() const { return SceneLightBuffer.get(); }
 	FConstantBuffer* GetForwardConstants() const { return ForwardLightCB.get(); }
 	FConstantBuffer* GetDeferredConstants() const { return DeferredLightCB.get(); }

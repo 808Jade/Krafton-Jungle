@@ -25,7 +25,6 @@ public:
 	bool IsVisible() const { return LightComponent ? LightComponent->IsVisible() : false; }
 	bool IsEnabled() const { return LightComponent && LightComponent->GetIntensity() > 0.0f; }
 	bool IsShown(bool bGameView) const { return LightComponent ? LightComponent->IsShown(bGameView) : false; }
-
 protected:
 	const ULightComponent* LightComponent = nullptr;
 
@@ -40,7 +39,6 @@ class FDirectionalLightSceneProxy : public FLightSceneProxy
 public:
 	using FLightSceneProxy::FLightSceneProxy;
 	void GetLightShaderParameters(FLightRenderParameters& Out) const override;
-	FDirectionalLightRenderData GetRenderData() const;
 };
 
 class FLocalLightSceneProxy : public FLightSceneProxy
@@ -54,7 +52,6 @@ class FPointLightSceneProxy : public FLocalLightSceneProxy
 public:
 	using FLocalLightSceneProxy::FLocalLightSceneProxy;
 	void GetLightShaderParameters(FLightRenderParameters& Out) const override;
-	FPointLightRenderData GetRenderData() const;
 };
 
 class FSpotLightSceneProxy : public FLocalLightSceneProxy
@@ -62,7 +59,6 @@ class FSpotLightSceneProxy : public FLocalLightSceneProxy
 public:
 	using FLocalLightSceneProxy::FLocalLightSceneProxy;
 	void GetLightShaderParameters(FLightRenderParameters& Out) const override;
-	FSpotLightRenderData GetRenderData() const;
 };
 
 class FRectLightSceneProxy : public FLocalLightSceneProxy
@@ -70,7 +66,6 @@ class FRectLightSceneProxy : public FLocalLightSceneProxy
 public:
 	using FLocalLightSceneProxy::FLocalLightSceneProxy;
 	void GetLightShaderParameters(FLightRenderParameters& Out) const override;
-	FRectLightRenderData GetRenderData() const;
 };
 
 class FAmbientLightSceneProxy

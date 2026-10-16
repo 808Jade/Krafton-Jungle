@@ -1,18 +1,39 @@
 #include "EnginePCH.h"
 #include "Render/SceneLightResources.h"
 #include "Render/RenderCommand.h"
+#include "Components/LightComponentBase.h"
 #include <algorithm>
 #include <cstring>
 
 namespace
 {
-	static_assert(sizeof(FPointLightRenderData) == 48);
 	static_assert(offsetof(FDeferredLightConstants, ViewportSize) == 96);
 	static_assert(offsetof(FDeferredLightConstants, Ambient) == 112);
 	static_assert(offsetof(FDeferredLightConstants, LightCounts) == 128);
 	static_assert(offsetof(FDeferredLightConstants, LightOffsets) == 144);
 	static_assert(offsetof(FDeferredLightConstants, SkyColorIntensity) == 160);
 	static_assert(sizeof(FDeferredLightConstants) == 176);
+
+	// 용량이 모자랄 때만 두 배로 키우고 Map 한 번으로 채운다.
+	bool UploadStructured(TUniquePtr<FStructuredBuffer>& Buffer, const void* Data, uint32 Count, uint32 Stride)
+	{
+		if (!Count) return true;
+		if (!Buffer || Buffer->GetCapacity() < Count)
+		{
+			const uint32 PreviousCapacity = Buffer ? Buffer->GetCapacity() : 0;
+			const uint32 Maximum = UINT32_MAX / Stride;
+			const uint32 Doubled = PreviousCapacity <= Maximum / 2
+				? std::max(1u, PreviousCapacity * 2) : Maximum;
+			auto NewBuffer = RenderCommand::CreateDynamicStructuredBuffer(std::max(Count, Doubled), Stride);
+			if (!NewBuffer || !NewBuffer->GetBuffer() || !NewBuffer->GetSRV()) return false;
+			Buffer = std::move(NewBuffer);
+		}
+		void* Destination = RenderCommand::MapWriteDiscard(Buffer.get());
+		if (!Destination) return false;
+		std::memcpy(Destination, Data, static_cast<size_t>(Count) * Stride);
+		RenderCommand::Unmap(Buffer.get());
+		return true;
+	}
 }
 
 bool FSceneLightResources::Init()
@@ -26,82 +47,40 @@ bool FSceneLightResources::Init()
 	return bInitialized;
 }
 
-bool FSceneLightResources::UploadViewLights(
-	const TArray<FDirectionalLightRenderData>& DirectionalLights,
-	const TArray<FPointLightRenderData>& PointLights,
-	const TArray<FSpotLightRenderData>& SpotLights,
-	const TArray<FRectLightRenderData>& RectLights,
+bool FSceneLightResources::UploadViewLights(const TArray<FLightRenderParameters>& Lights,
 	uint32 (&Counts)[4], uint32 (&Offsets)[4])
 {
-	const uint64 DirectionalCount = DirectionalLights.Num();
-	const uint64 PointCount = PointLights.Num();
-	const uint64 SpotCount = SpotLights.Num();
-	const uint64 RectCount = RectLights.Num();
-	const uint64 TotalCount = DirectionalCount + PointCount + SpotCount + RectCount;
-	if (TotalCount > UINT32_MAX / sizeof(FSceneLightRenderInfo)) return false;
-	Counts[0] = static_cast<uint32>(PointCount);
-	Counts[1] = static_cast<uint32>(SpotCount);
-	Counts[2] = static_cast<uint32>(DirectionalCount);
-	Counts[3] = static_cast<uint32>(RectCount);
+	// ELightType 순서(방향광, 포인트, 스포트, 렉트)가 곧 버퍼 안의 구간 순서다.
+	constexpr uint32 TypeCount = 4;
+	uint32 TypeCounts[TypeCount] = {};
+	for (const FLightRenderParameters& Light : Lights)
+		if (Light.Type < TypeCount) ++TypeCounts[Light.Type];
+
+	const uint32 DirectionalType = static_cast<uint32>(ELightType::Directional);
+	const uint32 PointType = static_cast<uint32>(ELightType::Point);
+	const uint32 SpotType = static_cast<uint32>(ELightType::Spot);
+	const uint32 RectType = static_cast<uint32>(ELightType::Rect);
+	Counts[0] = TypeCounts[PointType];
+	Counts[1] = TypeCounts[SpotType];
+	Counts[2] = TypeCounts[DirectionalType];
+	Counts[3] = TypeCounts[RectType];
 	Offsets[2] = 0;
 	Offsets[0] = Counts[2];
 	Offsets[1] = Counts[2] + Counts[0];
 	Offsets[3] = Counts[2] + Counts[0] + Counts[1];
-	if (!TotalCount) return true;
 
-	TArray<FSceneLightRenderInfo> PackedLights;
-	PackedLights.Reserve(static_cast<uint32>(TotalCount));
-	for (const FDirectionalLightRenderData& Light : DirectionalLights)
-	{
-		FSceneLightRenderInfo Info{};
-		Info.PositionRadius = Light.DirectionIntensity;
-		Info.ColorIntensity = FVector4(Light.Color.X, Light.Color.Y,
-			Light.Color.Z, Light.DirectionIntensity.W);
-		PackedLights.Add(Info);
-	}
-	for (const FPointLightRenderData& Light : PointLights)
-	{
-		FSceneLightRenderInfo Info{};
-		Info.PositionRadius = Light.PositionRadius;
-		Info.ColorIntensity = Light.ColorIntensity;
-		Info.Parameters = Light.Falloff;
-		PackedLights.Add(Info);
-	}
-	for (const FSpotLightRenderData& Light : SpotLights)
-	{
-		FSceneLightRenderInfo Info{};
-		Info.PositionRadius = Light.PositionRadius;
-		Info.DirectionOuterCos = Light.DirectionOuterCos;
-		Info.ColorIntensity = Light.ColorIntensity;
-		Info.Parameters = Light.InnerCosFalloff;
-		PackedLights.Add(Info);
-	}
-	for (const FRectLightRenderData& Light : RectLights)
-	{
-		FSceneLightRenderInfo Info{};
-		Info.PositionRadius = Light.PositionRadius;
-		Info.DirectionOuterCos = Light.DirectionBarnDoor;
-		Info.ColorIntensity = Light.ColorIntensity;
-		Info.Parameters = Light.Parameters;
-		Info.RectRightWidth = Light.RectRightWidth;
-		Info.RectBarnDoorHeight = Light.RectHeight;
-		PackedLights.Add(Info);
-	}
-	const uint32 Count = static_cast<uint32>(PackedLights.Num());
-	if (!SceneLightBuffer || SceneLightBuffer->GetCapacity() < Count)
-	{
-		const uint32 PreviousCapacity = SceneLightBuffer ? SceneLightBuffer->GetCapacity() : 0;
-		const uint32 Maximum = UINT32_MAX / sizeof(FSceneLightRenderInfo);
-		const uint32 Doubled = PreviousCapacity <= Maximum / 2
-			? std::max(1u, PreviousCapacity * 2) : Maximum;
-		auto NewBuffer = RenderCommand::CreateDynamicStructuredBuffer(
-			std::max(Count, Doubled), sizeof(FSceneLightRenderInfo));
-		if (!NewBuffer || !NewBuffer->GetBuffer() || !NewBuffer->GetSRV()) return false;
-		SceneLightBuffer = std::move(NewBuffer);
-	}
-	void* Destination = RenderCommand::MapWriteDiscard(SceneLightBuffer.get());
-	if (!Destination) return false;
-	std::memcpy(Destination, PackedLights.GetData(), Count * sizeof(FSceneLightRenderInfo));
-	RenderCommand::Unmap(SceneLightBuffer.get());
-	return true;
+	const uint32 Total = Counts[0] + Counts[1] + Counts[2] + Counts[3];
+	if (!Total) return true;
+
+	uint32 Next[TypeCount] = {};
+	Next[DirectionalType] = Offsets[2];
+	Next[PointType] = Offsets[0];
+	Next[SpotType] = Offsets[1];
+	Next[RectType] = Offsets[3];
+
+	TArray<FLightRenderParameters> Packed;
+	Packed.SetNum(static_cast<int32>(Total));
+	for (const FLightRenderParameters& Light : Lights)
+		if (Light.Type < TypeCount) Packed[Next[Light.Type]++] = Light;
+	return UploadStructured(SceneLightBuffer, Packed.GetData(), Total, sizeof(FLightRenderParameters));
 }

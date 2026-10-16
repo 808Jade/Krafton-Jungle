@@ -14,20 +14,11 @@ void FDirectionalLightSceneProxy::GetLightShaderParameters(FLightRenderParameter
 	Transform.Rotation = Dir->GetWorldRotation();
 	const FLinearColor Color(Dir->GetLightColor());
 
+	Out = FLightRenderParameters{};
 	Out.Type = static_cast<uint32>(ELightType::Directional);
 	Out.Direction = Transform.GetForward();
 	Out.Color = FVector(Color.R, Color.G, Color.B);
 	Out.Intensity = Dir->GetIntensity();
-}
-
-FDirectionalLightRenderData FDirectionalLightSceneProxy::GetRenderData() const
-{
-	FLightRenderParameters P{};
-	GetLightShaderParameters(P);
-	FDirectionalLightRenderData Data{};
-	Data.DirectionIntensity = FVector4(P.Direction.X, P.Direction.Y, P.Direction.Z, P.Intensity);
-	Data.Color = FVector4(P.Color.X, P.Color.Y, P.Color.Z, 1.0f);
-	return Data;
 }
 
 void FPointLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out) const
@@ -42,17 +33,6 @@ void FPointLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out
 	Out.Color = FVector(Color.R, Color.G, Color.B);
 	Out.Intensity = PointLightComponent->GetIntensity();
 	Out.FalloffExponent = PointLightComponent->GetFalloff();
-}
-
-FPointLightRenderData FPointLightSceneProxy::GetRenderData() const
-{
-	FLightRenderParameters P{};
-	GetLightShaderParameters(P);
-	FPointLightRenderData Data{};
-	Data.PositionRadius = FVector4(P.Position.X, P.Position.Y, P.Position.Z, P.Radius);
-	Data.ColorIntensity = FVector4(P.Color.X, P.Color.Y, P.Color.Z, P.Intensity);
-	Data.Falloff = FVector4(P.FalloffExponent, 0.0f, 0.0f, 0.0f);
-	return Data;
 }
 
 void FSpotLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out) const
@@ -79,18 +59,6 @@ void FSpotLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out)
 	Out.OuterConeCos = std::cos(FMath::DegreesToRadians(Outer));
 }
 
-FSpotLightRenderData FSpotLightSceneProxy::GetRenderData() const
-{
-	FLightRenderParameters P{};
-	GetLightShaderParameters(P);
-	FSpotLightRenderData Data{};
-	Data.PositionRadius = FVector4(P.Position.X, P.Position.Y, P.Position.Z, P.Radius);
-	Data.DirectionOuterCos = FVector4(P.Direction.X, P.Direction.Y, P.Direction.Z, P.OuterConeCos);
-	Data.ColorIntensity = FVector4(P.Color.X, P.Color.Y, P.Color.Z, P.Intensity);
-	Data.InnerCosFalloff = FVector4(P.InnerConeCos, P.FalloffExponent, 0.0f, 0.0f);
-	return Data;
-}
-
 void FRectLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out) const
 {
 	const auto* RectLightComponent = static_cast<const URectLightComponent*>(LightComponent);
@@ -115,18 +83,4 @@ void FRectLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out)
 	Out.BarnDoorCos = std::cos(AngleRad);
 	Out.BarnDoorSin = std::sin(AngleRad);
 	Out.BarnDoorLength = std::max(RectLightComponent->GetBarnDoorLength(), 0.0f);
-}
-
-FRectLightRenderData FRectLightSceneProxy::GetRenderData() const
-{
-	FLightRenderParameters P{};
-	GetLightShaderParameters(P);
-	FRectLightRenderData Data{};
-	Data.PositionRadius = FVector4(P.Position.X, P.Position.Y, P.Position.Z, P.Radius);
-	Data.DirectionBarnDoor = FVector4(P.Direction.X, P.Direction.Y, P.Direction.Z, P.BarnDoorLength);
-	Data.ColorIntensity = FVector4(P.Color.X, P.Color.Y, P.Color.Z, P.Intensity);
-	Data.Parameters = FVector4(P.BarnDoorCos, P.BarnDoorSin, P.FalloffExponent, 0.0f);
-	Data.RectRightWidth = FVector4(P.Right.X, P.Right.Y, P.Right.Z, P.HalfWidth);
-	Data.RectHeight = FVector4(0.0f, 0.0f, 0.0f, P.HalfHeight);
-	return Data;
 }

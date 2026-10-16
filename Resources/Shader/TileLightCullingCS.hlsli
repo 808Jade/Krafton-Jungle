@@ -2,23 +2,13 @@
 
 #define LIGHT_GRID_CONSTANT_REGISTER b0
 #include "LightGridCommon.hlsli"
+#include "LightData.hlsli"
 
 #define LIGHT_TILE_SIZE LIGHT_GRID_TILE_SIZE
 #define INVALID_LIGHT_LIST 0xffffffffu
 
-// CPU 렌더 데이터의 크기와 필드 순서를 유지한다.
-struct FSceneLightRenderInfo
-{
-	float4 PositionRadius;
-	float4 DirectionOuterCos;
-	float4 ColorIntensity;
-	float4 Parameters;
-	float4 RectRightWidth;
-	float4 RectBarnDoorHeight;
-};
-
 Texture2D<float> SceneDepth : register(t0);
-StructuredBuffer<FSceneLightRenderInfo> SceneLights : register(t1);
+StructuredBuffer<FLightRenderParameters> SceneLights : register(t1);
 
 // x/y: Point 시작·개수, z/w: Spot 시작·개수.
 RWStructuredBuffer<uint4> TileLightRanges : register(u0);
@@ -85,15 +75,20 @@ bool IntersectsCell(float4 PositionRadius)
     return dot(Delta, Delta) <= PositionRadius.w * PositionRadius.w;
 }
 
-bool IntersectsSpotCell(FSceneLightRenderInfo Light)
+bool IntersectsPointCell(FLightRenderParameters Light)
 {
-    float Radius = max(Light.PositionRadius.w, 0.001f);
+    return IntersectsCell(float4(Light.Position, Light.Radius));
+}
+
+bool IntersectsSpotCell(FLightRenderParameters Light)
+{
+    float Radius = max(Light.Radius, 0.001f);
 
     // 현재 구현처럼 거리 구와 이동한 포함 구를 모두 검사한다.
-    if (!IntersectsCell(float4(Light.PositionRadius.xyz, Radius)))
+    if (!IntersectsCell(float4(Light.Position, Radius)))
         return false;
 
-    float CosOuter = saturate(Light.DirectionOuterCos.w);
+    float CosOuter = saturate(Light.OuterConeCos);
     float Offset;
     float SphereRadius;
     if (CosOuter >= 0.7071067812f)
@@ -109,8 +104,8 @@ bool IntersectsSpotCell(FSceneLightRenderInfo Light)
         SphereRadius = Radius * sqrt(saturate(1.0f - CosOuter * CosOuter));
     }
 
-    float3 Direction = normalize(Light.DirectionOuterCos.xyz);
-    float3 Center = Light.PositionRadius.xyz + Direction * Offset;
+    float3 Direction = normalize(Light.Direction);
+    float3 Center = Light.Position + Direction * Offset;
     return IntersectsCell(float4(Center, SphereRadius));
 }
 
@@ -142,7 +137,7 @@ void CullCellLights(uint CellIndex, uint ThreadIndex, uint ThreadCount)
 {
     // 첫 검사에서는 후보 개수만 센다. 실제 그룹 크기로 광원 검사를 분담한다.
     for (uint PointIndex = ThreadIndex; PointIndex < GridPointCount; PointIndex += ThreadCount)
-        if (IntersectsCell(SceneLights[GridLightOffsets.x + PointIndex].PositionRadius))
+        if (IntersectsPointCell(SceneLights[GridLightOffsets.x + PointIndex]))
             InterlockedAdd(VisiblePointCount, 1);
 
     for (uint SpotIndex = ThreadIndex; SpotIndex < GridSpotCount; SpotIndex += ThreadCount)
@@ -166,7 +161,7 @@ void CullCellLights(uint CellIndex, uint ThreadIndex, uint ThreadCount)
     {
         for (uint PointIndex = ThreadIndex; PointIndex < GridPointCount; PointIndex += ThreadCount)
         {
-            if (IntersectsCell(SceneLights[GridLightOffsets.x + PointIndex].PositionRadius))
+            if (IntersectsPointCell(SceneLights[GridLightOffsets.x + PointIndex]))
             {
                 uint Slot;
                 InterlockedAdd(PointWriteCount, 1, Slot);

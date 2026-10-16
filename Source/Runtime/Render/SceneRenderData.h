@@ -49,10 +49,7 @@ struct FSceneRenderData
 	FAmbientLightRenderData AmbientLight{};
 	FSkyLightRenderData SkyLight{};
 	bool bHasSkyLight = false;
-	TArray<FDirectionalLightRenderData> VisibleDirectionalLights;
-	TArray<FPointLightRenderData> VisiblePointLights;
-	TArray<FSpotLightRenderData> VisibleSpotLights;
-	TArray<FRectLightRenderData> VisibleRectLights;
+	TArray<FLightRenderParameters> VisibleLights; // 모든 종류의 광원. 업로드할 때 종류별 구간으로 정렬한다
 
 	void ResetScene()
 	{
@@ -75,10 +72,7 @@ struct FSceneRenderData
 		AmbientLight = {};
 		SkyLight = {};
 		bHasSkyLight = false;
-		VisibleDirectionalLights.Reset();
-		VisiblePointLights.Reset();
-		VisibleSpotLights.Reset();
-		VisibleRectLights.Reset();
+		VisibleLights.Reset();
 		for (FGatherChunk& Chunk : GatherChunks)
 		{
 			Chunk.Packets.Reset();

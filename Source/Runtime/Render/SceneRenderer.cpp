@@ -84,40 +84,26 @@ void FSceneRenderer::InitViews(FRenderer* Renderer)
 	// 렌더 큐 자체 정렬
 	RenderData.RenderQueue.Sort();
 
-	const auto& DirectionalLights = World->GetScene().GetDirectionalLights();
-	for (const FDirectionalLightSceneProxy* Light : DirectionalLights)
+	// 모든 프록시가 같은 FLightRenderParameters를 채우고, 종류는 Type으로만 구분한다.
+	const FScene& Scene = World->GetScene();
+	for (const FDirectionalLightSceneProxy* Light : Scene.GetDirectionalLights())
 	{
 		if (!Light->IsEnabled() || !Light->IsShown(View.bGameView)) continue;
-		RenderData.VisibleDirectionalLights.Add(Light->GetRenderData());
+		FLightRenderParameters Parameters{};
+		Light->GetLightShaderParameters(Parameters);
+		RenderData.VisibleLights.Add(Parameters);
 	}
 
-	for (const FPointLightSceneProxy* Light : World->GetScene().GetPointLights())
+	for (const FLocalLightSceneProxy* Light : Scene.GetLocalLights())
 	{
 		if (!Light->IsEnabled() || !Light->IsShown(View.bGameView)) continue;
-		const FPointLightRenderData& Data = Light->GetRenderData();
-		//if (!IntersectSphereFrustum(Data.PositionRadius, View.Frustum.Planes)) continue;
-		RenderData.VisiblePointLights.Add(Data);
-	}
-
-	for (const FSpotLightSceneProxy* Light : World->GetScene().GetSpotLights())
-	{
-		if (!Light->IsEnabled() || !Light->IsShown(View.bGameView)) continue;
-		const FSpotLightRenderData& Data = Light->GetRenderData();
-		//if (!IntersectSphereFrustum(Data.PositionRadius, View.Frustum.Planes)) continue;
-		RenderData.VisibleSpotLights.Add(Data);
-	}
-
-	for (const FRectLightSceneProxy* Light : World->GetScene().GetRectLights())
-	{
-		if (!Light->IsEnabled() || !Light->IsShown(View.bGameView)) continue;
-		const FRectLightRenderData& Data = Light->GetRenderData();
-		RenderData.VisibleRectLights.Add(Data);
+		FLightRenderParameters Parameters{};
+		Light->GetLightShaderParameters(Parameters);
+		RenderData.VisibleLights.Add(Parameters);
 	}
 
 	if (RenderData.ViewLightResources.Init())
-		bLightUploadSucceeded = RenderData.ViewLightResources.UploadViewLights(
-			RenderData.VisibleDirectionalLights, RenderData.VisiblePointLights,
-			RenderData.VisibleSpotLights, RenderData.VisibleRectLights, LightCounts, LightOffsets);
+		bLightUploadSucceeded = RenderData.ViewLightResources.UploadViewLights(RenderData.VisibleLights, LightCounts, LightOffsets);
 }
 
 bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uint32 Height)
@@ -180,7 +166,7 @@ bool FSceneRenderer::BindForwardLighting(FRenderer* Renderer, const FSceneRender
 	Renderer->BindRawPixelResources(9, std::span<ID3D11ShaderResourceView* const>(TileSRVs.data(), 2));
 	Renderer->BindRawPixelResources(12, std::span<ID3D11ShaderResourceView* const>(TileSRVs.data() + 2, 1));
 	
-	Renderer->BindStructured(8, (LightCounts[0] || LightCounts[1] || LightCounts[2]) &&
+	Renderer->BindStructured(8, (LightCounts[0] || LightCounts[1] || LightCounts[2] || LightCounts[3]) &&
 		LightResources.GetSceneLights() && LightResources.GetSceneLights()->GetSRV()
 		? LightResources.GetSceneLights() : nullptr,
 		EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);

@@ -1,4 +1,5 @@
 #pragma pack_matrix(row_major)
+#include "LightData.hlsli"
 #include "LightEvaluation.hlsli"
 #include "LightGridCommon.hlsli"
 
@@ -15,16 +16,6 @@
 struct FAmbientLightInfo
 {
     float4 ColorIntensity; // rgb: 선형 색상, a: 광도
-};
-
-struct FSceneLightRenderInfo
-{
-    float4 PositionRadius;    // 방향광에서는 xyz가 빛의 진행 방향
-    float4 DirectionOuterCos; // 스포트 또는 렉트라이트 방향과 도어 길이
-    float4 ColorIntensity;    // rgb: 색상, w: 광도
-    float4 Parameters;        // 포인트: x 거리 감쇠, 스포트: x 안쪽 각도의 코사인, y 거리 감쇠, 렉트: x BarnDoorCos, y BarnDoorSin, z Falloff
-    float4 RectRightWidth;    // 렉트: xyz Right, w HalfWidth
-    float4 RectBarnDoorHeight;// 렉트: w HalfHeight
 };
 
 cbuffer PerObject : register(b0)
@@ -44,7 +35,7 @@ cbuffer Lighting : register(b1)
     float4 SkyColorIntensity; // rgb: Sky Light 색상, a: 세기 (0이면 비활성)
 };
 
-StructuredBuffer<FSceneLightRenderInfo> SceneLights : register(t8);
+StructuredBuffer<FLightRenderParameters> SceneLights : register(t8);
 StructuredBuffer<uint4> TileLightRanges : register(t9);
 StructuredBuffer<uint> TilePointIndices : register(t10);
 StructuredBuffer<uint> TileSpotIndices : register(t12);
@@ -152,66 +143,66 @@ void AddLight(inout FLightResult Result, float3 N, float3 V, float3 L,
         SpecularColorShininess.w, bIncludeSpecular);
 }
 
-void CalculateDirectionalLight(inout FLightResult Result, FSceneLightRenderInfo Info, float3 N, float3 V,
+void CalculateDirectionalLight(inout FLightResult Result, FLightRenderParameters Info, float3 N, float3 V,
     bool bIncludeSpecular)
 {
-    if (Info.ColorIntensity.w <= 0.0f)
+    if (Info.Intensity <= 0.0f)
         return;
-    float3 L = normalize(-Info.PositionRadius.xyz);
-    float3 Radiance = Info.ColorIntensity.rgb * Info.ColorIntensity.w;
+    float3 L = normalize(-Info.Direction);
+    float3 Radiance = Info.Color * Info.Intensity;
     AddLight(Result, N, V, L, Radiance, bIncludeSpecular);
 }
 
-void CalculatePointLight(inout FLightResult Result, FSceneLightRenderInfo Info,
+void CalculatePointLight(inout FLightResult Result, FLightRenderParameters Info,
     float3 P, float3 N, float3 V, bool bIncludeSpecular)
 {
-    float3 ToLight = Info.PositionRadius.xyz - P;
+    float3 ToLight = Info.Position - P;
     float DistanceSquared = dot(ToLight, ToLight);
-    float RadiusSquared = Info.PositionRadius.w * Info.PositionRadius.w;
+    float RadiusSquared = Info.Radius * Info.Radius;
     if (RadiusSquared <= 0.0f || DistanceSquared >= RadiusSquared || DistanceSquared < 1.0e-8f)
         return;
     float Distance = sqrt(max(DistanceSquared, 1.0e-6f));
     // Deferred와 동일하게 Point Light의 RadiusFallOff를 반경 감쇠 지수로 사용한다.
-    float Fade = pow(saturate(1.0f - Distance / Info.PositionRadius.w), max(Info.Parameters.x, 0.0f));
+    float Fade = pow(saturate(1.0f - Distance / Info.Radius), max(Info.FalloffExponent, 0.0f));
     if (Fade <= 0.0f) return;
     float3 L = ToLight / Distance;
-    float3 Radiance = Info.ColorIntensity.rgb * max(Info.ColorIntensity.a, 0.0f) * Fade;
+    float3 Radiance = Info.Color * max(Info.Intensity, 0.0f) * Fade;
     AddLight(Result, N, V, L, Radiance, bIncludeSpecular);
 }
 
-void CalculateSpotLight(inout FLightResult Result, FSceneLightRenderInfo Info,
+void CalculateSpotLight(inout FLightResult Result, FLightRenderParameters Info,
     float3 P, float3 N, float3 V, bool bIncludeSpecular)
 {
-    float3 ToLight = Info.PositionRadius.xyz - P;
+    float3 ToLight = Info.Position - P;
     float DistanceSquared = dot(ToLight, ToLight);
-    float RadiusFade = CalculateDistanceAttenuation(DistanceSquared, Info.PositionRadius.w * Info.PositionRadius.w);
+    float RadiusFade = CalculateDistanceAttenuation(DistanceSquared, Info.Radius * Info.Radius);
     if (RadiusFade <= 0.0f) return;
     float3 L = ToLight / sqrt(max(DistanceSquared, 1.0e-6f));
-	float ConeCos = dot(-L, normalize(Info.DirectionOuterCos.xyz));
-	float ConeFade = CalculateConeAttenuation(ConeCos, Info.Parameters.x, Info.DirectionOuterCos.w);
-	ConeFade = pow(ConeFade, max(Info.Parameters.y, 0.0001f));
+	float ConeCos = dot(-L, normalize(Info.Direction));
+	float ConeFade = CalculateConeAttenuation(ConeCos, Info.InnerConeCos, Info.OuterConeCos);
+	ConeFade = pow(ConeFade, max(Info.FalloffExponent, 0.0001f));
 
-	float3 Radiance = Info.ColorIntensity.rgb * max(Info.ColorIntensity.a, 0.0f)
+	float3 Radiance = Info.Color * max(Info.Intensity, 0.0f)
 		* ConeFade * RadiusFade;
 
     AddLight(Result, N, V, L, Radiance, bIncludeSpecular);
 }
 
-void CalculateRectLight(inout FLightResult Result, FSceneLightRenderInfo Info,
+void CalculateRectLight(inout FLightResult Result, FLightRenderParameters Info,
 	float3 P, float3 N, float3 V, bool bIncludeSpecular)
 {
-	float3 Position = Info.PositionRadius.xyz;
-	float Radius = Info.PositionRadius.w;
-	float3 Direction = Info.DirectionOuterCos.xyz;
-	float BarnDoorLength = Info.DirectionOuterCos.w;
-	float3 Color = Info.ColorIntensity.rgb;
-	float Intensity = Info.ColorIntensity.w;
-	float BarnDoorCos = Info.Parameters.x;
-	float BarnDoorSin = Info.Parameters.y;
-	float FalloffExponent = Info.Parameters.z;
-	float3 Right = Info.RectRightWidth.xyz;
-	float HalfWidth = Info.RectRightWidth.w;
-	float HalfHeight = Info.RectBarnDoorHeight.w;
+	float3 Position = Info.Position;
+	float Radius = Info.Radius;
+	float3 Direction = Info.Direction;
+	float BarnDoorLength = Info.BarnDoorLength;
+	float3 Color = Info.Color;
+	float Intensity = Info.Intensity;
+	float BarnDoorCos = Info.BarnDoorCos;
+	float BarnDoorSin = Info.BarnDoorSin;
+	float FalloffExponent = Info.FalloffExponent;
+	float3 Right = Info.Right;
+	float HalfWidth = Info.HalfWidth;
+	float HalfHeight = Info.HalfHeight;
 
 	float3 Up = cross(Direction, Right);
 	float3 CenterToSurface = P - Position;

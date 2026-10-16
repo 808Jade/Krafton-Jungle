@@ -1,33 +1,10 @@
 // 라이트 컬링 CS(Clustered/Tiled, 2.5D)가 함께 쓰는 정의와 검사 함수.
 // 구조체·cbuffer는 C++(SceneManagement.h, Renderer.h)과 바이트 단위로 같아야 한다.
 #pragma pack_matrix(row_major)
-
-#define LIGHT_TYPE_POINT 1
-#define LIGHT_TYPE_SPOT  2
-#define LIGHT_TYPE_RECT  3
+#include "LightData.hlsli"
 
 #define MAX_LIGHTS_PER_CELL 32
 #define CELL_STRIDE (MAX_LIGHTS_PER_CELL + 1)
-
-struct FLightRenderParameters
-{
-    float3 Position;
-    float Radius;
-    float3 Color;
-    float Intensity;
-    float3 Direction;
-    float InnerConeCos;
-    float3 Right;
-    float FalloffExponent;
-    float OuterConeCos;
-    float HalfWidth;
-    float HalfHeight;
-    uint Type;
-    float BarnDoorCos;     // Rect 전용. 컬링에는 안 쓰지만 stride를 맞추기 위해 둔다
-    float BarnDoorSin;
-    float BarnDoorLength;
-    float Padding;
-};
 
 cbuffer FLightCullingConstants : register(b0)
 {

@@ -1,10 +1,7 @@
 #include "EnginePCH.h"
 #include "Scene.h"
 #include "Components/DirectionalLightComponent.h"
-#include "Components/PointLightComponent.h"
-#include "Components/SpotLightComponent.h"
 #include "Components/SkyLightComponent.h"
-#include "Components/RectLightComponent.h"
 
 void FScene::AddPrimitive(UPrimitiveComponent* Component)
 {
@@ -100,19 +97,6 @@ void FScene::AddLight(ULightComponent* Component)
 	{
 		Proxy->PackedIndex = LocalLightProxies.Num();
 		LocalLightProxies.Add(static_cast<FLocalLightSceneProxy*>(Proxy));
-		LocalLightParameters.Add(FLightRenderParameters{});
-		if (Component->GetLightType() == ELightType::Point)
-		{
-			PointLightProxies.Add(static_cast<FPointLightSceneProxy*>(Proxy));
-		}
-		else if (Component->GetLightType() == ELightType::Spot)
-		{
-			SpotLightProxies.Add(static_cast<FSpotLightSceneProxy*>(Proxy));
-		}
-		else if (Component->GetLightType() == ELightType::Rect)
-		{
-			RectLightProxies.Add(static_cast<FRectLightSceneProxy*>(Proxy));
-		}
 	}
 }
 
@@ -141,25 +125,8 @@ void FScene::RemoveLight(ULightComponent* Component)
 	else
 	{
 		LocalLightProxies.RemoveAtSwap(Index);
-		LocalLightParameters.RemoveAtSwap(Index);      // 두 배열을 같이 움직여야 순서가 맞음
 		if (Index < LocalLightProxies.Num())
 			LocalLightProxies[Index]->PackedIndex = Index;
-
-		if (Component->GetLightType() == ELightType::Point)
-		{
-			const int32 Found = PointLightProxies.Find(static_cast<FPointLightSceneProxy*>(Proxy));
-			if (Found != INDEX_NONE) PointLightProxies.RemoveAtSwap(Found);
-		}
-		else if (Component->GetLightType() == ELightType::Spot)
-		{
-			const int32 Found = SpotLightProxies.Find(static_cast<FSpotLightSceneProxy*>(Proxy));
-			if (Found != INDEX_NONE) SpotLightProxies.RemoveAtSwap(Found);
-		}
-		else if (Component->GetLightType() == ELightType::Rect)
-		{
-			const int32 Found = RectLightProxies.Find(static_cast<FRectLightSceneProxy*>(Proxy));
-			if (Found != INDEX_NONE) RectLightProxies.RemoveAtSwap(Found);
-		}
 	}
 
 	Component->SceneProxy = nullptr;
@@ -172,10 +139,6 @@ void FScene::RemoveAllLights()
 	for (FLightSceneProxy* Proxy : LocalLightProxies)       delete Proxy;
 	DirectionalLightProxies.Reset();
 	LocalLightProxies.Reset();
-	LocalLightParameters.Reset();
-	PointLightProxies.Reset();
-	SpotLightProxies.Reset();
-	RectLightProxies.Reset();
 	SkyLights.Reset();
 	SkyLightEnvironments.clear();
 }

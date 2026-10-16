@@ -1,20 +1,11 @@
 #pragma pack_matrix(row_major)
+#include "LightData.hlsli"
 
 Texture2D<float4> BaseColorMetallic : register(t0);
 Texture2D<float4> NormalRoughness : register(t1);
 Texture2D<float> SceneDepth : register(t2);
 TextureCube<float4> SkyIrradiance : register(t4);
 SamplerState SkySampler : register(s1);
-
-struct FSceneLightRenderInfo
-{
-    float4 PositionRadius;    // 방향광에서는 xyz가 빛의 진행 방향
-    float4 DirectionOuterCos; // 스포트 또는 렉트라이트 방향과 도어 길이
-    float4 ColorIntensity;    // rgb: 색상, w: 광도
-    float4 Parameters;        // 포인트: x 거리 감쇠, 스포트: x 안쪽 각도의 코사인, y 거리 감쇠, 렉트: x BarnDoorCos, y BarnDoorSin, z Falloff
-    float4 RectRightWidth;    // 렉트: xyz Right, w HalfWidth
-    float4 RectBarnDoorHeight;// 렉트: w HalfHeight
-};
 
 cbuffer DeferredLightConstants : register(b0)
 {
@@ -28,7 +19,7 @@ cbuffer DeferredLightConstants : register(b0)
     float4 SkyColorIntensity;
 };
 
-StructuredBuffer<FSceneLightRenderInfo> SceneLights : register(t3);
+StructuredBuffer<FLightRenderParameters> SceneLights : register(t3);
 
 struct FPSInput
 {
@@ -85,10 +76,10 @@ float4 mainPS(FPSInput Input) : SV_Target
     [loop]
     for (uint DirectionalIndex = 0; DirectionalIndex < LightCounts.z; ++DirectionalIndex)
     {
-        FSceneLightRenderInfo Light = SceneLights[LightOffsets.z + DirectionalIndex];
-        if (Light.ColorIntensity.w <= 0.0f) continue;
-        float3 LightDir = normalize(Light.PositionRadius.xyz);
-        float3 LightColor = Light.ColorIntensity.rgb * Light.ColorIntensity.w;
+        FLightRenderParameters Light = SceneLights[LightOffsets.z + DirectionalIndex];
+        if (Light.Intensity <= 0.0f) continue;
+        float3 LightDir = normalize(Light.Direction);
+        float3 LightColor = Light.Color * Light.Intensity;
         BaseLighting += LightColor * saturate(dot(N, -LightDir));
     }
 
@@ -113,21 +104,21 @@ float4 mainPS(FPSInput Input) : SV_Target
     [loop]
     for (uint PointIndex = 0; PointIndex < LightCounts.x; ++PointIndex)
     {
-        FSceneLightRenderInfo Light = SceneLights[LightOffsets.x + PointIndex];
-        float3 ToLight = Light.PositionRadius.xyz - WorldPosition;
+        FLightRenderParameters Light = SceneLights[LightOffsets.x + PointIndex];
+        float3 ToLight = Light.Position - WorldPosition;
         float DistanceSquared = dot(ToLight, ToLight);
-        float RadiusSquared = Light.PositionRadius.w * Light.PositionRadius.w;
-        
+        float RadiusSquared = Light.Radius * Light.Radius;
+
         if (RadiusSquared <= 0.0f || DistanceSquared >= RadiusSquared || DistanceSquared < 1.0e-8f)
             continue;
 
         float Distance = sqrt(max(DistanceSquared, 1.0e-6f));
         float3 L = ToLight / Distance;
-        
-        float x = Distance / Light.PositionRadius.w;
-        float Attenuation = pow(saturate(1.0 - x), max(Light.Parameters.x, 0.0f));
-        
-        float3 Radiance = Light.ColorIntensity.rgb * max(Light.ColorIntensity.w, 0.0f) * Attenuation;
+
+        float x = Distance / Light.Radius;
+        float Attenuation = pow(saturate(1.0 - x), max(Light.FalloffExponent, 0.0f));
+
+        float3 Radiance = Light.Color * max(Light.Intensity, 0.0f) * Attenuation;
         AccumulateLocalLight(LocalDiffuse, LocalSpecular,
             Albedo, Metallic, Roughness, N, V, L, Radiance);
 
@@ -136,21 +127,21 @@ float4 mainPS(FPSInput Input) : SV_Target
     [loop]
     for (uint SpotIndex = 0; SpotIndex < LightCounts.y; ++SpotIndex)
     {
-        FSceneLightRenderInfo Light = SceneLights[LightOffsets.y + SpotIndex];
-        float3 ToLight = Light.PositionRadius.xyz - WorldPosition;
+        FLightRenderParameters Light = SceneLights[LightOffsets.y + SpotIndex];
+        float3 ToLight = Light.Position - WorldPosition;
         float DistanceSquared = dot(ToLight, ToLight);
-        float RadiusSquared = Light.PositionRadius.w * Light.PositionRadius.w;
+        float RadiusSquared = Light.Radius * Light.Radius;
         if (RadiusSquared <= 0.0f || DistanceSquared >= RadiusSquared || DistanceSquared < 1.0e-8f)
             continue;
 
         float Distance = sqrt(max(DistanceSquared, 1.0e-6f));
         float3 L = ToLight / Distance;
-		float ConeCos = dot(-L, normalize(Light.DirectionOuterCos.xyz));
-		float ConeFade = pow(smoothstep(Light.DirectionOuterCos.w, Light.Parameters.x, ConeCos),
-			max(Light.Parameters.y, 0.0001f));
-		float DistanceFactor = saturate(1.0f - Distance / Light.PositionRadius.w);
+		float ConeCos = dot(-L, normalize(Light.Direction));
+		float ConeFade = pow(smoothstep(Light.OuterConeCos, Light.InnerConeCos, ConeCos),
+			max(Light.FalloffExponent, 0.0001f));
+		float DistanceFactor = saturate(1.0f - Distance / Light.Radius);
 		float RadiusFade = DistanceFactor * DistanceFactor;
-		float3 Radiance = Light.ColorIntensity.rgb * max(Light.ColorIntensity.w, 0.0f)
+		float3 Radiance = Light.Color * max(Light.Intensity, 0.0f)
 			* ConeFade * RadiusFade;
         AccumulateLocalLight(LocalDiffuse, LocalSpecular,
             Albedo, Metallic, Roughness, N, V, L, Radiance);
@@ -159,19 +150,19 @@ float4 mainPS(FPSInput Input) : SV_Target
     [loop]
     for (uint RectIndex = 0; RectIndex < LightCounts.w; ++RectIndex)
     {
-        FSceneLightRenderInfo Light = SceneLights[LightOffsets.w + RectIndex];
-        float3 Position = Light.PositionRadius.xyz;
-        float Radius = Light.PositionRadius.w;
-        float3 Direction = Light.DirectionOuterCos.xyz;
-        float BarnDoorLength = Light.DirectionOuterCos.w;
-        float3 Color = Light.ColorIntensity.rgb;
-        float Intensity = Light.ColorIntensity.w;
-        float BarnDoorCos = Light.Parameters.x;
-        float BarnDoorSin = Light.Parameters.y;
-        float FalloffExponent = Light.Parameters.z;
-        float3 Right = Light.RectRightWidth.xyz;
-        float HalfWidth = Light.RectRightWidth.w;
-        float HalfHeight = Light.RectBarnDoorHeight.w;
+        FLightRenderParameters Light = SceneLights[LightOffsets.w + RectIndex];
+        float3 Position = Light.Position;
+        float Radius = Light.Radius;
+        float3 Direction = Light.Direction;
+        float BarnDoorLength = Light.BarnDoorLength;
+        float3 Color = Light.Color;
+        float Intensity = Light.Intensity;
+        float BarnDoorCos = Light.BarnDoorCos;
+        float BarnDoorSin = Light.BarnDoorSin;
+        float FalloffExponent = Light.FalloffExponent;
+        float3 Right = Light.Right;
+        float HalfWidth = Light.HalfWidth;
+        float HalfHeight = Light.HalfHeight;
 
         float3 Up = cross(Direction, Right);
         float3 CenterToSurface = WorldPosition - Position;
