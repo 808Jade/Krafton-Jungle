@@ -28,7 +28,7 @@
 #include "Editor/EditorControls/EditorControlsPanel.h"
 #include "Editor/Settings/SettingsPanel.h"
 #include "Editor/Viewports/ViewportsPanel.h"
-#include "Editor/Viewports/ViewportLayout.h"
+#include "Editor/LevelViewportLayout.h"
 #include "Editor/ContentDrawer/ContentDrawerPanel.h"
 
 #include "Editor/Rendering/Outline.h"
@@ -97,13 +97,13 @@ public:
 private:
 	// 이번 프레임 DeltaTime을 패널에 전달하고 에디터 단축키를 처리한다.
 	void BeginFrame(float DeltaTime);
-	// 패널 요청과 입력을 Core ViewportLayout에 전달해 레이아웃·카메라 상태를 갱신한다.
+	// 패널 요청과 입력을 적용해 레이아웃·카메라 상태를 갱신한다.
 	void UpdateViewportState(float DeltaTime);
 	// 월드를 정확히 한 번 Tick·Capture한 뒤 에디터 상호작용을 갱신한다.
 	void TickWorldAndEditor(float DeltaTime);
 	// 한 번 캡처한 월드 결과를 재사용해 현재 레이아웃의 각 View를 렌더한다.
 	void RenderViewports();
-	// PIE View가 PlayWorld 메인 카메라로 보이도록 ViewportLayout Override를 갱신하고 게임 카메라 입력을 켜고 끈다.
+	// PIE View를 게임 카메라 상태와 동기화한다.
 	void UpdatePIEViewCamera();
 	void TickPIEInput(float DeltaTime);
 
@@ -172,7 +172,7 @@ private:
 
 	UWorld* EditorWorld = nullptr;
 	UWorld* PlayWorld = nullptr;
-	// PIE 시작 시점의 편집 View. 별도 창이면 ViewportLayout의 ExternalViewIndex다. PIE가 아니면 InvalidViewIndex다.
+	// PIE 시작 시점의 편집 View. PIE가 아니면 InvalidViewIndex다.
 	int32 PIEViewIndex = -1;
 	int32 PIEStartEditorViewIndex = -1;
 

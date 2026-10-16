@@ -2,7 +2,7 @@
 
 #include "Editor/EditorUI/EditorPanel.h"
 #include "Editor/Viewports/EditorViewportClient.h" 
-#include "Editor/Viewports/ViewportLayout.h"
+#include "Editor/LevelViewportLayout.h"
 #include <functional>
 
 class FGameViewportClient;
