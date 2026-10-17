@@ -60,6 +60,11 @@ void FRenderResourceManager::InitPipelineStates()
 		State->BlendState = Entry.BlendState;
 		State->DepthStencilState = Entry.DepthStencilState;
 	}
+	// Shadow 배치가 참조하는 VS 전용 프로그램은 리소스 매니저가 소유한다.
+	FShaderProgram* DepthProgram = GetShaderProgram("Resources/Shader/DepthPrepass.hlsl");
+	if (DepthProgram && DepthProgram->VertexShader)
+		ShaderProgramMap["ShadowDepth"] = MakeUnique<FShaderProgram>(DepthProgram->VertexShader, nullptr);
+
 	const char* Names[] = { "LIGHTING_MODEL_GOURAUD", "LIGHTING_MODEL_LAMBERT", "LIGHTING_MODEL_PHONG", "VIEW_MODE_WORLD_NORMAL" };
 	for (const char* Name : Names)
 	{
@@ -87,6 +92,12 @@ void FRenderResourceManager::InitPipelineStates()
 		if (std::strcmp(Name, "VIEW_MODE_WORLD_NORMAL") == 0)
 			PipelineStateMap[EPSOType::StaticMesh_WorldNormal]->Shader = ShaderProgramMap[Key].get();
 	}
+}
+
+FShaderProgram* FRenderResourceManager::GetShadowDepthShaderProgram()
+{
+	if (auto* Found = Get().ShaderProgramMap.Find("ShadowDepth")) return Found->get();
+	return nullptr;
 }
 
 FShaderProgram* FRenderResourceManager::GetForwardShaderProgram(ELightingModel Model)

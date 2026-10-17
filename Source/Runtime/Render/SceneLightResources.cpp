@@ -1,9 +1,12 @@
 #include "EnginePCH.h"
 #include "Render/SceneLightResources.h"
 #include "Render/RenderCommand.h"
+#include "Render/MeshPassProcessor.h"
+#include "Render/Renderer.h"
 #include "Components/LightComponentBase.h"
 #include "SceneRenderData.h"
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 namespace
@@ -12,8 +15,11 @@ namespace
 	static_assert(offsetof(FDeferredLightConstants, Ambient) == 112);
 	static_assert(offsetof(FDeferredLightConstants, LightCounts) == 128);
 	static_assert(offsetof(FDeferredLightConstants, LightOffsets) == 144);
-	static_assert(offsetof(FDeferredLightConstants, SkyColorIntensity) == 160);
-	static_assert(sizeof(FDeferredLightConstants) == 176);
+	static_assert(offsetof(FDeferredLightConstants, LightShadowOffsets) == 160);
+	static_assert(offsetof(FDeferredLightConstants, SkyColorIntensity) == 176);
+	static_assert(offsetof(FDeferredLightConstants, ShadowAtlasWidth) == 192);
+	static_assert(offsetof(FDeferredLightConstants, ShadowAtlasHeight) == 196);
+	static_assert(sizeof(FDeferredLightConstants) == 208);
 
 	// 용량이 모자랄 때만 두 배로 키우고 Map 한 번으로 채운다.
 	bool UploadStructured(TUniquePtr<FStructuredBuffer>& Buffer, const void* Data, uint32 Count, uint32 Stride)
@@ -43,27 +49,28 @@ bool FSceneLightResources::Init()
 
 	ForwardLightCB = RenderCommand::CreateConstantBuffer(sizeof(FForwardLightingConstants));
 	DeferredLightCB = RenderCommand::CreateConstantBuffer(sizeof(FDeferredLightConstants));
+
 	if (!ForwardTileGrid.Init())
 		HTR_LOG(Warning, "Forward tile culling compute shader unavailable");
 	bInitialized = ForwardLightCB && DeferredLightCB;
 	return bInitialized;
 }
 
-void FSceneLightResources::CreateShadowAtlasIfNeed(uint32 ShadowAtlasMapWidth, uint32 ShadowAtlasMapHeight)
+void FSceneLightResources::CreateShadowAtlasIfNeed(uint32 ShadowAtlasMapWidth, uint32 ShadowAtlasMapHeight, uint32 NeedAtlasCount)
 {
-	if (!SceneLightShadowMapAtlas || ShadowAtlasMapWidth > SceneLightShadowMapAtlas->GetWidth() || ShadowAtlasMapHeight > SceneLightShadowMapAtlas->GetHeight())
+	if (!SceneLightShadowMapAtlas || ShadowAtlasMapWidth > SceneLightShadowMapAtlas->GetWidth() || ShadowAtlasMapHeight > SceneLightShadowMapAtlas->GetHeight() || NeedAtlasCount > SceneLightShadowMapAtlas->GetArraySize())
 	{
 		D3D11_TEXTURE2D_DESC Desc{};
 		Desc.Width = ShadowAtlasMapWidth;
 		Desc.Height = ShadowAtlasMapHeight;
 		Desc.MipLevels = 1;
-		Desc.ArraySize = 1;
+		Desc.ArraySize = NeedAtlasCount;
 		Desc.SampleDesc.Count = 1;
 		Desc.Usage = D3D11_USAGE_DEFAULT;
 		Desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-
 		Desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-		SceneLightShadowMapAtlas = RenderCommand::CreateTexture2D(Desc);
+
+		SceneLightShadowMapAtlas = RenderCommand::CreateTexture2DArray(Desc);
 	}
 }
 
@@ -76,4 +83,5 @@ bool FSceneLightResources::UploadLightShadows(const TArray<FLightShadowRenderDat
 {
 	return UploadStructured(SceneLightShadowBuffer, Shadows.GetData(), Shadows.Num(), sizeof(FLightShadowRenderData));
 }
+
 

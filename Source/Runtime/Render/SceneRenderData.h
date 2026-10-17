@@ -31,6 +31,7 @@ struct FSceneRenderData
 	static constexpr int32 DirectionalLightSlotIndex = 2;
 	static constexpr int32 RectLightSlotIndex = 3;
 	
+	static constexpr uint32 ShadowMapSize = 4096;
 	static constexpr uint32 DirectionalLightShadowMapSize = 1024;
 	static constexpr uint32 PointLightShadowMapSize = 1024;
 	static constexpr uint32 SpotLightShadowMapSize = 512;
@@ -108,8 +109,7 @@ struct FSceneRenderData
 	{
 		RenderQueue.Sort();
 
-		uint32 SuitableWidth = 0;
-		uint32 SuitableHeight = 0;
+		uint32 AtlasNeedCount = 1;
 		if (VisibleLights.Num())
 		{
 			constexpr uint32 TypeCount = 4;
@@ -245,9 +245,7 @@ struct FSceneRenderData
 
 			std::sort(AreaInfos.GetData(), AreaInfos.GetData() + AreaInfos.Num(), [](const FAreaInfo& A, const FAreaInfo& B) { return A.Size > B.Size; });
 
-			SuitableWidth = std::ceil(sqrt(TotalAreaSize));
-			SuitableWidth = FMath::Max(SuitableWidth, MaxAreaSize);
-
+			// TODO: 패킹 알고리즘 필요
 			uint32 AtlasCursorX = 0;
 			uint32 AtlasCursorY = 0;
 			uint32 MaxHeightInLine = 0;
@@ -255,8 +253,15 @@ struct FSceneRenderData
 			{
 				FAreaInfo& AreaInfo = AreaInfos[i];
 
-				if (AtlasCursorX + AreaInfo.Size > SuitableWidth)
+				if (AtlasCursorX + AreaInfo.Size > ShadowMapSize)
 				{
+					if (AtlasCursorY + AreaInfo.Size > ShadowMapSize)
+					{
+						AtlasNeedCount++;
+						AtlasCursorY = 0;
+						MaxHeightInLine = 0;
+					}
+
 					AtlasCursorY += MaxHeightInLine;
 					AtlasCursorX = 0;
 					MaxHeightInLine = 0;
@@ -264,6 +269,7 @@ struct FSceneRenderData
 
 				FLightShadowRenderData& RenderData = LightShadows[AreaInfo.Index];
 
+				RenderData.AtlasIndex = AtlasNeedCount - 1;
 				RenderData.AtlasRect.X = AtlasCursorX;
 				RenderData.AtlasRect.Y = AtlasCursorY;
 				RenderData.AtlasRect.Width = AreaInfo.Size;
@@ -273,8 +279,6 @@ struct FSceneRenderData
 
 				MaxHeightInLine = std::max(MaxHeightInLine, AreaInfo.Size);
 			}
-
-			SuitableHeight = AtlasCursorY + MaxHeightInLine;
 		}
 
 		// NOTE: 라이트 데이터를 GPU에 올림.
@@ -282,10 +286,7 @@ struct FSceneRenderData
 		if (bLightUpaloadSucceeded)
 		{
 			bLightUpaloadSucceeded &= ViewLightResources.UploadViewLights(VisibleLights);
-			if (SuitableWidth != 0 && SuitableHeight != 0)
-			{
-				ViewLightResources.CreateShadowAtlasIfNeed(SuitableWidth, SuitableHeight);
-			}
+			ViewLightResources.CreateShadowAtlasIfNeed(ShadowMapSize, ShadowMapSize, AtlasNeedCount);
 			bLightUpaloadSucceeded &= ViewLightResources.UploadLightShadows(LightShadows);
 		}
 	}

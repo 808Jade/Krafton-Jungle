@@ -41,6 +41,7 @@ struct FScenePassCallbacks // 기본 도형 다 그려진 후 그려져야 될 �
 	FSceneOverlayCallbacks Overlays;
 };
 
+
 // 씬 렌더링 조율자
 class FSceneRenderer
 {
@@ -76,6 +77,7 @@ public:
 	const FSceneView& GetView() const { return View; }
 	
 private:
+	static bool AssignShadowAtlasRects(TArray<FShadowDrawPass>& Passes, uint32& OutAtlasCount);
 	bool AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Renderer, FSceneViewTargets& Targets,
 		const FSceneRenderOptions& Options, FSkyboxRenderer* Skybox);
 	bool AddWorldNormalPass(FRenderGraphBuilder& Graph, FRenderer* Renderer, FSceneViewTargets& Targets,
@@ -90,7 +92,7 @@ private:
 	FSceneRenderData& RenderData;
 	bool bLightUploadSucceeded = false;
 	bool bTilesBuilt = false;
-	std::vector<FMeshDrawBatch> ForwardBatches;
+	TArray<FMeshDrawBatch> ForwardBatches;
 	FViewContext CachedViewContext;
 	bool bCorePassSucceeded = true;
 	bool bFXAAPassSucceeded = true;

@@ -1,11 +1,11 @@
 #pragma pack_matrix(row_major)
+
 #include "LightData.hlsli"
+#include "LightEvaluation.hlsli"
 
 Texture2D<float4> BaseColorMetallic : register(t0);
 Texture2D<float4> NormalRoughness : register(t1);
 Texture2D<float> SceneDepth : register(t2);
-TextureCube<float4> SkyIrradiance : register(t4);
-SamplerState SkySampler : register(s1);
 
 cbuffer DeferredLightConstants : register(b0)
 {
@@ -16,10 +16,42 @@ cbuffer DeferredLightConstants : register(b0)
     float4 AmbientColorIntensity;
     uint4 LightCounts; // x: 포인트 개수, y: 스포트 개수, z: 방향광 개수, w: 렉트 개수
     uint4 LightOffsets; // SceneLights에서 각 종류가 시작되는 위치, 순서는 위와 같음
+    uint4 LightShadowOffsets; // LightShadows에서 각 종류가 시작되는 위치, 순서는 위와 같음
     float4 SkyColorIntensity;
+    uint ShadowAtlasWidth;
+    uint ShadowAtlasHeight;
+    uint2 LightingPadding;
 };
 
 StructuredBuffer<FLightRenderParameters> SceneLights : register(t3);
+
+struct FShadowParameters
+{
+    row_major float4x4 LightVP;
+    float4 AtlasRect; // xy: 픽셀 위치, zw: 너비와 높이
+    uint AtlasIndex;
+    uint3 Padding;
+};
+
+struct FLightShadowRange
+{
+    uint StartIndex;
+    uint ViewCount;
+};
+
+#define MAX_SHADOW_ATLASES 4
+StructuredBuffer<FLightShadowRenderData> LightShadows : register(t4);
+Texture2DArray LightShadowAtlas : register(t5);
+
+cbuffer ShadowConstants : register(b1)
+{
+    uint ShadowsEnabled;
+    float ShadowDepthBias;
+    uint2 ShadowPadding;
+
+};
+
+SamplerState SkySampler : register(s1);
 
 struct FPSInput
 {
@@ -54,6 +86,16 @@ void AccumulateLocalLight(inout float3 Diffuse, inout float3 Specular,
     Specular += F0 * Radiance * pow(saturate(dot(N, H)), Shininess) * NdotL;
 }
 
+uint GetPointShadowFace(float3 Direction)
+{
+    float3 Axis = abs(Direction);
+    if (Axis.x >= Axis.y && Axis.x >= Axis.z)
+        return Direction.x >= 0.0f ? 0u : 1u;
+    if (Axis.y >= Axis.z)
+        return Direction.y >= 0.0f ? 2u : 3u;
+    return Direction.z >= 0.0f ? 4u : 5u;
+}
+
 float4 mainPS(FPSInput Input) : SV_Target
 {
     int2 Pixel = int2(Input.Position.xy);
@@ -68,31 +110,38 @@ float4 mainPS(FPSInput Input) : SV_Target
     float Roughness = NormalData.a;
     float3 N = NormalData.xyz * rsqrt(max(dot(NormalData.xyz, NormalData.xyz), 1.0e-8f));
     
-    float3 AmbientColor = AmbientColorIntensity.rgb * max(AmbientColorIntensity.a, 0.0f);
-    float3 BaseLighting = AmbientColor;
-    if (SkyColorIntensity.a > 0.0f)
-        BaseLighting += SkyIrradiance.SampleLevel(SkySampler, N, 0).rgb *
-            SkyColorIntensity.rgb * SkyColorIntensity.a;
-    [loop]
-    for (uint DirectionalIndex = 0; DirectionalIndex < LightCounts.z; ++DirectionalIndex)
-    {
-        FLightRenderParameters Light = SceneLights[LightOffsets.z + DirectionalIndex];
-        if (Light.Intensity <= 0.0f) continue;
-        float3 LightDir = normalize(Light.Direction);
-        float3 LightColor = Light.Color * Light.Intensity;
-        BaseLighting += LightColor * saturate(dot(N, -LightDir));
-    }
-
-    float3 Lighting = Albedo * BaseLighting;
-    if (LightCounts.x == 0 && LightCounts.y == 0 && LightCounts.w == 0)
-        return float4(Lighting, 1.0f);
-
     float2 UV = (float2(Pixel) + 0.5f) / ViewportSize.xy;
     float2 NDC = float2(UV.x * 2.0f - 1.0f, 1.0f - UV.y * 2.0f);
     float4 WorldH = mul(float4(NDC, Depth, 1.0f), InverseViewProjection);
     if (!isfinite(WorldH.w) || abs(WorldH.w) < 1.0e-6f)
         return 0.0f;
     float3 WorldPosition = WorldH.xyz / WorldH.w;
+
+    float3 AmbientColor = AmbientColorIntensity.rgb * max(AmbientColorIntensity.a, 0.0f);
+    float3 BaseLighting = AmbientColor;
+    if (SkyColorIntensity.a > 0.0f)
+        BaseLighting += SkyColorIntensity.rgb * SkyColorIntensity.a;
+    [loop]
+    for (uint DirectionalIndex = 0; DirectionalIndex < LightCounts.z; ++DirectionalIndex)
+    {
+        uint LightIndex = LightOffsets.z + DirectionalIndex;
+        FLightRenderParameters Light = SceneLights[LightIndex];
+        
+        if (Light.Intensity <= 0.0f) continue;
+        
+        float3 LightDir = normalize(Light.Direction);
+        float3 LightColor = Light.Color * Light.Intensity;
+                
+        FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + DirectionalIndex];
+        float Shadow = CalculateShadow(WorldPosition, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, SkySampler);
+
+        BaseLighting += LightColor * saturate(dot(N, -LightDir)) * Shadow;
+    }
+
+    float3 Lighting = Albedo * BaseLighting;
+    if (LightCounts.x == 0 && LightCounts.y == 0 && LightCounts.w == 0)
+        return float4(Lighting, 1.0f);
+
     // 직교 투영의 시선 광선은 평행하므로 시선 방향이 위치에 따라 달라지지 않는다.
     float3 ToCamera = CameraPosition.w > 0.5f
         ? CameraPosition.xyz - WorldPosition : -CameraForward.xyz;
@@ -104,7 +153,8 @@ float4 mainPS(FPSInput Input) : SV_Target
     [loop]
     for (uint PointIndex = 0; PointIndex < LightCounts.x; ++PointIndex)
     {
-        FLightRenderParameters Light = SceneLights[LightOffsets.x + PointIndex];
+        uint LightIndex = LightOffsets.x + PointIndex;
+        FLightRenderParameters Light = SceneLights[LightIndex];
         float3 ToLight = Light.Position - WorldPosition;
         float DistanceSquared = dot(ToLight, ToLight);
         float RadiusSquared = Light.Radius * Light.Radius;
@@ -118,16 +168,44 @@ float4 mainPS(FPSInput Input) : SV_Target
         float x = Distance / Light.Radius;
         float Attenuation = pow(saturate(1.0 - x), max(Light.FalloffExponent, 0.0f));
 
-        float3 Radiance = Light.Color * max(Light.Intensity, 0.0f) * Attenuation;
-        AccumulateLocalLight(LocalDiffuse, LocalSpecular,
-            Albedo, Metallic, Roughness, N, V, L, Radiance);
-
+        float3 ToPixel = WorldPosition - Light.Position;
+            
+        // 카메라는 0 : +x,1 : -x, 2: +z, 3 : -z, 4: +y, 5: -y
+        uint FaceIndex = 0;
+            
+        float3 AbsToPixel = abs(ToPixel);
+        if (AbsToPixel.x > AbsToPixel.y && AbsToPixel.x > AbsToPixel.z)
+        {
+            FaceIndex = ToPixel.x > 0.0 ? 0 : 1;
+        }
+        else if (AbsToPixel.y > AbsToPixel.x && AbsToPixel.y > AbsToPixel.z)
+        {
+            FaceIndex = ToPixel.y > 0.0 ? 4 : 5;
+        }
+        else
+        {
+            FaceIndex = ToPixel.z > 0.0 ? 2 : 3;
+        }
+        
+        FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.x + (PointIndex * 6 + FaceIndex)];
+            
+        float Shadow = CalculateShadow(WorldPosition, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, SkySampler);
+        
+        float3 Radiance = Light.Color * max(Light.Intensity, 0.0f) * Attenuation * Shadow;
+        
+        float3 Diffuse = 0.0;
+        float3 Specular = 0.0;
+        AccumulateLocalLight(Diffuse, Specular, Albedo, Metallic, Roughness, N, V, L, Radiance);
+        
+        LocalDiffuse += Diffuse * Shadow;
+        LocalSpecular += Specular * Shadow;
     }
 
     [loop]
     for (uint SpotIndex = 0; SpotIndex < LightCounts.y; ++SpotIndex)
     {
-        FLightRenderParameters Light = SceneLights[LightOffsets.y + SpotIndex];
+        uint LightIndex = LightOffsets.y + SpotIndex;
+        FLightRenderParameters Light = SceneLights[LightIndex];
         float3 ToLight = Light.Position - WorldPosition;
         float DistanceSquared = dot(ToLight, ToLight);
         float RadiusSquared = Light.Radius * Light.Radius;
@@ -141,16 +219,26 @@ float4 mainPS(FPSInput Input) : SV_Target
 			max(Light.FalloffExponent, 0.0001f));
 		float DistanceFactor = saturate(1.0f - Distance / Light.Radius);
 		float RadiusFade = DistanceFactor * DistanceFactor;
-		float3 Radiance = Light.Color * max(Light.Intensity, 0.0f)
-			* ConeFade * RadiusFade;
-        AccumulateLocalLight(LocalDiffuse, LocalSpecular,
-            Albedo, Metallic, Roughness, N, V, L, Radiance);
+        
+        FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.y + SpotIndex];
+            
+        float Shadow = CalculateShadow(WorldPosition, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, SkySampler);
+        
+        float3 Radiance = Light.Color * max(Light.Intensity, 0.0f) * ConeFade * RadiusFade * Shadow;
+        
+        float3 Diffuse = 0.0;
+        float3 Specular = 0.0;
+        AccumulateLocalLight(Diffuse, Specular, Albedo, Metallic, Roughness, N, V, L, Radiance);
+        
+        LocalDiffuse += Diffuse * Shadow;
+        LocalSpecular += Specular * Shadow;
     }
     
     [loop]
     for (uint RectIndex = 0; RectIndex < LightCounts.w; ++RectIndex)
     {
-        FLightRenderParameters Light = SceneLights[LightOffsets.w + RectIndex];
+        uint LightIndex = LightOffsets.w + RectIndex;
+        FLightRenderParameters Light = SceneLights[LightIndex];
         float3 Position = Light.Position;
         float Radius = Light.Radius;
         float3 Direction = Light.Direction;
@@ -199,12 +287,10 @@ float4 mainPS(FPSInput Input) : SV_Target
         }
 
         float3 Radiance = Color * max(Intensity, 0.0f) * Attenuation * FrontFace * BarnDoorMask;
-        AccumulateLocalLight(LocalDiffuse, LocalSpecular,
-            Albedo, Metallic, Roughness, N, V, L, Radiance);
+        AccumulateLocalLight(LocalDiffuse, LocalSpecular, Albedo, Metallic, Roughness, N, V, L, Radiance);
     }
     
     return float4(Lighting + LocalDiffuse + LocalSpecular, 1.0f);
-    
 }
 
 

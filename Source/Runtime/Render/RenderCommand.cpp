@@ -66,6 +66,12 @@ TUniquePtr<FTexture2D> RenderCommand::CreateTexture2D(const D3D11_TEXTURE2D_DESC
 	return RenderDevice->CreateTexture2D(Desc, Image);
 }
 
+TUniquePtr<FTexture2DArray> RenderCommand::CreateTexture2DArray(const D3D11_TEXTURE2D_DESC& Desc, const void* InitialData)
+{
+	assert(RenderDevice);
+	return RenderDevice->CreateTexture2DArray(Desc, InitialData);
+}
+
 TUniquePtr<FTexture2D> RenderCommand::CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const void* InitialData)
 {
 	assert(RenderDevice);
@@ -102,7 +108,7 @@ void RenderCommand::BindPipelineState(const FPipelineState& PipelineState)
 void RenderCommand::BindShaderProgram(FShaderProgram* Shader)
 {
 	RenderDevice->GetContext()->VSSetShader(Shader->VertexShader->GetShader(), nullptr, 0);
-	
+
 	if (Shader->PixelShader)
 	{
 		RenderDevice->GetContext()->PSSetShader(Shader->PixelShader->GetShader(), nullptr, 0);
@@ -238,6 +244,23 @@ void RenderCommand::BindShaderResource(uint32 Slot, FStructuredBuffer* Structure
 		RenderDevice->GetContext()->PSSetShaderResources(Slot, 1, &SRV);
 }
 
+void RenderCommand::BindShaderResources(uint32 StartSlot, ID3D11ShaderResourceView** SRVs, uint32 Count, EShaderBindFlagBits FlagBits)
+{
+	if (Count == 0)
+	{
+		return;
+	}
+
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Vertex))
+	{
+		RenderDevice->GetContext()->VSSetShaderResources(StartSlot, Count, SRVs);
+	}
+
+	if (HasFlag(FlagBits, EShaderBindFlagBits::Pixel))
+	{
+		RenderDevice->GetContext()->PSSetShaderResources(StartSlot, Count, SRVs);
+	}
+}
 
 void RenderCommand::UnbindShaderResources(uint32 FirstSlot, uint32 Count, EShaderBindFlagBits FlagBits)
 {
@@ -300,6 +323,11 @@ void RenderCommand::SetRenderTargets(FTexture2D* ColorTarget, FTexture2D* DepthT
 	SetRenderTargets(ColorTarget ? 1u : 0u, ColorTarget ? &ColorTarget : nullptr, DepthTarget);
 }
 
+void RenderCommand::SetRenderTargets(ID3D11RenderTargetView** RTVs, uint32 RTVCount, ID3D11DepthStencilView* Depth)
+{
+	RenderDevice->GetContext()->OMSetRenderTargets(RTVCount, RTVs, Depth);
+}
+
 void RenderCommand::SetRenderTargets(uint32 ColorTargetCount, FTexture2D* const* ColorTargets,
 	FTexture2D* DepthTarget)
 {
@@ -316,6 +344,10 @@ void RenderCommand::ClearRenderTarget(FTexture2D* ColorTarget, const float (&Col
 	RenderDevice->GetContext()->ClearRenderTargetView(ColorTarget->GetRTV(), Color);
 }
 
+void RenderCommand::ClearRenderTarget(ID3D11RenderTargetView* RTV, const float(&Color)[4])
+{
+	RenderDevice->GetContext()->ClearRenderTargetView(RTV, Color);
+}
 
 void RenderCommand::SetViewport(uint32 InX, uint32 InY, uint32 InWidth, uint32 InHeight)
 {

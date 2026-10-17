@@ -4,8 +4,37 @@
 #include "Math/Rect.h"
 #include "Core/EngineString.h"
 #include "Engine/SceneManagement.h"
+#include "Math/Rect.h"
 
 #include <cstddef>
+
+// CPU의 그림자 그리기와 GPU 업로드에서 공유하는 데이터.
+struct FShadowParameters 
+{
+	FMatrix LightVP = FMatrix::Identity;
+	FRect AtlasRect{}; // 픽셀 단위 위치와 크기
+	uint32 AtlasIndex = UINT32_MAX; // 영역 배정 전에는 유효한 atlas가 없다.
+	uint32 Padding[3]{};
+};
+
+struct FLightShadowRange // point light 때문에 생긴 구조체
+{
+	uint32 StartIndex = 0; 
+	uint32 ViewCount = 0; 
+};
+
+struct FShadowConstants
+{
+	uint32 ShadowsEnabled = 0;
+	float ShadowDepthBias = 0.0001f;
+	uint32 Padding[2]{};
+};
+
+static_assert(sizeof(FShadowParameters) == 96);
+static_assert(offsetof(FShadowParameters, AtlasRect) == 64);
+static_assert(offsetof(FShadowParameters, AtlasIndex) == 80);
+static_assert(sizeof(FLightShadowRange) == 8);
+static_assert(sizeof(FShadowConstants) == 16);
 
 // UberLit.hlsl의 FAmbientLightInfo와 같은 배치다.
 struct FAmbientLightRenderData
@@ -38,6 +67,7 @@ struct FLightShadowRenderData
 {
 	FMatrix ViewProjection;
 	FRect AtlasRect;
+	uint32 AtlasIndex;
 };
 
 static_assert(sizeof(FVector4) == 16);

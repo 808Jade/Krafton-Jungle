@@ -1,4 +1,5 @@
 #pragma pack_matrix(row_major)
+
 #include "LightData.hlsli"
 #include "LightEvaluation.hlsli"
 #include "LightGridCommon.hlsli"
@@ -16,12 +17,6 @@
 struct FAmbientLightInfo
 {
     float4 ColorIntensity; // rgb: 선형 색상, a: 광도
-};
-
-struct FLightShadowRenderData
-{
-    row_major float4x4 ViewProjection;
-    float4 AtlasRect;
 };
 
 cbuffer PerObject : register(b0)
@@ -51,7 +46,7 @@ StructuredBuffer<uint> TilePointIndices : register(t10);
 TextureCube<float4> SkyIrradiance : register(t11);
 StructuredBuffer<uint> TileSpotIndices : register(t12);
 StructuredBuffer<FLightShadowRenderData> LightShadows : register(t13);
-Texture2D LightShadowAtlas : register(t14);
+Texture2DArray LightShadowAtlas : register(t14);
 
 cbuffer MaterialParams : register(b2)
 {
@@ -268,7 +263,7 @@ FLightResult CalculateBaseLighting(float3 P, float3 N, float3 V, bool bIncludeSp
     {
         FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + DirectionalIndex];
             
-        float Shadow = CalculateShadow(P, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler);
+        float Shadow = CalculateShadow(P, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, PointSampler);
             
         FLightResult DirectionalResult = (FLightResult) 0;
         CalculateDirectionalLight(DirectionalResult, SceneLights[LightOffsets.z + DirectionalIndex], N, V, bIncludeSpecular);
@@ -359,15 +354,13 @@ FLightResult CalculateTiledLighting(float3 PixelPosition, float3 P,
             
             FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.x + (LightIndex * 6 + FaceIndex)];
             
-            float Shadow = CalculateShadow(P, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler);
+            float Shadow = CalculateShadow(P, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, PointSampler);
             
             FLightResult PointResult = (FLightResult) 0;
             CalculatePointLight(PointResult, SceneLights[LightOffsets.x + LightIndex], P, N, V, bIncludeSpecular);
-            PointResult.Diffuse *= Shadow;
-            PointResult.Specular *= Shadow;
          
-            Result.Diffuse += PointResult.Diffuse;
-            Result.Specular += PointResult.Specular;
+            Result.Diffuse += PointResult.Diffuse * Shadow;
+            Result.Specular += PointResult.Specular * Shadow;
         }
 
         [loop]
@@ -377,15 +370,13 @@ FLightResult CalculateTiledLighting(float3 PixelPosition, float3 P,
             
             FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.y + LightIndex];
             
-            float Shadow = CalculateShadow(P, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler);
+            float Shadow = CalculateShadow(P, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, PointSampler);
             
             FLightResult SpotResult = (FLightResult) 0;
             CalculateSpotLight(SpotResult, SceneLights[LightOffsets.y + LightIndex], P, N, V, bIncludeSpecular);
-            SpotResult.Diffuse *= Shadow;
-            SpotResult.Specular *= Shadow;
             
-            Result.Diffuse += SpotResult.Diffuse;
-            Result.Specular += SpotResult.Specular;
+            Result.Diffuse += SpotResult.Diffuse * Shadow;
+            Result.Specular += SpotResult.Specular * Shadow;
         }
 
 		[loop]

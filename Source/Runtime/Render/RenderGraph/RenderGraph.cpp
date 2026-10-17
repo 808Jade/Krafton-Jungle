@@ -81,6 +81,7 @@ namespace
 	struct FPooledTexture
 	{
 		TUniquePtr<FTexture2D> Texture;
+		FRenderGraphTextureDesc Desc{};
 		bool bInUse = false;
 	};
 	static std::vector<FPooledTexture> GTexturePool;
@@ -90,9 +91,10 @@ namespace
 		for (auto& Item : GTexturePool)
 		{
 			if (!Item.bInUse && Item.Texture &&
-				Item.Texture->GetWidth() == Desc.Width &&
-				Item.Texture->GetHeight() == Desc.Height &&
-				Item.Texture->GetFormat() == Desc.Format)
+				Item.Desc.Width == Desc.Width &&
+				Item.Desc.Height == Desc.Height &&
+				Item.Desc.Format == Desc.Format &&
+				Item.Desc.BindFlags == Desc.BindFlags)
 			{
 				Item.bInUse = true;
 				return Item.Texture.get();
@@ -110,9 +112,12 @@ namespace
 		D3DDesc.Format = Desc.Format;
 
 		auto NewTex = RenderCommand::CreateTexture2D(D3DDesc);
-		if (!NewTex) return nullptr;
+		if (!NewTex || !NewTex->GetRawPtr() ||
+			((Desc.BindFlags & D3D11_BIND_RENDER_TARGET) && !NewTex->GetRTV()) ||
+			((Desc.BindFlags & D3D11_BIND_DEPTH_STENCIL) && !NewTex->GetDSV()) ||
+			((Desc.BindFlags & D3D11_BIND_SHADER_RESOURCE) && !NewTex->GetSRV())) return nullptr;
 		FTexture2D* Ptr = NewTex.get();
-		GTexturePool.push_back({ std::move(NewTex), true });
+		GTexturePool.push_back({ std::move(NewTex), Desc, true });
 		return Ptr;
 	}
 }
@@ -173,56 +178,19 @@ FTexture2D* FRenderGraphBuilder::Resolve(FRenderGraphTextureRef Ref) const
 	return Ref.Owner == this && Ref.Index < Textures.size() ? Textures[Ref.Index].Texture : nullptr;
 }
 
-bool FRenderGraphBuilder::ValidatePass(const FRenderGraphRasterPassDesc& Desc,
-	uint32& OutWidth, uint32& OutHeight) const
+bool FRenderGraphBuilder::ValidatePass(const FRenderGraphRasterPassDesc& Desc) const
 {
-	if (Desc.Name.empty() || Desc.ColorAttachments.size() > D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT ||
-		(Desc.ColorAttachments.empty() && !Desc.DepthAttachment.Texture))
-		return false;
-	std::vector<uint32> OutputIndices;
-	const auto ValidateOutput = [&](FRenderGraphTextureRef Ref, bool bDepth) -> bool
-	{
-		if (Ref.Owner != this || Ref.Index >= Textures.size()) return false;
-		const FImportedTexture& Entry = Textures[Ref.Index];
-		if (std::find(OutputIndices.begin(), OutputIndices.end(), Ref.Index) != OutputIndices.end())
-			return false;
-		OutputIndices.push_back(Ref.Index);
-		const uint32 TexWidth = Entry.Texture ? Entry.Texture->GetWidth() : Entry.Desc.Width;
-		const uint32 TexHeight = Entry.Texture ? Entry.Texture->GetHeight() : Entry.Desc.Height;
-		if (OutWidth == 0 && OutHeight == 0)
-		{
-			OutWidth = TexWidth;
-			OutHeight = TexHeight;
-		}
-		return TexWidth == OutWidth && TexHeight == OutHeight;
-	};
-	OutWidth = Desc.Width;
-	OutHeight = Desc.Height;
-	if ((OutWidth == 0) != (OutHeight == 0)) return false;
-	for (const FRenderGraphColorAttachment& Color : Desc.ColorAttachments)
-		if (!ValidateOutput(Color.Texture, false)) return false;
-	if (Desc.DepthAttachment.Texture && !ValidateOutput(Desc.DepthAttachment.Texture, true)) return false;
-	for (FRenderGraphTextureRef Read : Desc.ReadTextures)
-	{
-		if (Read.Owner != this || Read.Index >= Textures.size()) return false;
-		if (std::find(OutputIndices.begin(), OutputIndices.end(), Read.Index) != OutputIndices.end())
-			return false;
-	}
-	return true;
+	return !(Desc.ColorAttachments.empty() && !Desc.DepthAttachment.Texture);
 }
 
 bool FRenderGraphBuilder::AddRasterPass(FRenderGraphRasterPassDesc Desc, std::function<void()> Execute)
 {
 	if (bExecuted || !Execute) return false;
 	uint32 Width = 0, Height = 0;
-	if (!ValidatePass(Desc, Width, Height)) return false;
+	if (!ValidatePass(Desc)) return false;
 	FRasterPass Pass{};
 	Pass.Desc = std::move(Desc);
 	Pass.Execute = std::move(Execute);
-	Pass.X = Desc.X;
-	Pass.Y = Desc.Y;
-	Pass.Width = Width;
-	Pass.Height = Height;
 	Passes.push_back(std::move(Pass));
 	return true;
 }
@@ -256,6 +224,7 @@ bool FRenderGraphBuilder::Execute() // 등록되어 있던
 		if (Entry.bTransient && !Entry.Texture)
 		{
 			Entry.Texture = AcquireTexture(Entry.Desc);
+			if (!Entry.Texture) return false;
 		}
 	}
 
@@ -275,38 +244,83 @@ bool FRenderGraphBuilder::Execute() // 등록되어 있던
 
 		// 이전 패스의 출력 바인딩을 먼저 해제해야 입력 SRV로 사용할 수 있다.
 		RenderCommand::EndRenderPass();
+
+		TArray<ID3D11ShaderResourceView*> SRVs;
+		for (int32 i = 0; i < Pass.Desc.ReadTextures.size(); i++)
+		{
+			SRVs.Add(Resolve(Pass.Desc.ReadTextures[i])->GetSRV());
+		}
+
 		std::vector<ID3D11Resource*> Outputs;
-		FTexture2D* ColorTargets[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT]{};
+		ID3D11RenderTargetView* RTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT]{};
+
+		uint32 TexWidth = 0;
+		uint32 TexHeight = 0;
 
 		for (uint32 Index = 0; Index < Pass.Desc.ColorAttachments.size(); ++Index)
 		{
 			FTexture2D* Texture = Resolve(Pass.Desc.ColorAttachments[Index].Texture);
-			ColorTargets[Index] = Texture;
-			if (Texture) Outputs.push_back(Texture->GetRawPtr());
+			RTVs[Index] = Texture->GetRTV();
+			if (Texture)
+			{
+				Outputs.push_back(Texture->GetRawPtr());
+				TexWidth = Texture->GetWidth();
+				TexHeight = Texture->GetHeight();
+			}
 		}
 
-		FTexture2D* Depth = Pass.Desc.DepthAttachment.Texture
-			? Resolve(Pass.Desc.DepthAttachment.Texture) : nullptr;
+		FTexture2D* Depth = Resolve(Pass.Desc.DepthAttachment.Texture);
 
-		if (Depth) Outputs.push_back(Depth->GetRawPtr());
+		ID3D11DepthStencilView* DSV = nullptr;
+		if (Depth)
+		{
+			if (Depth->GetDimension() == ETextureDimension::Texture2D)
+			{
+				DSV = Depth->GetDSV();
+			}
+			else if (Depth->GetDimension() == ETextureDimension::Texture2DArray)
+			{
+				FTexture2DArray* Tex2DArray = static_cast<FTexture2DArray*>(Depth);
+				DSV = Tex2DArray->GetDSV(Pass.Desc.DepthAttachment.DSVIndex);
+			}
+
+			Outputs.push_back(Depth->GetRawPtr());
+			TexWidth = Depth->GetWidth();
+			TexHeight = Depth->GetHeight();
+		}
+
 		UnbindConflictingViews(Context, Outputs);
 		
 		for (uint32 Index = 0; Index < Pass.Desc.ColorAttachments.size(); ++Index)
 		{
 			const FRenderGraphColorAttachment& Attachment = Pass.Desc.ColorAttachments[Index];
-			if (Attachment.LoadAction == ERenderGraphLoadAction::Clear && ColorTargets[Index])
+			if (Attachment.LoadAction == ERenderGraphLoadAction::Clear && RTVs[Index])
 			{
 				const float Color[4] = { Attachment.ClearColor[0], Attachment.ClearColor[1],
 					Attachment.ClearColor[2], Attachment.ClearColor[3] };
-				RenderCommand::ClearRenderTarget(ColorTargets[Index], Color);
+				RenderCommand::ClearRenderTarget(RTVs[Index], Color);
 			}
 		}
 
-		if (Depth && Pass.Desc.DepthAttachment.LoadAction == ERenderGraphLoadAction::Clear)
-			RenderCommand::ClearDepthStencil(Depth, Pass.Desc.DepthAttachment.ClearDepth, Pass.Desc.DepthAttachment.ClearStencil);
-		
-		RenderCommand::SetRenderTargets(static_cast<uint32>(Pass.Desc.ColorAttachments.size()), ColorTargets, Depth);
-		RenderCommand::SetViewport(Pass.X, Pass.Y, Pass.Width, Pass.Height);
+		if (Pass.Desc.DepthAttachment.LoadAction == ERenderGraphLoadAction::Clear)
+		{
+			RenderCommand::ClearDepthStencil(Resolve(Pass.Desc.DepthAttachment.Texture), Pass.Desc.DepthAttachment.ClearDepth, Pass.Desc.DepthAttachment.ClearStencil);
+		}
+
+		RenderCommand::SetRenderTargets(RTVs, Pass.Desc.ColorAttachments.size(), DSV);
+		RenderCommand::BindShaderResources(0, SRVs.GetData(), SRVs.Num(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+
+		FShadowAtlasRect Viewport = Pass.Desc.Viewport;
+		if (Viewport.Width == 0)
+		{
+			Viewport.Width = TexWidth;
+		}
+		if (Viewport.Height == 0)
+		{
+			Viewport.Height = TexHeight;
+		}
+
+		RenderCommand::SetViewport(Viewport.X, Viewport.Y, Viewport.Width, Viewport.Height);
 		Pass.Execute();
 		RenderCommand::EndRenderPass();
 	}

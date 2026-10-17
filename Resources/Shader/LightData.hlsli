@@ -30,4 +30,11 @@ struct FLightRenderParameters
     float Padding;
 };
 
+struct FLightShadowRenderData
+{
+    row_major float4x4 ViewProjection;
+    float4 AtlasRect;
+    uint AtlasIndex;
+};
+
 #endif

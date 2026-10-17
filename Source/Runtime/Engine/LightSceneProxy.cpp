@@ -15,6 +15,7 @@ void FDirectionalLightSceneProxy::GetLightShaderParameters(FLightRenderParameter
 	const FLinearColor Color(Dir->GetLightColor());
 
 	Out = FLightRenderParameters{};
+	Out.Position = Dir->GetWorldLocation();
 	Out.Type = static_cast<uint32>(ELightType::Directional);
 	Out.Position = Dir->GetWorldLocation();
 	Out.Direction = Transform.GetForward();

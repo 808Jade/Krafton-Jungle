@@ -2,6 +2,7 @@
 
 #include "Core/Types.h"
 #include "Math/Rect.h"
+#include "Containers/Array.h"
 
 #include <array>
 #include <functional>
@@ -39,6 +40,15 @@ struct FRenderGraphDepthAttachment // 패스에 필요한 DepthTextrue 핸들
 	ERenderGraphLoadAction LoadAction = ERenderGraphLoadAction::Load;
 	float ClearDepth = 1.0f;
 	uint8 ClearStencil = 0;
+	uint32 DSVIndex = 0;
+};
+
+struct FShadowAtlasRect
+{
+	uint32 X = 0;
+	uint32 Y = 0;
+	uint32 Width = 0;
+	uint32 Height = 0;
 };
 
 struct FRenderGraphRasterPassDesc // draw pass용
@@ -47,10 +57,7 @@ struct FRenderGraphRasterPassDesc // draw pass용
 	std::vector<FRenderGraphTextureRef> ReadTextures;
 	std::vector<FRenderGraphColorAttachment> ColorAttachments;
 	FRenderGraphDepthAttachment DepthAttachment;
-	uint32 X = 0;
-	uint32 Y = 0;
-	uint32 Width = 0;  // 0이면 첫 출력 텍스처의 크기를 사용한다.
-	uint32 Height = 0;
+	FShadowAtlasRect Viewport{}; // 0 크기면 출력 전체. Atlas 타일은 부분 영역을 지정한다.
 };
 
 struct FRenderGraphComputePassDesc // compute pass용
@@ -69,7 +76,7 @@ struct FRenderGraphTextureDesc
 };
 
 // 1단계: 외부 텍스처와 순차 래스터 패스만 지원한다.
-// 패스의 실행 함수는 바인딩된 RTV/DSV를 변경하지 않아야 한다.
+// 실행 함수는 RTV를 유지하고, DSV는 선언된 DepthAttachments 내에서만 전환한다.
 class FRenderGraphBuilder
 {
 public:
@@ -106,7 +113,7 @@ private:
 		bool bCompute = false;
 	};
 
-	bool ValidatePass(const FRenderGraphRasterPassDesc& Desc, uint32& OutWidth, uint32& OutHeight) const;
+	bool ValidatePass(const FRenderGraphRasterPassDesc& Desc) const;
 
 	std::vector<FImportedTexture> Textures;
 	std::vector<FRasterPass> Passes;

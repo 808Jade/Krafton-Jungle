@@ -6,6 +6,7 @@ class FBuffer;
 class FStructuredBuffer;
 class UStaticMesh;
 class UTexture2D;
+class FTexture2DArray;
 class FTextureCube;
 class FShaderProgram;
 class FVertexShader;
@@ -40,6 +41,7 @@ public:
 
 	static TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const void* InitialData = nullptr);
 	static TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const FImageData& Image);
+	static TUniquePtr<FTexture2DArray> CreateTexture2DArray(const D3D11_TEXTURE2D_DESC& Desc, const void* InitialData = nullptr);
 	static TUniquePtr<FTextureCube> CreateTextureCube(const D3D11_TEXTURE2D_DESC& Desc, const TArray<const void*>& InitialDatas);
 
 	static TUniquePtr<FVertexShader> CreateVertexShader(const FShaderByteCode& ByteCode);
@@ -77,6 +79,7 @@ public:
 	static void BindShaderResource(uint32 Slot, FTexture2D* Texture2D, EShaderBindFlagBits FlagBits);
 	static void BindShaderResource(uint32 Slot, UTexture2D* Texture2D, EShaderBindFlagBits FlagBits);
 	static void BindShaderResource(uint32 Slot, const FTextureCube* TextureCube, EShaderBindFlagBits FlagBits);
+	static void BindShaderResources(uint32 StartSlot, ID3D11ShaderResourceView** SRVs, uint32 Count, EShaderBindFlagBits FlagBits);
 	static void BindShaderResource(uint32 Slot, FStructuredBuffer* StructuredBuffer, EShaderBindFlagBits FlagBits);
 	static void UnbindShaderResources(uint32 FirstSlot, uint32 Count, EShaderBindFlagBits FlagBits);
 
@@ -85,8 +88,10 @@ public:
 	static void EndRenderPass();
 	static void ClearDepthStencil(FTexture2D* DepthStencilTexture, float Depth = 1.0f, uint8 Stencil = 0);
 	static void SetRenderTargets(FTexture2D* ColorTarget, FTexture2D* DepthTarget);
+	static void SetRenderTargets(ID3D11RenderTargetView** RTVs, uint32 RTVCount, ID3D11DepthStencilView* Depth);
 	static void SetRenderTargets(uint32 ColorTargetCount, FTexture2D* const* ColorTargets, FTexture2D* DepthTarget);
 	static void ClearRenderTarget(FTexture2D* ColorTarget, const float (&Color)[4]);
+	static void ClearRenderTarget(ID3D11RenderTargetView* ColorTarget, const float (&Color)[4]);
 
 	static void SetViewport(uint32 InX, uint32 InY, uint32 InWidth, uint32 InHeight);
 

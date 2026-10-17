@@ -35,7 +35,7 @@ void AccumulateLight(inout FLightResult Result, float3 N, float3 V, float3 L,
     }
 }
 
-float CalculateShadow(float3 P, float4x4 VP, float4 AtlasRect, Texture2D Atlas, uint AtlasWidth, uint AtlasHeight, SamplerState Sampler)
+float CalculateShadow(float3 P, float4x4 VP, float4 AtlasRect, Texture2DArray Atlas, uint AtlasWidth, uint AtlasHeight, uint AtlasIndex, SamplerState Sampler)
 {
     float Shadow = 1.0;
     
@@ -51,8 +51,8 @@ float CalculateShadow(float3 P, float4x4 VP, float4 AtlasRect, Texture2D Atlas, 
             float AtlasV = -CoordPos.y * 0.5 + 0.5;
             AtlasV = (AtlasRect.y + AtlasV * AtlasRect.w) / AtlasHeight;
                     
-            const float Bias = 0.005;
-            float SampledDepth = Atlas.Sample(Sampler, float2(AtlasU, AtlasV)).r;
+            const float Bias = 0.00013;
+            float SampledDepth = Atlas.SampleLevel(Sampler, float3(AtlasU, AtlasV, AtlasIndex), 0).r;
             if (SampledDepth < CoordPos.z - Bias)
             {
                 Shadow = 0.0;

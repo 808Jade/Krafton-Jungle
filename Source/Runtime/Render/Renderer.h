@@ -19,8 +19,6 @@ public:
 	// 패스의 의미를 해석하지 않고 준비된 GPU 상태와 드로우만 제출한다.
 	void UploadViewMatrix(const FMatrix& ViewProjection);
 	void DrawMeshes(std::span<const FMeshDrawBatch> Batches);
-	void DrawFullscreen(const FPipelineState& Pipeline,
-		std::span<FTexture2D* const> Textures);
 	void BindPixelConstant(uint32 Slot, FConstantBuffer* Buffer);
 	void UpdateConstant(FConstantBuffer* Buffer, const void* Data, uint32 Size);
 	void BindConstant(uint32 Slot, FConstantBuffer* Buffer, EShaderBindFlagBits Stages);
@@ -51,6 +49,8 @@ public:
 
 	uint8* BeginObjectConstants(uint32 MaxSlots);
 	void EndObjectConstants();
+
+
 
 private:
 	void EnsurePerObjectSlotCapacity(uint32 SlotCount);

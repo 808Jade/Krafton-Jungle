@@ -7,11 +7,15 @@
 #include "Render/Buffer.h"
 #include "Render/RenderCommand.h"
 #include "Containers/Array.h"
+#include "Math/Rect.h"
+#include "Render/LightRenderData.h"
 #include <array>
-#include <vector>
+#include <Engine\PrimitiveSceneProxy.h>
 
 struct FSceneView;
 struct FSceneRenderData;
+class FScene;
+struct FLightRenderParameters;
 
 // 한 패스에서 함께 바인딩할 GPU 상태. UObject 메시/재질 포인터는 보관하지 않는다.
 struct FMeshDrawBatch
@@ -38,7 +42,7 @@ struct FMeshDrawBatch
 	FVertexBuffer* VertexBuffer = nullptr;
 	FIndexBuffer* IndexBuffer = nullptr;
 
-	std::vector<FTextureBinding> Textures;
+	TArray<FTextureBinding> Textures;
 	ESamplerState Sampler = ESamplerState::LinearClamp;
 	EShaderBindFlagBits SamplerStages = EShaderBindFlagBits::Pixel;
 	std::array<uint8, sizeof(FForwardMaterialConstants)> MaterialData{};
@@ -74,6 +78,7 @@ enum class EMeshPassType : uint8
 	Forward,
 	Translucent,
 	WorldNormal,
+	ShadowDepth,
 };
 
 // CPU에서 프록시/패킷을 패스별 GPU 배치로 변환한다. GPU 명령은 호출하지 않는다.
@@ -82,7 +87,13 @@ class FMeshPassProcessor
 public:
 	bool Build(const FSceneView& View, const FRenderQueue& Queue,
 		const FSceneRenderData* SceneData, EMeshPassType Pass,
-		std::vector<FMeshDrawBatch>& Out, ELightingModel LightingModel = ELightingModel::Gouraud) const;
+		TArray<FMeshDrawBatch>& Out, ELightingModel LightingModel = ELightingModel::Gouraud) const;
 
 	bool BuildDepthOnly(const TArray<FPrimitiveSceneProxy*>& ShadowMeshes, TArray<FMeshDrawBatch>& OutBatches);
+
+#if 0
+	bool Build(const FSceneView& CameraView, FScene& Scene,
+		const TArray<FLightRenderParameters>& Lights,
+		TArray<FShadowDrawPass>& OutPasses) const;
+#endif
 };
