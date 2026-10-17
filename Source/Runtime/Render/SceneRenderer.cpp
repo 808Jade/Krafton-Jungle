@@ -106,18 +106,22 @@ void FSceneRenderer::InitViews(FRenderer* Renderer)
 bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uint32 Height)
 {
 	FSceneLightResources& LightResources = RenderData.ViewLightResources;
-	if (!bLightUploadSucceeded || !LightResources.GetDeferredConstants()) return false;
+
+	FConstantBuffer* DefferedConstants = LightResources.GetDeferredConstants();
+
+	if (!bLightUploadSucceeded || !DefferedConstants)
+	{
+		return false;
+	}
 	
 	FDeferredLightConstants Constants{};
 	Constants.InverseViewProjection = View.ViewProjectionMatrix.Inverse();
-	Constants.CameraPosition = FVector4(View.ViewLocation.X, View.ViewLocation.Y,
-		View.ViewLocation.Z, View.bIsPerspective ? 1.0f : 0.0f);
+	Constants.CameraPosition = FVector4(View.ViewLocation.X, View.ViewLocation.Y, View.ViewLocation.Z, View.bIsPerspective ? 1.0f : 0.0f);
 	Constants.CameraForward = FVector4(View.ViewForward.X, View.ViewForward.Y, View.ViewForward.Z, 0.0f);
 	
 	const FSkyLightEnvironment* Sky = RenderData.bHasSkyLight ? World->GetScene().FindSkyLightEnvironment(RenderData.SkyLight.SourcePath) : nullptr;
 	Constants.Ambient = Sky ? FAmbientLightRenderData{ FVector4(0.0f) } : RenderData.AmbientLight; // 지금 환경광 계산이 ambient + skylight로 되어있어서 sky 잇으면 ambient 0으로 해줘야됨
-	
-	if (Sky) Constants.SkyColorIntensity = RenderData.SkyLight.ColorIntensity;
+	Constants.SkyColorIntensity = Sky ? RenderData.SkyLight.ColorIntensity : FVector4(0.f);
 	
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
 	std::memcpy(Constants.LightOffsets, RenderData.LightParameterOffsets, sizeof(RenderData.LightParameterOffsets)); // LightOffset은 각 조명별로 시작하는 위치
@@ -128,34 +132,50 @@ bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uin
 	Renderer->BindStructured(3, RenderData.HasLights() ? LightResources.GetSceneLights() : nullptr, EShaderBindFlagBits::Pixel);
 	Renderer->BindCube(4, Sky ? Sky->GetIrradianceCube() : nullptr, EShaderBindFlagBits::Pixel);
 	Renderer->BindSampler(1, ESamplerState::LinearClamp, EShaderBindFlagBits::Pixel);
+
 	return true;
 }
 
 bool FSceneRenderer::BindForwardLighting(FRenderer* Renderer, const FSceneRenderOptions& Options)
 {
 	FSceneLightResources& LightResources = RenderData.ViewLightResources;
-	if (!bLightUploadSucceeded || !LightResources.GetForwardConstants()) return false;
+
+	FConstantBuffer* ForwardConstants = LightResources.GetForwardConstants();
+
+	if (!bLightUploadSucceeded || !ForwardConstants)
+	{
+		return false;
+	}
 	
 	FPipelineState* BasePSO = FRenderResourceManager::GetPSO(EPSOType::StaticMesh_Forward);
 	FShaderProgram* Program = FRenderResourceManager::GetForwardShaderProgram(Options.LightingModel);
-	
-	if (!BasePSO || !Program) return false;
+	if (!BasePSO || !Program)
+	{
+		return false;
+	}
+
+	FTexture2D* LightShadowAtlas = LightResources.GetShadowMapAtlas();
+	FStructuredBuffer* LightShadows = LightResources.GetLightShadows();
+
 	FForwardLightingConstants Constants{};
 	
 	const FSkyLightEnvironment* Sky = RenderData.bHasSkyLight ? World->GetScene().FindSkyLightEnvironment(RenderData.SkyLight.SourcePath) : nullptr;
 	Constants.Ambient = Sky ? FAmbientLightRenderData{ FVector4(0.0f) } : RenderData.AmbientLight;
-	
-	if (Sky) Constants.SkyColorIntensity = RenderData.SkyLight.ColorIntensity;
+	Constants.SkyColorIntensity = Sky ? RenderData.SkyLight.ColorIntensity : FVector4(0.f);
 	Constants.CameraPosition = FVector4(View.ViewLocation.X, View.ViewLocation.Y, View.ViewLocation.Z, 1.0f);
+	Constants.ShadowAtlasWidth = LightShadowAtlas ? LightShadowAtlas->GetWidth() : 0;
+	Constants.ShadowAtlasHeight = LightShadowAtlas ? LightShadowAtlas->GetHeight() : 0;
 	
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
 	std::memcpy(Constants.LightOffsets, RenderData.LightParameterOffsets, sizeof(RenderData.LightParameterOffsets)); // LightOffset은 각 조명별로 시작하는 위치
+	std::memcpy(Constants.LightShadowOffsets, RenderData.LightShadowOffsets, sizeof(RenderData.LightShadowOffsets));
 
-	Renderer->UpdateConstant(LightResources.GetForwardConstants(), &Constants, sizeof(Constants));
-	Renderer->BindConstant(1, LightResources.GetForwardConstants(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+	Renderer->UpdateConstant(ForwardConstants, &Constants, sizeof(Constants));
+	Renderer->BindConstant(1, ForwardConstants, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	Renderer->BindCube(11, Sky ? Sky->GetIrradianceCube() : nullptr, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
-	Renderer->BindSampler(1, ESamplerState::LinearClamp, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
-	
+	Renderer->BindStructured(13, LightShadows, EShaderBindFlagBits::Pixel);
+	RenderCommand::BindShaderResource(14, LightShadowAtlas, EShaderBindFlagBits::Pixel);
+
 	FForwardLightTileGrid& Tiles = LightResources.GetTiles();
 	Tiles.PreparePixelShader(Renderer, bTilesBuilt);
 	Renderer->BindPixelConstant(3, Tiles.GetPixelConstants());
@@ -163,6 +183,10 @@ bool FSceneRenderer::BindForwardLighting(FRenderer* Renderer, const FSceneRender
 	Renderer->BindRawPixelResources(9, std::span<ID3D11ShaderResourceView* const>(TileSRVs.data(), 2));
 	Renderer->BindRawPixelResources(12, std::span<ID3D11ShaderResourceView* const>(TileSRVs.data() + 2, 1));
 	Renderer->BindStructured(8, RenderData.HasLights() && LightResources.GetSceneLights() && LightResources.GetSceneLights()->GetSRV() ? LightResources.GetSceneLights() : nullptr, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+
+	Renderer->BindSampler(1, ESamplerState::LinearClamp, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+	Renderer->BindSampler(2, ESamplerState::PointClamp, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+
 	return true;
 }
 
@@ -171,7 +195,7 @@ void FSceneRenderer::UnbindForwardLighting(FRenderer* Renderer)
 	const std::array<ID3D11ShaderResourceView*, 2> NullSRVs{};
 	Renderer->BindRawPixelResources(9, NullSRVs);
 	Renderer->BindRawPixelConstant(3, nullptr);
-	Renderer->UnbindResources(12, 1, EShaderBindFlagBits::Pixel);
+	Renderer->UnbindResources(12, 3, EShaderBindFlagBits::Pixel);
 	RenderData.ViewLightResources.GetTiles().ResetPixelState();
 	Renderer->UnbindResources(8, 1, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	Renderer->UnbindResources(11, 1, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
@@ -295,66 +319,13 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 			TArray<FMeshDrawBatch> Batched;
 			Processor.BuildDepthOnly(RenderData.VisibleProxies, Batched);
 
-			for (int32 i = 0; i < RenderData.GetDirectionalLightCount(); i++)
+			for (int32 i = 0; i < RenderData.LightShadows.Num(); i++)
 			{
-				int32 LightIndex = RenderData.GetDirectionalLightOffset() + i;
-				int32 ShadowAtlasAreaIndex = RenderData.GetDirectionalLightShadowOffset() + i;
+				const FLightShadowRenderData& LightShadow = RenderData.LightShadows[i];
 
-				const FLightRenderParameters& DirectionalLight = RenderData.VisibleLights[LightIndex];
-				const FRect& DirectionalLightShadowMapArea = RenderData.SceneLightShadowMapAreas[ShadowAtlasAreaIndex];
-
-				FMatrix ViewMatrix = LookAt(DirectionalLight.Position, DirectionalLight.Position + DirectionalLight.Direction, FVector(0, 0, 1));
-				FMatrix ProjectionMatrix = Ortho(20, 1.0f, 0.1f, 1000.f);
-				FMatrix LightMatrix = ViewMatrix * ProjectionMatrix;
-
-				RenderCommand::SetViewport(DirectionalLightShadowMapArea.X, DirectionalLightShadowMapArea.Y, DirectionalLightShadowMapArea.Width, DirectionalLightShadowMapArea.Height);
-				Renderer->UploadViewMatrix(LightMatrix);
+				RenderCommand::SetViewport(LightShadow.AtlasRect.X, LightShadow.AtlasRect.Y, LightShadow.AtlasRect.Width, LightShadow.AtlasRect.Height);
+				Renderer->UploadViewMatrix(LightShadow.ViewProjection);
 				Renderer->DrawMeshes(Batched);
-			}
-
-			for (int32 i = 0; i < RenderData.GetSpotLightCount(); i++)
-			{
-				int32 LightIndex = RenderData.GetSpotLightOffset() + i;
-				int32 ShadowAtlasAreaIndex = RenderData.GetSpotLightShadowOffset() + i;
-
-				const FLightRenderParameters& SpotLight = RenderData.VisibleLights[LightIndex];
-				const FRect& SpotLightShadowMapArea = RenderData.SceneLightShadowMapAreas[ShadowAtlasAreaIndex];
-
-				FMatrix ViewMatrix = LookAt(SpotLight.Position, SpotLight.Position + SpotLight.Direction, UpVector);
-				FMatrix ProjectionMatrix = Perspective(std::acos(SpotLight.OuterConeCos) * 2.0f, 1.0, 0.1f, SpotLight.Radius);
-				FMatrix LightMatrix = ViewMatrix * ProjectionMatrix;
-
-				RenderCommand::SetViewport(SpotLightShadowMapArea.X, SpotLightShadowMapArea.Y, SpotLightShadowMapArea.Width, SpotLightShadowMapArea.Height);
-				Renderer->UploadViewMatrix(LightMatrix);
-				Renderer->DrawMeshes(Batched);
-			}
-
-			for (int32 i = 0; i < RenderData.GetPointLightCount(); i++)
-			{
-				int32 LightIndex = RenderData.GetPointLightOffset() + i;
-
-				const FLightRenderParameters& PointLight = RenderData.VisibleLights[LightIndex];
-
-				FMatrix PerspectiveMatrix = Perspective(FMath::DegreesToRadians(90.f), 1.0, 0.1f, PointLight.Radius);
-				FMatrix VPs[] = {
-					LookAt(PointLight.Position, PointLight.Position + ForwardVector, UpVector) * PerspectiveMatrix,
-					LookAt(PointLight.Position, PointLight.Position + BackwardVector, UpVector) * PerspectiveMatrix,
-					LookAt(PointLight.Position, PointLight.Position + UpVector, BackwardVector) * PerspectiveMatrix,
-					LookAt(PointLight.Position, PointLight.Position + DownVector, ForwardVector) * PerspectiveMatrix,
-					LookAt(PointLight.Position, PointLight.Position + RightVector, UpVector) * PerspectiveMatrix,
-					LookAt(PointLight.Position, PointLight.Position + LeftVector, UpVector) * PerspectiveMatrix,
-				};
-
-				for (int32 j = 0; j < 6; j++)
-				{
-					int32 ShadowAtlasAreaIndex = RenderData.GetPointLightShadowOffset() + (i * 6 + j);
-
-					const FRect& PointLightShadowMapArea = RenderData.SceneLightShadowMapAreas[ShadowAtlasAreaIndex];
-
-					RenderCommand::SetViewport(PointLightShadowMapArea.X, PointLightShadowMapArea.Y, PointLightShadowMapArea.Width, PointLightShadowMapArea.Height);
-					Renderer->UploadViewMatrix(VPs[j]);
-					Renderer->DrawMeshes(Batched);
-				}
 			}
 		};
 
@@ -503,16 +474,20 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 		};
 		Forward.DepthAttachment = { Depth, bUseDepthPrepass ? ERenderGraphLoadAction::Load : ERenderGraphLoadAction::Clear, 1.0f, 0 };
 		if (!Graph.AddRasterPass(std::move(Forward), [this, Renderer, LightingOptions = Options, bUseDepthPrepass]
+		{
+			if (!LightingOptions.bDrawPrimitives) return;
+			bCorePassSucceeded = BindForwardLighting(Renderer, LightingOptions);
+			if (!bCorePassSucceeded) return;
+			if (bUseDepthPrepass)
 			{
-				if (!LightingOptions.bDrawPrimitives) return;
-				bCorePassSucceeded = BindForwardLighting(Renderer, LightingOptions);
-				if (!bCorePassSucceeded) return;
-				if (bUseDepthPrepass)
-					for (FMeshDrawBatch& Batch : ForwardBatches)
-						Batch.Pipeline.DepthStencilState = EDepthStencilState::PrepassReadOnly;
-				Renderer->DrawMeshes(ForwardBatches);
-				UnbindForwardLighting(Renderer);
-			})) return false;
+				for (FMeshDrawBatch& Batch : ForwardBatches)
+				{
+					Batch.Pipeline.DepthStencilState = EDepthStencilState::PrepassReadOnly;
+				}
+			}
+			Renderer->DrawMeshes(ForwardBatches);
+			UnbindForwardLighting(Renderer);
+		})) return false;
 	}
 
 	FRenderGraphRasterPassDesc ToneMap{};

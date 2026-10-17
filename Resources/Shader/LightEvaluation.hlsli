@@ -35,4 +35,32 @@ void AccumulateLight(inout FLightResult Result, float3 N, float3 V, float3 L,
     }
 }
 
+float CalculateShadow(float3 P, float4x4 VP, float4 AtlasRect, Texture2D Atlas, uint AtlasWidth, uint AtlasHeight, SamplerState Sampler)
+{
+    float Shadow = 1.0;
+    
+    float4 CoordPos = mul(float4(P, 1.0), VP);
+    if (CoordPos.w > 0)
+    {
+        CoordPos.xyz /= CoordPos.w;
+        if (CoordPos.x >= -1.0 && CoordPos.x <= 1.0 && CoordPos.y >= -1.0 && CoordPos.y <= 1.0 && CoordPos.z >= 0 && CoordPos.z <= 1)
+        {
+            float AtlasU = CoordPos.x * 0.5 + 0.5;
+            AtlasU = (AtlasRect.x + AtlasU * AtlasRect.z) / AtlasWidth;
+                    
+            float AtlasV = -CoordPos.y * 0.5 + 0.5;
+            AtlasV = (AtlasRect.y + AtlasV * AtlasRect.w) / AtlasHeight;
+                    
+            const float Bias = 0.005;
+            float SampledDepth = Atlas.Sample(Sampler, float2(AtlasU, AtlasV)).r;
+            if (SampledDepth < CoordPos.z - Bias)
+            {
+                Shadow = 0.0;
+            }
+        }
+    }
+    
+    return Shadow;
+}
+
 #endif

@@ -395,22 +395,34 @@ void FRenderDevice::CreateStates()
 
 	// ---------- Sampler ----------
 	{
-		D3D11_SAMPLER_DESC Desc = {};
-		Desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-		Desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-		Desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-		Desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-		Desc.MaxAnisotropy = 1;
-		Desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-		Desc.MinLOD = 0.0f;
-		Desc.MaxLOD = D3D11_FLOAT32_MAX;
+		D3D11_SAMPLER_DESC LinearDesc = {};
+		LinearDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		LinearDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		LinearDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		LinearDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		LinearDesc.MaxAnisotropy = 1;
+		LinearDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		LinearDesc.MinLOD = 0.0f;
+		LinearDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-		Device->CreateSamplerState(&Desc, SamplerStates[(uint8)ESamplerState::LinearClamp].GetAddressOf());
+		Device->CreateSamplerState(&LinearDesc, SamplerStates[(uint8)ESamplerState::LinearClamp].GetAddressOf());
 
-		Desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-		Desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-		Desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		LinearDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		LinearDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		LinearDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 
-		Device->CreateSamplerState(&Desc, SamplerStates[(uint8)ESamplerState::LinearWrap].GetAddressOf());
+		Device->CreateSamplerState(&LinearDesc, SamplerStates[(uint8)ESamplerState::LinearWrap].GetAddressOf());
+
+		D3D11_SAMPLER_DESC PointDesc = {};
+		PointDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+		PointDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		PointDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		PointDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		PointDesc.MaxAnisotropy = 1;
+		PointDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		PointDesc.MinLOD = 0.0f;
+		PointDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+		Device->CreateSamplerState(&PointDesc, SamplerStates[(uint8)ESamplerState::PointClamp].GetAddressOf());
 	}
 }

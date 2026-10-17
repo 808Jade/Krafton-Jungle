@@ -71,3 +71,9 @@ bool FSceneLightResources::UploadViewLights(const TArray<FLightRenderParameters>
 {
 	return UploadStructured(SceneLightBuffer, Lights.GetData(), Lights.Num(), sizeof(FLightRenderParameters));
 }
+
+bool FSceneLightResources::UploadLightShadows(const TArray<FLightShadowRenderData>& Shadows)
+{
+	return UploadStructured(SceneLightShadowBuffer, Shadows.GetData(), Shadows.Num(), sizeof(FLightShadowRenderData));
+}
+

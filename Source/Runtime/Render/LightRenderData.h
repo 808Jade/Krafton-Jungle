@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Math/Vector4.h"
+#include "Math/Rect.h"
 #include "Core/EngineString.h"
 #include "Engine/SceneManagement.h"
 
@@ -26,7 +27,17 @@ struct FForwardLightingConstants
 	FVector4 CameraPosition;
 	uint32 LightCounts[4];  // x: 포인트 개수, y: 스포트 개수, z: 방향광 개수, w: 렉트 개수
 	uint32 LightOffsets[4]; // 공유 조명 버퍼에서 각 종류가 시작되는 위치, 순서는 위와 같음
+	uint32 LightShadowOffsets[4]; // 공유 그림자 버퍼에서 각 종류가 시작되는 위치
 	FVector4 SkyColorIntensity;
+	uint32 ShadowAtlasWidth;
+	uint32 ShadowAtlasHeight;
+	uint32 Padding[2];
+};
+
+struct FLightShadowRenderData
+{
+	FMatrix ViewProjection;
+	FRect AtlasRect;
 };
 
 static_assert(sizeof(FVector4) == 16);
@@ -34,5 +45,8 @@ static_assert(sizeof(FAmbientLightRenderData) == 16);
 static_assert(offsetof(FForwardLightingConstants, CameraPosition) == 16);
 static_assert(offsetof(FForwardLightingConstants, LightCounts) == 32);
 static_assert(offsetof(FForwardLightingConstants, LightOffsets) == 48);
-static_assert(offsetof(FForwardLightingConstants, SkyColorIntensity) == 64);
-static_assert(sizeof(FForwardLightingConstants) == 80);
+static_assert(offsetof(FForwardLightingConstants, LightShadowOffsets) == 64);
+static_assert(offsetof(FForwardLightingConstants, SkyColorIntensity) == 80);
+static_assert(offsetof(FForwardLightingConstants, ShadowAtlasWidth) == 96);
+static_assert(offsetof(FForwardLightingConstants, ShadowAtlasHeight) == 100);
+static_assert(sizeof(FForwardLightingConstants) == 112);

@@ -6,6 +6,7 @@
 #include "Engine/LightSceneProxy.h"
 #include "Render/LightRenderData.h"
 #include "Render/SceneLightResources.h"
+#include "Math/Matrix.h"
 #include <algorithm>
 #include <iterator>
 #include <vector>
@@ -63,8 +64,8 @@ struct FSceneRenderData
 	uint32 LightParameterOffsets[4]; // 라이트 리스트 내 구간의 offset
 	uint32 LightParameterCounts[4]; // 라이트 리스트 내 구간의 count
 
-	TArray<FRect> SceneLightShadowMapAreas; // 셰도우 아틀라스 내 라이트 텍스쳐 크기
-	uint32 LightShadowMapOffsets[4];
+	TArray<FLightShadowRenderData> LightShadows;
+	uint32 LightShadowOffsets[4];
 
 	void ResetScene()
 	{
@@ -88,7 +89,7 @@ struct FSceneRenderData
 		SkyLight = {};
 		bHasSkyLight = false;
 		VisibleLights.Reset();
-		SceneLightShadowMapAreas.Reset();
+		LightShadows.Reset();
 		std::memset(LightParameterOffsets, 0, sizeof(LightParameterOffsets));
 		std::memset(LightParameterCounts, 0, sizeof(LightParameterCounts));
 
@@ -153,11 +154,11 @@ struct FSceneRenderData
 			LightParameterOffsets[Slot] = Offset;
 			LightParameterCounts[Slot] = Count;
 
-			// Light 아틀라스 영역 지정
+			// Light의 View, Projection 아틀라스 영역의 데이터를 저장한다.
 			struct FAreaInfo
 			{
 				uint32 Size;
-				uint32 RenctIndex;
+				uint32 Index;
 			};
 
 			TArray<FAreaInfo> AreaInfos;
@@ -166,34 +167,77 @@ struct FSceneRenderData
 			uint32 MaxAreaSize = 0;
 			uint32 ShadowMapOffset = 0;
 
-			LightShadowMapOffsets[FSceneRenderData::PointLightSlotIndex] = ShadowMapOffset;
+			LightShadowOffsets[FSceneRenderData::PointLightSlotIndex] = ShadowMapOffset;
 			for (int32 i = 0; i < GetPointLightCount(); i++)
 			{
+				int32 LightIndex = GetPointLightOffset() + i;
+
+				const FLightRenderParameters& PointLight = VisibleLights[LightIndex];
+
+				FMatrix PerspectiveMatrix = Perspective(FMath::DegreesToRadians(90.f), 1.0, 0.1f, PointLight.Radius);
+				FMatrix Views[] = {
+					LookAt(PointLight.Position, PointLight.Position + ForwardVector, UpVector),
+					LookAt(PointLight.Position, PointLight.Position + BackwardVector, UpVector),
+					LookAt(PointLight.Position, PointLight.Position + UpVector, BackwardVector),
+					LookAt(PointLight.Position, PointLight.Position + DownVector, ForwardVector),
+					LookAt(PointLight.Position, PointLight.Position + RightVector, UpVector),
+					LookAt(PointLight.Position, PointLight.Position + LeftVector, UpVector),
+				};
+
 				for (int32 j = 0; j < 6; j++)
 				{
-					uint32 RectIndex = SceneLightShadowMapAreas.Emplace();
-					AreaInfos.Add({ PointLightShadowMapSize, RectIndex });
+					FLightShadowRenderData Shadow{};
+					Shadow.ViewProjection = Views[j] * PerspectiveMatrix;
+					
+					uint32 Index = LightShadows.Add(Shadow);
+
+					AreaInfos.Add({ PointLightShadowMapSize, Index });
+
 					TotalAreaSize += PointLightShadowMapSize * PointLightShadowMapSize;
 					MaxAreaSize = FMath::Max(MaxAreaSize, PointLightShadowMapSize);
 					ShadowMapOffset++;
 				}
 			}
 
-			LightShadowMapOffsets[FSceneRenderData::SpotLightSlotIndex] = ShadowMapOffset;
+			LightShadowOffsets[FSceneRenderData::SpotLightSlotIndex] = ShadowMapOffset;
 			for (int32 i = 0; i < GetSpotLightCount(); i++)
 			{
-				uint32 RectIndex = SceneLightShadowMapAreas.Emplace();
-				AreaInfos.Add({ SpotLightShadowMapSize, RectIndex });
+				int32 LightIndex = GetSpotLightOffset() + i;
+
+				const FLightRenderParameters& SpotLight = VisibleLights[LightIndex];
+
+				FMatrix ViewMatrix = LookAt(SpotLight.Position, SpotLight.Position + SpotLight.Direction, UpVector);
+				FMatrix ProjectionMatrix = Perspective(std::acos(SpotLight.OuterConeCos) * 2.0f, 1.0, 0.1f, SpotLight.Radius);
+
+				FLightShadowRenderData Shadow{};
+				Shadow.ViewProjection = ViewMatrix * ProjectionMatrix;
+				
+				uint32 Index = LightShadows.Add(Shadow);
+
+				AreaInfos.Add({ SpotLightShadowMapSize, Index });
+
 				TotalAreaSize += SpotLightShadowMapSize * SpotLightShadowMapSize;
 				MaxAreaSize = FMath::Max(MaxAreaSize, SpotLightShadowMapSize);
 				ShadowMapOffset++;
 			}
 
-			LightShadowMapOffsets[FSceneRenderData::DirectionalLightSlotIndex] = ShadowMapOffset;
+			LightShadowOffsets[FSceneRenderData::DirectionalLightSlotIndex] = ShadowMapOffset;
 			for (int32 i = 0; i < GetDirectionalLightCount(); i++)
 			{
-				uint32 RectIndex = SceneLightShadowMapAreas.Emplace();
-				AreaInfos.Add({ DirectionalLightShadowMapSize, RectIndex });
+				int32 LightIndex = GetDirectionalLightOffset() + i;
+
+				const FLightRenderParameters& DirectionalLight = VisibleLights[LightIndex];
+
+				FMatrix ViewMatrix = LookAt(DirectionalLight.Position, DirectionalLight.Position + DirectionalLight.Direction, FVector(0, 0, 1));
+				FMatrix ProjectionMatrix = Ortho(20, 1.0f, 0.1f, 1000.f);
+
+				FLightShadowRenderData Shadow{};
+				Shadow.ViewProjection = ViewMatrix * ProjectionMatrix;
+
+				uint32 Index = LightShadows.Add(Shadow);
+
+				AreaInfos.Add({ DirectionalLightShadowMapSize, Index });
+
 				TotalAreaSize += DirectionalLightShadowMapSize * DirectionalLightShadowMapSize;
 				MaxAreaSize = FMath::Max(MaxAreaSize, DirectionalLightShadowMapSize);
 				ShadowMapOffset++;
@@ -218,11 +262,12 @@ struct FSceneRenderData
 					MaxHeightInLine = 0;
 				}
 
-				FRect& Area = SceneLightShadowMapAreas[AreaInfo.RenctIndex];
-				Area.X = AtlasCursorX;
-				Area.Y = AtlasCursorY;
-				Area.Width = AreaInfo.Size;
-				Area.Height = AreaInfo.Size;
+				FLightShadowRenderData& RenderData = LightShadows[AreaInfo.Index];
+
+				RenderData.AtlasRect.X = AtlasCursorX;
+				RenderData.AtlasRect.Y = AtlasCursorY;
+				RenderData.AtlasRect.Width = AreaInfo.Size;
+				RenderData.AtlasRect.Height = AreaInfo.Size;
 
 				AtlasCursorX += AreaInfo.Size;
 
@@ -236,28 +281,29 @@ struct FSceneRenderData
 		bLightUpaloadSucceeded = ViewLightResources.Init();
 		if (bLightUpaloadSucceeded)
 		{
-			bLightUpaloadSucceeded = ViewLightResources.UploadViewLights(VisibleLights);
+			bLightUpaloadSucceeded &= ViewLightResources.UploadViewLights(VisibleLights);
 			if (SuitableWidth != 0 && SuitableHeight != 0)
 			{
 				ViewLightResources.CreateShadowAtlasIfNeed(SuitableWidth, SuitableHeight);
 			}
+			bLightUpaloadSucceeded &= ViewLightResources.UploadLightShadows(LightShadows);
 		}
 	}
 
 	inline bool HasDirectionalLight() { return LightParameterCounts[DirectionalLightSlotIndex]; }
 	inline uint32 GetDirectionalLightOffset() { return LightParameterOffsets[DirectionalLightSlotIndex]; }
 	inline uint32 GetDirectionalLightCount() { return LightParameterCounts[DirectionalLightSlotIndex]; }
-	inline uint32 GetDirectionalLightShadowOffset() { return LightShadowMapOffsets[DirectionalLightSlotIndex]; }
+	inline uint32 GetDirectionalLightInfoOffset() { return LightShadowOffsets[DirectionalLightSlotIndex]; }
 	
 	inline bool HasPointLights() { return LightParameterCounts[PointLightSlotIndex]; }
 	inline uint32 GetPointLightOffset() { return LightParameterOffsets[PointLightSlotIndex]; }
 	inline uint32 GetPointLightCount() { return LightParameterCounts[PointLightSlotIndex]; }
-	inline uint32 GetPointLightShadowOffset() { return LightShadowMapOffsets[PointLightSlotIndex]; }
+	inline uint32 GetPointLightShadowOffset() { return LightShadowOffsets[PointLightSlotIndex]; }
 
 	inline bool HasSpotLights() { return LightParameterCounts[SpotLightSlotIndex]; }
 	inline uint32 GetSpotLightOffset() { return LightParameterOffsets[SpotLightSlotIndex]; }
 	inline uint32 GetSpotLightCount() { return LightParameterCounts[SpotLightSlotIndex]; }
-	inline uint32 GetSpotLightShadowOffset() { return LightShadowMapOffsets[SpotLightSlotIndex]; }
+	inline uint32 GetSpotLightInfoOffset() { return LightShadowOffsets[SpotLightSlotIndex]; }
 
 	inline bool HasRectLights() { return LightParameterCounts[RectLightSlotIndex]; }
 	inline bool HasLights() { return HasDirectionalLight() || HasPointLights() || HasSpotLights() || HasRectLights(); }
