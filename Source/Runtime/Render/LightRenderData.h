@@ -8,7 +8,7 @@
 #include <cstddef>
 
 // CPU의 그림자 그리기와 GPU 업로드에서 공유하는 데이터.
-struct FShadowParameters
+struct FShadowParameters 
 {
 	FMatrix LightVP = FMatrix::Identity;
 	FRect AtlasRect{}; // 픽셀 단위 위치와 크기
@@ -16,10 +16,10 @@ struct FShadowParameters
 	uint32 Padding[3]{};
 };
 
-struct FLightShadowRange
+struct FLightShadowRange // point light 때문에 생긴 구조체
 {
-	uint32 StartIndex = 0;
-	uint32 ViewCount = 0;
+	uint32 StartIndex = 0; 
+	uint32 ViewCount = 0; 
 };
 
 struct FShadowConstants

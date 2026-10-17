@@ -26,6 +26,7 @@ struct FEditorSettings
 
 	// Values
 	float SceneDepthMaxRange = 50.0f;
+	float ShadowDepthBias = 0.0001f;
 	float CameraSpeed = 1.0f;
 	float MouseSensitivity = 1.0f;
 	int32 GridSpacing = 1;

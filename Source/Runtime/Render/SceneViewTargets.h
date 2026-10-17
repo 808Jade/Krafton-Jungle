@@ -10,18 +10,29 @@ struct FSceneViewTargets
 {
 	TUniquePtr<FTexture2D> SceneColor;
 	TUniquePtr<FTexture2D> Depth;
-	static constexpr uint32 ShadowAtlasSize = 2048;
+	static constexpr uint32 ShadowAtlasSize = 4096;
 	TArray<TUniquePtr<FTexture2D>> ShadowAtlases;
+
+	// 추가되는 atlas는 이전 atlas의 가로/세로 두 배 크기를 사용한다.
+	static uint32 GetShadowAtlasSize(uint32 AtlasIndex)
+	{
+		uint32 Size = ShadowAtlasSize;
+		for (uint32 Index = 0; Index < AtlasIndex; ++Index)
+		{
+			if (Size > D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION / 2) return 0;
+			Size *= 2;
+		}
+		return Size;
+	}
 
 	// 이미 확보한 atlas는 유지하고 필요한 개수까지 추가한다.
 	bool InitShadowAtlases(uint32 RequiredCount)
 	{
+		if (RequiredCount && !GetShadowAtlasSize(RequiredCount - 1)) return false;
 		if (static_cast<uint32>(ShadowAtlases.Num()) >= RequiredCount)
 			return true;
 
 		D3D11_TEXTURE2D_DESC Desc{};
-		Desc.Width = ShadowAtlasSize;
-		Desc.Height = ShadowAtlasSize;
 		Desc.MipLevels = 1;
 		Desc.ArraySize = 1;
 		Desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
@@ -30,6 +41,8 @@ struct FSceneViewTargets
 		Desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 		while (static_cast<uint32>(ShadowAtlases.Num()) < RequiredCount)
 		{
+			Desc.Width = GetShadowAtlasSize(static_cast<uint32>(ShadowAtlases.Num()));
+			Desc.Height = Desc.Width;
 			auto Atlas = RenderCommand::CreateTexture2D(Desc);
 			if (!Atlas || !Atlas->GetRawPtr() || !Atlas->GetDSV() || !Atlas->GetSRV())
 				return false;
@@ -75,7 +88,7 @@ struct FSceneViewTargets
 		if (IsValidFor(Width, Height))
 			return true;
 
-		// 뷰포트 크기가 바뀌어도 고정 크기 shadow atlas는 유지한다.
+		// 뷰포트 크기가 바뀌어도 확보한 shadow atlas는 유지한다.
 		SceneColor.reset();
 		Depth.reset();
 		if (Width == 0 || Height == 0)

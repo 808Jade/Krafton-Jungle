@@ -31,14 +31,19 @@ public:
 		uint32 (&Counts)[4], uint32 (&Offsets)[4]);
 	// Atlas 배정 후 CPU 업로드 목록만 구성한다. GPU 업로드는 하지 않는다.
 	bool BuildViewShadowParameters(const TArray<FShadowDrawPass>& Passes);
-	bool UploadViewShadows(bool bEnabled, uint32 AtlasCount);
-	void BindDeferredShadows(FRenderer* Renderer) const;
+	bool UploadViewShadows(bool bEnabled, uint32 AtlasCount, float DepthBias);
+
 	const TArray<FShadowParameters>& GetShadowParameters() const { return ShadowParameters; }
 	const TArray<FLightShadowRange>& GetLightShadowRanges() const { return LightShadowRanges; }
 
-	FStructuredBuffer* GetSceneLights() const { return SceneLightBuffer.get(); }
+	FStructuredBuffer* GetSceneLightBuffer() const { return SceneLightBuffer.get(); }
 	FConstantBuffer* GetForwardConstants() const { return ForwardLightCB.get(); }
 	FConstantBuffer* GetDeferredConstants() const { return DeferredLightCB.get(); }
+	FConstantBuffer* GetShadowConstants() const { return ShadowCB.get(); }
+	FStructuredBuffer* GetShadowParameterBuffer() const { return bShadowsUploaded == true ? ShadowParameterBuffer.get() : nullptr ; }
+	FStructuredBuffer* GetShadowRangeBuffer() const { return bShadowsUploaded == true ? LightShadowRangeBuffer.get() : nullptr ; }
+
+
 	FForwardLightTileGrid& GetTiles() { return ForwardTileGrid; }
 
 private:

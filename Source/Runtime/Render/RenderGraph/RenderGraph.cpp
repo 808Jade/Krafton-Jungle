@@ -199,6 +199,14 @@ bool FRenderGraphBuilder::ValidatePass(const FRenderGraphRasterPassDesc& Desc,
 			OutWidth = TexWidth;
 			OutHeight = TexHeight;
 		}
+		// 색상 출력 없이 DSV를 전환하는 패스는 깊이 텍스처 크기가 달라도 된다.
+		// 기본 viewport가 어느 출력에서도 벗어나지 않도록 최소 크기를 사용한다.
+		if (bDepth && Desc.ColorAttachments.empty())
+		{
+			OutWidth = std::min(OutWidth, TexWidth);
+			OutHeight = std::min(OutHeight, TexHeight);
+			return TexWidth > 0 && TexHeight > 0;
+		}
 		return TexWidth == OutWidth && TexHeight == OutHeight;
 	};
 	OutWidth = Desc.Width;

@@ -44,6 +44,9 @@ void FSettingsPanel::OnRender()
 	ImGui::TextDisabled("Fill mode is configured per viewport.");
 	ImGui::Checkbox("Draw Primitives", &Settings.bDrawPrimitives);
 	ImGui::Checkbox("Show Shadow", &Settings.bShowShadow);
+	ImGui::SetNextItemWidth(200.0f);
+	ImGui::DragFloat("Shadow Depth Bias", &Settings.ShadowDepthBias, 0.00001f,
+		0.0f, 0.01f, "%.6f", ImGuiSliderFlags_AlwaysClamp);
 	ImGui::Checkbox("Draw Bounding Box", &Settings.bDrawBoundingBox);
 	ImGui::Checkbox("Show Object UUID", &Settings.bShowUUID);
 	const char* RenderingPaths[] = { "Forward", "Deferred" };
@@ -156,6 +159,7 @@ bool FSettingsPanel::SaveSettings() const
 	File << "Wireframe=" << Settings.bWireframe << "\n";
 	File << "DrawPrimitives=" << Settings.bDrawPrimitives << "\n";
 	File << "ShowShadow=" << Settings.bShowShadow << "\n";
+	File << "ShadowDepthBias=" << Settings.ShadowDepthBias << "\n";
 	File << "DrawBoundingBox=" << Settings.bDrawBoundingBox << "\n";
 	File << "ShowUUID=" << Settings.bShowUUID << "\n";
 	File << "DrawBatchLine=" << Settings.bDrawBatchLine << "\n";
@@ -287,6 +291,7 @@ bool FSettingsPanel::LoadSettings()
                 if (Key == "Wireframe") Settings.bWireframe = std::stoi(ValueStr);
 				else if (Key == "DrawPrimitives") Settings.bDrawPrimitives = std::stoi(ValueStr);
 				else if (Key == "ShowShadow") Settings.bShowShadow = std::stoi(ValueStr);
+				else if (Key == "ShadowDepthBias") Settings.ShadowDepthBias = std::stof(ValueStr);
 				else if (Key == "DrawBoundingBox") Settings.bDrawBoundingBox = std::stoi(ValueStr);
 				else if (Key == "ShowUUID") Settings.bShowUUID = std::stoi(ValueStr);
 				else if (Key == "DrawBatchLine") Settings.bDrawBatchLine = std::stoi(ValueStr);
@@ -334,6 +339,8 @@ bool FSettingsPanel::LoadSettings()
 	if (!std::isfinite(Settings.SceneDepthMaxRange))
 		Settings.SceneDepthMaxRange = 50.0f;
 	Settings.SceneDepthMaxRange = FMath::Clamp(Settings.SceneDepthMaxRange, 0.1f, 10000.0f);
+	if (!std::isfinite(Settings.ShadowDepthBias)) Settings.ShadowDepthBias = 0.0001f;
+	Settings.ShadowDepthBias = FMath::Clamp(Settings.ShadowDepthBias, 0.0f, 0.01f);
 	for (int32 Index = 0; Index < 4; ++Index)
 	{
 		Settings.bViewLocationSaved[Index] = LocationComponentMasks[Index] == 0x7;

@@ -105,7 +105,7 @@ uint GetPointShadowFace(float3 Direction)
 }
 
 float GetShadowVisibility(uint LightIndex,
-    FLightRenderParameters Light, float3 WorldPosition)
+    FLightRenderParameters Light, float3 WorldPosition, float3 WorldNormal)
 {
     if (ShadowsEnabled == 0) return 1.0f;
 
@@ -114,7 +114,7 @@ float GetShadowVisibility(uint LightIndex,
 
     uint FaceIndex = 0;
     if (Light.Type == LIGHT_TYPE_POINT)
-        FaceIndex = GetPointShadowFace(WorldPosition - Light.Position);
+        FaceIndex = GetPointShadowFace(WorldPosition - Light.Position); // point light 중 어떤 face 사용할건지
     if (FaceIndex >= Range.ViewCount) return 1.0f;
 
     FShadowParameters Shadow = ShadowParameters[Range.StartIndex + FaceIndex];
@@ -128,9 +128,12 @@ float GetShadowVisibility(uint LightIndex,
     if (any(UV < 0.0f) || any(UV >= 1.0f) || NDC.z < 0.0f || NDC.z > 1.0f)
         return 1.0f;
 
-    int2 AtlasPixel = int2(Shadow.AtlasRect.xy + UV * Shadow.AtlasRect.zw);
+    int2 AtlasPixel = int2(Shadow.AtlasRect.xy + UV * Shadow.AtlasRect.zw); // 조명 영역 안의 UV를 atlas 전체 픽셀 좌표로 변환
     float StoredDepth = LoadShadowDepth(Shadow.AtlasIndex, AtlasPixel);
-    return NDC.z - ShadowDepthBias <= StoredDepth ? 1.0f : 0.0f;
+    float Bias = ShadowDepthBias;
+    if (Light.Type == LIGHT_TYPE_DIRECTIONAL)
+        Bias *= 1.0f + 10.0f * (1.0f - saturate(dot(WorldNormal, -normalize(Light.Direction))));
+    return NDC.z - Bias <= StoredDepth ? 1.0f : 0.0f;
 }
 
 float4 mainPS(FPSInput Input) : SV_Target
@@ -167,7 +170,7 @@ float4 mainPS(FPSInput Input) : SV_Target
         if (Light.Intensity <= 0.0f) continue;
         float3 LightDir = normalize(Light.Direction);
         float3 LightColor = Light.Color * Light.Intensity;
-        float Visibility = GetShadowVisibility(LightIndex, Light, WorldPosition);
+        float Visibility = GetShadowVisibility(LightIndex, Light, WorldPosition, N);
         BaseLighting += LightColor * saturate(dot(N, -LightDir)) * Visibility;
     }
 
@@ -202,7 +205,7 @@ float4 mainPS(FPSInput Input) : SV_Target
         float Attenuation = pow(saturate(1.0 - x), max(Light.FalloffExponent, 0.0f));
 
         float3 Radiance = Light.Color * max(Light.Intensity, 0.0f) * Attenuation;
-        Radiance *= GetShadowVisibility(LightIndex, Light, WorldPosition);
+        Radiance *= GetShadowVisibility(LightIndex, Light, WorldPosition, N);
         AccumulateLocalLight(LocalDiffuse, LocalSpecular,
             Albedo, Metallic, Roughness, N, V, L, Radiance);
 
@@ -228,7 +231,7 @@ float4 mainPS(FPSInput Input) : SV_Target
 		float RadiusFade = DistanceFactor * DistanceFactor;
 		float3 Radiance = Light.Color * max(Light.Intensity, 0.0f)
 			* ConeFade * RadiusFade;
-        Radiance *= GetShadowVisibility(LightIndex, Light, WorldPosition);
+        Radiance *= GetShadowVisibility(LightIndex, Light, WorldPosition, N);
         AccumulateLocalLight(LocalDiffuse, LocalSpecular,
             Albedo, Metallic, Roughness, N, V, L, Radiance);
     }
@@ -286,7 +289,7 @@ float4 mainPS(FPSInput Input) : SV_Target
         }
 
         float3 Radiance = Color * max(Intensity, 0.0f) * Attenuation * FrontFace * BarnDoorMask;
-        Radiance *= GetShadowVisibility(LightIndex, Light, WorldPosition);
+        Radiance *= GetShadowVisibility(LightIndex, Light, WorldPosition, N);
         AccumulateLocalLight(LocalDiffuse, LocalSpecular,
             Albedo, Metallic, Roughness, N, V, L, Radiance);
     }

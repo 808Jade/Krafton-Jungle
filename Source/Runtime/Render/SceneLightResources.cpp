@@ -5,6 +5,7 @@
 #include "Render/Renderer.h"
 #include "Components/LightComponentBase.h"
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 namespace
@@ -55,7 +56,7 @@ bool FSceneLightResources::Init()
 }
 
 bool FSceneLightResources::UploadViewLights(const TArray<FLightRenderParameters>& Lights,
-	uint32 (&Counts)[4], uint32 (&Offsets)[4])
+	uint32 (&Counts)[4], uint32 (&Offsets)[4]) 
 {
 	// ELightType 순서(방향광, 포인트, 스포트, 렉트)가 곧 버퍼 안의 구간 순서다.
 	constexpr uint32 TypeCount = 4;
@@ -100,7 +101,7 @@ bool FSceneLightResources::UploadViewLights(const TArray<FLightRenderParameters>
 		Packed[PackedIndex] = Light;
 		PackedLightIndices[Index] = PackedIndex;
 	}
-	return UploadStructured(SceneLightBuffer, Packed.GetData(), Total, sizeof(FLightRenderParameters));
+	return UploadStructured(SceneLightBuffer, Packed.GetData(), Total, sizeof(FLightRenderParameters)); // Structured buffer 올리기
 }
 
 bool FSceneLightResources::BuildViewShadowParameters(const TArray<FShadowDrawPass>& Passes)
@@ -130,11 +131,12 @@ bool FSceneLightResources::BuildViewShadowParameters(const TArray<FShadowDrawPas
 	return true;
 }
 
-bool FSceneLightResources::UploadViewShadows(bool bEnabled, uint32 AtlasCount)
+bool FSceneLightResources::UploadViewShadows(bool bEnabled, uint32 AtlasCount, float DepthBias)
 {
 	if (!bInitialized) return false;
 	bShadowsUploaded = false;
 	FShadowConstants Constants{};
+	Constants.ShadowDepthBias = std::isfinite(DepthBias) ? std::clamp(DepthBias, 0.0f, 0.01f) : 0.0001f;
 	// 비활성 프레임과 업로드 실패 시에도 이전 프레임의 활성 상태가 남지 않는다.
 	RenderCommand::UpdateBufferData(ShadowCB.get(), &Constants, sizeof(Constants));
 	if (!bEnabled || ShadowParameters.IsEmpty()) return true;
@@ -158,9 +160,3 @@ bool FSceneLightResources::UploadViewShadows(bool bEnabled, uint32 AtlasCount)
 	return true;
 }
 
-void FSceneLightResources::BindDeferredShadows(FRenderer* Renderer) const
-{
-	Renderer->BindStructured(5, bShadowsUploaded ? ShadowParameterBuffer.get() : nullptr, EShaderBindFlagBits::Pixel);
-	Renderer->BindStructured(6, bShadowsUploaded ? LightShadowRangeBuffer.get() : nullptr, EShaderBindFlagBits::Pixel);
-	Renderer->BindConstant(1, ShadowCB.get(), EShaderBindFlagBits::Pixel);
-}

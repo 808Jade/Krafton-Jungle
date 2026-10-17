@@ -7,6 +7,7 @@
 #include "Engine/PrimitiveSceneProxy.h"
 #include "Core/EngineTimer.h"
 #include "Engine/Scene.h"
+#include "Components/StaticMeshComponent.h"
 #include <algorithm>
 #include <cstring>
 #include <cmath>
@@ -48,15 +49,31 @@ namespace
 	bool GetCameraFrustumBounds(const FSceneView& CameraView, const FMatrix& LightView,
 		FVector& Min, FVector& Max)
 	{
+		// 방향광의 단일 shadow map은 카메라 전체 가시거리보다 가까운 영역에 맞춘다.
+		constexpr float ShadowDistance = 50.0f;
+		if (!std::isfinite(CameraView.NearClip) || !std::isfinite(CameraView.FarClip) ||
+			CameraView.FarClip <= CameraView.NearClip) return false;
+		const float FarFraction = std::min(ShadowDistance / (CameraView.FarClip - CameraView.NearClip), 1.0f);
 		const FMatrix InverseVP = CameraView.ViewProjectionMatrix.Inverse();
 		for (uint32 Index = 0; Index < 8; ++Index)
 		{
+			const float X = (Index & 1) ? 1.0f : -1.0f;
+			const float Y = (Index & 2) ? 1.0f : -1.0f;
 			const FVector4 Corner = FVector4(
-				(Index & 1) ? 1.0f : -1.0f, (Index & 2) ? 1.0f : -1.0f,
+				X, Y,
 				(Index & 4) ? 1.0f : 0.0f, 1.0f) * InverseVP;
 			if (!std::isfinite(Corner.W) || std::abs(Corner.W) < 1.0e-8f) return false;
+			FVector WorldCorner(Corner.X / Corner.W, Corner.Y / Corner.W, Corner.Z / Corner.W);
+			if (Index & 4)
+			{
+				const FVector4 NearCorner = FVector4(X, Y, 0.0f, 1.0f) * InverseVP;
+				if (!std::isfinite(NearCorner.W) || std::abs(NearCorner.W) < 1.0e-8f) return false;
+				const FVector NearWorld(NearCorner.X / NearCorner.W,
+					NearCorner.Y / NearCorner.W, NearCorner.Z / NearCorner.W);
+				WorldCorner = NearWorld + (WorldCorner - NearWorld) * FarFraction;
+			}
 			const FVector4 LightCorner = FVector4(
-				Corner.X / Corner.W, Corner.Y / Corner.W, Corner.Z / Corner.W, 1.0f) * LightView;
+				WorldCorner.X, WorldCorner.Y, WorldCorner.Z, 1.0f) * LightView;
 			if (!std::isfinite(LightCorner.X) || !std::isfinite(LightCorner.Y) ||
 				!std::isfinite(LightCorner.Z)) return false;
 			const FVector Point(LightCorner.X, LightCorner.Y, LightCorner.Z);
@@ -256,6 +273,9 @@ namespace
 		for (FPrimitiveSceneProxy* Proxy : ShadowMeshes)
 		{
 			if (!Proxy || !Proxy->GetRenderState()) continue;
+			// 조명 방향 화살표 등 에디터 표시용 메시는 그림자를 만들지 않는다.
+			const auto* MeshComponent = Cast<UStaticMeshComponent>(Proxy->GetComponent());
+			if (MeshComponent && MeshComponent->IsEditorIcon()) continue;
 
 			UStaticMesh* Mesh = Proxy->GetMesh();
 			if (!Mesh || Proxy->GetLODCount() == 0) continue;
@@ -328,7 +348,7 @@ bool FMeshPassProcessor::Build(const FSceneView& CameraView, FScene& Scene,
 			Type != ELightType::Rect) continue;
 		if (!bDirectional && (!std::isfinite(Light.Radius) || Light.Radius <= 0.0f)) continue;
 
-		const uint32 Resolution = bDirectional ? 1024 : GetShadowResolution(CameraView.ViewLocation, Light.Position); // 카메라와 광원 위치에 따른 texture 해상도 결정
+		const uint32 Resolution = bDirectional ? 2048 : GetShadowResolution(CameraView.ViewLocation, Light.Position); // 카메라와 광원 위치에 따른 texture 해상도 결정
 		const uint32 FaceCount = Type == ELightType::Point ? 6u : 1u; // 포인트 라이트면 6개
 
 		for (uint32 FaceIndex = 0; FaceIndex < FaceCount; ++FaceIndex)
@@ -356,6 +376,7 @@ bool FMeshPassProcessor::Build(const FSceneView& CameraView, FScene& Scene,
 				FVector Min, Max;
 
 				if (!GetCameraFrustumBounds(CameraView, LightView, Min, Max)) return false; // 카메라 frustum 꼭짓점 가지고 AABB 만들기
+				Min.X -= 20.0f; // 카메라 밖에서 가시 영역으로 그림자를 드리우는 물체의 공간
 
 				const float Width = std::max(Max.Y - Min.Y, 0.01f);
 				const float Height = std::max(Max.Z - Min.Z, 0.01f);
