@@ -69,6 +69,7 @@ bool FRenderer::Init()
 	bUsePerObjectSlots = RenderCommand::SupportsConstantBufferOffsets();
 	PerObjectCB = RenderCommand::CreateConstantBuffer(sizeof(FPerObjectConstants));
 	ViewCB = RenderCommand::CreateConstantBuffer(sizeof(FViewConstants));
+	ShadowViewCB = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
 	LightingCB = RenderCommand::CreateConstantBuffer(sizeof(FLightingConstants));
 	FLightingConstants LightingConstant{};
 	RenderCommand::UpdateBufferData(LightingCB.get(), &LightingConstant);
@@ -595,4 +596,76 @@ void FRenderer::EnsureTileLightCapacity(const FMatrix& ViewProjection, uint32 Wi
 	if (TileLightCulling.EnsureTileCapacity(Width, Height))
 		TileLightCulling.Dispatch(LocalLight, ViewProjection, Width, Height, bVisualizeLightCount);
 
+}
+
+void FRenderer::RenderShadowPass(const TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, int32 PreviewSlice)
+{
+	//이전 pass에서의 바인딩을 끊는다.
+	ShadowMapManager.UnbindForShading();
+	//준비
+	ShadowMapManager.UploadShadowInfos(ShadowInfos);
+
+	if (ShadowInfos.Num() > 0)
+	{
+		ID3D11DeviceContext* Context = RenderCommand::GetContext();
+
+		//공통 파이프라인 상태 (층마다 바뀌지 않음)
+		FShaderProgram* DepthShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/ShaderMap.hlsl");
+
+		//VS만 바인딩
+		Context->VSSetShader(DepthShader->VertexShader->GetShader(), nullptr, 0);
+		Context->IASetInputLayout(DepthShader->VertexShader->GetLayout());
+		Context->PSSetShader(nullptr, nullptr, 0);
+
+		RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
+		// Depth on, LESS, Write
+		RenderCommand::SetDepthStencilState(EDepthStencilState::Default);   
+		RenderCommand::SetBlendState(EBlendState::Opaque);
+
+		RenderCommand::BindConstantBuffer(0, ShadowViewCB.get(), EShaderBindFlagBits::Vertex);
+		RenderCommand::BindConstantBuffer(2, PerObjectCB.get(), EShaderBindFlagBits::Vertex);
+
+		//층(라이트)마다
+		for (uint32 Slice = 0; Slice < ShadowInfos.Num(); ++Slice)
+		{
+			//렌더 전 개별 바인딩
+			ShadowMapManager.BeginShadowRender(Slice);
+
+			//라이트마다의 VP 행렬 Map Unmap
+			RenderCommand::UpdateBufferData(ShadowViewCB.get(), &ShadowInfos[Slice].LightViewProjection, sizeof(FMatrix));
+
+			//오브젝트 프록시 순회하며 렌더
+			for (FPrimitiveSceneProxy* Proxy : Casters)
+			{
+				if (!Proxy || !Proxy->IsVisible() || !Proxy->GetMesh() || !Proxy->GetRenderState())
+					continue;
+
+				// b2
+				UpdatePerObjectConstants(Proxy->GetLocalToWorld(), Proxy->GetNormalMatrix());   
+				// LOD 0
+				RenderCommand::BindMesh(Proxy->GetMesh(), 0);
+
+				const FCachedMeshLOD& LOD = Proxy->GetLOD(0);
+				for (uint32 i = 0; i < LOD.NumSections; ++i)
+				{
+					const FCachedMeshSection& Section = Proxy->GetSection(LOD.FirstSection + i);
+					// 반투명은 Caster에서 제외
+					if (Section.Material && Section.Material->BlendState != EBlendState::Opaque)
+						continue;   
+					RenderCommand::DrawIndexed(Section.IndexCount, Section.StartIndex);
+				}
+			}
+		}
+		//DSV 해제
+		ShadowMapManager.EndShadowPass();
+		
+		//Preview 인덱스의 ShadowMap 서브 리소스를 복사해둔다.
+		if (PreviewSlice >= 0)
+		{
+			ShadowMapManager.UpdatePreview(static_cast<uint32>(PreviewSlice));
+		}
+	}
+	//Opaque에서 읽도록 SRV 바인딩
+	ShadowMapManager.BindForShading();
 }

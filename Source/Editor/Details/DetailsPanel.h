@@ -30,6 +30,7 @@ public:
 		TargetActor = InTargetActor;
 		TargetComponent = InTargetActor ? InTargetActor->GetRootComponent() : nullptr;
 	}
+	UActorComponent* GetTargetComponent() const { return TargetComponent; }
 	void SetTargetComponent(UActorComponent* InTargetComponent) { TargetComponent = InTargetComponent; }
 
 	void SetSelectionCallback(DetailsSelectionCallback InCallback) { Callback = InCallback; }
@@ -38,6 +39,9 @@ public:
 	void SetWorld(UWorld* InWorld) { World = InWorld; }
 
 	ImFont* GetCustomFont() { return CustomFont; }
+
+	//ShadowMap 세팅
+	void SetShadowPreviewGetter(std::function<ImTextureID()> InGetter) { ShadowPreviewGetter = std::move(InGetter); }
 
 private:
 	void DrawSceneComponentNode(USceneComponent* Component, USceneComponent* Root, UActorComponent*& OutSelectedComponent);
@@ -59,5 +63,8 @@ private:
 
 	USceneComponent* PendingDroppedComponent = nullptr;
 	USceneComponent* PendingDragComponent = nullptr;
+
+	//ShadowMap 프리뷰
+	std::function<ImTextureID()> ShadowPreviewGetter;
 };
 

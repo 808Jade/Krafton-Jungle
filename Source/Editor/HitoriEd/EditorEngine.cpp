@@ -34,6 +34,8 @@
 #include "Core/EngineLog.h"
 #include "Core/Stats/LightweightStats.h"
 
+#include "Engine/LightSceneProxy.h"
+
 namespace
 {
 	DECLARE_CYCLE_STAT("Viewport Update", STAT_ViewportUpdate);
@@ -124,6 +126,8 @@ bool UEditorEngine::Init()
 	EditorControlsPanel = EditorUI->AddEditorPanel<FEditorControlsPanel>();
 	ViewportsPanel = EditorUI->AddEditorPanel<FViewportsPanel>();
 	ContentDrawerPanel = EditorUI->AddEditorPanel<FContentDrawerPanel>();
+
+	
 
 	// OutLine
 	OutlineRenderer = MakeUnique<FOutlineRenderer>();
@@ -217,6 +221,9 @@ bool UEditorEngine::Init()
 	LineBatcher->Init(Renderer, GetActiveWorld());
 
 	DetailsPanel->SetWorld(GetActiveWorld());
+
+	//ShadowMap 프리뷰
+	DetailsPanel->SetShadowPreviewGetter([this]() { return (ImTextureID)Renderer->GetShadowPreviewSRV(); });
 
 	EditorControlsPanel->SetWorld(GetActiveWorld());
 	EditorControlsPanel->SetIsPlayingQuery([this]() { return IsPlaying(); });
@@ -909,9 +916,24 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 	FLightingConstants Lighting;
 	TArray<FPointLightInfo> PointLights;
 	TArray<FSpotLightInfo> SpotLights;
+	TArray<FShadowInfo> ShadowInfos;
 
 	ViewWorld.GetScene().BuildLightingConstants(Lighting);
-	ViewWorld.GetScene().BuildStructuredLight(PointLights, SpotLights);
+	ViewWorld.GetScene().BuildStructuredLightAndShadowData(PointLights, SpotLights, ShadowInfos);
+
+	//Imgui용 Preview Texture를 위해
+	int32 PreviewSlice = -1;
+	if (ULightComponent* SelectedLight = Cast<ULightComponent>(DetailsPanel->GetTargetComponent()))   
+	{
+		FLightSceneProxy* LightProxy = SelectedLight->GetSceneProxy();
+		// 뷰마다 다른 월드(Editor/PIE)를 그리므로, 선택 라이트가 이 뷰의 씬에 속할 때만
+		if (LightProxy && LightProxy->GetScene() == &ViewWorld.GetScene())
+			PreviewSlice = LightProxy->GetShadowIndex();
+	}
+
+	//Shadow Info StructuredBuffer, ShadowMap 만들기
+	Renderer->RenderShadowPass(ShadowInfos, ViewWorld.GetScene().Proxies, PreviewSlice);
+
 	Renderer->SetLighting(Lighting, PointLights, SpotLights);
 
 	// 1. 불투명·반투명 Pass (Linear 씬 컬러)

@@ -288,13 +288,17 @@ void FScene::MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy)
 	RenderStateDirtyProxies.Add(Proxy);
 }
 
-void FScene::BuildStructuredLight(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight) const
+void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FShadowInfo>& OutShadowInfo) const
 {
 	OutPointLight.Reset();
 	OutSpotLight.Reset();
+	OutShadowInfo.Reset();
 
 	for (FLightSceneProxy* Proxy : Lights)
 	{
+		// 안 보이거나 그림자가 없으면 -1로 남는다
+		Proxy->ShadowIndex = -1;
+
 		if (!Proxy->IsVisible())
 		{
 			continue;
@@ -302,15 +306,40 @@ void FScene::BuildStructuredLight(TArray<FPointLightInfo>& OutPointLight, TArray
 
 		switch (Proxy->GetLightType())
 		{
+			//Directional 타입을 어떻게 처리할 것인가???
+
 		case ELightType::Point:
-			OutPointLight.Add(static_cast<FPointLightSceneProxy*>(Proxy)->GetInfo());
+		{
+			//나중에 CastShadow가 생겨서 안그릴 거면 -1로 인덱스 넣기
+			//나중에 6개가 생기게된다. ShadowIndex가 첫칸이 될 거 같다.			
+
+			FPointLightSceneProxy* PointProxy = static_cast<FPointLightSceneProxy*>(Proxy);
+			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
+			FShadowInfo PointShadowInfo = PointProxy->GetShadowInfo();
+
+			PointLightInfo.ShadowIndex = OutShadowInfo.Add(PointShadowInfo);
+			Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
+			OutPointLight.Add(PointLightInfo);
 			break;
+		}			
 		case ELightType::Spot:
-			OutSpotLight.Add(static_cast<FSpotLightSceneProxy*>(Proxy)->GetInfo());
+		{
+			//나중에 CastShadow가 생겨서 안그릴 거면 -1로 인덱스 넣기
+
+			FSpotLightSceneProxy* SpotProxy = static_cast<FSpotLightSceneProxy*>(Proxy);
+			FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
+			FShadowInfo SpotShadowInfo = SpotProxy->GetShadowInfo();
+
+			SpotLightInfo.ShadowIndex = OutShadowInfo.Add(SpotShadowInfo);
+			Proxy->ShadowIndex = SpotLightInfo.ShadowIndex;
+			OutSpotLight.Add(SpotLightInfo);
 			break;
+		}			
 		default:
+		{
 			break;
 		}
+		}
 	}
-
 }
+

@@ -20,6 +20,7 @@ public:
 	float GetOuterConeAngle() const { return OuterConeAngle; }
 
 	FSpotLightInfo GetSpotLightInfo() const;
+	virtual FShadowInfo GetShadowInfo() const override;
 	virtual FLightSceneProxy* CreateSceneProxy() override;
 
 	virtual void PostEditChangeProperty(const FProperty& Property) override;

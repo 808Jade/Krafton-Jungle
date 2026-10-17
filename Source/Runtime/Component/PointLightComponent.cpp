@@ -20,6 +20,15 @@ FPointLightInfo UPointLightComponent::GetPointLightInfo() const
 	return Info;
 }
 
+FShadowInfo UPointLightComponent::GetShadowInfo() const
+{
+	FShadowInfo ShadowInfo;
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(false, AttenuationRadius, 90.f, 1.f);
+	ShadowInfo.Bias = GetShadowBias();
+	return ShadowInfo;
+}
+
+
 FLightSceneProxy* UPointLightComponent::CreateSceneProxy()
 {
 	return new FPointLightSceneProxy(this);

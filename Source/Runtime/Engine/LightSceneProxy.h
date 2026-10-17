@@ -24,6 +24,8 @@ public:
 	FScene* GetScene() const { return Scene; }
 	bool IsVisible() const { return bVisible; }
 
+	int32 GetShadowIndex() const { return ShadowIndex; }
+
 protected:
 	ULightComponentBase* Component = nullptr;
 	bool bVisible = true;
@@ -33,6 +35,8 @@ private:
 	FScene* Scene = nullptr;
 	ELightType Type;
 	bool bQueuedForUpdate = false;
+	// 이번 프레임 배정 결과. 매 프레임 Build에서 다시 쓴다
+	int32 ShadowIndex = -1;       
 };
 
 class FAmbientLightSceneProxy final : public FLightSceneProxy
@@ -63,12 +67,16 @@ public:
 		const UDirectionalLightComponent* Light = static_cast<const UDirectionalLightComponent*>(Component);
 		Info = Light->GetDirectionalLightInfo();
 		bVisible = Light->IsLightVisible();
+
+		ShadowInfo = Light->GetShadowInfo();
 	}
 
 	const FDirectionalLightInfo& GetInfo() const { return Info; }
+	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
 
 private:
 	FDirectionalLightInfo Info;
+	FShadowInfo ShadowInfo;
 };
 
 class FPointLightSceneProxy final : public FLightSceneProxy
@@ -81,12 +89,16 @@ public:
 		const UPointLightComponent* Light = static_cast<const UPointLightComponent*>(Component);
 		Info = Light->GetPointLightInfo();
 		bVisible = Light->IsLightVisible();
+
+		ShadowInfo = Light->GetShadowInfo();
 	}
 
 	const FPointLightInfo& GetInfo() const { return Info; }
+	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
 
 private:
 	FPointLightInfo Info;
+	FShadowInfo ShadowInfo;
 };
 
 class FSpotLightSceneProxy final : public FLightSceneProxy
@@ -99,10 +111,13 @@ public:
 		const USpotLightComponent* Light = static_cast<const USpotLightComponent*>(Component);
 		Info = Light->GetSpotLightInfo();
 		bVisible = Light->IsLightVisible();
+		ShadowInfo = Light->GetShadowInfo();
 	}
 
 	const FSpotLightInfo& GetInfo() const { return Info; }
+	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
 
 private:
 	FSpotLightInfo Info;
+	FShadowInfo ShadowInfo;
 };

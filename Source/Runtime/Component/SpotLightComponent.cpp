@@ -2,6 +2,7 @@
 #include "SpotLightComponent.h"
 #include "Engine/LightSceneProxy.h"
 #include "Render/LineBatcher.h"
+#include "Math/EngineMath.h"
 
 namespace
 {
@@ -65,6 +66,16 @@ FSpotLightInfo USpotLightComponent::GetSpotLightInfo() const
 	Info.CosOuterCone = std::cos(FMath::DegreesToRadians(OuterConeAngle));
 	Info.Direction = GetLightDirection();
 	return Info;
+}
+
+FShadowInfo USpotLightComponent::GetShadowInfo() const
+{
+	FShadowInfo ShadowInfo;
+	//FOV가 180도를 넘지 않도록, 최소 1도여서 2배하면 2도이상 ~ OuterAngle자체가 80도 막혀있음. 최대 160도
+	float FOV = FMath::Clamp<float>(OuterConeAngle * 2.f, 2.f, 160.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(false, AttenuationRadius, FOV, 1.f);
+	ShadowInfo.Bias = GetShadowBias();
+	return ShadowInfo;
 }
 
 FLightSceneProxy* USpotLightComponent::CreateSceneProxy()

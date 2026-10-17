@@ -18,6 +18,8 @@
 #include "GameFramework/Actor.h"
 #include "Core/EngineLog.h"
 #include <algorithm>
+#include "Component/LightComponent.h"
+#include "Engine/LightSceneProxy.h"
 
 
 namespace
@@ -1004,6 +1006,15 @@ void FDetailsPanel::OnRender()
 			if (UMeshComponent* MeshComponent = Cast<UMeshComponent>(TargetComponent))
 			{
 				DrawMaterialSlots(MeshComponent);
+			}
+			if (ULightComponent* Light = Cast<ULightComponent>(TargetComponent))
+			{
+				ImGui::SeparatorText("Shadow Map");
+				const FLightSceneProxy* LightProxy = Light->GetSceneProxy();
+				if (LightProxy && LightProxy->GetShadowIndex() >= 0 && ShadowPreviewGetter)
+					ImGui::Image(ShadowPreviewGetter(), { 256.0f, 256.0f });
+				else
+					ImGui::TextDisabled("No shadow map");
 			}
 			ImGui::PopID();
 
