@@ -102,7 +102,7 @@ FVector4 FVector4::Normalized()
 
 float& FVector4::Component(int32 index)
 {
-	assert(index >= 0 && index <= 2);
+	assert(index >= 0 && index <= 3);
 	if (index == 0) return X;
 	if (index == 1) return Y;
 	if (index == 2) return Z;
@@ -112,7 +112,7 @@ float& FVector4::Component(int32 index)
 
 float FVector4::Component(int32 index) const
 {
-	assert(index >= 0 && index <= 2);
+	assert(index >= 0 && index <= 3);
 	if (index == 0) return X;
 	if (index == 1) return Y;
 	if (index == 2) return Z;

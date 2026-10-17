@@ -60,7 +60,10 @@ struct FForwardLightingConstants
 	FVector4 SkyColorIntensity;
 	uint32 ShadowAtlasWidth;
 	uint32 ShadowAtlasHeight;
-	uint32 Padding[2];
+	uint32 DirectionalCascadeCount = 1;
+	uint32 Padding = 0;
+	FVector4 CameraForward;
+	FVector4 DirectionalCascadeFars[2]; // 8개의 cascade의 끝거리 값을 보관
 };
 
 struct FLightShadowRenderData
@@ -71,6 +74,7 @@ struct FLightShadowRenderData
 };
 
 static_assert(sizeof(FVector4) == 16);
+static_assert(sizeof(FLightShadowRenderData) == 84);
 static_assert(sizeof(FAmbientLightRenderData) == 16);
 static_assert(offsetof(FForwardLightingConstants, CameraPosition) == 16);
 static_assert(offsetof(FForwardLightingConstants, LightCounts) == 32);
@@ -79,4 +83,6 @@ static_assert(offsetof(FForwardLightingConstants, LightShadowOffsets) == 64);
 static_assert(offsetof(FForwardLightingConstants, SkyColorIntensity) == 80);
 static_assert(offsetof(FForwardLightingConstants, ShadowAtlasWidth) == 96);
 static_assert(offsetof(FForwardLightingConstants, ShadowAtlasHeight) == 100);
-static_assert(sizeof(FForwardLightingConstants) == 112);
+static_assert(offsetof(FForwardLightingConstants, CameraForward) == 112);
+static_assert(offsetof(FForwardLightingConstants, DirectionalCascadeFars) == 128);
+static_assert(sizeof(FForwardLightingConstants) == 160);

@@ -25,7 +25,9 @@ struct FDeferredLightConstants
 	FVector4 SkyColorIntensity;
 	uint32 ShadowAtlasWidth;
 	uint32 ShadowAtlasHeight;
-	uint32 Padding[2];
+	uint32 DirectionalCascadeCount = 1;
+	uint32 Padding = 0;
+	FVector4 DirectionalCascadeFars[2];
 };
 
 // 뷰별 조명 GPU 리소스. 패스나 드로우는 실행하지 않는다.

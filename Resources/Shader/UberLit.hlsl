@@ -37,7 +37,10 @@ cbuffer Lighting : register(b1)
     float4 SkyColorIntensity; // rgb: Sky Light 색상, a: 세기 (0이면 비활성)
     uint ShadowAtlasWidth;
     uint ShadowAtlasHeight;
-    uint2 LightingPadding;
+    uint DirectionalCascadeCount;
+    uint LightingPadding;
+    float4 CameraForward;
+    float4 DirectionalCascadeFars[2];
 };
 
 StructuredBuffer<FLightRenderParameters> SceneLights : register(t8);
@@ -261,7 +264,16 @@ FLightResult CalculateBaseLighting(float3 P, float3 N, float3 V, bool bIncludeSp
     [loop]
     for (uint DirectionalIndex = 0; DirectionalIndex < LightCounts.z; ++DirectionalIndex)
     {
-        FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + DirectionalIndex];
+        uint CascadeBase = LightShadowOffsets.z + DirectionalIndex * DirectionalCascadeCount;
+        float ViewDepth = dot(P - CameraPosition.xyz, CameraForward.xyz);
+        uint CascadeIndex = 0;
+        [loop]
+        for (uint SplitIndex = 0; SplitIndex + 1 < DirectionalCascadeCount; ++SplitIndex)
+        {
+            if (ViewDepth <= DirectionalCascadeFars[SplitIndex / 4][SplitIndex % 4]) break;
+            ++CascadeIndex;
+        }
+        FLightShadowRenderData LightShadow = LightShadows[CascadeBase + CascadeIndex];
             
         float Shadow = CalculateShadow(P, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, PointSampler);
             

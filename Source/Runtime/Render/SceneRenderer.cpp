@@ -104,7 +104,7 @@ void FSceneRenderer::InitViews(FRenderer* Renderer)
 		RenderData.VisibleLights.Add(Parameters);
 	}
 
-	RenderData.Commit(bLightUploadSucceeded);
+	RenderData.Commit(bLightUploadSucceeded, View);
 }
 
 bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uint32 Height)
@@ -131,6 +131,8 @@ bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uin
 	Constants.SkyColorIntensity = Sky ? RenderData.SkyLight.ColorIntensity : FVector4(0.f);
 	Constants.ShadowAtlasWidth = LightShadowAtlas ? LightShadowAtlas->GetWidth() : 0;
 	Constants.ShadowAtlasHeight = LightShadowAtlas ? LightShadowAtlas->GetHeight() : 0;
+	Constants.DirectionalCascadeCount = RenderData.DirectionalCascadeCount;
+	std::memcpy(Constants.DirectionalCascadeFars, RenderData.DirectionalCascadeFars, sizeof(RenderData.DirectionalCascadeFars));
 
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
 	std::memcpy(Constants.LightOffsets, RenderData.LightParameterOffsets, sizeof(RenderData.LightParameterOffsets)); // LightOffset은 각 조명별로 시작하는 위치
@@ -175,8 +177,11 @@ bool FSceneRenderer::BindForwardLighting(FRenderer* Renderer, const FSceneRender
 	Constants.Ambient = Sky ? FAmbientLightRenderData{ FVector4(0.0f) } : RenderData.AmbientLight;
 	Constants.SkyColorIntensity = Sky ? RenderData.SkyLight.ColorIntensity : FVector4(0.f);
 	Constants.CameraPosition = FVector4(View.ViewLocation.X, View.ViewLocation.Y, View.ViewLocation.Z, 1.0f);
+	Constants.CameraForward = FVector4(View.ViewForward.X, View.ViewForward.Y, View.ViewForward.Z, 0.0f);
 	Constants.ShadowAtlasWidth = LightShadowAtlas ? LightShadowAtlas->GetWidth() : 0;
 	Constants.ShadowAtlasHeight = LightShadowAtlas ? LightShadowAtlas->GetHeight() : 0;
+	Constants.DirectionalCascadeCount = RenderData.DirectionalCascadeCount;
+	std::memcpy(Constants.DirectionalCascadeFars, RenderData.DirectionalCascadeFars, sizeof(RenderData.DirectionalCascadeFars));
 	
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
 	std::memcpy(Constants.LightOffsets, RenderData.LightParameterOffsets, sizeof(RenderData.LightParameterOffsets)); // LightOffset은 각 조명별로 시작하는 위치
@@ -185,8 +190,8 @@ bool FSceneRenderer::BindForwardLighting(FRenderer* Renderer, const FSceneRender
 	Renderer->UpdateConstant(ForwardConstants, &Constants, sizeof(Constants));
 	Renderer->BindConstant(1, ForwardConstants, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	Renderer->BindCube(11, Sky ? Sky->GetIrradianceCube() : nullptr, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
-	Renderer->BindStructured(13, LightShadows, EShaderBindFlagBits::Pixel);
-	RenderCommand::BindShaderResource(14, LightShadowAtlas, EShaderBindFlagBits::Pixel);
+	Renderer->BindStructured(13, LightShadows, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+	RenderCommand::BindShaderResource(14, LightShadowAtlas, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
 	FForwardLightTileGrid& Tiles = LightResources.GetTiles();
 	Tiles.PreparePixelShader(Renderer, bTilesBuilt);
@@ -207,7 +212,7 @@ void FSceneRenderer::UnbindForwardLighting(FRenderer* Renderer)
 	const std::array<ID3D11ShaderResourceView*, 2> NullSRVs{};
 	Renderer->BindRawPixelResources(9, NullSRVs);
 	Renderer->BindRawPixelConstant(3, nullptr);
-	Renderer->UnbindResources(12, 3, EShaderBindFlagBits::Pixel);
+	Renderer->UnbindResources(12, 3, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	RenderData.ViewLightResources.GetTiles().ResetPixelState();
 	Renderer->UnbindResources(8, 1, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	Renderer->UnbindResources(11, 1, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);

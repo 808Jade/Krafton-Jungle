@@ -20,7 +20,9 @@ cbuffer DeferredLightConstants : register(b0)
     float4 SkyColorIntensity;
     uint ShadowAtlasWidth;
     uint ShadowAtlasHeight;
-    uint2 LightingPadding;
+    uint DirectionalCascadeCount;
+    uint LightingPadding;
+    float4 DirectionalCascadeFars[2];
 };
 
 StructuredBuffer<FLightRenderParameters> SceneLights : register(t3);
@@ -132,7 +134,16 @@ float4 mainPS(FPSInput Input) : SV_Target
         float3 LightDir = normalize(Light.Direction);
         float3 LightColor = Light.Color * Light.Intensity;
                 
-        FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + DirectionalIndex];
+        uint CascadeBase = LightShadowOffsets.z + DirectionalIndex * DirectionalCascadeCount;
+        float ViewDepth = dot(WorldPosition - CameraPosition.xyz, CameraForward.xyz);
+        uint CascadeIndex = 0;
+        [loop]
+        for (uint SplitIndex = 0; SplitIndex + 1 < DirectionalCascadeCount; ++SplitIndex)
+        {
+            if (ViewDepth <= DirectionalCascadeFars[SplitIndex / 4][SplitIndex % 4]) break;
+            ++CascadeIndex;
+        }
+        FLightShadowRenderData LightShadow = LightShadows[CascadeBase + CascadeIndex];
         float Shadow = CalculateShadow(WorldPosition, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, SkySampler);
 
         BaseLighting += LightColor * saturate(dot(N, -LightDir)) * Shadow;
