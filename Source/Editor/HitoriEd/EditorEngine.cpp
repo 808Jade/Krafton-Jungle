@@ -516,7 +516,6 @@ void UEditorEngine::RenderViewports()
 					FSceneRenderer SceneRenderer(CurrentWorld, SceneView, GameClient->GetRenderData());
 					SceneRenderer.InitViews(Renderer);
 
-
 					RenderGameFrame(GameClient, SceneView, SceneRenderer, bIsSIEMode);
 
 					break;

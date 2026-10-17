@@ -219,6 +219,8 @@ bool FRenderGraphBuilder::AddRasterPass(FRenderGraphRasterPassDesc Desc, std::fu
 	FRasterPass Pass{};
 	Pass.Desc = std::move(Desc);
 	Pass.Execute = std::move(Execute);
+	Pass.X = Desc.X;
+	Pass.Y = Desc.Y;
 	Pass.Width = Width;
 	Pass.Height = Height;
 	Passes.push_back(std::move(Pass));
@@ -304,7 +306,7 @@ bool FRenderGraphBuilder::Execute() // 등록되어 있던
 			RenderCommand::ClearDepthStencil(Depth, Pass.Desc.DepthAttachment.ClearDepth, Pass.Desc.DepthAttachment.ClearStencil);
 		
 		RenderCommand::SetRenderTargets(static_cast<uint32>(Pass.Desc.ColorAttachments.size()), ColorTargets, Depth);
-		RenderCommand::SetViewport(0, 0, Pass.Width, Pass.Height);
+		RenderCommand::SetViewport(Pass.X, Pass.Y, Pass.Width, Pass.Height);
 		Pass.Execute();
 		RenderCommand::EndRenderPass();
 	}

@@ -88,8 +88,6 @@ private:
 	UWorld* World = nullptr;
 	FSceneView View;
 	FSceneRenderData& RenderData;
-	uint32 LightCounts[4]{};
-	uint32 LightOffsets[4]{};
 	bool bLightUploadSucceeded = false;
 	bool bTilesBuilt = false;
 	std::vector<FMeshDrawBatch> ForwardBatches;

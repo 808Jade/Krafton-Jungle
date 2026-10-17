@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Core/Types.h"
+#include "Math/Rect.h"
 
 #include <array>
 #include <functional>
@@ -46,6 +47,8 @@ struct FRenderGraphRasterPassDesc // draw pass용
 	std::vector<FRenderGraphTextureRef> ReadTextures;
 	std::vector<FRenderGraphColorAttachment> ColorAttachments;
 	FRenderGraphDepthAttachment DepthAttachment;
+	uint32 X = 0;
+	uint32 Y = 0;
 	uint32 Width = 0;  // 0이면 첫 출력 텍스처의 크기를 사용한다.
 	uint32 Height = 0;
 };
@@ -96,6 +99,8 @@ private:
 		FRenderGraphRasterPassDesc Desc;
 		FRenderGraphComputePassDesc ComputeDesc;
 		std::function<void()> Execute;
+		uint32 X = 0;
+		uint32 Y = 0;
 		uint32 Width = 0;
 		uint32 Height = 0;
 		bool bCompute = false;

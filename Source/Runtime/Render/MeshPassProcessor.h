@@ -6,6 +6,7 @@
 #include "Render/RenderEnums.h"
 #include "Render/Buffer.h"
 #include "Render/RenderCommand.h"
+#include "Containers/Array.h"
 #include <array>
 #include <vector>
 
@@ -49,7 +50,7 @@ struct FMeshDrawBatch
 	bool bUseObjectSlots = true;
 	bool bBindViewConstants = true;
 	bool bForceWireframe = false;
-	std::vector<FItem> Items;
+	TArray<FItem> Items;
 };
 
 struct FOcclusionMeasureResult
@@ -82,4 +83,6 @@ public:
 	bool Build(const FSceneView& View, const FRenderQueue& Queue,
 		const FSceneRenderData* SceneData, EMeshPassType Pass,
 		std::vector<FMeshDrawBatch>& Out, ELightingModel LightingModel = ELightingModel::Gouraud) const;
+
+	bool BuildDepthOnly(const TArray<FPrimitiveSceneProxy*>& ShadowMeshes, TArray<FMeshDrawBatch>& OutBatches);
 };

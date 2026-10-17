@@ -16,6 +16,7 @@ void FDirectionalLightSceneProxy::GetLightShaderParameters(FLightRenderParameter
 
 	Out = FLightRenderParameters{};
 	Out.Type = static_cast<uint32>(ELightType::Directional);
+	Out.Position = Dir->GetWorldLocation();
 	Out.Direction = Transform.GetForward();
 	Out.Color = FVector(Color.R, Color.G, Color.B);
 	Out.Intensity = Dir->GetIntensity();

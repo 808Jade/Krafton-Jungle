@@ -2,6 +2,7 @@
 #include "Render/SceneLightResources.h"
 #include "Render/RenderCommand.h"
 #include "Components/LightComponentBase.h"
+#include "SceneRenderData.h"
 #include <algorithm>
 #include <cstring>
 
@@ -39,6 +40,7 @@ namespace
 bool FSceneLightResources::Init()
 {
 	if (bInitialized) return true;
+
 	ForwardLightCB = RenderCommand::CreateConstantBuffer(sizeof(FForwardLightingConstants));
 	DeferredLightCB = RenderCommand::CreateConstantBuffer(sizeof(FDeferredLightConstants));
 	if (!ForwardTileGrid.Init())
@@ -47,40 +49,25 @@ bool FSceneLightResources::Init()
 	return bInitialized;
 }
 
-bool FSceneLightResources::UploadViewLights(const TArray<FLightRenderParameters>& Lights,
-	uint32 (&Counts)[4], uint32 (&Offsets)[4])
+void FSceneLightResources::CreateShadowAtlasIfNeed(uint32 ShadowAtlasMapWidth, uint32 ShadowAtlasMapHeight)
 {
-	// ELightType 순서(방향광, 포인트, 스포트, 렉트)가 곧 버퍼 안의 구간 순서다.
-	constexpr uint32 TypeCount = 4;
-	uint32 TypeCounts[TypeCount] = {};
-	for (const FLightRenderParameters& Light : Lights)
-		if (Light.Type < TypeCount) ++TypeCounts[Light.Type];
+	if (!SceneLightShadowMapAtlas || ShadowAtlasMapWidth > SceneLightShadowMapAtlas->GetWidth() || ShadowAtlasMapHeight > SceneLightShadowMapAtlas->GetHeight())
+	{
+		D3D11_TEXTURE2D_DESC Desc{};
+		Desc.Width = ShadowAtlasMapWidth;
+		Desc.Height = ShadowAtlasMapHeight;
+		Desc.MipLevels = 1;
+		Desc.ArraySize = 1;
+		Desc.SampleDesc.Count = 1;
+		Desc.Usage = D3D11_USAGE_DEFAULT;
+		Desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 
-	const uint32 DirectionalType = static_cast<uint32>(ELightType::Directional);
-	const uint32 PointType = static_cast<uint32>(ELightType::Point);
-	const uint32 SpotType = static_cast<uint32>(ELightType::Spot);
-	const uint32 RectType = static_cast<uint32>(ELightType::Rect);
-	Counts[0] = TypeCounts[PointType];
-	Counts[1] = TypeCounts[SpotType];
-	Counts[2] = TypeCounts[DirectionalType];
-	Counts[3] = TypeCounts[RectType];
-	Offsets[2] = 0;
-	Offsets[0] = Counts[2];
-	Offsets[1] = Counts[2] + Counts[0];
-	Offsets[3] = Counts[2] + Counts[0] + Counts[1];
+		Desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+		SceneLightShadowMapAtlas = RenderCommand::CreateTexture2D(Desc);
+	}
+}
 
-	const uint32 Total = Counts[0] + Counts[1] + Counts[2] + Counts[3];
-	if (!Total) return true;
-
-	uint32 Next[TypeCount] = {};
-	Next[DirectionalType] = Offsets[2];
-	Next[PointType] = Offsets[0];
-	Next[SpotType] = Offsets[1];
-	Next[RectType] = Offsets[3];
-
-	TArray<FLightRenderParameters> Packed;
-	Packed.SetNum(static_cast<int32>(Total));
-	for (const FLightRenderParameters& Light : Lights)
-		if (Light.Type < TypeCount) Packed[Next[Light.Type]++] = Light;
-	return UploadStructured(SceneLightBuffer, Packed.GetData(), Total, sizeof(FLightRenderParameters));
+bool FSceneLightResources::UploadViewLights(const TArray<FLightRenderParameters>& Lights)
+{
+	return UploadStructured(SceneLightBuffer, Lights.GetData(), Lights.Num(), sizeof(FLightRenderParameters));
 }

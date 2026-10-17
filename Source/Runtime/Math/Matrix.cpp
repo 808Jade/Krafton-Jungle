@@ -356,3 +356,82 @@ FRotator MatrixToRotator(const FMatrix& Mat)
 	R.Yaw = atan2f(Mat.M[0][1], Mat.M[0][0]) * 180.0f / PI;
 	return R;
 }
+
+FMatrix LookAt(const FVector& Eye, const FVector& Center, const FVector& Up)
+{
+	FVector Forward = Center - Eye;
+	Forward = Forward.Normalized();
+
+	float FDotU = FVector::Dot(Forward, Up);
+
+	FVector Right;
+	if (std::abs(FDotU) < 0.999f)
+	{
+		Right = FVector::Cross(Up, Forward);
+	}
+	else
+	{
+		FVector SafeUp = FVector(0, 0, 1);
+		if (std::abs(Forward.X) < 0.9)
+		{
+			SafeUp = FVector(1, 0, 0);
+		}
+		
+		Right = FVector::Cross(SafeUp, Forward);
+	}
+	Right = Right.Normalized();
+
+	FVector _Up = FVector::Cross(Forward, Right);
+	_Up = _Up.Normalized();
+
+	// Inverse translation
+	FMatrix Translation = FMatrix::MakeTranslation(Eye);
+	Translation.M[3][0] *= -1;
+	Translation.M[3][1] *= -1;
+	Translation.M[3][2] *= -1;
+
+	FMatrix Rotation(
+		Forward.X, Right.X, _Up.X, 0.0f,
+		Forward.Y, Right.Y, _Up.Y, 0.0f,
+		Forward.Z, Right.Z, _Up.Z, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f);
+
+	return Translation * Rotation;
+}
+
+FMatrix Perspective(const float Fov, const float Aspect, const float Near, const float Far)
+{
+	const float HalfFOV = Fov * 0.5f;
+
+	const float YScale = 1.0f / tan(HalfFOV);
+	const float XScale = YScale / Aspect;
+
+	const float ZScale = Far / (Far - Near);
+	const float ZOffset = -Near * Far / (Far - Near);
+
+	//Forward가 X인 좌표
+	return FMatrix(
+		0.0f, 0.0f, ZScale, 1.0f,
+		XScale, 0.0f, 0.0f, 0.0f,
+		0.0f, YScale, 0.0f, 0.0f,
+		0.0f, 0.0f, ZOffset, 0.0f
+	);
+}
+
+FMatrix Ortho(float Width, float Aspect, float Near, float Far)
+{
+	const float Height = Width / Aspect;
+
+	const float XScale = 2.0f / Width;
+	const float YScale = 2.0f / Height;
+
+	const float ZScale = 1.0f / (Far - Near);
+	const float ZOffset = -Near / (Far - Near);
+
+	return FMatrix(
+		0.0f, 0.0f, ZScale, 0.0f,
+		XScale, 0.0f, 0.0f, 0.0f,
+		0.0f, YScale, 0.0f, 0.0f,
+		0.0f, 0.0f, ZOffset, 1.0f
+	);
+}

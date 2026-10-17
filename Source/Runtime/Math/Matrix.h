@@ -95,4 +95,8 @@ public:
 std::ostream& operator << (std::ostream& OS, const FMatrix& M);
 
 FRotator MatrixToRotator(const FMatrix& M);
+FMatrix LookAt(const FVector& Eye, const FVector& Center, const FVector& Up);
 
+// NOTE: FOV는 라디안 단위로 줄것
+FMatrix Perspective(const float Fov, const float Aspect, const float Near, const float Far);
+FMatrix Ortho(float Width, float Aspect, float Near, float Far);
