@@ -911,23 +911,27 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 	const FRenderingInfo& SceneRenderingInfo, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward, FRenderQueue& RenderQueue)
 {
 	FLightingConstants Lighting;
+	FShadowStats ShadowStats{};
 	TArray<FPointLightInfo> PointLights;
 	TArray<FSpotLightInfo> SpotLights;
+	TArray<FDirectionalLightInfo> DirectionalLights;
 	TArray<FShadowInfo> ShadowInfos;
 
 	//프리뷰를 보여줄 LightProxy
 	FLightSceneProxy* PreviewShadowMapLightProxy = nullptr;
 
 	ViewWorld.GetScene().BuildLightingConstants(Lighting);
-	ViewWorld.GetScene().BuildStructuredLightAndShadowData(PointLights, SpotLights, ShadowInfos, PreviewShadowMapLightProxy);
+	ViewWorld.GetScene().BuildStructuredLightAndShadowData(PointLights, SpotLights, DirectionalLights, ShadowInfos, PreviewShadowMapLightProxy, ShadowStats);
 	
 	Renderer->SetLighting(Lighting, PointLights, SpotLights);
 
 	//Shadow Info StructuredBuffer, ShadowMap 만들기
 	if (ShadowInfos.Num() > 0)
 	{
-		Renderer->RenderShadowPass(ShadowInfos, ViewWorld.GetScene().Proxies, PreviewShadowMapLightProxy);
+		Renderer->RenderShadowPass(ShadowInfos, ViewWorld.GetScene().Proxies, PreviewShadowMapLightProxy, ShadowStats);
 	}
+
+	FStatOverlay::SetShadowStats(ShadowStats);
 
 
 	// 1. 불투명·반투명 Pass (Linear 씬 컬러)

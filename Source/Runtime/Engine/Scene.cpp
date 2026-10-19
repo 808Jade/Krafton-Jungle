@@ -2,6 +2,7 @@
 #include "Scene.h"
 #include "LightSceneProxy.h"
 #include "Render/ColorWorkflow.h"
+#include <Core/StatOverlay.h>
 
 void FScene::AddPrimitive(UPrimitiveComponent* Component)
 {
@@ -288,7 +289,7 @@ void FScene::MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy)
 	RenderStateDirtyProxies.Add(Proxy);
 }
 
-void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy) const
+void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats & ShadowStats) const
 {
 	OutPointLight.Reset();
 	OutSpotLight.Reset();
@@ -310,6 +311,17 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 		switch (Proxy->GetLightType())
 		{
 			//Directional 타입을 어떻게 처리할 것인가???
+		case ELightType::Directional: {
+			FDirectionalLightSceneProxy* DirectionalProxy = static_cast<FDirectionalLightSceneProxy*>(Proxy);
+			FDirectionalLightInfo DirectionalLightInfo = DirectionalProxy->GetInfo();
+			FShadowInfo DirectionalShadowInfo = DirectionalProxy->GetShadowInfo();
+
+			DirectionalLightInfo.ShadowIndex = OutShadowInfo.Add(DirectionalShadowInfo);
+			Proxy->ShadowIndex = DirectionalLightInfo.ShadowIndex;
+			OutDirectionalLight.Add(DirectionalLightInfo);
+			ShadowStats.DirectionalLightCount++;
+			break;
+		}
 
 		case ELightType::Point:
 		{
@@ -335,6 +347,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 				//어차피 다음 프레임에서도 Detail Panel이 true로 요청할 것
 				PointProxy->bPreviewShadowMap = false;
 			}
+			ShadowStats.PointLightCount++;
 			break;
 		}			
 		case ELightType::Spot:
@@ -357,6 +370,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 				//어차피 다음 프레임에서도 Detail Panel이 true로 요청할 것
 				SpotProxy->bPreviewShadowMap = false;
 			}
+			ShadowStats.SpotLightCount++;
 			break;
 		}			
 		default:

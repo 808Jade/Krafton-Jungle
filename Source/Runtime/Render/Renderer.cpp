@@ -20,10 +20,13 @@
 #include <bit>
 
 #include "Engine/LightSceneProxy.h"
+#include <Core/StatOverlay.h>
 
 DECLARE_CYCLE_STAT("Draw Render Packets", STAT_DrawRenderPackets);
 DECLARE_CYCLE_STAT("Render Queue Sorting", STAT_RenderQueueSorting);
 DECLARE_CYCLE_STAT("Upload Per-Object CB", STAT_UploadPerObjectCB);
+DECLARE_CYCLE_STAT("Shadow Pass (Total)", STAT_Shadow);
+
 
 namespace
 {
@@ -600,8 +603,10 @@ void FRenderer::EnsureTileLightCapacity(const FMatrix& ViewProjection, uint32 Wi
 
 }
 
-void FRenderer::RenderShadowPass(const TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy)
+void FRenderer::RenderShadowPass(const TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy, FShadowStats& ShadowStats)
 {
+	SCOPE_CYCLE_COUNTER(STAT_Shadow);
+
 	//이전 pass에서의 바인딩을 끊는다.
 	ShadowMapManager.UnbindForShading();
 	//준비
@@ -661,6 +666,7 @@ void FRenderer::RenderShadowPass(const TArray<FShadowInfo>& ShadowInfos, const T
 				if (Section.Material && Section.Material->BlendState != EBlendState::Opaque)
 					continue;
 				RenderCommand::DrawIndexed(Section.IndexCount, Section.StartIndex);
+				ShadowStats.NumShadowDrawCalls++;
 			}
 		}
 	}
@@ -675,4 +681,8 @@ void FRenderer::RenderShadowPass(const TArray<FShadowInfo>& ShadowInfos, const T
 
 	//Opaque에서 읽도록 SRV 바인딩
 	ShadowMapManager.BindForShading();
+
+	
+	ShadowStats.NumShadowMapsRendered = ShadowInfos.Num();
+	ShadowStats.ShadowMapMemoryBytes = ShadowMapManager.GetResolution() * ShadowMapManager.GetResolution() * 4 * ShadowMapManager.GetNumSlices();
 }
