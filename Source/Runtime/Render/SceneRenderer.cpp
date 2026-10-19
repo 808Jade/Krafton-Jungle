@@ -104,7 +104,7 @@ void FSceneRenderer::InitViews(FRenderer* Renderer)
 		RenderData.VisibleLights.Add(Parameters);
 	}
 
-	RenderData.Commit(bLightUploadSucceeded);
+	RenderData.Commit(View.FrustumCorners, View.NearClip, View.FarClip, 4, bLightUploadSucceeded);
 }
 
 bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uint32 Height)
@@ -177,10 +177,12 @@ bool FSceneRenderer::BindForwardLighting(FRenderer* Renderer, const FSceneRender
 	Constants.CameraPosition = FVector4(View.ViewLocation.X, View.ViewLocation.Y, View.ViewLocation.Z, 1.0f);
 	Constants.ShadowAtlasWidth = LightShadowAtlas ? LightShadowAtlas->GetWidth() : 0;
 	Constants.ShadowAtlasHeight = LightShadowAtlas ? LightShadowAtlas->GetHeight() : 0;
+	Constants.CascadeShadowCount = RenderData.CascadeShadowCount;
 	
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
 	std::memcpy(Constants.LightOffsets, RenderData.LightParameterOffsets, sizeof(RenderData.LightParameterOffsets)); // LightOffset은 각 조명별로 시작하는 위치
 	std::memcpy(Constants.LightShadowOffsets, RenderData.LightShadowOffsets, sizeof(RenderData.LightShadowOffsets));
+	std::memcpy(Constants.CascadeShadowDistances, RenderData.CascadeShadowDistances, sizeof(RenderData.CascadeShadowDistances));
 
 	Renderer->UpdateConstant(ForwardConstants, &Constants, sizeof(Constants));
 	Renderer->BindConstant(1, ForwardConstants, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
@@ -505,7 +507,6 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 			Prepass.DepthAttachment = { Depth, ERenderGraphLoadAction::Clear, 1.0f, 0 };
 			if (!Graph.AddRasterPass(std::move(Prepass), [this, Renderer, DepthPipeline]
 				{
-					PrepareDrawData(Renderer, RenderData);
 					if (ForwardBatches.IsEmpty()) return;
 
 					// 실제 메시 패스와 같은 VS를 사용해 깊이 계산을 일치시킨다.

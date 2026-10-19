@@ -6,8 +6,38 @@ struct FPlane { FVector Normal; float Distance; };
 struct FFrustumPlanes { FPlane Planes[6]; };
 struct FAABB { FVector Center; FVector Extent; };
 
+struct FFrustumCorners
+{
+	FVector Corners[8];
+
+	FVector& NTL() { return Corners[0]; }
+	const FVector& NTL() const { return Corners[0]; }
+
+	FVector& NTR() { return Corners[1]; }
+	const FVector& NTR() const { return Corners[1]; }
+
+	FVector& NBL() { return Corners[2]; }
+	const FVector& NBL() const { return Corners[2]; }
+
+	FVector& NBR() { return Corners[3]; }
+	const FVector& NBR() const { return Corners[3]; }
+
+	FVector& FTL() { return Corners[4]; }
+	const FVector& FTL() const { return Corners[4]; }
+
+	FVector& FTR() { return Corners[5]; }
+	const FVector& FTR() const { return Corners[5]; }
+
+	FVector& FBL() { return Corners[6]; }
+	const FVector& FBL() const { return Corners[6]; }
+
+	FVector& FBR() { return Corners[7]; }
+	const FVector& FBR() const { return Corners[7]; }
+};
+
 static FPlane NormalizePlane(const FPlane Plane);
 FFrustumPlanes ExtractFrustumPlanes(const FMatrix& Matrix);
+FFrustumCorners GenerateFrustumCorners(const FMatrix& InvViewProjection);
 bool IsAABBInFrustum(const FAABB& Bounds, const FFrustumPlanes& Frustum);
 FAABB MakeWorldBounds(const FBox& Value);
 

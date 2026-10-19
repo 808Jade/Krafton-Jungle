@@ -399,7 +399,7 @@ FMatrix LookAt(const FVector& Eye, const FVector& Center, const FVector& Up)
 	return Translation * Rotation;
 }
 
-FMatrix Perspective(const float Fov, const float Aspect, const float Near, const float Far)
+FMatrix Perspective(float Fov, float Aspect, float Near, float Far)
 {
 	const float HalfFOV = Fov * 0.5f;
 
@@ -433,5 +433,24 @@ FMatrix Ortho(float Width, float Aspect, float Near, float Far)
 		XScale, 0.0f, 0.0f, 0.0f,
 		0.0f, YScale, 0.0f, 0.0f,
 		0.0f, 0.0f, ZOffset, 1.0f
+	);
+}
+
+FMatrix Ortho(float Left, float Right, float Top, float Bottom, float Near, float Far)
+{
+	const float XScale = 2.0f / (Right - Left);
+	const float XOffset = -(Right + Left) / (Right - Left);
+
+	const float YScale = 2.0f / (Top - Bottom);
+	const float YOffet = -(Top + Bottom) / (Top - Bottom);
+
+	const float ZScale = 1.0f / (Far - Near);
+	const float ZOffset = -Near / (Far - Near);
+
+	return FMatrix(
+		0.f, 0.f, ZScale, 0.f,
+		XScale, 0.f, 0.f, 0.f,
+		0.f, YScale, 0.f, 0.f,
+		XOffset, YOffet, ZOffset, 1.f
 	);
 }

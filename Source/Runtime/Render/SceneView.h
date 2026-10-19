@@ -20,6 +20,7 @@ struct FSceneView
 	FMatrix ProjectionMatrix = FMatrix::Identity;
 	FMatrix ViewProjectionMatrix = FMatrix::Identity;
 	FFrustumPlanes Frustum{};
+	FFrustumCorners FrustumCorners;
 	FRect ViewRect{};
 	float FieldOfView = 60.0f;
 	float AspectRatio = 16.0f / 9.0f;

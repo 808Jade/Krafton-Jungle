@@ -142,24 +142,25 @@ FVector FEditorViewportClient::GetViewForward() const {
 
 // 씬 뷰 정보 구성
 FSceneView FEditorViewportClient::CalcSceneView(const FRect &InViewRect) const {
-  FSceneView OutView;
-  OutView.ViewIndex = ViewIndex;
-  OutView.ViewLocation = ViewLocation;
-  OutView.ViewRotation = ViewRotation;
-  OutView.ViewForward = GetViewForward();
-  OutView.ViewMatrix = GetViewMatrix();
-  OutView.ProjectionMatrix = GetProjectionMatrix();
-  OutView.ViewProjectionMatrix = GetViewProjectionMatrix();
-  OutView.Frustum = ExtractFrustumPlanes(OutView.ViewProjectionMatrix);
-  OutView.ViewRect = InViewRect;
-  OutView.FieldOfView = ViewFOV;
-  OutView.AspectRatio = AspectRatio;
-  OutView.NearClip = NearClip;
-  OutView.FarClip = FarClip;
-  OutView.OrthoWidth = OrthoWidth;
-  OutView.bIsPerspective = bIsPerspective;
-  OutView.bIsWireframe = ViewportMode == EViewportMode::Wireframe;
-  return OutView;
+    FSceneView OutView;
+    OutView.ViewIndex = ViewIndex;
+    OutView.ViewLocation = ViewLocation;
+    OutView.ViewRotation = ViewRotation;
+    OutView.ViewForward = GetViewForward();
+    OutView.ViewMatrix = GetViewMatrix();
+    OutView.ProjectionMatrix = GetProjectionMatrix();
+    OutView.ViewProjectionMatrix = GetViewProjectionMatrix();
+    OutView.Frustum = ExtractFrustumPlanes(OutView.ViewProjectionMatrix);
+    OutView.FrustumCorners = GenerateFrustumCorners(OutView.ViewProjectionMatrix.Inverse());
+    OutView.ViewRect = InViewRect;
+    OutView.FieldOfView = ViewFOV;
+    OutView.AspectRatio = AspectRatio;
+    OutView.NearClip = NearClip;
+    OutView.FarClip = FarClip;
+    OutView.OrthoWidth = OrthoWidth;
+    OutView.bIsPerspective = bIsPerspective;
+    OutView.bIsWireframe = ViewportMode == EViewportMode::Wireframe;
+    return OutView;
 }
 
 // 씬 뷰 생성

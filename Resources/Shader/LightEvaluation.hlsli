@@ -51,7 +51,7 @@ float CalculateShadow(float3 P, float4x4 VP, float4 AtlasRect, Texture2DArray At
             float AtlasV = -CoordPos.y * 0.5 + 0.5;
             AtlasV = (AtlasRect.y + AtlasV * AtlasRect.w) / AtlasHeight;
                     
-            const float Bias = 0.00013;
+            const float Bias = 0.0005;
             float SampledDepth = Atlas.SampleLevel(Sampler, float3(AtlasU, AtlasV, AtlasIndex), 0).r;
             if (SampledDepth < CoordPos.z - Bias)
             {

@@ -19,15 +19,27 @@ namespace FMath
 	//static float PI = std::acosf(-1);
 
 	template <typename T>
-	static inline T Min(T A, T B)
+	static inline T Min(const T& A, const T& B)
 	{
 		return (A >= B ? B : A);
 	}
 
+	template <>
+	static inline FVector Min(const FVector& A, const FVector& B)
+	{
+		return FVector(Min(A.X, B.X), Min(A.Y, B.Y), Min(A.Z, B.Z));
+	}
+
 	template <typename T>
-	static inline T Max(T A, T B)
+	static inline T Max(const T& A, const T& B)
 	{
 		return (A >= B ? A: B);
+	}
+
+	template <>
+	static inline FVector Max(const FVector& A, const FVector& B)
+	{
+		return FVector(Max(A.X, B.X), Max(A.Y, B.Y), Max(A.Z, B.Z));
 	}
 
 	template <typename T>

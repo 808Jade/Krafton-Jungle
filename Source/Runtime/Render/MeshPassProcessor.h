@@ -90,10 +90,4 @@ public:
 		TArray<FMeshDrawBatch>& Out, ELightingModel LightingModel = ELightingModel::Gouraud) const;
 
 	bool BuildDepthOnly(const TArray<FPrimitiveSceneProxy*>& ShadowMeshes, TArray<FMeshDrawBatch>& OutBatches);
-
-#if 0
-	bool Build(const FSceneView& CameraView, FScene& Scene,
-		const TArray<FLightRenderParameters>& Lights,
-		TArray<FShadowDrawPass>& OutPasses) const;
-#endif
 };

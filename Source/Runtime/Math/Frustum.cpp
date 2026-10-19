@@ -32,6 +32,31 @@ FFrustumPlanes ExtractFrustumPlanes(const FMatrix& Matrix)
     return Result;
 }
 
+FFrustumCorners GenerateFrustumCorners(const FMatrix& InvViewProjection)
+{
+    FFrustumCorners FrustumCorners;
+
+    // NDC 좌표계 내의 좌표
+    FVector NDC[8] = {
+        FVector(-1, 1, 0), // NTL
+        FVector(1, 1, 0), // NTR
+        FVector(-1, -1, 0), // NBL
+        FVector(1, -1, 0), // NBR
+        FVector(-1, 1, 1), // FTL
+        FVector(1, 1, 1), // FTR
+        FVector(-1, -1, 1), // FBL
+        FVector(1, -1, 1)  // FBR
+    };
+
+    for (int32 i = 0; i < 8; ++i)
+    {
+        FVector4 CornerH = FVector4(NDC[i], 1.0f) * InvViewProjection;
+        FrustumCorners.Corners[i] = FVector(CornerH.X / CornerH.W, CornerH.Y / CornerH.W, CornerH.Z / CornerH.W);
+    }
+
+    return FrustumCorners;
+}
+
 bool IsAABBInFrustum(const FAABB& Bounds, const FFrustumPlanes& Frustum)
 {
     FVectorRegister Boundreg = VectorSIMD::LoadFloat3(&Bounds.Extent.X);

@@ -58,9 +58,11 @@ struct FForwardLightingConstants
 	uint32 LightOffsets[4]; // 공유 조명 버퍼에서 각 종류가 시작되는 위치, 순서는 위와 같음
 	uint32 LightShadowOffsets[4]; // 공유 그림자 버퍼에서 각 종류가 시작되는 위치
 	FVector4 SkyColorIntensity;
+	float CascadeShadowDistances[4];
+	uint32 CascadeShadowCount;
 	uint32 ShadowAtlasWidth;
 	uint32 ShadowAtlasHeight;
-	uint32 Padding[2];
+	uint32 Padding;
 };
 
 struct FLightShadowRenderData
@@ -77,6 +79,8 @@ static_assert(offsetof(FForwardLightingConstants, LightCounts) == 32);
 static_assert(offsetof(FForwardLightingConstants, LightOffsets) == 48);
 static_assert(offsetof(FForwardLightingConstants, LightShadowOffsets) == 64);
 static_assert(offsetof(FForwardLightingConstants, SkyColorIntensity) == 80);
-static_assert(offsetof(FForwardLightingConstants, ShadowAtlasWidth) == 96);
-static_assert(offsetof(FForwardLightingConstants, ShadowAtlasHeight) == 100);
-static_assert(sizeof(FForwardLightingConstants) == 112);
+static_assert(offsetof(FForwardLightingConstants, CascadeShadowDistances) == 96);
+static_assert(offsetof(FForwardLightingConstants, CascadeShadowCount) == 112);
+static_assert(offsetof(FForwardLightingConstants, ShadowAtlasWidth) == 116);
+static_assert(offsetof(FForwardLightingConstants, ShadowAtlasHeight) == 120);
+static_assert(sizeof(FForwardLightingConstants) == 128);

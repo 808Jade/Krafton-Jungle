@@ -194,6 +194,7 @@ FSceneView FGameViewportClient::CalcSceneView(const FRect& InViewRect)
 	}
 
 	OutView.Frustum = ExtractFrustumPlanes(OutView.ViewProjectionMatrix);
+	OutView.FrustumCorners = GenerateFrustumCorners(OutView.ViewProjectionMatrix.Inverse());
 
 	return OutView;
 }

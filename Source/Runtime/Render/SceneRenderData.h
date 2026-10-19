@@ -32,9 +32,11 @@ struct FSceneRenderData
 	static constexpr int32 RectLightSlotIndex = 3;
 	
 	static constexpr uint32 ShadowMapSize = 4096;
-	static constexpr uint32 DirectionalLightShadowMapSize = 1024;
-	static constexpr uint32 PointLightShadowMapSize = 1024;
-	static constexpr uint32 SpotLightShadowMapSize = 512;
+	static constexpr uint32 DirectionalLightShadowMapSize = 4096;
+	static constexpr uint32 MaxCascadeShadowCount = 4;
+	static constexpr float MaxCascadeDistance = 200.f;
+	static constexpr uint32 PointLightShadowMapSize = 512;
+	static constexpr uint32 SpotLightShadowMapSize = 1024;
 
 	struct alignas(64) FGatherChunk
 	{
@@ -66,7 +68,10 @@ struct FSceneRenderData
 	uint32 LightParameterCounts[4]; // 라이트 리스트 내 구간의 count
 
 	TArray<FLightShadowRenderData> LightShadows;
-	uint32 LightShadowOffsets[4];
+	uint32 LightShadowOffsets[4]; // 라이트 그림자 리스트 내 구간의 offset
+
+	float CascadeShadowDistances[MaxCascadeShadowCount];
+	uint32 CascadeShadowCount;
 
 	void ResetScene()
 	{
@@ -105,7 +110,7 @@ struct FSceneRenderData
 		}
 	}
 
-	void Commit(bool& bLightUpaloadSucceeded)
+	void Commit(const FFrustumCorners& CameraFrustumCorners, float CameraNear, float CameraFar, uint32 ExpectCascadeCount, bool& bLightUpaloadSucceeded)
 	{
 		RenderQueue.Sort();
 
@@ -163,11 +168,9 @@ struct FSceneRenderData
 
 			TArray<FAreaInfo> AreaInfos;
 
-			uint32 TotalAreaSize = 0;
-			uint32 MaxAreaSize = 0;
-			uint32 ShadowMapOffset = 0;
+			uint32 ShadowOffset = 0;
 
-			LightShadowOffsets[FSceneRenderData::PointLightSlotIndex] = ShadowMapOffset;
+			LightShadowOffsets[FSceneRenderData::PointLightSlotIndex] = ShadowOffset;
 			for (int32 i = 0; i < GetPointLightCount(); i++)
 			{
 				int32 LightIndex = GetPointLightOffset() + i;
@@ -193,13 +196,11 @@ struct FSceneRenderData
 
 					AreaInfos.Add({ PointLightShadowMapSize, Index });
 
-					TotalAreaSize += PointLightShadowMapSize * PointLightShadowMapSize;
-					MaxAreaSize = FMath::Max(MaxAreaSize, PointLightShadowMapSize);
-					ShadowMapOffset++;
+					ShadowOffset++;
 				}
 			}
 
-			LightShadowOffsets[FSceneRenderData::SpotLightSlotIndex] = ShadowMapOffset;
+			LightShadowOffsets[FSceneRenderData::SpotLightSlotIndex] = ShadowOffset;
 			for (int32 i = 0; i < GetSpotLightCount(); i++)
 			{
 				int32 LightIndex = GetSpotLightOffset() + i;
@@ -216,31 +217,82 @@ struct FSceneRenderData
 
 				AreaInfos.Add({ SpotLightShadowMapSize, Index });
 
-				TotalAreaSize += SpotLightShadowMapSize * SpotLightShadowMapSize;
-				MaxAreaSize = FMath::Max(MaxAreaSize, SpotLightShadowMapSize);
-				ShadowMapOffset++;
+				ShadowOffset++;
 			}
 
-			LightShadowOffsets[FSceneRenderData::DirectionalLightSlotIndex] = ShadowMapOffset;
+			float CascadeShadowFar = FMath::Min(CameraFar, MaxCascadeDistance);
+			float CascadeTFactor = (CascadeShadowFar - CameraNear) / (CameraFar - CameraNear);
+
+			CascadeShadowCount = FMath::Clamp(ExpectCascadeCount, 1u, MaxCascadeShadowCount);
+
+			LightShadowOffsets[FSceneRenderData::DirectionalLightSlotIndex] = ShadowOffset;
 			for (int32 i = 0; i < GetDirectionalLightCount(); i++)
 			{
 				int32 LightIndex = GetDirectionalLightOffset() + i;
 
 				const FLightRenderParameters& DirectionalLight = VisibleLights[LightIndex];
 
-				FMatrix ViewMatrix = LookAt(DirectionalLight.Position, DirectionalLight.Position + DirectionalLight.Direction, FVector(0, 0, 1));
-				FMatrix ProjectionMatrix = Ortho(20, 1.0f, 0.1f, 1000.f);
+				FMatrix ViewMatrix = LookAt(FVector(0.f), DirectionalLight.Direction, UpVector);
 
-				FLightShadowRenderData Shadow{};
-				Shadow.ViewProjection = ViewMatrix * ProjectionMatrix;
+				FVector ToTL = CameraFrustumCorners.FTL() - CameraFrustumCorners.NTL();
+				FVector ToTR = CameraFrustumCorners.FTR() - CameraFrustumCorners.NTR();
+				FVector ToBL = CameraFrustumCorners.FBL() - CameraFrustumCorners.NBL();
+				FVector ToBR = CameraFrustumCorners.FBR() - CameraFrustumCorners.NBR();
 
-				uint32 Index = LightShadows.Add(Shadow);
+				FVector PrevTL = CameraFrustumCorners.NTL();
+				FVector PrevTR = CameraFrustumCorners.NTR();
+				FVector PrevBL = CameraFrustumCorners.NBL();
+				FVector PrevBR = CameraFrustumCorners.NBR();
 
-				AreaInfos.Add({ DirectionalLightShadowMapSize, Index });
+				uint32 CascadeShadowMapSize = DirectionalLightShadowMapSize;
+				for (int32 j = 0; j < CascadeShadowCount; j++)
+				{
+					float T = (j + 1) * (1.f / (float)CascadeShadowCount);
 
-				TotalAreaSize += DirectionalLightShadowMapSize * DirectionalLightShadowMapSize;
-				MaxAreaSize = FMath::Max(MaxAreaSize, DirectionalLightShadowMapSize);
-				ShadowMapOffset++;
+					FVector LT = CameraFrustumCorners.NTL() + ToTL * T * CascadeTFactor;
+					FVector RT = CameraFrustumCorners.NTR() + ToTR * T * CascadeTFactor;
+					FVector LB = CameraFrustumCorners.NBL() + ToBL * T * CascadeTFactor;
+					FVector RB = CameraFrustumCorners.NBR() + ToBR * T * CascadeTFactor;
+
+					FVector* WorldCorners[] = {
+						&PrevTL,
+						&PrevTR,
+						&PrevBL,
+						&PrevBR,
+						&LT,
+						&RT,
+						&LB,
+						&RB
+					};
+
+					FVector MinInCascadeLight = FVector(FLT_MAX);
+					FVector MaxInCascadeLight = FVector(-FLT_MAX);
+					for (int32 k = 0; k < 8; k++)
+					{
+						FVector4 InCascadeLightSpace = FVector4(*WorldCorners[k], 1.0f) * ViewMatrix;
+						MinInCascadeLight = FMath::Min(MinInCascadeLight, FVector(InCascadeLightSpace.X, InCascadeLightSpace.Y, InCascadeLightSpace.Z));
+						MaxInCascadeLight = FMath::Max(MaxInCascadeLight, FVector(InCascadeLightSpace.X, InCascadeLightSpace.Y, InCascadeLightSpace.Z));
+					}
+
+					FMatrix CascadeProjectionMatrix = Ortho(MinInCascadeLight.Y, MaxInCascadeLight.Y, MaxInCascadeLight.Z, MinInCascadeLight.Z, MinInCascadeLight.X, MaxInCascadeLight.X);
+
+					FLightShadowRenderData Shadow{};
+					Shadow.ViewProjection = ViewMatrix * CascadeProjectionMatrix;
+
+					uint32 Index = LightShadows.Add(Shadow);
+
+					AreaInfos.Add({ CascadeShadowMapSize, Index});
+
+					ShadowOffset++;
+
+					PrevTL = LT;
+					PrevTR = RT;
+					PrevBL = LB;
+					PrevBR = RB;
+
+					CascadeShadowDistances[j] = CameraNear + (CascadeShadowFar - CameraNear) * T;
+					CascadeShadowMapSize /= 2;
+				}
 			}
 
 			std::sort(AreaInfos.GetData(), AreaInfos.GetData() + AreaInfos.Num(), [](const FAreaInfo& A, const FAreaInfo& B) { return A.Size > B.Size; });
@@ -255,16 +307,16 @@ struct FSceneRenderData
 
 				if (AtlasCursorX + AreaInfo.Size > ShadowMapSize)
 				{
+					AtlasCursorY += MaxHeightInLine;
+					AtlasCursorX = 0;
+					MaxHeightInLine = 0;
+
 					if (AtlasCursorY + AreaInfo.Size > ShadowMapSize)
 					{
 						AtlasNeedCount++;
 						AtlasCursorY = 0;
 						MaxHeightInLine = 0;
 					}
-
-					AtlasCursorY += MaxHeightInLine;
-					AtlasCursorX = 0;
-					MaxHeightInLine = 0;
 				}
 
 				FLightShadowRenderData& RenderData = LightShadows[AreaInfo.Index];

@@ -35,9 +35,11 @@ cbuffer Lighting : register(b1)
     uint4 LightOffsets; // SceneLights에서 각 종류가 시작되는 위치, 순서는 위와 같음
     uint4 LightShadowOffsets; // LightShadows에서 각 종류가 시작되는 위치, 순서는 위와 같음
     float4 SkyColorIntensity; // rgb: Sky Light 색상, a: 세기 (0이면 비활성)
+    float4 CascadeShadowDistances;
+    uint CascadeShadowCount;
     uint ShadowAtlasWidth;
     uint ShadowAtlasHeight;
-    uint2 LightingPadding;
+    uint LightingPadding;
 };
 
 StructuredBuffer<FLightRenderParameters> SceneLights : register(t8);
@@ -85,6 +87,7 @@ struct VS_OUT
     float3 VertexSpecular : TEXCOORD2;
 #elif !VIEW_MODE_WORLD_NORMAL
     float3 WorldPosition : TEXCOORD1;
+    float ViewDepth : TEXCOORD2;
 #endif
 };
 
@@ -252,7 +255,7 @@ void CalculateRectLight(inout FLightResult Result, FLightRenderParameters Info,
 	AddLight(Result, N, V, L, Radiance, bIncludeSpecular);
 }
 
-FLightResult CalculateBaseLighting(float3 P, float3 N, float3 V, bool bIncludeSpecular)
+FLightResult CalculateBaseLighting(float3 P, float ViewDepth, float3 N, float3 V, bool bIncludeSpecular)
 {
     FLightResult Result;
     Result.Diffuse = CalculateAmbientLight(Ambient) + CalculateSkyLight(N);
@@ -261,9 +264,22 @@ FLightResult CalculateBaseLighting(float3 P, float3 N, float3 V, bool bIncludeSp
     [loop]
     for (uint DirectionalIndex = 0; DirectionalIndex < LightCounts.z; ++DirectionalIndex)
     {
-        FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + DirectionalIndex];
-            
-        float Shadow = CalculateShadow(P, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, PointSampler);
+        int CascadeIndex = -1;
+        for (int i = 0; i < CascadeShadowCount; i++)
+        {
+            if (ViewDepth < CascadeShadowDistances[i])
+            {
+                CascadeIndex = i;
+                break;
+            }
+        }
+        
+        float Shadow = 1.0;
+        if (CascadeIndex != -1)
+        {
+            FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + (DirectionalIndex * CascadeShadowCount + CascadeIndex)];
+            Shadow = CalculateShadow(P, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, PointSampler);
+        }
             
         FLightResult DirectionalResult = (FLightResult) 0;
         CalculateDirectionalLight(DirectionalResult, SceneLights[LightOffsets.z + DirectionalIndex], N, V, bIncludeSpecular);
@@ -291,24 +307,23 @@ void AddAllLocalLights(inout FLightResult Result, float3 P, float3 N,
 		CalculateRectLight(Result, SceneLights[LightOffsets.w + RectIndex], P, N, V, bIncludeSpecular);
 }
 
-FLightResult CalculateLighting(float3 P, float3 Normal, bool bIncludeSpecular)
+FLightResult CalculateLighting(float3 P, float ViewDepth, float3 Normal, bool bIncludeSpecular)
 {
     float3 N = normalize(Normal);
     float3 ToCamera = CameraPosition.xyz - P;
     float3 V = ToCamera * rsqrt(max(dot(ToCamera, ToCamera), 1.0e-8f));
-    FLightResult Result = CalculateBaseLighting(P, N, V, bIncludeSpecular);
+    FLightResult Result = CalculateBaseLighting(P, ViewDepth, N, V, bIncludeSpecular);
     AddAllLocalLights(Result, P, N, V, bIncludeSpecular);
     return Result;
 }
 
 // 타일 목록의 인덱스는 kim의 공유 SceneLights 안에서 종류별 시작 위치에 더한다.
-FLightResult CalculateTiledLighting(float3 PixelPosition, float3 P,
-    float3 Normal, bool bIncludeSpecular)
+FLightResult CalculateTiledLighting(float3 PixelPosition, float3 P, float ViewDepth, float3 Normal, bool bIncludeSpecular)
 {
     float3 N = normalize(Normal);
     float3 ToCamera = CameraPosition.xyz - P;
     float3 V = ToCamera * rsqrt(max(dot(ToCamera, ToCamera), 1.0e-8f));
-    FLightResult Result = CalculateBaseLighting(P, N, V, bIncludeSpecular);
+    FLightResult Result = CalculateBaseLighting(P, ViewDepth, N, V, bIncludeSpecular);
 
     if (GridMode == LIGHT_GRID_MODE_OFF)
     {
@@ -394,7 +409,8 @@ VS_OUT Uber_VS(VS_IN Input)
 {
     VS_OUT Output;
     float4 WorldPosition = mul(float4(Input.Position, 1.0f), World);
-    Output.Position = mul(mul(WorldPosition, View), Projection);
+    float4 ViewPosition = mul(WorldPosition, View);
+    Output.Position = mul(ViewPosition, Projection);
     Output.Color = Input.Color;
     Output.UV = Input.UV * UVTransform.zw + UVTransform.xy;
 
@@ -405,11 +421,12 @@ VS_OUT Uber_VS(VS_IN Input)
     float Handedness = Input.Tangent.w * (determinant((float3x3)World) < 0.0f ? -1.0f : 1.0f);
     Output.WorldTangent = float4(T, Handedness);
 #if LIGHTING_MODEL_GOURAUD
-    FLightResult Lit = CalculateLighting(WorldPosition.xyz, N, true);
+    FLightResult Lit = CalculateLighting(WorldPosition.xyz, ViewPosition.x, N, true);
     Output.VertexDiffuse = Lit.Diffuse;
     Output.VertexSpecular = Lit.Specular;
 #elif !VIEW_MODE_WORLD_NORMAL
     Output.WorldPosition = WorldPosition.xyz;
+    Output.ViewDepth = ViewPosition.x;
 #endif
     return Output;
 }
@@ -440,10 +457,10 @@ FUberOutput Uber_PS(VS_OUT Input)
     Specular = Input.VertexSpecular;
 #elif LIGHTING_MODEL_LAMBERT
     // 픽셀 위치와 깊이를 함께 전달한다.
-    Diffuse = CalculateTiledLighting(Input.Position.xyz, Input.WorldPosition, ShadingNormal, false).Diffuse;
+    Diffuse = CalculateTiledLighting(Input.Position.xyz, Input.WorldPosition, Input.ViewDepth, ShadingNormal, false).Diffuse;
 #elif LIGHTING_MODEL_PHONG
     // 같은 목록 선택 경로에서 기존 Blinn-Phong 조명을 계산한다.
-    FLightResult Lit = CalculateTiledLighting(Input.Position.xyz, Input.WorldPosition, ShadingNormal, true);
+    FLightResult Lit = CalculateTiledLighting(Input.Position.xyz, Input.WorldPosition, Input.ViewDepth, ShadingNormal, true);
     Diffuse = Lit.Diffuse;
     Specular = Lit.Specular;
 #endif
