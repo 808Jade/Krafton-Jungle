@@ -55,7 +55,7 @@ float CalculateShadow(float3 P, float3 N, float3 LightDirection, float4x4 VP, fl
             float CenterAtlasV = -CoordPos.y * 0.5 + 0.5;
             CenterAtlasV = (AtlasRect.y + CenterAtlasV * AtlasRect.w) / AtlasHeight;
             
-#if 1
+#if 0
             // PCF 적용
             float2 Texel = float2(1.0 / (float) AtlasWidth, 1.0 / (float) AtlasHeight);
             
