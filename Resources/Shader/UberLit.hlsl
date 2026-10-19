@@ -282,13 +282,56 @@ void AddAllLocalLights(inout FLightResult Result, float3 P, float3 N,
 {
     [loop]
     for (uint PointIndex = 0; PointIndex < LightCounts.x; ++PointIndex)
-        CalculatePointLight(Result, SceneLights[LightOffsets.x + PointIndex], P, N, V, bIncludeSpecular);
+    {
+        FLightRenderParameters Light = SceneLights[LightOffsets.x + PointIndex];
+
+        float3 L = P - Light.Position;
+            
+            // 카메라는 0 : +x,1 : -x, 2: +z, 3 : -z, 4: +y, 5: -y
+        uint FaceIndex = 0;
+            
+        float3 AbsL = abs(L);
+        if (AbsL.x > AbsL.y && AbsL.x > AbsL.z)
+        {
+            FaceIndex = L.x > 0.0 ? 0 : 1;
+        }
+        else if (AbsL.y > AbsL.x && AbsL.y > AbsL.z)
+        {
+            FaceIndex = L.y > 0.0 ? 4 : 5;
+        }
+        else
+        {
+            FaceIndex = L.z > 0.0 ? 2 : 3;
+        }
+            
+        FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.x + (PointIndex * 6 + FaceIndex)];
+            
+        float Shadow = CalculateShadow(P, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, PointSampler);
+            
+        FLightResult PointResult = (FLightResult) 0;
+        CalculatePointLight(PointResult, SceneLights[LightOffsets.x + PointIndex], P, N, V, bIncludeSpecular);
+         
+        Result.Diffuse += PointResult.Diffuse * Shadow;
+        Result.Specular += PointResult.Specular * Shadow;
+    }
     [loop]
     for (uint SpotIndex = 0; SpotIndex < LightCounts.y; ++SpotIndex)
-        CalculateSpotLight(Result, SceneLights[LightOffsets.y + SpotIndex], P, N, V, bIncludeSpecular);
+    {
+        FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.y + SpotIndex];
+            
+        float Shadow = CalculateShadow(P, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, PointSampler);
+            
+        FLightResult SpotResult = (FLightResult) 0;
+        CalculateSpotLight(SpotResult, SceneLights[LightOffsets.y + SpotIndex], P, N, V, bIncludeSpecular);
+            
+        Result.Diffuse += SpotResult.Diffuse * Shadow;
+        Result.Specular += SpotResult.Specular * Shadow;
+    }
 	[loop]
-	for (uint RectIndex = 0; RectIndex < LightCounts.w; ++RectIndex)
-		CalculateRectLight(Result, SceneLights[LightOffsets.w + RectIndex], P, N, V, bIncludeSpecular);
+    for (uint RectIndex = 0; RectIndex < LightCounts.w; ++RectIndex)
+    {
+        CalculateRectLight(Result, SceneLights[LightOffsets.w + RectIndex], P, N, V, bIncludeSpecular);
+    }
 }
 
 FLightResult CalculateLighting(float3 P, float3 Normal, bool bIncludeSpecular)

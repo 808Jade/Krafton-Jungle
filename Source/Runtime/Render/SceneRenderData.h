@@ -255,16 +255,16 @@ struct FSceneRenderData
 
 				if (AtlasCursorX + AreaInfo.Size > ShadowMapSize)
 				{
+					AtlasCursorY += MaxHeightInLine;
+					AtlasCursorX = 0;
+					MaxHeightInLine = 0;
+
 					if (AtlasCursorY + AreaInfo.Size > ShadowMapSize)
 					{
 						AtlasNeedCount++;
 						AtlasCursorY = 0;
 						MaxHeightInLine = 0;
 					}
-
-					AtlasCursorY += MaxHeightInLine;
-					AtlasCursorX = 0;
-					MaxHeightInLine = 0;
 				}
 
 				FLightShadowRenderData& RenderData = LightShadows[AreaInfo.Index];
