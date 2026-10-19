@@ -17,7 +17,8 @@ void FShadowMapManager::UploadShadowInfos(const TArray<FShadowInfo>& ShadowInfos
     }
 
     //일단 해상도 512로 하드코딩
-    EnsureShadowMaps(512, NumShadowInfos);
+    //EnsureShadowMaps(512, NumShadowInfos);
+    EnsureShadowMaps(1024, NumShadowInfos);
 
     ID3D11DeviceContext* Context = RenderCommand::GetContext();
     D3D11_MAPPED_SUBRESOURCE Mapped{};
@@ -163,6 +164,7 @@ void FShadowMapManager::BindForShading()
     Context->PSSetShaderResources(12, 1, ShadowInfoSRV.GetAddressOf());
     // s0은 BindMaterial이 머티리얼마다 덮어쓰므로 섀도 샘플러는 s1
     RenderCommand::BindSamplerState(1, ESamplerState::Point, EShaderBindFlagBits::Pixel);
+    RenderCommand::BindSamplerState(2, ESamplerState::Comparison_Linear, EShaderBindFlagBits::Pixel);
 }
 
 void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
