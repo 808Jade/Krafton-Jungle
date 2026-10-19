@@ -1,6 +1,7 @@
 #include "EnginePCH.h"
 #include "PointLightComponent.h"
 #include "Engine/LightSceneProxy.h"
+#include "Render/LightInfo.h"
 
 void UPointLightComponent::PostEditChangeProperty(const FProperty& Property)
 {

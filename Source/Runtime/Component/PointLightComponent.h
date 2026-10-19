@@ -2,6 +2,8 @@
 
 #include "LightComponent.h"
 
+struct FShadowInfo;
+
 class UPointLightComponent : public ULightComponent
 {
 	DECLARE_CLASS(UPointLightComponent, ULightComponent)
