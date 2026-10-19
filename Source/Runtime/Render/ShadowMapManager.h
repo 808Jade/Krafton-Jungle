@@ -16,6 +16,10 @@ public:
 	ID3D11DepthStencilView* GetSliceDSV(uint32 Slice) const;
 	ID3D11ShaderResourceView* GetShadowMapArraySRV() const;
 	ID3D11ShaderResourceView* GetShadowInfoSRV() const;
+
+	uint32 GetResolution() { return Resolution; }
+	uint32 GetNumSlices() { return NumSlices; }
+
 		
 	//그리기 전 바인딩
 	void BeginShadowRender(uint32 Slice);

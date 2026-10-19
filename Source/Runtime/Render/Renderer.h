@@ -14,6 +14,7 @@
 
 class FPrimitiveSceneProxy;
 class FLightSceneProxy;
+struct FShadowStats;
 
 constexpr uint32 ObjectSlotBytes = 256;
 
@@ -107,7 +108,7 @@ public:
 
 	void EnsureTileLightCapacity(const FMatrix& ViewProjection, uint32 Width, uint32 Height, bool bVisualizeLightCount);
 
-	void RenderShadowPass(const TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy);
+	void RenderShadowPass(const TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy, FShadowStats& ShadowStats);
 
 	//ImGui용 PreviewSRV 반환
 	//ID3D11ShaderResourceView* GetShadowPreviewSRV() const { return ShadowMapManager.GetPreviewSRV(); }
