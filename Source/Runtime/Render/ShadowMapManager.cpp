@@ -158,9 +158,9 @@ void FShadowMapManager::BindForShading()
 {
     ID3D11DeviceContext* Context = RenderCommand::GetContext();
     // Texture2DArray
-    Context->PSSetShaderResources(2, 1, ShadowMapArraySRV.GetAddressOf());   
+    Context->PSSetShaderResources(2, 1, ShadowMapArraySRV.GetAddressOf());
     // StructuredBuffer
-    Context->PSSetShaderResources(12, 1, ShadowInfoSRV.GetAddressOf());       
+    Context->PSSetShaderResources(12, 1, ShadowInfoSRV.GetAddressOf());
     // s0은 BindMaterial이 머티리얼마다 덮어쓰므로 섀도 샘플러는 s1
     RenderCommand::BindSamplerState(1, ESamplerState::Point, EShaderBindFlagBits::Pixel);
 }
@@ -178,67 +178,80 @@ void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
         static_cast<uint32>(PreviewShadowMapProxy->GetShadowIndex()) >= NumSlices)
         return;
 
-    //텍스처가 없거나 해상도가 바꼈다면
-    if (PreviewShadowMapProxy->GetShadowPreview().ShadowTexture == nullptr || PreviewShadowMapProxy->GetShadowPreview().Resolution != Resolution)
+    int32 ShadowInfoNum = PreviewShadowMapProxy->GetShadowInfoNum();
+
+    //ShadowInfo 개수만큼
+    for (int i = 0; i < ShadowInfoNum; i++)
     {
-        ID3D11Device* Device = RenderCommand::GetDevice();
-
-        //초기화되어 있을 버퍼를 생성해준다.
-
-        // 미리보기 텍스처: 배열과 같은 TYPELESS 포맷이어야 CopySubresourceRegion이 된다
-        D3D11_TEXTURE2D_DESC PreviewDesc{};
-        // 정사각형
-        PreviewDesc.Width = Resolution;
-        PreviewDesc.Height = Resolution;
-        PreviewDesc.MipLevels = 1;
-        // 층 수 (Spot 수 + Point 수 × 6 ...)
-        PreviewDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-        PreviewDesc.SampleDesc.Count = 1;
-        PreviewDesc.Usage = D3D11_USAGE_DEFAULT;
-        PreviewDesc.ArraySize = 1;
-        PreviewDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-        //HRESULT hr = Device->CreateTexture2D(&PreviewDesc, nullptr, PreviewShadowTexture.GetAddressOf());
-        HRESULT hr = Device->CreateTexture2D(&PreviewDesc, nullptr, PreviewShadowMapProxy->GetShadowPreview().ShadowTexture.ReleaseAndGetAddressOf());
-        if (FAILED(hr))
+        //텍스처가 없거나 해상도가 바꼈다면
+        if (PreviewShadowMapProxy->GetShadowPreview().IsValidIndex(i) == false)
         {
-            assert(false);
+            PreviewShadowMapProxy->GetShadowPreview().Add(FShadowPreview());
         }
 
-        PreviewShadowMapProxy->GetShadowPreview().Resolution = Resolution;
-
-        D3D11_SHADER_RESOURCE_VIEW_DESC PreviewSrv{};
-        PreviewSrv.Format = DXGI_FORMAT_R32_FLOAT;
-        // ImGui 셰이더가 Texture2D라서
-        PreviewSrv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        PreviewSrv.Texture2D.MipLevels = 1;
-        //hr = Device->CreateShaderResourceView(PreviewTexture.Get(), &PreviewSrv, PreviewShadowSRV.GetAddressOf());
-        hr = Device->CreateShaderResourceView(PreviewShadowMapProxy->GetShadowPreview().ShadowTexture.Get(), &PreviewSrv, PreviewShadowMapProxy->GetShadowPreview().ShadowSRV.ReleaseAndGetAddressOf());
-        if (FAILED(hr))
+        if (PreviewShadowMapProxy->GetShadowPreview()[i].ShadowTexture == nullptr || PreviewShadowMapProxy->GetShadowPreview()[i].Resolution != Resolution)
         {
-            assert(false);
+            ID3D11Device* Device = RenderCommand::GetDevice();
+
+            //초기화되어 있을 버퍼를 생성해준다.
+
+            // 미리보기 텍스처: 배열과 같은 TYPELESS 포맷이어야 CopySubresourceRegion이 된다
+            D3D11_TEXTURE2D_DESC PreviewDesc{};
+            // 정사각형
+            PreviewDesc.Width = Resolution;
+            PreviewDesc.Height = Resolution;
+            PreviewDesc.MipLevels = 1;
+            // 층 수 (Spot 수 + Point 수 × 6 ...)
+            PreviewDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+            PreviewDesc.SampleDesc.Count = 1;
+            PreviewDesc.Usage = D3D11_USAGE_DEFAULT;
+            PreviewDesc.ArraySize = 1;
+            PreviewDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+            //HRESULT hr = Device->CreateTexture2D(&PreviewDesc, nullptr, PreviewShadowTexture.GetAddressOf());
+            
+
+            HRESULT hr = Device->CreateTexture2D(&PreviewDesc, nullptr, PreviewShadowMapProxy->GetShadowPreview()[i].ShadowTexture.ReleaseAndGetAddressOf());
+            if (FAILED(hr))
+            {
+                assert(false);
+            }            
+
+            PreviewShadowMapProxy->GetShadowPreview()[i].Resolution = Resolution;
+
+            D3D11_SHADER_RESOURCE_VIEW_DESC PreviewSrv{};
+            PreviewSrv.Format = DXGI_FORMAT_R32_FLOAT;
+            // ImGui 셰이더가 Texture2D라서
+            PreviewSrv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+            PreviewSrv.Texture2D.MipLevels = 1;
+            //hr = Device->CreateShaderResourceView(PreviewTexture.Get(), &PreviewSrv, PreviewShadowSRV.GetAddressOf());
+            hr = Device->CreateShaderResourceView(PreviewShadowMapProxy->GetShadowPreview()[i].ShadowTexture.Get(), &PreviewSrv, PreviewShadowMapProxy->GetShadowPreview()[i].ShadowSRV.ReleaseAndGetAddressOf());
+            if (FAILED(hr))
+            {
+                assert(false);
+            }
         }
-    }
-    
 
-    // 텍스처 하나는 (밉 레벨 × 배열 층) 개수만큼의 개별 이미지로 이루어지고, 이 각각을 서브리소스라고 부릅니다. 
-    // D3D 함수들은 서브리소스를 정수 번호 하나로 가리킵니다.
-    // MipSlice, ArraySlice, MipLevels 
-    /*번호 = MipSlice + ArraySlice × MipLevels
 
-        예 : MipLevels = 3, ArraySize = 2
-              Mip0  Mip1  Mip2
-        층 0 : 0     1     2
-        층 1 : 3     4     5*/
-    const UINT SrcSubresource = D3D11CalcSubresource(0, PreviewShadowMapProxy->GetShadowIndex(), 1);
+        // 텍스처 하나는 (밉 레벨 × 배열 층) 개수만큼의 개별 이미지로 이루어지고, 이 각각을 서브리소스라고 부릅니다. 
+        // D3D 함수들은 서브리소스를 정수 번호 하나로 가리킵니다.
+        // MipSlice, ArraySlice, MipLevels 
+        /*번호 = MipSlice + ArraySlice × MipLevels
 
-    //해당 Subresource를 복사합니다.
-    //    ID3D11Resource * pDstResource, UINT DstSubresource,   // 어디로 (PreviewTexture, 0번)
-    //    UINT DstX, UINT DstY, UINT DstZ,                     // 대상 안의 시작 좌표 (0,0,0)
-    //    ID3D11Resource * pSrcResource, UINT SrcSubresource,   // 어디서 (ShadowMapArray, 층 k)
-    //    const D3D11_BOX * pSrcBox                            // 복사할 영역. nullptr = 서브리소스 전체
-    RenderCommand::GetContext()->CopySubresourceRegion(
-        PreviewShadowMapProxy->GetShadowPreview().ShadowTexture.Get(), 0, 0, 0, 0,
-        ShadowMapArrayBuffer.Get(), SrcSubresource, nullptr);
+            예 : MipLevels = 3, ArraySize = 2
+                  Mip0  Mip1  Mip2
+            층 0 : 0     1     2
+            층 1 : 3     4     5*/
+        const UINT SrcSubresource = D3D11CalcSubresource(0, PreviewShadowMapProxy->GetShadowIndex() + i, 1);
+
+        //해당 Subresource를 복사합니다.
+        //    ID3D11Resource * pDstResource, UINT DstSubresource,   // 어디로 (PreviewTexture, 0번)
+        //    UINT DstX, UINT DstY, UINT DstZ,                     // 대상 안의 시작 좌표 (0,0,0)
+        //    ID3D11Resource * pSrcResource, UINT SrcSubresource,   // 어디서 (ShadowMapArray, 층 k)
+        //    const D3D11_BOX * pSrcBox                            // 복사할 영역. nullptr = 서브리소스 전체
+        RenderCommand::GetContext()->CopySubresourceRegion(
+            PreviewShadowMapProxy->GetShadowPreview()[i].ShadowTexture.Get(), 0, 0, 0, 0,
+            ShadowMapArrayBuffer.Get(), SrcSubresource, nullptr);
+    }    
 }
 
 void FShadowMapManager::UnbindForShading()

@@ -278,6 +278,20 @@ void ComputeLighting(float3 N, float3 WorldPosition, float3 V, float n, out floa
     }
 }
 
+// 라이트에서 픽셀 방향에서 절댓값이 가장 큰 축이 그 픽셀이 들어 있는 면이다
+uint SelectCubeFace(float3 LightToPixel)
+{
+    float3 A = abs(LightToPixel);
+    if (A.x >= A.y && A.x >= A.z)
+         // Forward, Back
+        return LightToPixel.x > 0 ? 0 : 1;
+    if (A.y >= A.z)
+        // Right, Left
+        return LightToPixel.y > 0 ? 2 : 3;
+    // Up, Down
+    return LightToPixel.z > 0 ? 4 : 5;
+}
+
 // 반환값: 1 = 빛 받음, 0 = 그림자
 float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
 {
@@ -364,7 +378,14 @@ float3 WorldPosition, float3 V, float n, float2 PixelPosition, out float3 Diffus
 #endif
 
         float DistanceAttenuation = ComputeDistanceAttenuation(Distance, Radius);
-        float3 Il = Light.Color * DistanceAttenuation * GeoFactor;
+        
+        //선택할 ShadowIndex
+        uint PointShadowIndex = SelectCubeFace(-ToLight);
+        //spot light는 ComputeShadowFactor()내부에서 검사로 충분하지만 PointLight는 PointShadowIndex를 더해버리면서
+        //ShadowIndex -1이 양수가 될 수 있다. 그래서 여기서도 한번 검사해줌.
+        float Shadow = Light.ShadowIndex < 0 ? 1.0 : ComputeShadowFactor(Light.ShadowIndex + PointShadowIndex, WorldPosition);
+        
+        float3 Il = Light.Color * DistanceAttenuation * GeoFactor * Shadow;
         AccumulateLight(Il, N, L, V, n, DiffuseLight, SpecularLight);
     }
 

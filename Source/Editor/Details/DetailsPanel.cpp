@@ -1012,11 +1012,21 @@ void FDetailsPanel::OnRender()
 				ImGui::SeparatorText("Shadow Map");
 				//ShadowMap preview 하도록 요청
 				Light->SetPreviewShadowMapFlag(true);
+				const char* PointShadowMapName[] = { "Forward", "Back", "Right", "Left", "Up", "Down"};
+				int32 ShadowInfoNum = Light->GetShadowInfoNum();
 
-				if (ID3D11ShaderResourceView* ShadowSRV = Light->GetShadowPreviewSRV())
-					ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f });
-				else
-					ImGui::TextDisabled("No shadow map");
+				for (int32 i = 0; i < ShadowInfoNum; i++)
+				{
+					//Point 일 때만 이름을 나오게 하고, 1개만 있을 때는 안나오게 한다.
+					if (ShadowInfoNum > 1)
+					{
+						ImGui::TextUnformatted(PointShadowMapName[i]);
+					}
+					if (ID3D11ShaderResourceView* ShadowSRV = Light->GetShadowPreviewSRV(i))
+						ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f });
+					else
+						ImGui::TextDisabled("No shadow map");
+				}
 			}
 			ImGui::PopID();
 

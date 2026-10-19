@@ -647,7 +647,12 @@ void FRenderer::RenderShadowPass(const TArray<FShadowInfo>& ShadowInfos, const T
 			RenderCommand::BindMesh(Proxy->GetMesh(), 0);
 
 			//생각해보니 PS를 갈게 아니니까 한방에 해도 되지 않나? 수정하자
+			//RenderCommand::DrawIndexed(Proxy->GetMesh()->GetIndexBuffer(0)->GetIndexCount(), 0);
 
+			//반투명 머티리얼은 그림자 처리를 하면 안될 거 같은데 
+			// 아래 section 단위 콜은 머티리얼에 반투명이 있는 경우를 대응할 수 있다.
+			//좀 더 고민해보기.
+			//머티리얼이 전부 불투명이면 한번에 그리고, 반투명이 섞여있다면 section 단위로 그리게 한다거나??
 			const FCachedMeshLOD& LOD = Proxy->GetLOD(0);
 			for (uint32 i = 0; i < LOD.NumSections; ++i)
 			{
