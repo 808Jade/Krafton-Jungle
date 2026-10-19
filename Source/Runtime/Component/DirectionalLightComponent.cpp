@@ -11,6 +11,14 @@ FDirectionalLightInfo UDirectionalLightComponent::GetDirectionalLightInfo() cons
 	return Info;
 }
 
+FShadowInfo UDirectionalLightComponent::GetShadowInfo() const
+{
+    FShadowInfo ShadowInfo;
+    ShadowInfo.LightViewProjection = GetViewProjectionMatrix(true, 10000.0f, 0.f, 1.f);
+    ShadowInfo.Bias = GetShadowBias();
+    return ShadowInfo;
+}
+
 FLightSceneProxy* UDirectionalLightComponent::CreateSceneProxy()
 {
 	return new FDirectionalLightSceneProxy(this);

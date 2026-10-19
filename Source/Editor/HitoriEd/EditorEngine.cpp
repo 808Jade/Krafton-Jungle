@@ -34,6 +34,8 @@
 #include "Core/EngineLog.h"
 #include "Core/Stats/LightweightStats.h"
 
+#include "Engine/LightSceneProxy.h"
+
 namespace
 {
 	DECLARE_CYCLE_STAT("Viewport Update", STAT_ViewportUpdate);
@@ -124,6 +126,8 @@ bool UEditorEngine::Init()
 	EditorControlsPanel = EditorUI->AddEditorPanel<FEditorControlsPanel>();
 	ViewportsPanel = EditorUI->AddEditorPanel<FViewportsPanel>();
 	ContentDrawerPanel = EditorUI->AddEditorPanel<FContentDrawerPanel>();
+
+	
 
 	// OutLine
 	OutlineRenderer = MakeUnique<FOutlineRenderer>();
@@ -909,10 +913,22 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 	FLightingConstants Lighting;
 	TArray<FPointLightInfo> PointLights;
 	TArray<FSpotLightInfo> SpotLights;
+	TArray<FShadowInfo> ShadowInfos;
+
+	//프리뷰를 보여줄 LightProxy
+	FLightSceneProxy* PreviewShadowMapLightProxy = nullptr;
 
 	ViewWorld.GetScene().BuildLightingConstants(Lighting);
-	ViewWorld.GetScene().BuildStructuredLight(PointLights, SpotLights);
+	ViewWorld.GetScene().BuildStructuredLightAndShadowData(PointLights, SpotLights, ShadowInfos, PreviewShadowMapLightProxy);
+	
 	Renderer->SetLighting(Lighting, PointLights, SpotLights);
+
+	//Shadow Info StructuredBuffer, ShadowMap 만들기
+	if (ShadowInfos.Num() > 0)
+	{
+		Renderer->RenderShadowPass(ShadowInfos, ViewWorld.GetScene().Proxies, PreviewShadowMapLightProxy);
+	}
+
 
 	// 1. 불투명·반투명 Pass (Linear 씬 컬러)
 	RenderOpaquePass(ViewIndex, SceneRenderingInfo, ViewProjection, ViewCameraLocation, ViewCameraForward, RenderQueue, Lighting.Directional);

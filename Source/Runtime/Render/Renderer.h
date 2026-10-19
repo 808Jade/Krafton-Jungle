@@ -10,6 +10,10 @@
 #include "Occlusion/GPUOcclusion.h"
 #include "TileLightCulling.h"
 #include "LocalLight.h"
+#include "ShadowMapManager.h"
+
+class FPrimitiveSceneProxy;
+class FLightSceneProxy;
 
 constexpr uint32 ObjectSlotBytes = 256;
 
@@ -103,6 +107,11 @@ public:
 
 	void EnsureTileLightCapacity(const FMatrix& ViewProjection, uint32 Width, uint32 Height, bool bVisualizeLightCount);
 
+	void RenderShadowPass(const TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy);
+
+	//ImGui용 PreviewSRV 반환
+	//ID3D11ShaderResourceView* GetShadowPreviewSRV() const { return ShadowMapManager.GetPreviewSRV(); }
+
 private:
 	// FIFO 소비용 배열의 용량만 재사용하며 매 View의 패킷 값은 새로 채운다.
 	FRenderQueue RenderPackets;
@@ -145,4 +154,9 @@ private:
 	void UploadPerObjectConstants();
 
 	TArray<FSortEntry> SortEntries;
+
+	//Shadow Map
+	FShadowMapManager ShadowMapManager;
+	// Init()에서 CreateConstantBuffer(sizeof(FMatrix))
+	TUniquePtr<FConstantBuffer> ShadowViewCB;   
 };

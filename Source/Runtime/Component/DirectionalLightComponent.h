@@ -15,6 +15,7 @@ public:
 	virtual ~UDirectionalLightComponent() override = default;
 
 	FDirectionalLightInfo GetDirectionalLightInfo() const;
+	virtual FShadowInfo GetShadowInfo() const override;
 	virtual FLightSceneProxy* CreateSceneProxy() override;
 
 	void DrawDebug(FLineBatcher* LineBatcher) const;

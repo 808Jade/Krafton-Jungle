@@ -5,7 +5,7 @@ struct FPointLightInfo
     float3 Color;
     float AttenuationRadius;
     float3 Position;
-    float Padding;
+    int ShadowIndex;
 };
 
 struct FSpotLightInfo
@@ -16,6 +16,8 @@ struct FSpotLightInfo
     float CosInnerCone;
     float3 Direction;
     float CosOuterCone;
+    int ShadowIndex;
+    float3 Padding_s;
 };
 
 cbuffer TileLightCullingConstants : register(b0)

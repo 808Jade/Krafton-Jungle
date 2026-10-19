@@ -48,7 +48,8 @@ struct FDirectionalLightInfo
     float3 Color;
     float Padding0;
     float3 Direction;
-    float Padding1;
+    int ShadowIndex;
+    //float Padding1;
 };
 
 struct FPointLightInfo
@@ -56,7 +57,8 @@ struct FPointLightInfo
     float3 Color;
     float AttenuationRadius;
     float3 Position;
-    float Padding;
+    int ShadowIndex;
+    //float Padding;
 };
 
 struct FSpotLightInfo
@@ -67,6 +69,15 @@ struct FSpotLightInfo
     float CosInnerCone;
     float3 Direction;
     float CosOuterCone;
+    int ShadowIndex;
+    float3 Padding_s;
+};
+
+struct FShadowInfo
+{
+    matrix LightViewProjection;
+    float Bias;
+    float3 Padding;
 };
 
 struct FVSInput
@@ -147,6 +158,7 @@ StructuredBuffer<FPointLightInfo> StructuredPointLights : register(t8);
 StructuredBuffer<FSpotLightInfo> StructuredSpotLights : register(t9);
 StructuredBuffer<uint> PointTileList : register(t10);
 StructuredBuffer<uint> SpotTileList : register(t11);
+StructuredBuffer<FShadowInfo> StructuredShadowData : register(t12);
 
 Texture2D AlbedoTexture : register(t0);
 
@@ -154,7 +166,10 @@ Texture2D AlbedoTexture : register(t0);
 Texture2D NormalTexture : register(t1);
 #endif
 
+Texture2DArray<float> ShadowTextureArray : register(t2);
+
 SamplerState AlbedoSampler : register(s0);
+SamplerState ShadowSampler : register(s1);
 
 float3 DiffuseTerm(float3 Il, float3 N, float3 L)
 {
@@ -263,6 +278,41 @@ void ComputeLighting(float3 N, float3 WorldPosition, float3 V, float n, out floa
     }
 }
 
+// 반환값: 1 = 빛 받음, 0 = 그림자
+float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
+{
+    //-1이면 그림자 없는 라이트
+    if (ShadowIndex < 0)
+        return 1.0f;
+
+    FShadowInfo Info = StructuredShadowData[ShadowIndex];
+
+    // light Clip Space 클립 공간
+    float4 LightClip = mul(float4(WorldPosition, 1.0f), Info.LightViewProjection);
+    // 광원 뒤쪽
+    if (LightClip.w <= 0.0f)
+        return 1.0f; 
+
+    //원근 나눗셈은 PS에서 (VS에서 나누고 보간하면 원근 보정이 깨짐)
+    float3 Ndc = LightClip.xyz / LightClip.w;
+
+    //NDC → UV. D3D 텍스처는 v가 아래로 증가하므로 y를 뒤집는다
+    float2 UV = float2(Ndc.x * 0.5f + 0.5f, 1.0f - (Ndc.y * 0.5f + 0.5f));
+
+    //범위 검사: 섀도맵 밖이거나 Far 너머면 그림자 판정 불가 : 빛 받음
+    //any 함수는 입력된 값 중 하나라도 0이 아닌 것(True)이 있으면 true를 반환
+    //들어온 UV 중 u와 v중 하나라도 0.0보다 작다면으로 해석됨
+    if (any(UV < 0.0f) || any(UV > 1.0f) || Ndc.z > 1.0f)
+        return 1.0f;
+
+    // 저장된 최소 깊이. z = 층 번호 (지금은 ShadowIndex == 층)
+    float StoredDepth = ShadowTextureArray.SampleLevel(ShadowSampler, float3(UV, ShadowIndex), 0);
+
+    // 비교 + 상수 Bias
+    // 샘플링 한 것보다 크다면 그림자임
+    return (Ndc.z - Info.Bias) > StoredDepth ? 0.0f : 1.0f;
+}
+
 
 void ComputeTiledLighting(float3 N,
 #if USE_NORMAL_MAP
@@ -342,14 +392,16 @@ float3 WorldPosition, float3 V, float n, float2 PixelPosition, out float3 Diffus
 #else
         float GeoFactor = 1.0f;
 #endif
-
+        //그림자 판단
+        float Shadow = ComputeShadowFactor(Light.ShadowIndex, WorldPosition);        
+        
         float DistanceAttenuation = ComputeDistanceAttenuation(Distance, Radius);
         float CosAngle = dot(-L, normalize(Light.Direction));
         float SpotAttenuation = Light.CosInnerCone == Light.CosOuterCone
             ? (CosAngle > Light.CosOuterCone ? 1.0f : 0.0f)
             : saturate((CosAngle - Light.CosOuterCone) / (Light.CosInnerCone - Light.CosOuterCone));
 
-        float3 Il = Light.Color * DistanceAttenuation * SpotAttenuation * GeoFactor;
+        float3 Il = Light.Color * DistanceAttenuation * SpotAttenuation * GeoFactor * Shadow;
         AccumulateLight(Il, N, L, V, n, DiffuseLight, SpecularLight);
     }
 }

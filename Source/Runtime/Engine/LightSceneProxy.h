@@ -11,11 +11,28 @@ enum class ELightType : uint8
 	Ambient, Directional, Point, Spot,
 };
 
+//ShadowMap 프리뷰 용 Texture, SRV
+struct FShadowPreview
+{
+	ComPtr<ID3D11Texture2D> ShadowTexture;
+	ComPtr<ID3D11ShaderResourceView> ShadowSRV;
+	uint32 Resolution = 0;
+
+	void Reset()
+	{
+		ShadowTexture.Reset();
+		ShadowSRV.Reset();		
+	}
+};
+
 class FLightSceneProxy
 {
 public:
 	FLightSceneProxy(ULightComponentBase* InComponent, ELightType InType) : Component(InComponent), Type(InType) {}
-	virtual ~FLightSceneProxy() = default;
+	virtual ~FLightSceneProxy()
+	{
+		ShadowPreview.Reset();
+	}
 
 	virtual void UpdateFromComponent() = 0;
 
@@ -23,6 +40,20 @@ public:
 	ELightType GetLightType() const { return Type; }
 	FScene* GetScene() const { return Scene; }
 	bool IsVisible() const { return bVisible; }
+
+	int32 GetShadowIndex() const { return ShadowIndex; }
+
+	//디테일 창에서 ShadowMap을 프리뷰하도록 요청하게 된다.
+	void SetPreviewShadowMapFlag(bool IsShow) { bPreviewShadowMap = IsShow; }	
+
+	// 이번 프레임 그림자가 없으면 표시 안 함
+	ID3D11ShaderResourceView* GetShadowPreviewSRV() const
+	{
+		return ShadowIndex >= 0 ? ShadowPreview.ShadowSRV.Get() : nullptr;
+	}
+
+	// Renderer가 채울 때만 사용
+	FShadowPreview& GetShadowPreview() { return ShadowPreview; }
 
 protected:
 	ULightComponentBase* Component = nullptr;
@@ -33,6 +64,13 @@ private:
 	FScene* Scene = nullptr;
 	ELightType Type;
 	bool bQueuedForUpdate = false;
+
+	// 이번 프레임 배정 결과. 매 프레임 Build에서 다시 쓴다
+	int32 ShadowIndex = -1;
+
+	//ShadowMap을 디테일 창에 프리뷰 할지
+	bool bPreviewShadowMap = false;
+	FShadowPreview ShadowPreview;
 };
 
 class FAmbientLightSceneProxy final : public FLightSceneProxy
@@ -63,12 +101,16 @@ public:
 		const UDirectionalLightComponent* Light = static_cast<const UDirectionalLightComponent*>(Component);
 		Info = Light->GetDirectionalLightInfo();
 		bVisible = Light->IsLightVisible();
+
+		ShadowInfo = Light->GetShadowInfo();
 	}
 
 	const FDirectionalLightInfo& GetInfo() const { return Info; }
+	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
 
 private:
 	FDirectionalLightInfo Info;
+	FShadowInfo ShadowInfo;
 };
 
 class FPointLightSceneProxy final : public FLightSceneProxy
@@ -81,12 +123,16 @@ public:
 		const UPointLightComponent* Light = static_cast<const UPointLightComponent*>(Component);
 		Info = Light->GetPointLightInfo();
 		bVisible = Light->IsLightVisible();
+
+		ShadowInfo = Light->GetShadowInfo();
 	}
 
 	const FPointLightInfo& GetInfo() const { return Info; }
+	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
 
 private:
 	FPointLightInfo Info;
+	FShadowInfo ShadowInfo;
 };
 
 class FSpotLightSceneProxy final : public FLightSceneProxy
@@ -99,10 +145,13 @@ public:
 		const USpotLightComponent* Light = static_cast<const USpotLightComponent*>(Component);
 		Info = Light->GetSpotLightInfo();
 		bVisible = Light->IsLightVisible();
+		ShadowInfo = Light->GetShadowInfo();
 	}
 
 	const FSpotLightInfo& GetInfo() const { return Info; }
+	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
 
 private:
 	FSpotLightInfo Info;
+	FShadowInfo ShadowInfo;
 };

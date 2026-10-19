@@ -278,10 +278,25 @@ void FRenderDevice::CreateStates()
 
 		Device->CreateSamplerState(&Desc, SamplerStates[(uint8)ESamplerState::LinearClamp].GetAddressOf());
 
+		Desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+		Device->CreateSamplerState(&Desc, SamplerStates[(uint8)ESamplerState::Point].GetAddressOf());
+
 		Desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 		Desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 		Desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 
 		Device->CreateSamplerState(&Desc, SamplerStates[(uint8)ESamplerState::LinearWrap].GetAddressOf());
+
+		Desc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+		// 주소 밖 영역은 그림자가 지지 않도록 보통 흰색(Border)이나 Clamp 처리
+		Desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+		Desc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+		Desc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+		Desc.BorderColor[0] = 1.0f; // R (깊이 최댓값)
+		Desc.BorderColor[1] = 1.0f; // G
+		Desc.BorderColor[2] = 1.0f; // B
+		Desc.BorderColor[3] = 1.0f; // A
+		Desc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+		Device->CreateSamplerState(&Desc, SamplerStates[(uint8)ESamplerState::Comparison_Point].GetAddressOf());
 	}
 }

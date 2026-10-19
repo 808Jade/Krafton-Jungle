@@ -30,6 +30,7 @@ public:
 		TargetActor = InTargetActor;
 		TargetComponent = InTargetActor ? InTargetActor->GetRootComponent() : nullptr;
 	}
+	UActorComponent* GetTargetComponent() const { return TargetComponent; }
 	void SetTargetComponent(UActorComponent* InTargetComponent) { TargetComponent = InTargetComponent; }
 
 	void SetSelectionCallback(DetailsSelectionCallback InCallback) { Callback = InCallback; }
