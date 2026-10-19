@@ -3,6 +3,8 @@
 #include "Render/LightInfo.h"
 #include "Containers/Array.h"
 
+class FLightSceneProxy;
+
 class FShadowMapManager
 {
 public:
@@ -26,8 +28,7 @@ public:
 	void BindForShading();
 
 	//Imgui
-	void UpdatePreview(uint32 Slice);
-	ID3D11ShaderResourceView* GetPreviewSRV() const { return PreviewSRV.Get(); }
+	void UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy);
 
 private:
 	// 해상도, 층 수가 바뀔 때만 리소스와 뷰를 다시 만든다
@@ -40,6 +41,7 @@ private:
 	ComPtr<ID3D11Texture2D> ShadowMapArrayBuffer;
 	ComPtr<ID3D11ShaderResourceView> ShadowMapArraySRV;
 	TArray<ComPtr<ID3D11DepthStencilView>> ShadowDepthView;
+	
 
 	uint32 ShadowInfoCapacity = 0;
 	uint32 NumShadowInfos = 0;	
@@ -49,8 +51,4 @@ private:
 
 	uint32 Resolution = 0;
 	uint32 NumSlices = 0;
-
-	// 층 하나를 복사해 둘 일반 Texture2D
-	ComPtr<ID3D11Texture2D> PreviewTexture;   
-	ComPtr<ID3D11ShaderResourceView> PreviewSRV;
 };

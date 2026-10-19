@@ -27,6 +27,11 @@ public:
 		   
 	virtual FShadowInfo GetShadowInfo() const;
 
+	ID3D11ShaderResourceView* GetShadowPreviewSRV() const;
+
+	//이번 프레임에서 ShadowMap을 Preview하도록한다.
+	void SetPreviewShadowMapFlag(bool InShow);
+
 private:
     // Transform의 역변환으로 View 행렬을 만든다.
     FMatrix GetViewMatrix() const;

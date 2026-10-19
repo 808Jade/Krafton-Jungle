@@ -10,6 +10,7 @@ class USpotLightComponent : public UPointLightComponent
 	REFLECT_START(USpotLightComponent)
 		PROPERTY(InnerConeAngle)
 		PROPERTY(OuterConeAngle)
+		PROPERTY(IsDebugLine)
 	REFLECT_END()
 
 public:
@@ -30,4 +31,7 @@ public:
 protected:
 	float InnerConeAngle = 0.0f;
 	float OuterConeAngle = 44.0f;
+
+private:
+	bool IsDebugLine = false;
 };

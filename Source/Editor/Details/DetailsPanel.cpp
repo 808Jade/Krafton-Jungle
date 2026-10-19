@@ -1010,9 +1010,11 @@ void FDetailsPanel::OnRender()
 			if (ULightComponent* Light = Cast<ULightComponent>(TargetComponent))
 			{
 				ImGui::SeparatorText("Shadow Map");
-				const FLightSceneProxy* LightProxy = Light->GetSceneProxy();
-				if (LightProxy && LightProxy->GetShadowIndex() >= 0 && ShadowPreviewGetter)
-					ImGui::Image(ShadowPreviewGetter(), { 256.0f, 256.0f });
+				//ShadowMap preview 하도록 요청
+				Light->SetPreviewShadowMapFlag(true);
+
+				if (ID3D11ShaderResourceView* ShadowSRV = Light->GetShadowPreviewSRV())
+					ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f });
 				else
 					ImGui::TextDisabled("No shadow map");
 			}

@@ -40,9 +40,6 @@ public:
 
 	ImFont* GetCustomFont() { return CustomFont; }
 
-	//ShadowMap 세팅
-	void SetShadowPreviewGetter(std::function<ImTextureID()> InGetter) { ShadowPreviewGetter = std::move(InGetter); }
-
 private:
 	void DrawSceneComponentNode(USceneComponent* Component, USceneComponent* Root, UActorComponent*& OutSelectedComponent);
 	void TryReparent(USceneComponent* DroppedComponent, USceneComponent* DragComponent);
@@ -63,8 +60,5 @@ private:
 
 	USceneComponent* PendingDroppedComponent = nullptr;
 	USceneComponent* PendingDragComponent = nullptr;
-
-	//ShadowMap 프리뷰
-	std::function<ImTextureID()> ShadowPreviewGetter;
 };
 

@@ -1,5 +1,6 @@
 #include "EnginePCH.h"
 #include "LightComponent.h"
+#include "Engine/LightSceneProxy.h"
 
 FMatrix ULightComponent::GetViewMatrix() const
 {
@@ -71,4 +72,16 @@ FMatrix ULightComponent::GetViewProjectionMatrix(bool bIsOrthogonal, float FarCl
 FShadowInfo ULightComponent::GetShadowInfo() const
 {
     return FShadowInfo();
+}
+
+ID3D11ShaderResourceView* ULightComponent::GetShadowPreviewSRV() const
+{
+    return GetSceneProxy() ? GetSceneProxy()->GetShadowPreviewSRV() : nullptr;
+}
+
+void ULightComponent::SetPreviewShadowMapFlag(bool InShow)
+{
+    if (GetSceneProxy() == nullptr) return;
+
+    GetSceneProxy()->SetPreviewShadowMapFlag(InShow);
 }
