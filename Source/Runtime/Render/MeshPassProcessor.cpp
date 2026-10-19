@@ -502,11 +502,11 @@ bool FMeshPassProcessor::Build(const FSceneView& View, const FRenderQueue& Queue
 	return true;
 }
 
-bool FMeshPassProcessor::BuildDepthOnly(const TArray<FPrimitiveSceneProxy*>& ShadowMeshes, TArray<FMeshDrawBatch>& OutBatches)
+bool FMeshPassProcessor::Build(const TArray<FPrimitiveSceneProxy*>& ShadowMeshes, EPSOType PSOType, TArray<FMeshDrawBatch>& OutBatches)
 {
 	OutBatches.Reset();
 
-	const FPipelineState* Pipeline = FRenderResourceManager::GetPSO(EPSOType::StaticMesh_DepthOnly);
+	const FPipelineState* Pipeline = FRenderResourceManager::GetPSO(PSOType);
 
 	if (!Pipeline || !Pipeline->Shader || !Pipeline->Shader->VertexShader)
 	{

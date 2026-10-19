@@ -133,7 +133,7 @@ float4 mainPS(FPSInput Input) : SV_Target
         float3 LightColor = Light.Color * Light.Intensity;
                 
         FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + DirectionalIndex];
-        float Shadow = CalculateShadow(WorldPosition, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, SkySampler);
+        float Shadow = CalculateShadow(WorldPosition, N, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, SkySampler);
 
         BaseLighting += LightColor * saturate(dot(N, -LightDir)) * Shadow;
     }
@@ -189,7 +189,7 @@ float4 mainPS(FPSInput Input) : SV_Target
         
         FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.x + (PointIndex * 6 + FaceIndex)];
             
-        float Shadow = CalculateShadow(WorldPosition, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, SkySampler);
+        float Shadow = CalculateShadow(WorldPosition, N, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, SkySampler);
         
         float3 Radiance = Light.Color * max(Light.Intensity, 0.0f) * Attenuation * Shadow;
         
@@ -222,7 +222,7 @@ float4 mainPS(FPSInput Input) : SV_Target
         
         FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.y + SpotIndex];
             
-        float Shadow = CalculateShadow(WorldPosition, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, SkySampler);
+        float Shadow = CalculateShadow(WorldPosition, N, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, SkySampler);
         
         float3 Radiance = Light.Color * max(Light.Intensity, 0.0f) * ConeFade * RadiusFade * Shadow;
         

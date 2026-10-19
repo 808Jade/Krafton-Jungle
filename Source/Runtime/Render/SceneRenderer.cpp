@@ -199,7 +199,7 @@ bool FSceneRenderer::BindForwardLighting(FRenderer* Renderer, const FSceneRender
 	Renderer->BindStructured(8, RenderData.HasLights() && LightResources.GetSceneLights() && LightResources.GetSceneLights()->GetSRV() ? LightResources.GetSceneLights() : nullptr, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
 	Renderer->BindSampler(1, ESamplerState::LinearClamp, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
-	Renderer->BindSampler(2, ESamplerState::PointClamp, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
+	Renderer->BindSampler(2, ESamplerState::ShadowComparison, EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
 	return true;
 }
@@ -369,18 +369,12 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 				return;
 			}
 
-			FPipelineState* DepthPipeline = FRenderResourceManager::GetPSO(EPSOType::StaticMesh_DepthOnly);
-			if (!DepthPipeline || !DepthPipeline->Shader)
-			{
-				return;
-			}
-
 			FTexture2DArray* DepthArray = static_cast<FTexture2DArray*>(Graph.Resolve(ShadowMapRef));
 
 			FMeshPassProcessor Processor;
 
 			TArray<FMeshDrawBatch> Batched;
-			Processor.BuildDepthOnly(RenderData.VisibleProxies, Batched);
+			Processor.Build(RenderData.VisibleProxies, EPSOType::StaticMesh_LightShadow, Batched);
 
 			// 실제 메시 패스와 같은 VS를 사용해 깊이 계산을 일치시킨다.
 			for (int32 i = 0; i < RenderData.LightShadows.Num(); i++)

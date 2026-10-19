@@ -40,6 +40,7 @@ constexpr FPipelineTableEntry PipelineTable[] =
 	{ EPSOType::StaticMesh_Forward,		"Resources/Shader/UberLit.hlsl",			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST,			ERasterizerState::SolidBack, EBlendState::Opaque, EDepthStencilState::Default },
 	{ EPSOType::StaticMesh_WorldNormal, "Resources/Shader/UberLit.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidBack, EBlendState::Opaque, EDepthStencilState::Default },
 	{ EPSOType::StaticMesh_DepthOnly, "Resources/Shader/DepthPrepass.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidBack, EBlendState::NoColorWrite, EDepthStencilState::Default },
+	{ EPSOType::StaticMesh_LightShadow, "Resources/Shader/DepthPrepass.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::LightShadow, EBlendState::NoColorWrite, EDepthStencilState::Default },
 	{ EPSOType::LightCullingDebug, "Resources/Shader/LightCullingDebug.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::AlphaBlend, EDepthStencilState::Disabled },
 };
 

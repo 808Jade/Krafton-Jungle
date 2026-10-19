@@ -34,7 +34,7 @@ struct FSceneRenderData
 	static constexpr uint32 ShadowMapSize = 4096;
 	static constexpr uint32 DirectionalLightShadowMapSize = 4096;
 	static constexpr uint32 MaxCascadeShadowCount = 4;
-	static constexpr float MaxCascadeDistance = 200.f;
+	static constexpr float MaxCascadeDistance = 1000.f;
 	static constexpr uint32 PointLightShadowMapSize = 512;
 	static constexpr uint32 SpotLightShadowMapSize = 1024;
 
@@ -221,7 +221,7 @@ struct FSceneRenderData
 			}
 
 			float CascadeShadowFar = FMath::Min(CameraFar, MaxCascadeDistance);
-			float CascadeTFactor = (CascadeShadowFar - CameraNear) / (CameraFar - CameraNear);
+			float LogRatio = 0.8;
 
 			CascadeShadowCount = FMath::Clamp(ExpectCascadeCount, 1u, MaxCascadeShadowCount);
 
@@ -247,12 +247,16 @@ struct FSceneRenderData
 				uint32 CascadeShadowMapSize = DirectionalLightShadowMapSize;
 				for (int32 j = 0; j < CascadeShadowCount; j++)
 				{
-					float T = (j + 1) * (1.f / (float)CascadeShadowCount);
+					float Linear = CameraNear + (CascadeShadowFar - CameraNear) * ((j + 1) / (float)CascadeShadowCount);
+					float Log = CameraNear * std::pow(CascadeShadowFar / CameraNear, (j + 1) / (float)CascadeShadowCount);
+					float Dist = (1.f - LogRatio) * Linear + LogRatio * Log;
 
-					FVector LT = CameraFrustumCorners.NTL() + ToTL * T * CascadeTFactor;
-					FVector RT = CameraFrustumCorners.NTR() + ToTR * T * CascadeTFactor;
-					FVector LB = CameraFrustumCorners.NBL() + ToBL * T * CascadeTFactor;
-					FVector RB = CameraFrustumCorners.NBR() + ToBR * T * CascadeTFactor;
+					float T = (Dist - CameraNear) / (CameraFar - CameraNear);
+
+					FVector LT = CameraFrustumCorners.NTL() + ToTL * T;
+					FVector RT = CameraFrustumCorners.NTR() + ToTR * T;
+					FVector LB = CameraFrustumCorners.NBL() + ToBL * T;
+					FVector RB = CameraFrustumCorners.NBR() + ToBR * T;
 
 					FVector* WorldCorners[] = {
 						&PrevTL,
@@ -290,7 +294,7 @@ struct FSceneRenderData
 					PrevBL = LB;
 					PrevBR = RB;
 
-					CascadeShadowDistances[j] = CameraNear + (CascadeShadowFar - CameraNear) * T;
+					CascadeShadowDistances[j] = Dist;
 					CascadeShadowMapSize /= 2;
 				}
 			}

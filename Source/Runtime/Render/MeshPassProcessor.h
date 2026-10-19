@@ -89,5 +89,5 @@ public:
 		const FSceneRenderData* SceneData, EMeshPassType Pass,
 		TArray<FMeshDrawBatch>& Out, ELightingModel LightingModel = ELightingModel::Gouraud) const;
 
-	bool BuildDepthOnly(const TArray<FPrimitiveSceneProxy*>& ShadowMeshes, TArray<FMeshDrawBatch>& OutBatches);
+	bool Build(const TArray<FPrimitiveSceneProxy*>& ShadowMeshes, EPSOType PSOType, TArray<FMeshDrawBatch>& OutBatches);
 };

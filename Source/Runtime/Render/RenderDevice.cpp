@@ -321,6 +321,16 @@ void FRenderDevice::CreateStates()
 		Desc.FillMode = D3D11_FILL_WIREFRAME;
 		Desc.CullMode = D3D11_CULL_NONE;
 		Device->CreateRasterizerState(&Desc, RasterizerStates[(uint8)ERasterizerState::Wireframe].GetAddressOf());
+
+		D3D11_RASTERIZER_DESC LightShadowDesc = {};
+		LightShadowDesc.FillMode = D3D11_FILL_SOLID;
+		LightShadowDesc.CullMode = D3D11_CULL_BACK;
+		LightShadowDesc.FrontCounterClockwise = FALSE;
+		LightShadowDesc.DepthClipEnable = TRUE;
+		LightShadowDesc.DepthBias = 1000;
+		LightShadowDesc.SlopeScaledDepthBias = 2.0;
+		LightShadowDesc.DepthBiasClamp = 0.0;
+		Device->CreateRasterizerState(&LightShadowDesc, RasterizerStates[(uint8)(ERasterizerState::LightShadow)].GetAddressOf());
 	}
 
 	// ---------- DepthStencil ----------
@@ -421,7 +431,7 @@ void FRenderDevice::CreateStates()
 		D3D11_SAMPLER_DESC PointDesc = {};
 		PointDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
 		PointDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-		PointDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		PointDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP; 
 		PointDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 		PointDesc.MaxAnisotropy = 1;
 		PointDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
@@ -429,5 +439,17 @@ void FRenderDevice::CreateStates()
 		PointDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 		Device->CreateSamplerState(&PointDesc, SamplerStates[(uint8)ESamplerState::PointClamp].GetAddressOf());
+
+		D3D11_SAMPLER_DESC ShadowComparisionDesc = {};
+		PointDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+		PointDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		PointDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		PointDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		PointDesc.MaxAnisotropy = 1;
+		PointDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+		PointDesc.MinLOD = 0.0f;
+		PointDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+		Device->CreateSamplerState(&PointDesc, SamplerStates[(uint8)ESamplerState::ShadowComparison].GetAddressOf());
 	}
 }
