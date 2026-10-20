@@ -792,6 +792,7 @@ void UEditorEngine::RenderGameFrame(FGameViewportClient* GameClient, const FScen
 	if (SettingsPanel)
 	{
 		Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
+		Options.PcfMode = SettingsPanel->GetSettings().PcfMode;
 		Options.ShadowDepthBias = SettingsPanel->GetSettings().ShadowDepthBias;
 		Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;
 		Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
@@ -993,6 +994,7 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 	FSceneRenderOptions Options;
 	Options.bDrawPrimitives = bIsPIE || SettingsPanel->GetSettings().bDrawPrimitives;
 	Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
+	Options.PcfMode = SettingsPanel->GetSettings().PcfMode;
 	Options.ShadowDepthBias = SettingsPanel->GetSettings().ShadowDepthBias;
 	Options.bEnableFog = ViewClient->GetViewportMode() == EViewportMode::Solid;
 	Options.bEnableFXAA = SettingsPanel->GetSettings().bEnableFXAA;

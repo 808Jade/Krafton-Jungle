@@ -109,7 +109,7 @@ void FSceneRenderer::InitViews(FRenderer* Renderer)
 	RenderData.Commit(View.FrustumCorners, View.NearClip, View.FarClip, 4, bLightUploadSucceeded);
 }
 
-bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uint32 Height)
+bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uint32 Height, EPcfMode PcfMode)
 {
 	FSceneLightResources& LightResources = RenderData.ViewLightResources;
 
@@ -134,6 +134,7 @@ bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uin
 	Constants.ShadowAtlasWidth = LightShadowAtlas ? LightShadowAtlas->GetWidth() : 0;
 	Constants.ShadowAtlasHeight = LightShadowAtlas ? LightShadowAtlas->GetHeight() : 0;
 	Constants.CascadeShadowCount = RenderData.CascadeShadowCount;
+	Constants.PcfMode = static_cast<uint32>(PcfMode);
 	std::memcpy(Constants.CascadeShadowDistances, RenderData.CascadeShadowDistances, sizeof(RenderData.CascadeShadowDistances));
 
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
@@ -183,6 +184,7 @@ bool FSceneRenderer::BindForwardLighting(FRenderer* Renderer, const FSceneRender
 	Constants.ShadowAtlasWidth = LightShadowAtlas ? LightShadowAtlas->GetWidth() : 0;
 	Constants.ShadowAtlasHeight = LightShadowAtlas ? LightShadowAtlas->GetHeight() : 0;
 	Constants.CascadeShadowCount = RenderData.CascadeShadowCount;
+	Constants.PcfMode = static_cast<uint32>(Options.PcfMode);
 	
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
 	std::memcpy(Constants.LightOffsets, RenderData.LightParameterOffsets, sizeof(RenderData.LightParameterOffsets)); // LightOffset은 각 조명별로 시작하는 위치
@@ -367,11 +369,11 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 			LightingPass.ColorAttachments = {
 				{ LightingHDR, ERenderGraphLoadAction::Load }
 			};
-			if (!Graph.AddRasterPass(std::move(LightingPass), [this, Renderer, &Graph, BaseColor, Normal, Depth, Width, Height, bShowShadow = Options.bShowShadow,
+			if (!Graph.AddRasterPass(std::move(LightingPass), [this, Renderer, &Graph, BaseColor, Normal, Depth, Width, Height, PcfMode = Options.PcfMode, bShowShadow = Options.bShowShadow,
 				ShadowDepthBias = Options.ShadowDepthBias]
 				{
 					if (!bCorePassSucceeded) return;
-					if (!BindDeferredLighting(Renderer, Width, Height))
+					if (!BindDeferredLighting(Renderer, Width, Height, PcfMode))
 					{
 						bCorePassSucceeded = false;
 						return;

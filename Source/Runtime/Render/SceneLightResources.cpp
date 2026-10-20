@@ -20,6 +20,7 @@ namespace
 	static_assert(offsetof(FDeferredLightConstants, ShadowAtlasWidth) == 192);
 	static_assert(offsetof(FDeferredLightConstants, ShadowAtlasHeight) == 196);
 	static_assert(offsetof(FDeferredLightConstants, CascadeShadowCount) == 200);
+	static_assert(offsetof(FDeferredLightConstants, PcfMode) == 204);
 	static_assert(offsetof(FDeferredLightConstants, CascadeShadowDistances) == 208);
 	static_assert(sizeof(FDeferredLightConstants) == 224);
 

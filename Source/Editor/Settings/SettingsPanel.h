@@ -15,6 +15,7 @@ struct FEditorSettings
 	bool bWireframe = false;
 	bool bDrawPrimitives = true;
 	bool bShowShadow = true;
+	EPcfMode PcfMode = EPcfMode::On;
 	bool bDrawBoundingBox = false;
 	bool bShowUUID = false;
 	bool bDrawBatchLine = true;

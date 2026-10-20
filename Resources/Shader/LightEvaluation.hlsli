@@ -42,7 +42,7 @@ float CalculateLinearDepth(float Z, float Near, float Far)
     return (Near * Far) / (Far - Z * (Far - Near));
 }
 
-float CalculateShadow(float3 P, float3 N, float3 LightDirection, Texture2DArray Atlas, uint AtlasWidth, uint AtlasHeight, FLightShadowRenderData Shadow, SamplerState PointSampler, SamplerComparisonState ShadowSampler, float bReceiveShadow)
+float CalculateShadow(float3 P, float3 N, float3 LightDirection, Texture2DArray Atlas, uint AtlasWidth, uint AtlasHeight, FLightShadowRenderData Shadow, SamplerState PointSampler, SamplerComparisonState ShadowSampler, float bReceiveShadow, uint PcfMode)
 {
     [branch]
     if (bReceiveShadow < 0.5f)
@@ -63,20 +63,6 @@ float CalculateShadow(float3 P, float3 N, float3 LightDirection, Texture2DArray 
             
     float CenterDepth = CoordPos.z;
     
-    float2 UDelta = float2(ddx(CenterAtlasU), ddy(CenterAtlasU));
-    float2 VDelta = float2(ddx(CenterAtlasV), ddy(CenterAtlasV));
-    float2 DepthDelta = float2(ddx(CenterDepth), ddy(CenterDepth));
-    
-    float D = UDelta.x * VDelta.y - UDelta.y * VDelta.x;
-    
-    float USlope = 0.0;
-    float VSlope = 0.0;
-    if (D != 0.0)
-    {
-        USlope = (DepthDelta.x * VDelta.y - DepthDelta.y * VDelta.x) / D;
-        VSlope = (UDelta.x * DepthDelta.y - UDelta.y * DepthDelta.x) / D;
-    }
-            
     if (CoordPos.w > 0.0 && CoordPos.x >= -1.0 && CoordPos.x <= 1.0 && CoordPos.y >= -1.0 && CoordPos.y <= 1.0 && CoordPos.z >= 0 && CoordPos.z <= 1)
     {
         float2 AtlasURange = float2((Shadow.AtlasRect.x + 0.5) / AtlasWidth, (Shadow.AtlasRect.x + Shadow.AtlasRect.z - 0.5) / AtlasWidth);
@@ -84,24 +70,24 @@ float CalculateShadow(float3 P, float3 N, float3 LightDirection, Texture2DArray 
             
         float2 Texel = float2(1.0 / (float) AtlasWidth, 1.0 / (float) AtlasHeight);
         
-#if 1
-        // PCF 적용
+        uint KernelSize = PcfMode == 0 ? 1 : min(PcfMode + 2, 5);
+        float HalfWidth = 0.5f * (KernelSize - 1);
         float Sum = 0;
-        int SampleCount = 0.0;
-        for (int i = -1; i <= 1; i++)
+        int SampleCount = 0;
+        [loop]
+        for (uint i = 0; i < KernelSize; i++)
         {
-            for (int j = -1; j <= 1; j++)
+            [loop]
+            for (uint j = 0; j < KernelSize; j++)
             {
-                float AtlasU = CenterAtlasU + (Texel.x * i);
-                float AtlasV = CenterAtlasV + (Texel.y * j);
+                float AtlasU = CenterAtlasU + Texel.x * (i - HalfWidth);
+                float AtlasV = CenterAtlasV + Texel.y * (j - HalfWidth);
                     
                 if (AtlasU < AtlasURange.x || AtlasU > AtlasURange.y || AtlasV < AtlasVRange.x || AtlasV > AtlasVRange.y)
                 {
                     continue;
                 }
                 
-                float Depth = CenterDepth + USlope * (AtlasU - CenterAtlasU) + VSlope * (AtlasV - CenterAtlasV);
-
                 Sum += Atlas.SampleCmpLevelZero(ShadowSampler, float3(AtlasU, AtlasV, Shadow.AtlasIndex), CenterDepth).r;
                 SampleCount++;
             }
@@ -111,9 +97,6 @@ float CalculateShadow(float3 P, float3 N, float3 LightDirection, Texture2DArray 
         {
             Result = Sum / (float) SampleCount;
         }
-#else
-        Result = Atlas.SampleCmpLevelZero(ShadowSampler, float3(CenterAtlasU, CenterAtlasV, Shadow.AtlasIndex), CenterDepth).r;
-#endif
     }
     
     return Result;

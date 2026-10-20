@@ -41,7 +41,7 @@ struct FForwardLightingConstants
 	uint32 CascadeShadowCount;
 	uint32 ShadowAtlasWidth;
 	uint32 ShadowAtlasHeight;
-	uint32 Padding;
+	uint32 PcfMode;
 };
 
 struct FLightShadowRenderData
@@ -65,4 +65,5 @@ static_assert(offsetof(FForwardLightingConstants, CascadeShadowDistances) == 96)
 static_assert(offsetof(FForwardLightingConstants, CascadeShadowCount) == 112);
 static_assert(offsetof(FForwardLightingConstants, ShadowAtlasWidth) == 116);
 static_assert(offsetof(FForwardLightingConstants, ShadowAtlasHeight) == 120);
+static_assert(offsetof(FForwardLightingConstants, PcfMode) == 124);
 static_assert(sizeof(FForwardLightingConstants) == 128);

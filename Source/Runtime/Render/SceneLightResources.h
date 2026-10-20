@@ -20,7 +20,7 @@ struct FDeferredLightConstants
 	uint32 ShadowAtlasWidth;
 	uint32 ShadowAtlasHeight;
 	uint32 CascadeShadowCount = 0;
-	uint32 Padding = 0;
+	uint32 PcfMode = 0;
 	float CascadeShadowDistances[4]{};
 };
 

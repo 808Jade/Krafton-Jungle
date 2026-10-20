@@ -44,6 +44,11 @@ void FSettingsPanel::OnRender()
 	ImGui::TextDisabled("Fill mode is configured per viewport.");
 	ImGui::Checkbox("Draw Primitives", &Settings.bDrawPrimitives);
 	ImGui::Checkbox("Show Shadow", &Settings.bShowShadow);
+	const char* PcfModes[] = { "Off", "On (3x3)", "4x4", "5x5" };
+	int PcfModeIndex = static_cast<int>(Settings.PcfMode);
+	ImGui::SetNextItemWidth(200.0f);
+	if (ImGui::Combo("PCF", &PcfModeIndex, PcfModes, IM_ARRAYSIZE(PcfModes)))
+		Settings.PcfMode = static_cast<EPcfMode>(PcfModeIndex);
 	ImGui::SetNextItemWidth(200.0f);
 	ImGui::DragFloat("Shadow Depth Bias", &Settings.ShadowDepthBias, 0.00001f,
 		0.0f, 0.01f, "%.6f", ImGuiSliderFlags_AlwaysClamp);
@@ -159,6 +164,7 @@ bool FSettingsPanel::SaveSettings() const
 	File << "Wireframe=" << Settings.bWireframe << "\n";
 	File << "DrawPrimitives=" << Settings.bDrawPrimitives << "\n";
 	File << "ShowShadow=" << Settings.bShowShadow << "\n";
+	File << "PcfMode=" << static_cast<uint32_t>(Settings.PcfMode) << "\n";
 	File << "ShadowDepthBias=" << Settings.ShadowDepthBias << "\n";
 	File << "DrawBoundingBox=" << Settings.bDrawBoundingBox << "\n";
 	File << "ShowUUID=" << Settings.bShowUUID << "\n";
@@ -291,6 +297,12 @@ bool FSettingsPanel::LoadSettings()
                 if (Key == "Wireframe") Settings.bWireframe = std::stoi(ValueStr);
 				else if (Key == "DrawPrimitives") Settings.bDrawPrimitives = std::stoi(ValueStr);
 				else if (Key == "ShowShadow") Settings.bShowShadow = std::stoi(ValueStr);
+				else if (Key == "PcfMode")
+				{
+					const int Mode = std::stoi(ValueStr);
+					if (Mode >= 0 && Mode <= static_cast<int>(EPcfMode::Kernel5x5))
+						Settings.PcfMode = static_cast<EPcfMode>(Mode);
+				}
 				else if (Key == "ShadowDepthBias") Settings.ShadowDepthBias = std::stof(ValueStr);
 				else if (Key == "DrawBoundingBox") Settings.bDrawBoundingBox = std::stoi(ValueStr);
 				else if (Key == "ShowUUID") Settings.bShowUUID = std::stoi(ValueStr);
