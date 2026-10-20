@@ -50,7 +50,11 @@ struct FShadowInfo
 	FMatrix LightViewProjection;
 	float Bias = 0.001f;
 	float NormalBias = 2.0f;
-	float Padding[2] = {};
+	float Near = 0.f;
+	float Far = 1.f;
+		
+	float LightSize;
+	float Padding[3] = {};
 };
 
 struct FDirectionalShadowConstants // b5
@@ -69,5 +73,5 @@ static_assert(sizeof(FDirectionalLightInfo) == 32);
 static_assert(sizeof(FPointLightInfo) == 32);
 static_assert(sizeof(FSpotLightInfo) == 64);
 static_assert(sizeof(FLightingConstants) == 48);
-static_assert(sizeof(FShadowInfo) == 80);
+static_assert(sizeof(FShadowInfo) == 96);
 static_assert(sizeof(FDirectionalShadowConstants) == 368);

@@ -40,6 +40,8 @@ FShadowInfo UDirectionalLightComponent::GetShadowInfo() const
     ShadowInfo.LightViewProjection = View * Proj;
     ShadowInfo.Bias = GetShadowBias();
     ShadowInfo.NormalBias = ShadowNormalBias;
+    ShadowInfo.Near = NearClip;
+    ShadowInfo.Far = FarClip;
 
     return ShadowInfo;
 }

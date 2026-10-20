@@ -74,6 +74,11 @@ struct FShadowInfo
 {
     matrix LightViewProjection;
     float Bias;
+    float NormalBias;
+    float Near;
+    float Far;
+    
+    float LightSize;
     float3 Padding;
 };
 
@@ -253,9 +258,195 @@ uint SelectCubeFace(float3 LightToPixel)
     return LightToPixel.z > 0 ? 4 : 5;
 }
 
-// 반환값: 1 = 빛 받음, 0 = 그림자
-float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
+//비선형인(NDC.z인) ShadowMap 샘플링 뎁스값을 선형으로 만듭니다.
+float LinearizeShadowDepth(float depth, float Near, float Far)
 {
+    //Projection의 ZScale = F / F-N
+    float ZScale = Far / (Far - Near);
+    
+    //ZOffset = -NF / F - N
+    float ZOffset = (-Near * Far) / (Far - Near);
+    
+    //            [0      0       ZScale  1]
+    //[x y z 1] * [XScale 0       0       0]
+    //            [0      YScale  0       0]
+    //            [0      0       ZOffset 0]
+    
+    //depth(NDC.z) = Clip.z / Clip.w
+    //              = (ZScale * x + ZOffset) / x
+    //x = ZOffset / (depth - ZScale)
+    return ZOffset / (depth - ZScale);
+}
+
+float PCF_CmpLinear(float2 UV, float ShadowIndex, float Ref)
+{
+    //비교 샘플러 사용
+    float StoredDepth = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV, ShadowIndex), Ref);
+    return StoredDepth;
+}
+
+float PCF_Software3x3(float2 TexelSize, float2 UV, float ShadowIndex, float Ref)
+{
+    //3x3 Software PCF
+    //해상도 512로 일단 하드코딩
+    float Lit;
+    for (int y = -1; y <= 1; ++y)
+    {
+        for (int x = -1; x <= 1; ++x)
+        {
+            float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), 0);
+            Lit += (Ref) > Stored ? 0.0 : 1.0;
+        }
+    }
+    Lit /= 9.0;
+    return Lit;
+}
+
+float PCF_Software5x5(float2 TexelSize, float2 UV, float ShadowIndex, float Ref)
+{
+    //5x5 Software PCF
+    float Lit = 0;
+    for (int y = -2; y <= 2; ++y)
+    {
+        for (int x = -2; x <= 2; ++x)
+        {
+            float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), 0);
+            Lit += (Ref) > Stored ? 0.0 : 1.0;
+        }
+    }
+    Lit /= 25.0;
+    return Lit;
+}
+
+float PCF_CmpLinear_Software3x3(float2 TexelSize, float2 UV, float ShadowIndex, float Ref)
+{
+    //Comparison Linear + 3x3 Software PCF
+    float Lit = 0;
+    for (int y = -1; y <= 1; ++y)
+    {
+        for (int x = -1; x <= 1; ++x)
+        {
+            float Stored = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), Ref);
+            Lit += Stored;
+        }
+    }
+    Lit /= 9.0;
+    return Lit;
+}
+
+//[입력] UV, Slice(=ShadowIndex + 면), ReceiverNdcZ, Info
+
+//0) 선형화
+//   dR = Near·Far / (Far − ReceiverNdcZ·(Far − Near))
+
+//1) Blocker Search
+//   SearchRadiusUV = LightSizeUV · (dR − Near) / dR
+//   탐색 원 안의 N개 탭(Poisson)에서 섀도맵 깊이 z를 Point 샘플러로 읽어
+//     z < ReceiverNdcZ − Bias 이면 Blocker → 선형화해서 합산, 개수++
+//   개수 == 0 → return 1 (완전히 밝음)
+//   dB = 합 / 개수
+
+//2) Penumbra
+//   PenumbraRatio = (dR − dB) / dB                       ← 닮은 삼각형
+//   FilterRadiusUV = PenumbraRatio · LightSizeUV · Near / dR
+//   FilterRadiusUV = clamp(FilterRadiusUV, TexelSize, MaxRadiusUV)
+
+//3) PCF
+//   같은 Poisson 탭을 FilterRadiusUV만큼 벌려
+//     SampleCmpLevelZero(ShadowCmpSampler, float3(UV + Offset·Radius, Slice), ReceiverNdcZ − Bias)
+//   평균 → 0~1
+
+float PCSS(float2 TexelSize, float2 UV, float ShadowIndex, float ReceiverNdcZ, FShadowInfo Info)
+{
+    const float Ref = ReceiverNdcZ - Info.Bias;
+    
+    //Receive Depth를 선형 보간
+    
+    float dR = LinearizeShadowDepth(ReceiverNdcZ, Info.Near, Info.Far);
+    
+    //주변 픽셀의 깊이 중 SampleDepth < Receiver Depth 인 깊이만 평균내어 dB를 구한다.
+    float dB = 0.0;
+    float BlockerCount = 0;
+    
+    //얼마나 주변 픽셀로 적용해야 하지?
+    //dB 평균 구하기.
+    //Near 위치에서의 절두체 길이
+    float SearchWorld = Info.LightSize * (dR - Info.Near) / dR;
+    //world 단위를 uv 단위로 바꾸기 위해
+    float SearchUV = SearchWorld / (2.0 * Info.Near * tan(90.0 / 2.0 * 3.14159 / 180.0));
+    
+    //일단 32개 텍셀보다는 작도록 설정
+    SearchUV = min(SearchUV, TexelSize * 16.0);
+    float SearchStep = SearchUV / 2.0;
+    
+    //실제 SearchUV / TexelSize만큼 진행하면 너무 샘플링 수가 많아서 스텝을 늘리는 방식으로 찾기
+    for (int y = -2; y <= 2; ++y)
+    {
+        for (int x = -2; x <= 2; ++x)
+        {
+            //Blocker의 깊이를 가져와서 dB를 구해야 하기에 Point Sampler로 한다.
+            //비교 샘플러로 하면 깊이 값이 보간되니까 안된다.
+            float BlockerDepth = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * SearchStep, ShadowIndex), 0);
+        
+            //샘플링한 깊이가 더 작은 Blocker인 깊이만 합산한다.
+            if (BlockerDepth < Ref)
+            {
+                dB += LinearizeShadowDepth(BlockerDepth, Info.Near, Info.Far);
+                BlockerCount += 1.0;
+            }
+        }
+    }
+        
+    //주변 픽셀 중에 Blocker가 없다면 그림자 없음 처리
+    if (BlockerCount == 0)
+    {
+        return 1.0;
+    }
+    
+    //평균내기
+    dB /= BlockerCount;
+    
+    //P = W * (dR - dB) / dB
+    //W : 광원 크기
+    //dR : 광원부터 Receiver까지
+    //dB : 광원부터 Blocker까지
+    
+    //폭 반경
+    //월드 단위이다.
+    float P = Info.LightSize * (dR - dB) / dB;
+    
+    //반그림자 폭을 UV 반경으로 바꾼다.
+    //반그림자의 절반 폭 = 커널 반경이다.
+    //UV는 0 ~ 1이므로 dR 깊이 지점의 절두체 총 길이로 나눠서 Normalize하면 된다.
+    //FOV 90도로 하드코딩
+    float FilterRadiusUV = P / (2 * dR * tan(90.0 / 2.0 * 3.14159 / 180.0));
+    //상한
+    FilterRadiusUV = min(FilterRadiusUV, TexelSize * 16);
+    
+    //반그림자 폭의 절반이 커널의 반경이다.
+    float Step = FilterRadiusUV / 2.0;
+    
+    Step = max(Step, TexelSize * 0.5f); // 너무 좁으면 같은 위치만 반복하므로 하한
+    
+    //방법 1. 샘플링하는 횟수를 늘린다. : 폭이 넓어지면 너무 많아짐
+    //방법 2. 5x5로 크기는 고정. 샘플링하는 간격을 늘린다. : 품질이 1번보다는 안좋음.
+    //방법 2를 쓰도록 함.
+    float Lit = 0.0f;
+    for (int y_2 = -2; y_2 <= 2; ++y_2)
+    {
+        for (int x_2 = -2; x_2 <= 2; ++x_2)
+        {
+            Lit += ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV + float2(x_2, y_2) * Step, ShadowIndex), Ref);            
+        }
+        
+    }
+    
+    return Lit / 25.0f;
+}
+
+// 반환값: 1 = 빛 받음, 0 = 그림자
+float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition)
+{    
     //-1이면 그림자 없는 라이트
     if (ShadowIndex < 0)
         return 1.0f;
@@ -277,12 +468,13 @@ float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
     //범위 검사: 섀도맵 밖이거나 Far 너머면 그림자 판정 불가 : 빛 받음
     //any 함수는 입력된 값 중 하나라도 0이 아닌 것(True)이 있으면 true를 반환
     //들어온 UV 중 u와 v중 하나라도 0.0보다 작다면으로 해석됨
-    //if (any(UV < 0.0f) || any(UV > 1.0f) || Ndc.z < 0.0f || Ndc.z > 1.0f)
-    //    return 1.0f;
+    if (any(UV < 0.0f) || any(UV > 1.0f) || Ndc.z < 0.0f || Ndc.z > 1.0f)
+        return 1.0f;
 
     // 저장된 최소 깊이. z = 층 번호 (지금은 ShadowIndex == 층)
     
     //Point Sampler
+
     //float StoredDepth = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV, ShadowIndex), 0);
     //return (Ndc.z - Info.Bias) > StoredDepth ? 0.0f : 1.0f;
 
@@ -290,53 +482,29 @@ float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
     // 샘플링 한 것보다 크다면 그림자임
     
     //ComparisonLinearSampler
-    //float StoredDepth = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV, ShadowIndex), Ndc.z - Info.Bias);
-    //return StoredDepth;
+
+    //return PCF_CmpLinear(UV, ShadowIndex, Ndc.z - Info.Bias);
     
     //3x3 Software PCF
     //해상도 512로 일단 하드코딩
     //float2 TexelSize = 1.0 / 1024.0;
     //float Lit = 0;
-    //for (int y = -1; y <= 1; ++y)
-    //{
-    //    for (int x = -1; x <= 1; ++x)
-    //    {
-    //        float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), 0);
-    //        Lit += (Ndc.z - Info.Bias) > Stored ? 0.0 : 1.0;
-    //    }
-    //}
-    //Lit /= 9.0;
-    //return Lit;
+    //return PCF_Software3x3(TexelSize, UV, ShadowIndex, Ndc.z - Info.Bias, Lit);
+       
     
     //5x5 Software PCF
     //해상도 일단 하드코딩
     //float2 TexelSize = 1.0 / 512.0;
-    //float Lit = 0;
-    //for (int y = -2; y <= 2; ++y)
-    //{
-    //    for (int x = -2; x <= 2; ++x)
-    //    {
-    //        float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), 0);
-    //        Lit += (Ndc.z - Info.Bias) > Stored ? 0.0 : 1.0;
-    //    }
-    //}
-    //Lit /= 25.0;
-    //return Lit;
+    //return PCF_Software5x5(TexelSize, UV, ShadowIndex, Ndc.z - Info.Bias);
+    
     
     //Comparison Linear + 3x3 Software PCF
-    //해상도 하드코딩
-    float2 TexelSize = 1.0 / 1024.0;
-    float Lit = 0;
-    for (int y = -1; y <= 1; ++y)
-    {
-        for (int x = -1; x <= 1; ++x)
-        {
-            float Stored = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), Ndc.z - Info.Bias);
-            Lit += Stored;
-        }
-    }
-    Lit /= 9.0;
-    return Lit;
+    ////해상도 하드코딩
+    //float2 TexelSize = 1.0 / 1024.0;
+    //return PCF_CmpLinear_Software3x3(TexelSize, UV, ShadowIndex, Ndc.z - Info.Bias);
+    
+    return PCSS(1.0 / 1024.0, UV, ShadowIndex, Ndc.z, Info);
+
 }
 
 // Directional Light 전용 그림자 판정 (CSM 아틀라스 텍스처 t3 및 DirectionalShadowConstants b5 사용)

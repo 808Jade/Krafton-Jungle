@@ -30,6 +30,9 @@ void UPointLightComponent::GetShadowInfo(TArray<FShadowInfo>& OutShadowInfo) con
 
 	FShadowInfo ShadowInfo;
 	ShadowInfo.Bias = GetShadowBias();
+	ShadowInfo.Near = NearClipPlane;
+	ShadowInfo.Far = AttenuationRadius;
+	ShadowInfo.LightSize = LightSourceRadius;
 
 	//FRotator Pitch Yaw Roll 순서
 	//Forward 0.f, 0.f, 0.f
