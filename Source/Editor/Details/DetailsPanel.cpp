@@ -1012,9 +1012,10 @@ void FDetailsPanel::OnRender()
 				ImGui::SeparatorText("Shadow Map");
 				//ShadowMap preview 하도록 요청
 				Light->SetPreviewShadowMapFlag(true);
-
+				FVector2 StartUV = Light->GetSceneProxy()->GetShadowPreview().PreviewUV.StartUV;
+				FVector2 EndUV = Light->GetSceneProxy()->GetShadowPreview().PreviewUV.EndUV;
 				if (ID3D11ShaderResourceView* ShadowSRV = Light->GetShadowPreviewSRV())
-					ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f });
+					ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f }, {StartUV.X, StartUV.Y}, {EndUV.X, EndUV.Y});
 				else
 					ImGui::TextDisabled("No shadow map");
 			}

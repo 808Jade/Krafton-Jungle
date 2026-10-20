@@ -679,7 +679,7 @@ void FRenderer::RenderShadowPass(TArray<FShadowInfo>& ShadowInfos, const TArray<
 	//Preview 인덱스의 ShadowMap 서브 리소스를 복사한다.
 	if (PreviewShadowMapProxy != nullptr)
 	{
-		ShadowMapManager.UpdatePreview(PreviewShadowMapProxy);
+		ShadowMapManager.UpdatePreview(PreviewShadowMapProxy, ShadowInfos);
 	}
 
 	//Opaque에서 읽도록 SRV 바인딩

@@ -5,6 +5,8 @@
 
 class FLightSceneProxy;
 
+
+
 class FShadowMapManager
 {
 public:
@@ -35,15 +37,16 @@ public:
 	void BindForShading();
 
 	//Imgui
-	void UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy);
+	void UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy, const TArray<FShadowInfo>& ShadowInfos);
 
 	// Atlas
 	void BuildAtlas(TArray<FShadowInfo>& ShadowInfos);
 
 	void BeginShadowRenderWithAtlas(const FShadowInfo& ShadowInfo);
 
-	uint32 GetAtlasResolution() { return AtlasResoltion; }
+	uint32 GetAtlasResolution() { return AtlasResolution; }
 	uint32 GetNumAtlas() { return NumAtlas; }
+	ID3D11ShaderResourceView* GetPreviewSRV() const { return PreviewShadowSRV.Get(); }
 
 private:
 	// 해상도, 층 수가 바뀔 때만 리소스와 뷰를 다시 만든다
@@ -74,6 +77,10 @@ private:
 	uint32 Resolution = 512;
 	uint32 NumSlices = 0;
 
-	uint32 AtlasResoltion = 4096;
+	uint32 AtlasResolution = 4096;
 	uint32 NumAtlas = 1;
+
+	// 프리뷰는 섀도우 매니저가 하나만 들고 있는다.
+	ComPtr<ID3D11Texture2D> PreviewShadowTexture;
+	ComPtr<ID3D11ShaderResourceView> PreviewShadowSRV;
 };

@@ -132,14 +132,14 @@ bool FShadowMapManager::EnsureShadowMapAtlas(uint32 InNewAtlasResolution, uint32
 {
     //개수가 바뀐다면, 해상도가 바뀐다면
     if (ShadowMapAtlasBuffer && ShadowMapAtlasArraySRV &&
-        InNewNumAtlas == static_cast<uint32>(ShadowAtlasDepthView.Num()) && AtlasResoltion == InNewAtlasResolution)
+        InNewNumAtlas == static_cast<uint32>(ShadowAtlasDepthView.Num()) && AtlasResolution == InNewAtlasResolution)
     {
         return true;
     }
 
     NumAtlas = InNewNumAtlas;
     NumAtlas = std::max(NumAtlas, 1u);
-    AtlasResoltion = InNewAtlasResolution;
+    AtlasResolution = InNewAtlasResolution;
 
     ShadowMapAtlasBuffer.Reset();
     for (uint32 i = 0; i < ShadowAtlasDepthView.Num(); i++)
@@ -156,8 +156,8 @@ bool FShadowMapManager::EnsureShadowMapAtlas(uint32 InNewAtlasResolution, uint32
 
     D3D11_TEXTURE2D_DESC Desc{};
     // 정사각형
-    Desc.Width = AtlasResoltion;
-    Desc.Height = AtlasResoltion;
+    Desc.Width = AtlasResolution;
+    Desc.Height = AtlasResolution;
     Desc.MipLevels = 1;
     // 층 수 (Spot 수 + Point 수 × 6 ...)
     Desc.ArraySize = NumAtlas;   // TODO : 아틀라스 배열로 수정
@@ -274,7 +274,7 @@ void FShadowMapManager::BindForShading()
     RenderCommand::BindSamplerState(1, ESamplerState::Point, EShaderBindFlagBits::Pixel);
 }
 
-void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
+void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy, const TArray<FShadowInfo>& ShadowInfos)
 {
     //Imgui쪽에 보여줘야하는 건 Texture2D
     //Shadow Map은 Texture2DArray
@@ -284,11 +284,13 @@ void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
 
     //if (!PreviewTexture || Slice >= NumSlices)
     if (!PreviewShadowMapProxy || PreviewShadowMapProxy->GetShadowIndex() < 0 || 
-        static_cast<uint32>(PreviewShadowMapProxy->GetShadowIndex()) >= NumSlices)
+        static_cast<uint32>(PreviewShadowMapProxy->GetShadowIndex()) >= static_cast<uint32>(ShadowInfos.Num()))
         return;
 
-    //텍스처가 없거나 해상도가 바꼈다면
-    if (PreviewShadowMapProxy->GetShadowPreview().ShadowTexture == nullptr || PreviewShadowMapProxy->GetShadowPreview().Resolution != Resolution)
+    const FShadowInfo& Info = ShadowInfos[PreviewShadowMapProxy->GetShadowIndex()];
+
+    //텍스처가 없으면  (아틀라스는 고정 해상도라서 해상도 확인문 없앰)
+    if (PreviewShadowTexture == nullptr)
     {
         ID3D11Device* Device = RenderCommand::GetDevice();
 
@@ -297,8 +299,8 @@ void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
         // 미리보기 텍스처: 배열과 같은 TYPELESS 포맷이어야 CopySubresourceRegion이 된다
         D3D11_TEXTURE2D_DESC PreviewDesc{};
         // 정사각형
-        PreviewDesc.Width = Resolution;
-        PreviewDesc.Height = Resolution;
+        PreviewDesc.Width = AtlasResolution;
+        PreviewDesc.Height = AtlasResolution;
         PreviewDesc.MipLevels = 1;
         // 층 수 (Spot 수 + Point 수 × 6 ...)
         PreviewDesc.Format = DXGI_FORMAT_R32_TYPELESS;
@@ -307,7 +309,7 @@ void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
         PreviewDesc.ArraySize = 1;
         PreviewDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
         //HRESULT hr = Device->CreateTexture2D(&PreviewDesc, nullptr, PreviewShadowTexture.GetAddressOf());
-        HRESULT hr = Device->CreateTexture2D(&PreviewDesc, nullptr, PreviewShadowMapProxy->GetShadowPreview().ShadowTexture.ReleaseAndGetAddressOf());
+        HRESULT hr = Device->CreateTexture2D(&PreviewDesc, nullptr, PreviewShadowTexture.ReleaseAndGetAddressOf());
         if (FAILED(hr))
         {
             assert(false);
@@ -321,13 +323,12 @@ void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
         PreviewSrv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         PreviewSrv.Texture2D.MipLevels = 1;
         //hr = Device->CreateShaderResourceView(PreviewTexture.Get(), &PreviewSrv, PreviewShadowSRV.GetAddressOf());
-        hr = Device->CreateShaderResourceView(PreviewShadowMapProxy->GetShadowPreview().ShadowTexture.Get(), &PreviewSrv, PreviewShadowMapProxy->GetShadowPreview().ShadowSRV.ReleaseAndGetAddressOf());
+        hr = Device->CreateShaderResourceView(PreviewShadowTexture.Get(), &PreviewSrv, PreviewShadowSRV.ReleaseAndGetAddressOf());
         if (FAILED(hr))
         {
             assert(false);
         }
     }
-    
 
     // 텍스처 하나는 (밉 레벨 × 배열 층) 개수만큼의 개별 이미지로 이루어지고, 이 각각을 서브리소스라고 부릅니다. 
     // D3D 함수들은 서브리소스를 정수 번호 하나로 가리킵니다.
@@ -338,16 +339,25 @@ void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
               Mip0  Mip1  Mip2
         층 0 : 0     1     2
         층 1 : 3     4     5*/
-    const UINT SrcSubresource = D3D11CalcSubresource(0, PreviewShadowMapProxy->GetShadowIndex(), 1);
+    const UINT SrcSubresource = D3D11CalcSubresource(0, Info.AtlasIndex, 1);
 
     //해당 Subresource를 복사합니다.
     //    ID3D11Resource * pDstResource, UINT DstSubresource,   // 어디로 (PreviewTexture, 0번)
     //    UINT DstX, UINT DstY, UINT DstZ,                     // 대상 안의 시작 좌표 (0,0,0)
     //    ID3D11Resource * pSrcResource, UINT SrcSubresource,   // 어디서 (ShadowMapArray, 층 k)
     //    const D3D11_BOX * pSrcBox                            // 복사할 영역. nullptr = 서브리소스 전체
+
     RenderCommand::GetContext()->CopySubresourceRegion(
-        PreviewShadowMapProxy->GetShadowPreview().ShadowTexture.Get(), 0, 0, 0, 0,
-        ShadowMapArrayBuffer.Get(), SrcSubresource, nullptr);
+        PreviewShadowTexture.Get(), 0, 0, 0, 0,
+        ShadowMapAtlasBuffer.Get(), SrcSubresource, nullptr);
+
+    PreviewShadowMapProxy->GetShadowPreview().ShadowSRV = PreviewShadowSRV.Get();
+    PreviewShadowMapProxy->GetShadowPreview().ShadowIndex = PreviewShadowMapProxy->GetShadowIndex();
+
+    // ImGui 에서 보여질 영역 계산
+    const float InvAtlas = 1.0f / static_cast<float>(AtlasResolution);
+    PreviewShadowMapProxy->GetShadowPreview().PreviewUV.StartUV = { Info.AtlasStartX * InvAtlas, Info.AtlasStartY * InvAtlas };
+    PreviewShadowMapProxy->GetShadowPreview().PreviewUV.EndUV = { (Info.AtlasStartX + Info.AtlasSize) * InvAtlas, (Info.AtlasStartY + Info.AtlasSize) * InvAtlas };
 }
 
 void FShadowMapManager::BuildAtlas(TArray<FShadowInfo>& ShadowInfos)
@@ -359,13 +369,13 @@ void FShadowMapManager::BuildAtlas(TArray<FShadowInfo>& ShadowInfos)
     for (FShadowInfo& Info : ShadowInfos)
     {
         // 아틀라스 계산
-        if (CurrentX + Resolution > AtlasResoltion)
+        if (CurrentX + Resolution > AtlasResolution)
         {
             CurrentX = 0;
             CurrentY += Resolution;
         }
 
-        if (CurrentY + Resolution > AtlasResoltion)
+        if (CurrentY + Resolution > AtlasResolution)
         {   // 다음줄
             CurrentX = CurrentY = 0;
             ++CurrentAtlasIndex;

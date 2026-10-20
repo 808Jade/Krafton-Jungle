@@ -11,18 +11,20 @@ enum class ELightType : uint8
 	Ambient, Directional, Point, Spot,
 };
 
+struct FPreviewUV
+{
+	// ImGui 영역 계산
+	FVector2 StartUV{};
+	FVector2 EndUV{};
+};
+
 //ShadowMap 프리뷰 용 Texture, SRV
 struct FShadowPreview
 {
-	ComPtr<ID3D11Texture2D> ShadowTexture;
-	ComPtr<ID3D11ShaderResourceView> ShadowSRV;
+	ID3D11ShaderResourceView* ShadowSRV = nullptr;	// 참조용 ( 소유는 섀도우 매니저에서)
+	int32 ShadowIndex = 0;
 	uint32 Resolution = 0;
-
-	void Reset()
-	{
-		ShadowTexture.Reset();
-		ShadowSRV.Reset();		
-	}
+	FPreviewUV PreviewUV;
 };
 
 class FLightSceneProxy
@@ -31,7 +33,6 @@ public:
 	FLightSceneProxy(ULightComponentBase* InComponent, ELightType InType) : Component(InComponent), Type(InType) {}
 	virtual ~FLightSceneProxy()
 	{
-		ShadowPreview.Reset();
 	}
 
 	virtual void UpdateFromComponent() = 0;
@@ -49,7 +50,7 @@ public:
 	// 이번 프레임 그림자가 없으면 표시 안 함
 	ID3D11ShaderResourceView* GetShadowPreviewSRV() const
 	{
-		return ShadowIndex >= 0 ? ShadowPreview.ShadowSRV.Get() : nullptr;
+		return ShadowIndex >= 0 ? ShadowPreview.ShadowSRV : nullptr;
 	}
 
 	// Renderer가 채울 때만 사용
