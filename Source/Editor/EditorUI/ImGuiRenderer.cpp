@@ -305,13 +305,17 @@ bool FImGuiRenderer::DrawShadowMap(ID3D11ShaderResourceView* AtlasSRV, unsigned 
 	PreviewTextures.emplace_back(AtlasSRV);
 	ImDrawList* DrawList = ImGui::GetWindowDrawList();
 	DrawList->AddCallback(BindShadowPreview, this);
-	// Copy the constants into ImGui-owned storage until actual GPU draws.
+	
+    // Copy the constants into ImGui-owned storage until actual GPU draws.
 	unsigned int Constants[4] = { AtlasIndex, 0, 0, 0 };
 	static_assert(sizeof(Contrast) == sizeof(Constants[1]));
-	std::memcpy(&Constants[1], &Contrast, sizeof(Contrast));
-	DrawList->AddCallback(SetShadowPreviewSlice, Constants, sizeof(Constants));
+	
+    std::memcpy(&Constants[1], &Contrast, sizeof(Contrast));
+	
+    DrawList->AddCallback(SetShadowPreviewSlice, Constants, sizeof(Constants));
 	ImGui::Image((ImTextureID)AtlasSRV, Size, UV0, UV1);
-	DrawList->AddCallback(RestoreShadowPreview, this);
+	
+    DrawList->AddCallback(RestoreShadowPreview, this);
 	DrawList->AddCallback(ImGui::GetPlatformIO().DrawCallback_ResetRenderState);
 	return true;
 }

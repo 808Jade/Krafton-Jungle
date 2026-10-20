@@ -898,8 +898,10 @@ void FDetailsPanel::DrawShadowPreview()
 		else if (Light->GetLightType() == ELightType::Directional)
 			ImGui::Text("Cascade %d", i + 1);
 		ImGui::TextDisabled("Slice %u | %.0f x %.0f", Shadow.AtlasIndex, Rect.Width, Rect.Height);
+		
 		const ImVec2 UV0(Rect.X / Width, Rect.Y / Height);
 		const ImVec2 UV1((Rect.X + Rect.Width) / Width, (Rect.Y + Rect.Height) / Height);
+		
 		if (!ImGuiRenderer->DrawShadowMap(Atlas->GetSRV(), Shadow.AtlasIndex,
 			ImVec2(DisplayWidth, DisplayWidth * Rect.Height / Rect.Width), UV0, UV1, ShadowPreviewContrast))
 			ImGui::TextDisabled("Shadow preview shader is unavailable.");

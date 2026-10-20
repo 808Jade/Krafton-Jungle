@@ -137,6 +137,8 @@ bool UEditorEngine::Init()
 		if (Light->GetWorld() != (PlayWorld ? PlayWorld : EditorWorld)) return false;
 		return Client->GetRenderData().GetShadowPreview(Light, Atlas, Shadows);
 	});
+
+
 	EditorControlsPanel = EditorUI->AddEditorPanel<FEditorControlsPanel>();
 	ViewportsPanel = EditorUI->AddEditorPanel<FViewportsPanel>();
 	ContentDrawerPanel = EditorUI->AddEditorPanel<FContentDrawerPanel>();

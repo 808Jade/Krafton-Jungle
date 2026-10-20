@@ -77,7 +77,7 @@ struct FSceneRenderData
 	int32 PreviewLightIndex = INDEX_NONE;
 	FLightShadowRange PreviewShadowRange{};
 
-	bool GetShadowPreview(const ULightComponent* Light, FTexture2DArray*& OutAtlas,
+	bool GetShadowPreview(const ULightComponent* Light, FTexture2DArray*& OutAtlas,  // Shadow range를 바탕으로 lightshadow 인덱스에서 선택한 조명이 몇번째 index에서 viewcount가 몇개인지 알 수 있음
 		TArray<FLightShadowRenderData>& OutShadows) const
 	{
 		OutAtlas = nullptr;
