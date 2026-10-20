@@ -315,7 +315,7 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 			FMeshPassProcessor Processor;
 
 			TArray<FMeshDrawBatch> Batched;
-			Processor.Build(RenderData.VisibleProxies, EPSOType::StaticMesh_LightShadow, Batched);
+			Processor.Build(RenderData.ShadowCasterProxies, EPSOType::StaticMesh_LightShadow, Batched);
 
 			// 실제 메시 패스와 같은 VS를 사용해 깊이 계산을 일치시킨다.
 			for (int32 i = 0; i < RenderData.LightShadows.Num(); i++)
@@ -656,6 +656,11 @@ void FSceneRenderer::GatherRenderPackets(FScene& Scene, FSceneRenderData& Data,
 	const FViewContext& View, const FFrustumPlanes* Frustum, FRenderer* Renderer) //여기서 꼭 renderer를 매개변수로 받아야 할까?
 {
 	Data.ResetFrame();
+	for (FPrimitiveSceneProxy* Proxy : Scene.PrimitiveSceneProxies)
+	{
+		if (Proxy->IsShown(View.bGameView) && Proxy->bCastsShadow && Proxy->GetRenderState() && Proxy->GetMesh())
+			Data.ShadowCasterProxies.Add(Proxy);
+	}
 	FRenderQueue& RenderQueue = Data.RenderQueue;
 	FRenderStats& RenderStats = Data.RenderStats;
 	auto& VisibleProxies = Data.VisibleProxies;

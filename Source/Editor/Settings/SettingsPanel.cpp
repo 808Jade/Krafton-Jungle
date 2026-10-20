@@ -168,6 +168,7 @@ bool FSettingsPanel::SaveSettings() const
 	File << "DrawBoundingBox=" << Settings.bDrawBoundingBox << "\n";
 	File << "ShowUUID=" << Settings.bShowUUID << "\n";
 	File << "DrawBatchLine=" << Settings.bDrawBatchLine << "\n";
+	File << "DrawCascadeBounds=" << Settings.bDrawCascadeBounds << "\n";
 	File << "DrawPSGrid=" << Settings.bDrawPSGrid << "\n";
 	File << "SceneDepthMaxRange=" << Settings.SceneDepthMaxRange << "\n";
 	File << "EnableFXAA=" << Settings.bEnableFXAA << "\n";
@@ -311,6 +312,7 @@ bool FSettingsPanel::LoadSettings()
 				else if (Key == "DrawBoundingBox") Settings.bDrawBoundingBox = std::stoi(ValueStr);
 				else if (Key == "ShowUUID") Settings.bShowUUID = std::stoi(ValueStr);
 				else if (Key == "DrawBatchLine") Settings.bDrawBatchLine = std::stoi(ValueStr);
+				else if (Key == "DrawCascadeBounds") Settings.bDrawCascadeBounds = std::stoi(ValueStr);
 				else if (Key == "DrawPSGrid") Settings.bDrawPSGrid = std::stoi(ValueStr);
 				else if (Key == "SceneDepthMaxRange") Settings.SceneDepthMaxRange = std::stof(ValueStr);
 				else if (Key == "EnableFXAA") Settings.bEnableFXAA = std::stoi(ValueStr);
@@ -525,6 +527,9 @@ void FSettingsPanel::DrawShadowMapSettings()
 	ImGui::Dummy(ImVec2(0.0f, SectionGap));
 
 	ImGui::SeparatorText("ShadowMap Settings");
+	ImGui::Checkbox("Draw Cascade Bounds", &Settings.bDrawCascadeBounds);
+	if (Settings.bDrawCascadeBounds)
+		ImGui::TextDisabled("Cascade 0-3: red, yellow, green, blue");
 
 	const char* QualityLevelStr[] = { "Very Low", "Low", "Middle", "Hight", "Very High" };
 	

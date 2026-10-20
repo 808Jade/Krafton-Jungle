@@ -23,6 +23,7 @@ struct FEditorSettings
 	bool bDrawBoundingBox = false;
 	bool bShowUUID = false;
 	bool bDrawBatchLine = true;
+	bool bDrawCascadeBounds = false;
 	bool bDrawPSGrid = false;
 	bool bEnableFXAA = false;
 	ELightCullingMode LightCullingMode = ELightCullingMode::Tiled;

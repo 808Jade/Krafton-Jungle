@@ -1050,11 +1050,33 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 			 Cast<APointLightActor>(Gizmo->GetTarget()->GetOwner()) ||
 			 Cast<ARectLightActor>(Gizmo->GetTarget()->GetOwner()));
 
-		if (SettingsPanel->GetSettings().bDrawBatchLine || bDrawSelectedLight)
+		const bool bDrawCascadeBounds = SettingsPanel->GetSettings().bDrawCascadeBounds;
+		if (SettingsPanel->GetSettings().bDrawBatchLine || bDrawSelectedLight || bDrawCascadeBounds)
 		{
-			Overlays.EditorLines = [this, &SceneView, bDrawSelectedLight]
+			Overlays.EditorLines = [this, ViewClient, &SceneView, bDrawSelectedLight, bDrawCascadeBounds]
 				{
 					LineBatcher->BeginFrame();
+					if (bDrawCascadeBounds)
+					{
+						FSceneRenderData& Data = ViewClient->GetRenderData();
+						const FVector4 Colors[4] = {
+							FVector4(1.f, 0.2f, 0.2f, 1.f),
+							FVector4(1.f, 0.8f, 0.2f, 1.f),
+							FVector4(0.2f, 1.f, 0.4f, 1.f),
+							FVector4(0.2f, 0.6f, 1.f, 1.f)
+						};
+						const FBox ClipBox{ FVector(-1.f, -1.f, 0.f), FVector(1.f, 1.f, 1.f) };
+						const uint32 Start = Data.LightShadowOffsets[FSceneRenderData::DirectionalLightSlotIndex];
+						for (uint32 LightIndex = 0; LightIndex < Data.GetDirectionalLightCount(); ++LightIndex)
+						{
+							for (uint32 CascadeIndex = 0; CascadeIndex < Data.CascadeShadowCount; ++CascadeIndex)
+							{
+								const uint32 ShadowIndex = Start + LightIndex * Data.CascadeShadowCount + CascadeIndex;
+								if (ShadowIndex >= static_cast<uint32>(Data.LightShadows.Num())) break;
+								LineBatcher->AddOrientedBox(ClipBox, Data.LightShadows[ShadowIndex].ViewProjection.Inverse(), Colors[CascadeIndex]);
+							}
+						}
+					}
 					if (SettingsPanel->GetSettings().bDrawBatchLine && SettingsPanel->GetSettings().bDrawBoundingBox)
 					{
 						LineBatcher->BuildVertexBuffer();

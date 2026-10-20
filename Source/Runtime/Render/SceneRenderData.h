@@ -8,6 +8,7 @@
 #include "Render/SceneLightResources.h"
 #include "Math/Matrix.h"
 #include <algorithm>
+#include <cmath>
 #include <iterator>
 #include <vector>
 
@@ -56,6 +57,7 @@ struct FSceneRenderData
 	FRenderQueue RenderQueue;
 	FRenderStats RenderStats;
 	TArray<FPrimitiveSceneProxy*> VisibleProxies;
+	TArray<FPrimitiveSceneProxy*> ShadowCasterProxies;
 	TArray<FLODSelectionInput> LODInputs;
 	TArray<uint8> SelectedLODs;
 	TArray<FGatherChunk> GatherChunks;
@@ -126,6 +128,7 @@ struct FSceneRenderData
 		RenderQueue.Reset();
 		RenderStats.Reset();
 		VisibleProxies.Reset();
+		ShadowCasterProxies.Reset();
 		LODInputs.Reset();
 		SelectedLODs.Reset();
 		ObjectConstants.Reset();
@@ -330,21 +333,56 @@ struct FSceneRenderData
 						&RB
 					};
 
-					FVector MinInCascadeLight = FVector(FLT_MAX);
-					FVector MaxInCascadeLight = FVector(-FLT_MAX);
+					FVector CascadeCenter(0.f);
+					for (int32 k = 0; k < 8; k++)
+						CascadeCenter += *WorldCorners[k];
+					CascadeCenter *= 1.f / 8.f;
+
+					float RadiusSquared = 0.f;
+					float MinLightX = FLT_MAX;
+					float MaxLightX = -FLT_MAX;
 					for (int32 k = 0; k < 8; k++)
 					{
+						RadiusSquared = std::max(RadiusSquared, (*WorldCorners[k] - CascadeCenter).SizeSquared());
 						FVector4 InCascadeLightSpace = FVector4(*WorldCorners[k], 1.0f) * ViewMatrix;
-						MinInCascadeLight = FMath::Min(MinInCascadeLight, FVector(InCascadeLightSpace.X, InCascadeLightSpace.Y, InCascadeLightSpace.Z));
-						MaxInCascadeLight = FMath::Max(MaxInCascadeLight, FVector(InCascadeLightSpace.X, InCascadeLightSpace.Y, InCascadeLightSpace.Z));
+						MinLightX = std::min(MinLightX, InCascadeLightSpace.X);
+						MaxLightX = std::max(MaxLightX, InCascadeLightSpace.X);
 					}
 
-					FMatrix CascadeProjectionMatrix = Ortho(MinInCascadeLight.Y, MaxInCascadeLight.Y, MaxInCascadeLight.Z, MinInCascadeLight.Z, MinInCascadeLight.X, MaxInCascadeLight.X);
+					// 회전해도 투영 크기가 변하지 않도록 cascade를 구로 감싼다. 부동 소수점 오류 방지 위해 격자점에 snap
+					const float Radius = std::ceil(std::sqrt(RadiusSquared) * 16.f) / 16.f;
+					const float Extent = Radius * CascadeShadowMapSize / (CascadeShadowMapSize - 1.f); // 패딩 공간 주기 위해 n / n-1 배 해주기
+					const float TexelSize = 2.f * Extent / CascadeShadowMapSize;
+
+					FVector4 CenterInLight = FVector4(CascadeCenter, 1.f) * ViewMatrix;
+
+					const float CenterY = std::round(CenterInLight.Y / TexelSize) * TexelSize; // 중심을 가까운 격자점에 스냅함
+					const float CenterZ = std::round(CenterInLight.Z / TexelSize) * TexelSize;
+					float NearX = MinLightX;
+
+					for (const FPrimitiveSceneProxy* Caster : ShadowCasterProxies)
+					{
+						const FAABB& Bounds = Caster->GetBounds();
+						const FVector4 LightCenter = FVector4(Bounds.Center, 1.f) * ViewMatrix;
+						const FVector LightExtent( // lightview 공간에서의 물체의 새로운 aabb 박스
+							std::abs(ViewMatrix.M[0][0]) * Bounds.Extent.X + std::abs(ViewMatrix.M[1][0]) * Bounds.Extent.Y + std::abs(ViewMatrix.M[2][0]) * Bounds.Extent.Z,
+							std::abs(ViewMatrix.M[0][1]) * Bounds.Extent.X + std::abs(ViewMatrix.M[1][1]) * Bounds.Extent.Y + std::abs(ViewMatrix.M[2][1]) * Bounds.Extent.Z,
+							std::abs(ViewMatrix.M[0][2]) * Bounds.Extent.X + std::abs(ViewMatrix.M[1][2]) * Bounds.Extent.Y + std::abs(ViewMatrix.M[2][2]) * Bounds.Extent.Z);
+
+						if (LightCenter.Y + LightExtent.Y < CenterY - Extent || LightCenter.Y - LightExtent.Y > CenterY + Extent ||
+							LightCenter.Z + LightExtent.Z < CenterZ - Extent || LightCenter.Z - LightExtent.Z > CenterZ + Extent ||
+							LightCenter.X - LightExtent.X > MaxLightX)
+							continue;
+
+						NearX = std::min(NearX, LightCenter.X - LightExtent.X);
+					}
+					NearX -= 1.f;
+					FMatrix CascadeProjectionMatrix = Ortho(CenterY - Extent, CenterY + Extent, CenterZ + Extent, CenterZ - Extent, NearX, MaxLightX);
 
 					FLightShadowRenderData Shadow{};
 					Shadow.ViewProjection = ViewMatrix * CascadeProjectionMatrix;
-					Shadow.Near = MinInCascadeLight.X;
-					Shadow.Far = MaxInCascadeLight.X;
+					Shadow.Near = NearX;
+					Shadow.Far = MaxLightX;
 
 					uint32 Index = LightShadows.Add(Shadow);
 
