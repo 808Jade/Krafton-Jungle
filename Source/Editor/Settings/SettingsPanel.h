@@ -23,6 +23,7 @@ struct FEditorSettings
 	// Rendering
 	bool bEnableFXAA = true;
 	bool bDepthView = false;
+	bool bDrawShadows = true;
 	// 끄면 감마 공간 렌더링이 되어 Linear 작업 흐름과 비교할 수 있다 (ColorWorkflow.h)
 	bool bLinearWorkflow = true;
 	// HDR 씬 컬러를 표시 범위로 압축하는 단계라 Linear 작업 흐름의 Lit 뷰에서만 적용된다
