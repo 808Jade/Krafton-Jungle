@@ -384,6 +384,7 @@ struct FSceneRenderData
 					Shadow.ViewProjection = ViewMatrix * CascadeProjectionMatrix;
 					Shadow.Near = NearX;
 					Shadow.Far = MaxLightX;
+					Shadow.WorldUnitsPerTexel = TexelSize;
 
 					uint32 Index = LightShadows.Add(Shadow);
 
@@ -397,7 +398,7 @@ struct FSceneRenderData
 					PrevBR = RB;
 
 					CascadeShadowDistances[j] = Dist;
-					// CascadeShadowMapSize /= 2;
+					//CascadeShadowMapSize /= 2;
 				}
 			}
 

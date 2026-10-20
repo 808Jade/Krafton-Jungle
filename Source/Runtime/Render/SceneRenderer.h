@@ -81,7 +81,7 @@ private:
 		const FSceneRenderOptions& Options, FSkyboxRenderer* Skybox);
 	bool AddWorldNormalPass(FRenderGraphBuilder& Graph, FRenderer* Renderer, FSceneViewTargets& Targets,
 		const FSceneRenderOptions& Options);
-	bool BindDeferredLighting(FRenderer* Renderer, uint32 Width, uint32 Height, EPcfMode PcfMode);
+	bool BindDeferredLighting(FRenderer* Renderer, uint32 Width, uint32 Height, EPcfMode PcfMode, float ShadowDepthBias);
 	bool BindForwardLighting(FRenderer* Renderer, const FSceneRenderOptions& Options);
 	void UnbindForwardLighting(FRenderer* Renderer);
 	bool IntersectSphereFrustum(const FVector4& PositionRadius, const FPlane (&Planes)[6]) const;

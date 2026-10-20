@@ -305,7 +305,7 @@ bool FSettingsPanel::LoadSettings()
 				else if (Key == "PcfMode")
 				{
 					const int Mode = std::stoi(ValueStr);
-					if (Mode >= 0 && Mode <= static_cast<int>(EPcfMode::Kernel5x5))
+					if (Mode >= 0 && Mode <= static_cast<int>(EPcfMode::PCSS))
 						Settings.PcfMode = static_cast<EPcfMode>(Mode);
 				}
 				else if (Key == "ShadowDepthBias") Settings.ShadowDepthBias = std::stof(ValueStr);
@@ -548,10 +548,10 @@ void FSettingsPanel::DrawShadowMapSettings()
 		Settings.SpotShadowMapSizeLevel = FMath::Clamp(Settings.SpotShadowMapSizeLevel, 0, IM_ARRAYSIZE(QualityLevelStr) - 1);
 	}
 
-	const char* PcfModes[] = { "Off", "On (3x3)", "4x4", "5x5" };
+	const char* PcfModes[] = { "Off", "On (3x3)", "4x4", "5x5", "PCSS" };
 	int PcfModeIndex = static_cast<int>(Settings.PcfMode);
 	ImGui::SetNextItemWidth(200.0f);
-	if (ImGui::Combo("PCF", &PcfModeIndex, PcfModes, IM_ARRAYSIZE(PcfModes)))
+	if (ImGui::Combo("Shadow Filter", &PcfModeIndex, PcfModes, IM_ARRAYSIZE(PcfModes)))
 		Settings.PcfMode = static_cast<EPcfMode>(PcfModeIndex);
 }
 

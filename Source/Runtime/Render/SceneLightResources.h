@@ -22,6 +22,8 @@ struct FDeferredLightConstants
 	uint32 CascadeShadowCount = 0;
 	uint32 PcfMode = 0;
 	float CascadeShadowDistances[4]{};
+	float ShadowDepthBias = 0.f;
+	float ShadowBiasPadding[3]{};
 };
 
 // 뷰별 조명 GPU 리소스. 패스나 드로우는 실행하지 않는다.

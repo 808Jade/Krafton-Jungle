@@ -42,6 +42,8 @@ struct FForwardLightingConstants
 	uint32 ShadowAtlasWidth;
 	uint32 ShadowAtlasHeight;
 	uint32 PcfMode;
+	float ShadowDepthBias;
+	float ShadowBiasPadding[3]{};
 };
 
 struct FLightShadowRenderData
@@ -51,10 +53,12 @@ struct FLightShadowRenderData
 	uint32 AtlasIndex;
 	float Near;
 	float Far;
+	float WorldUnitsPerTexel;
 };
 
 static_assert(sizeof(FVector4) == 16);
-static_assert(sizeof(FLightShadowRenderData) == 92);
+static_assert(sizeof(FLightShadowRenderData) == 96);
+static_assert(offsetof(FLightShadowRenderData, WorldUnitsPerTexel) == 92);
 static_assert(sizeof(FAmbientLightRenderData) == 16);
 static_assert(offsetof(FForwardLightingConstants, CameraPosition) == 16);
 static_assert(offsetof(FForwardLightingConstants, LightCounts) == 32);
@@ -66,4 +70,5 @@ static_assert(offsetof(FForwardLightingConstants, CascadeShadowCount) == 112);
 static_assert(offsetof(FForwardLightingConstants, ShadowAtlasWidth) == 116);
 static_assert(offsetof(FForwardLightingConstants, ShadowAtlasHeight) == 120);
 static_assert(offsetof(FForwardLightingConstants, PcfMode) == 124);
-static_assert(sizeof(FForwardLightingConstants) == 128);
+static_assert(offsetof(FForwardLightingConstants, ShadowDepthBias) == 128);
+static_assert(sizeof(FForwardLightingConstants) == 144);

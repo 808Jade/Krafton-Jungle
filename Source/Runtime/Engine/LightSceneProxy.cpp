@@ -21,6 +21,7 @@ void FDirectionalLightSceneProxy::GetLightShaderParameters(FLightRenderParameter
 	Out.Direction = Transform.GetForward();
 	Out.Color = FVector(Color.R, Color.G, Color.B);
 	Out.Intensity = Dir->GetIntensity();
+	Out.ShadowAngularRadius = FMath::DegreesToRadians(FMath::Clamp(Dir->GetAngularRadiusDegrees(), 0.0f, 10.0f));
 }
 
 void FPointLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out) const

@@ -113,7 +113,7 @@ void FSceneRenderer::InitViews(FRenderer* Renderer, const FSceneRenderOptions& O
 	RenderData.Commit(View.FrustumCorners, View.NearClip, View.FarClip, 4, bLightUploadSucceeded);
 }
 
-bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uint32 Height, EPcfMode PcfMode)
+bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uint32 Height, EPcfMode PcfMode, float ShadowDepthBias)
 {
 	FSceneLightResources& LightResources = RenderData.ViewLightResources;
 
@@ -139,6 +139,7 @@ bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uin
 	Constants.ShadowAtlasHeight = LightShadowAtlas ? LightShadowAtlas->GetHeight() : 0;
 	Constants.CascadeShadowCount = RenderData.CascadeShadowCount;
 	Constants.PcfMode = static_cast<uint32>(PcfMode);
+	Constants.ShadowDepthBias = ShadowDepthBias;
 	std::memcpy(Constants.CascadeShadowDistances, RenderData.CascadeShadowDistances, sizeof(RenderData.CascadeShadowDistances));
 
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
@@ -189,6 +190,7 @@ bool FSceneRenderer::BindForwardLighting(FRenderer* Renderer, const FSceneRender
 	Constants.ShadowAtlasHeight = LightShadowAtlas ? LightShadowAtlas->GetHeight() : 0;
 	Constants.CascadeShadowCount = RenderData.CascadeShadowCount;
 	Constants.PcfMode = static_cast<uint32>(Options.PcfMode);
+	Constants.ShadowDepthBias = Options.ShadowDepthBias;
 	
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
 	std::memcpy(Constants.LightOffsets, RenderData.LightParameterOffsets, sizeof(RenderData.LightParameterOffsets)); // LightOffset은 각 조명별로 시작하는 위치
@@ -377,7 +379,7 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 				ShadowDepthBias = Options.ShadowDepthBias]
 				{
 					if (!bCorePassSucceeded) return;
-					if (!BindDeferredLighting(Renderer, Width, Height, PcfMode))
+					if (!BindDeferredLighting(Renderer, Width, Height, PcfMode, ShadowDepthBias))
 					{
 						bCorePassSucceeded = false;
 						return;

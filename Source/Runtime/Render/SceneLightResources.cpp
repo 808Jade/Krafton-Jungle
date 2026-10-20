@@ -22,7 +22,8 @@ namespace
 	static_assert(offsetof(FDeferredLightConstants, CascadeShadowCount) == 200);
 	static_assert(offsetof(FDeferredLightConstants, PcfMode) == 204);
 	static_assert(offsetof(FDeferredLightConstants, CascadeShadowDistances) == 208);
-	static_assert(sizeof(FDeferredLightConstants) == 224);
+	static_assert(offsetof(FDeferredLightConstants, ShadowDepthBias) == 224);
+	static_assert(sizeof(FDeferredLightConstants) == 240);
 
 	// 용량이 모자랄 때만 두 배로 키우고 Map 한 번으로 채운다.
 	bool UploadStructured(TUniquePtr<FStructuredBuffer>& Buffer, const void* Data, uint32 Count, uint32 Stride)

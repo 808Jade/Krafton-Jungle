@@ -34,5 +34,6 @@ enum class EPcfMode : uint32_t
     Off = 0,
     On = 1, // 3x3
     Kernel4x4 = 2,
-    Kernel5x5 = 3
+    Kernel5x5 = 3,
+    PCSS = 4
 };
