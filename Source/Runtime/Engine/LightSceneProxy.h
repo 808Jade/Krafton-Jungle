@@ -50,6 +50,10 @@ public:
 	// 이번 프레임 그림자가 없으면 표시 안 함
 	ID3D11ShaderResourceView* GetShadowPreviewSRV() const
 	{
+		if (Type == ELightType::Directional)
+		{
+			return ShadowPreview.ShadowSRV;
+		}
 		return ShadowIndex >= 0 ? ShadowPreview.ShadowSRV : nullptr;
 	}
 

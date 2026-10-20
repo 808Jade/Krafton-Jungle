@@ -1015,7 +1015,17 @@ void FDetailsPanel::OnRender()
 				FVector2 StartUV = Light->GetSceneProxy()->GetShadowPreview().PreviewUV.StartUV;
 				FVector2 EndUV = Light->GetSceneProxy()->GetShadowPreview().PreviewUV.EndUV;
 				if (ID3D11ShaderResourceView* ShadowSRV = Light->GetShadowPreviewSRV())
-					ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f }, {StartUV.X, StartUV.Y}, {EndUV.X, EndUV.Y});
+				{
+					if (FLightSceneProxy* Proxy = Light->GetSceneProxy())
+					{
+						const uint32 Res = Proxy->GetShadowPreview().Resolution;
+						if (Res > 0)
+						{
+							ImGui::Text("Resolution: %u x %u", Res, Res);
+						}
+					}
+					ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f }, { StartUV.X, StartUV.Y }, { EndUV.X, EndUV.Y });
+				}
 				else
 					ImGui::TextDisabled("No shadow map");
 			}
