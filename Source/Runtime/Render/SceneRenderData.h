@@ -156,7 +156,7 @@ struct FSceneRenderData
 		}
 	}
 
-	void Commit(const FFrustumCorners& CameraFrustumCorners, float CameraNear, float CameraFar, uint32 ExpectCascadeCount, bool& bLightUpaloadSucceeded)
+	void Commit(const FFrustumCorners& CameraFrustumCorners, float CameraNear, float CameraFar, uint32 ExpectCascadeCount, float LogRatio, bool& bLightUpaloadSucceeded)
 	{
 		RenderQueue.Sort();
 
@@ -286,7 +286,6 @@ struct FSceneRenderData
 			}
 
 			float CascadeShadowFar = FMath::Min(CameraFar, MaxCascadeDistance);
-			float LogRatio = 0.8;
 
 			CascadeShadowCount = FMath::Clamp(ExpectCascadeCount, 1u, MaxCascadeShadowCount);
 

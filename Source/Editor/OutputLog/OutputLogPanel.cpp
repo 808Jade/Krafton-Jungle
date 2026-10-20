@@ -2,6 +2,10 @@
 #include "Editor/OutputLog/OutputLogPanel.h"
 
 #include "Core/StatOverlay.h"
+#include "Render/SceneRenderer.h"
+
+#include <charconv>
+#include <sstream>
 
 static int TextEditCallbackStub(ImGuiInputTextCallbackData* data)
 {
@@ -25,6 +29,7 @@ bool FOutputLogPanel::Init()
 	Commands.Add("HISTORY");
 	Commands.Add("CLEAR");
 	Commands.Add("STAT");
+	Commands.Add("CSM");
 
 	HistoryPos = -1;
 	InputBuf[0] = '\0';
@@ -175,6 +180,41 @@ void FOutputLogPanel::ExecCommand(const FString& CommandLine)
 		return;
 	}
 
+	std::istringstream CsmInput(CommandLine);
+	FString Command, Argument, Value, Extra;
+	CsmInput >> Command;
+	if (EqualsIgnoreCase(Command, "CSM"))
+	{
+		if ((CsmInput >> Argument >> Value) && !(CsmInput >> Extra))
+		{
+			if (EqualsIgnoreCase(Argument, "COUNT"))
+			{
+				uint32 Count = 0;
+				const auto [End, Error] = std::from_chars(Value.data(), Value.data() + Value.size(), Count);
+				if (Error == std::errc{} && End == Value.data() + Value.size() && FSceneRenderer::SetCascadeCount(Count))
+				{
+					FLog::Log(ELogVerbosity::Info, "CSM Count: {}", Count);
+					ScrollToBottom = true;
+					return;
+				}
+			}
+			else if (EqualsIgnoreCase(Argument, "LOGRATIO"))
+			{
+				float Ratio = 0.0f;
+				const auto [End, Error] = std::from_chars(Value.data(), Value.data() + Value.size(), Ratio);
+				if (Error == std::errc{} && End == Value.data() + Value.size() && FSceneRenderer::SetCascadeLogRatio(Ratio))
+				{
+					FLog::Log(ELogVerbosity::Info, "CSM LogRatio: {}", Ratio);
+					ScrollToBottom = true;
+					return;
+				}
+			}
+		}
+		FLog::Log(ELogVerbosity::Info, "Usage: CSM Count <1-4> | CSM LogRatio <0.0-1.0>");
+		ScrollToBottom = true;
+		return;
+	}
+
 	if (EqualsIgnoreCase(CommandLine, "CLEAR"))
 	{
 		ClearLog();
@@ -185,6 +225,8 @@ void FOutputLogPanel::ExecCommand(const FString& CommandLine)
 		for (const FString& Command : Commands)
 			FLog::Log(ELogVerbosity::Info, "- {}", Command);
 		OnLog(ELogVerbosity::Info, "- STAT <fps|memory|all|none>");
+		OnLog(ELogVerbosity::Info, "- CSM Count <1-4>");
+		OnLog(ELogVerbosity::Info, "- CSM LogRatio <0.0-1.0>");
 	}
 	else if (EqualsIgnoreCase(CommandLine, "HISTORY"))
 	{
