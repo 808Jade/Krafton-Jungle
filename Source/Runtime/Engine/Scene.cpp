@@ -1,4 +1,4 @@
-﻿#include "EnginePCH.h"
+#include "EnginePCH.h"
 #include "Scene.h"
 #include "LightSceneProxy.h"
 #include "Render/ColorWorkflow.h"
@@ -185,16 +185,23 @@ void FScene::BuildLightingConstants(FLightingConstants& Out) const
 		case ELightType::Directional:
 			Out.Directional = static_cast<const FDirectionalLightSceneProxy*>(Proxy)->GetInfo();
 			break;
-		case ELightType::Point:
-			if (Out.NumPointLights < MaxPointLights)
-				Out.PointLights[Out.NumPointLights++] = static_cast<const FPointLightSceneProxy*>(Proxy)->GetInfo();
-			break;
-		case ELightType::Spot:
-			if (Out.NumSpotLights < MaxSpotLights)
-				Out.SpotLights[Out.NumSpotLights++] = static_cast<const FSpotLightSceneProxy*>(Proxy)->GetInfo();
+		default:
 			break;
 		}
 	}
+}
+
+const FShadowInfo* FScene::GetDirectionalShadowInfo() const
+{
+	const FShadowInfo* Result = nullptr;
+	for (const FLightSceneProxy* Proxy : Lights)
+	{
+		if (Proxy->IsVisible() && Proxy->GetLightType() == ELightType::Directional)
+		{
+			Result = &static_cast<const FDirectionalLightSceneProxy*>(Proxy)->GetShadowInfo();
+		}
+	}
+	return Result;
 }
 
 void FScene::UpdateAllTransforms()
@@ -308,29 +315,25 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			continue;
 		}
 
+		// Preview가 켜져있다면 넣기 (Directional, Spot 등)
+		if (Proxy->bPreviewShadowMap)
+		{
+			OutPreviewShadowMapLightProxy = Proxy;
+			Proxy->bPreviewShadowMap = false;
+		}
+
 		switch (Proxy->GetLightType())
 		{
-			//Directional 타입을 어떻게 처리할 것인가???
-		case ELightType::Directional: {
+		case ELightType::Directional:
+		{
 			FDirectionalLightSceneProxy* DirectionalProxy = static_cast<FDirectionalLightSceneProxy*>(Proxy);
 			FDirectionalLightInfo DirectionalLightInfo = DirectionalProxy->GetInfo();
-			FShadowInfo DirectionalShadowInfo = DirectionalProxy->GetShadowInfo();
-
-			if (bShadow) {
-				DirectionalLightInfo.ShadowIndex = OutShadowInfo.Add(DirectionalShadowInfo);
-				Proxy->ShadowIndex = DirectionalLightInfo.ShadowIndex;
-			}
-
 			ShadowStats.DirectionalLightCount++;
 			OutDirectionalLight.Add(DirectionalLightInfo);
 			break;
 		}
-
 		case ELightType::Point:
 		{
-			//나중에 CastShadow가 생겨서 안그릴 거면 -1로 인덱스 넣기
-			//나중에 6개가 생기게된다. ShadowIndex가 첫칸이 될 거 같다.			
-
 			FPointLightSceneProxy* PointProxy = static_cast<FPointLightSceneProxy*>(Proxy);
 			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
 			FShadowInfo PointShadowInfo = PointProxy->GetShadowInfo();
@@ -342,30 +345,16 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 
 			OutPointLight.Add(PointLightInfo);
 			ShadowStats.PointLightCount++;
-
 			break;
 		}			
 		case ELightType::Spot:
 		{
-			//나중에 CastShadow가 생겨서 안그릴 거면 -1로 인덱스 넣기
-
 			FSpotLightSceneProxy* SpotProxy = static_cast<FSpotLightSceneProxy*>(Proxy);
 			FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
 			if (bShadow) {
 				FShadowInfo SpotShadowInfo = SpotProxy->GetShadowInfo();
-
 				SpotLightInfo.ShadowIndex = OutShadowInfo.Add(SpotShadowInfo);
 				Proxy->ShadowIndex = SpotLightInfo.ShadowIndex;
-
-				//Preview가 켜져있다면 넣기
-			
-				if (SpotProxy->bPreviewShadowMap)
-				{
-					OutPreviewShadowMapLightProxy = SpotProxy;
-					//한번만 복사하기 위해
-					//어차피 다음 프레임에서도 Detail Panel이 true로 요청할 것
-					SpotProxy->bPreviewShadowMap = false;
-				}
 			}
 			OutSpotLight.Add(SpotLightInfo);
 			ShadowStats.SpotLightCount++;

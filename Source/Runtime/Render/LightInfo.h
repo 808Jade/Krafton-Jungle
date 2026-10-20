@@ -2,10 +2,6 @@
 
 #include "Math/Vector.h"
 
-// UberLit.hlsl의 MAX_POINT_LIGHTS, MAX_SPOT_LIGHTS
-constexpr uint32 MaxPointLights = 4;
-constexpr uint32 MaxSpotLights = 4;
-
 // Linear
 struct FAmbientLightInfo
 {
@@ -18,7 +14,7 @@ struct FDirectionalLightInfo
 	FVector Color;
 	float Padding0 = 0.0f;
 	FVector Direction;
-	int32 ShadowIndex = -1;
+	int32 bCastShadow = 0;
 	//float Padding1 = 0.0f;
 };
 
@@ -47,23 +43,31 @@ struct FLightingConstants
 {
 	FAmbientLightInfo Ambient;
 	FDirectionalLightInfo Directional;
-	FPointLightInfo PointLights[MaxPointLights];
-	FSpotLightInfo SpotLights[MaxSpotLights];
-	uint32 NumPointLights = 0;
-	uint32 NumSpotLights = 0;
-	uint32 Padding[2] = {};
 };
 
 struct FShadowInfo
 {
 	FMatrix LightViewProjection;
 	float Bias = 0.001f;
-	float Padding[3] = {};
+	float NormalBias = 2.0f;
+	float Padding[2] = {};
+};
+
+struct FDirectionalShadowConstants // b5
+{
+	FMatrix CascadeViewProjection[4];
+	FVector4 CascadeSplits;                 
+	FVector4 CascadeOffsets[4];      
+	FVector4 CascadeBiases;                     
+	int32 NumCascades = 1;                      
+	float NormalBias = 2.0f;
+	int32 Padding[2] = {};
 };
 
 static_assert(sizeof(FAmbientLightInfo) == 16);
 static_assert(sizeof(FDirectionalLightInfo) == 32);
 static_assert(sizeof(FPointLightInfo) == 32);
 static_assert(sizeof(FSpotLightInfo) == 64);
-static_assert(sizeof(FLightingConstants) == 448);
+static_assert(sizeof(FLightingConstants) == 48);
 static_assert(sizeof(FShadowInfo) == 80);
+static_assert(sizeof(FDirectionalShadowConstants) == 368);

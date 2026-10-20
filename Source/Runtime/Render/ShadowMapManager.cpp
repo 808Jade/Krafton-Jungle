@@ -16,7 +16,7 @@ void FShadowMapManager::UploadShadowInfos(const TArray<FShadowInfo>& ShadowInfos
         return;
     }
 
-    //일단 해상도 512로 하드코딩
+    // @todo 일단 해상도 512로 하드코딩
     EnsureShadowMaps(512, NumShadowInfos);
 
     ID3D11DeviceContext* Context = RenderCommand::GetContext();
@@ -31,7 +31,7 @@ void FShadowMapManager::UploadShadowInfos(const TArray<FShadowInfo>& ShadowInfos
 
 ID3D11DepthStencilView* FShadowMapManager::GetSliceDSV(uint32 Slice) const
 {
-    if (ShadowDepthView.Num() - 1 < Slice) return nullptr;
+    if (Slice >= static_cast<uint32>(ShadowDepthView.Num())) return nullptr;
 
     return ShadowDepthView[Slice].Get();
 }
@@ -60,7 +60,7 @@ bool FShadowMapManager::EnsureShadowMaps(uint32 InResolution, uint32 InNumSlices
     Resolution = InResolution;
 
     ShadowMapArrayBuffer.Reset();
-    for (uint32 i = 0; i < ShadowDepthView.Num(); i++)
+    for (int32 i = 0; i < ShadowDepthView.Num(); ++i)
     {
         ShadowDepthView[i].Reset();
     }
@@ -157,16 +157,141 @@ void FShadowMapManager::EndShadowPass()
 void FShadowMapManager::BindForShading()
 {
     ID3D11DeviceContext* Context = RenderCommand::GetContext();
-    // Texture2DArray
+    // Texture2DArray: Local Lights (Point, Spot)
     Context->PSSetShaderResources(2, 1, ShadowMapArraySRV.GetAddressOf());   
+    // Texture2D: Directional Light Shadow Atlas
+    Context->PSSetShaderResources(3, 1, DirectionalShadowSRV.GetAddressOf());
     // StructuredBuffer
     Context->PSSetShaderResources(12, 1, ShadowInfoSRV.GetAddressOf());       
+    // Directional Shadow Constants (b5)
+    if (DirectionalShadowCB)
+    {
+        RenderCommand::BindConstantBuffer(5, DirectionalShadowCB.get(), EShaderBindFlagBits::Pixel);
+    }
     // s0은 BindMaterial이 머티리얼마다 덮어쓰므로 섀도 샘플러는 s1
     RenderCommand::BindSamplerState(1, ESamplerState::Point, EShaderBindFlagBits::Pixel);
 }
 
+bool FShadowMapManager::EnsureDirectionalShadowMap(uint32 InResolution)
+{
+    if (DirectionalShadowTexture && DirectionalShadowDSV && DirectionalShadowSRV && DirectionalResolution == InResolution)
+    {
+        return true;
+    }
+
+    DirectionalResolution = InResolution;
+    DirectionalShadowTexture.Reset();
+    DirectionalShadowDSV.Reset();
+    DirectionalShadowSRV.Reset();
+
+    ID3D11Device* Device = RenderCommand::GetDevice();
+
+    D3D11_TEXTURE2D_DESC Desc{};
+    Desc.Width = DirectionalResolution;
+    Desc.Height = DirectionalResolution;
+    Desc.MipLevels = 1;
+    Desc.ArraySize = 1;
+    Desc.Format = DXGI_FORMAT_R32_TYPELESS;
+    Desc.SampleDesc.Count = 1;
+    Desc.Usage = D3D11_USAGE_DEFAULT;
+    Desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+
+    HRESULT hr = Device->CreateTexture2D(&Desc, nullptr, DirectionalShadowTexture.GetAddressOf());
+    if (FAILED(hr))
+    {
+        assert(false);
+        return false;
+    }
+
+    D3D11_DEPTH_STENCIL_VIEW_DESC DsvDesc{};
+    DsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+    DsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    DsvDesc.Texture2D.MipSlice = 0;
+
+    hr = Device->CreateDepthStencilView(DirectionalShadowTexture.Get(), &DsvDesc, DirectionalShadowDSV.GetAddressOf());
+    if (FAILED(hr))
+    {
+        assert(false);
+        return false;
+    }
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC SrvDesc{};
+    SrvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+    SrvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    SrvDesc.Texture2D.MostDetailedMip = 0;
+    SrvDesc.Texture2D.MipLevels = 1;
+
+    hr = Device->CreateShaderResourceView(DirectionalShadowTexture.Get(), &SrvDesc, DirectionalShadowSRV.GetAddressOf());
+    if (FAILED(hr))
+    {
+        assert(false);
+        return false;
+    }
+
+    return true;
+}
+
+void FShadowMapManager::SetupDirectionalShadow(const FShadowInfo& DirectionalShadow)
+{
+    EnsureDirectionalShadowMap(DirectionalResolution);
+
+    if (!DirectionalShadowCB)
+    {
+        DirectionalShadowCB = RenderCommand::CreateConstantBuffer(sizeof(FDirectionalShadowConstants));
+    }
+
+    FDirectionalShadowConstants Constants{};
+
+    // [0번 캐스케이드] 현재 Directional Light의 뷰-프로젝션 행렬
+    // @todo 4분할 알고리즘을 넣을 때, 0~3번 슬롯을 채워준다. 그리고 NumCascades = 4 해주면 됨
+    Constants.CascadeViewProjection[0] = DirectionalShadow.LightViewProjection;
+
+    // [분할 거리] 모든 픽셀이 0번 캐스케이드에 걸리도록 큰 값 설정
+    Constants.CascadeSplits = FVector4(10000.0f, 10000.0f, 10000.0f, 10000.0f);
+
+    // [아틀라스 UV] 현재는 2048x2048 텍스처 1장을 통째로 쓰므로 (Scale: 1.0, Offset: 0.0)
+    Constants.CascadeOffsets[0] = FVector4(1.0f, 1.0f, 0.0f, 0.0f);
+
+    // [바이어스]
+    Constants.CascadeBiases = FVector4(DirectionalShadow.Bias, 0.002f, 0.004f, 0.008f);
+    Constants.NormalBias = DirectionalShadow.NormalBias;
+
+    // [캐스케이드 개수] 현재는 1개
+    Constants.NumCascades = 1;
+
+    // 2. GPU 상수 버퍼(DirectionalShadowCB)로 업로드
+    RenderCommand::UpdateBufferData(DirectionalShadowCB.get(), &Constants);
+}
+
+void FShadowMapManager::BeginDirectionalShadowRender()
+{
+    ID3D11DeviceContext* Context = RenderCommand::GetContext();
+    if (!DirectionalShadowDSV) return;
+
+    Context->OMSetRenderTargets(0, nullptr, DirectionalShadowDSV.Get());
+    Context->ClearDepthStencilView(DirectionalShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+    RenderCommand::SetViewport(0, 0, DirectionalResolution, DirectionalResolution);
+}
+
+void FShadowMapManager::EndDirectionalShadowRender()
+{
+    RenderCommand::GetContext()->OMSetRenderTargets(0, nullptr, nullptr);
+}
+
 void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
 {
+    if (!PreviewShadowMapProxy)
+        return;
+
+    // Directional Light의 경우 이미 단일 Texture2D 형태이므로 SRV를 직접 전달
+    if (PreviewShadowMapProxy->GetLightType() == ELightType::Directional)
+    {
+        PreviewShadowMapProxy->GetShadowPreview().ShadowSRV = DirectionalShadowSRV;
+        PreviewShadowMapProxy->GetShadowPreview().Resolution = DirectionalResolution;
+        return;
+    }
+
     //Imgui쪽에 보여줘야하는 건 Texture2D
     //Shadow Map은 Texture2DArray
     //SRV도 Texture3DArray
@@ -174,7 +299,7 @@ void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
     //배열 리소스에서 Texture2D 차원 SRV를 만들 수 없어서 보고 싶은 층 하나를 그냥 Texture2D로 복사해서 보내야한다.
 
     //if (!PreviewTexture || Slice >= NumSlices)
-    if (!PreviewShadowMapProxy || PreviewShadowMapProxy->GetShadowIndex() < 0 || 
+    if (PreviewShadowMapProxy->GetShadowIndex() < 0 || 
         static_cast<uint32>(PreviewShadowMapProxy->GetShadowIndex()) >= NumSlices)
         return;
 
@@ -243,12 +368,13 @@ void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
 
 void FShadowMapManager::UnbindForShading()
 {
-    ID3D11ShaderResourceView* NullSRV = nullptr;
+    ID3D11ShaderResourceView* NullSRVs[2] = { nullptr, nullptr };
     ID3D11DeviceContext* Context = RenderCommand::GetContext();
 
-    //t12 StructuredShadowData, ShadowMap
-    Context->PSSetShaderResources(2, 1, &NullSRV);
-    Context->PSSetShaderResources(12, 1, &NullSRV);
+    // t2: ShadowMapArray, t3: DirectionalLightShadowmapAtlas
+    Context->PSSetShaderResources(2, 2, NullSRVs);
+    // t12: StructuredShadowData
+    Context->PSSetShaderResources(12, 1, &NullSRVs[0]);
 }
 
 bool FShadowMapManager::EnsureShadowInfoCapacity(uint32 RequiredCount)
