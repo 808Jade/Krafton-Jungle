@@ -11,6 +11,7 @@
 #include <cmath>
 #include <iterator>
 #include <vector>
+#include "Math/QuadTree.h"
 
 struct FRenderStats
 {
@@ -396,53 +397,51 @@ struct FSceneRenderData
 					PrevBR = RB;
 
 					CascadeShadowDistances[j] = Dist;
-					CascadeShadowMapSize /= 2;
+					// CascadeShadowMapSize /= 2;
 				}
 			}
 
 			std::sort(AreaInfos.GetData(), AreaInfos.GetData() + AreaInfos.Num(), [](const FAreaInfo& A, const FAreaInfo& B) { return A.Size > B.Size; });
 
-			// TODO: 패킹 알고리즘 필요
-			uint32 AtlasCursorX = 0;
-			uint32 AtlasCursorY = 0;
-			uint32 MaxHeightInLine = 0;
-			for (int32 i = 0; i < AreaInfos.Num(); i++)
+			TArray<FQuadTree> AtlasTrees;
+			FQuadTree Root(ShadowMapSize);
+			AtlasTrees.Add(Root);
+
+			for (int32 i = 0; i < AreaInfos.Num(); ++i)
 			{
-				FAreaInfo& AreaInfo = AreaInfos[i];
+				const FAreaInfo& AreaInfo = AreaInfos[i];
+				
+				uint32 PlacedAtlasIndex = 0;
+				FRect PlacedRect{};
+				bool bPlaced = false;
 
-				if (AtlasCursorX + AreaInfo.Size > ShadowMapSize)
+				for (size_t AtlasIndex = 0; AtlasIndex < AtlasTrees.Num(); ++AtlasIndex)
 				{
-					AtlasCursorY += MaxHeightInLine;
-					AtlasCursorX = 0;
-					MaxHeightInLine = 0;
-
-					if (AtlasCursorY + AreaInfo.Size > ShadowMapSize)
+					if (AtlasTrees[AtlasIndex].InsertSquare(AreaInfo.Size, PlacedRect))
 					{
-						AtlasNeedCount++;
-						AtlasCursorY = 0;
-						MaxHeightInLine = 0;
+						PlacedAtlasIndex = static_cast<uint32>(AtlasIndex);
+						bPlaced = true;
+						break;
 					}
 				}
-				if (AtlasCursorY + AreaInfo.Size > ShadowMapSize)
+
+				if (!bPlaced)
 				{
-					AtlasNeedCount++;
-					AtlasCursorX = 0;
-					AtlasCursorY = 0;
-					MaxHeightInLine = 0;
+					AtlasTrees.Add(FQuadTree(ShadowMapSize));
+					PlacedAtlasIndex = static_cast<uint32>(AtlasTrees.Num() - 1);
+					bPlaced = AtlasTrees.Last().InsertSquare(AreaInfo.Size, PlacedRect);
+					if (!bPlaced)
+					{
+						bLightUpaloadSucceeded = false;
+						return;
+					}
 				}
 
-				FLightShadowRenderData& RenderData = LightShadows[AreaInfo.Index];
-
-				RenderData.AtlasIndex = AtlasNeedCount - 1;
-				RenderData.AtlasRect.X = AtlasCursorX;
-				RenderData.AtlasRect.Y = AtlasCursorY;
-				RenderData.AtlasRect.Width = AreaInfo.Size;
-				RenderData.AtlasRect.Height = AreaInfo.Size;
-
-				AtlasCursorX += AreaInfo.Size;
-
-				MaxHeightInLine = std::max(MaxHeightInLine, AreaInfo.Size);
+				FLightShadowRenderData& Shadow = LightShadows[AreaInfo.Index];
+				Shadow.AtlasIndex = PlacedAtlasIndex;
+				Shadow.AtlasRect = PlacedRect;
 			}
+			AtlasNeedCount = static_cast<uint32>(AtlasTrees.Num());
 		}
 
 		// NOTE: 라이트 데이터를 GPU에 올림.
@@ -457,10 +456,7 @@ struct FSceneRenderData
 		RenderStats.PointCount = GetPointLightCount();
 		RenderStats.SpotCount = GetSpotLightCount();
 		RenderStats.AtlasCapacity = ShadowMapSize * ShadowMapSize * AtlasNeedCount * 4;
-		RenderStats.ShadowTiles = DirectionalLightShadowMapSize * DirectionalLightShadowMapSize * RenderStats.DirectionalCount;
-		RenderStats.ShadowTiles += (DirectionalLightShadowMapSize / 2) * (DirectionalLightShadowMapSize / 2) * RenderStats.DirectionalCount;
-		RenderStats.ShadowTiles += (DirectionalLightShadowMapSize / 4) * (DirectionalLightShadowMapSize / 4) * RenderStats.DirectionalCount;
-		RenderStats.ShadowTiles += (DirectionalLightShadowMapSize / 8) * (DirectionalLightShadowMapSize / 8) * RenderStats.DirectionalCount;
+		RenderStats.ShadowTiles = DirectionalLightShadowMapSize * DirectionalLightShadowMapSize * 4 * RenderStats.DirectionalCount;
 		RenderStats.ShadowTiles += PointLightShadowMapSize * PointLightShadowMapSize * 6 * RenderStats.PointCount;
 		RenderStats.ShadowTiles += SpotLightShadowMapSize * SpotLightShadowMapSize * RenderStats.SpotCount;
 		RenderStats.ShadowTiles *= 4;
