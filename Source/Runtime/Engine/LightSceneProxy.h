@@ -31,11 +31,12 @@ class FLightSceneProxy
 {
 public:
 	FLightSceneProxy(ULightComponentBase* InComponent, ELightType InType) : Component(InComponent), Type(InType) {}
-	virtual ~FLightSceneProxy()
-	{
-	}
+
+	virtual ~FLightSceneProxy() = default;
+
 
 	virtual void UpdateFromComponent() = 0;
+	virtual int32 GetShadowInfoNum() const { return -1; };
 
 	ULightComponentBase* GetComponent() const { return Component; }
 	ELightType GetLightType() const { return Type; }
@@ -48,17 +49,19 @@ public:
 	void SetPreviewShadowMapFlag(bool IsShow) { bPreviewShadowMap = IsShow; }	
 
 	// 이번 프레임 그림자가 없으면 표시 안 함
-	ID3D11ShaderResourceView* GetShadowPreviewSRV() const
+	ID3D11ShaderResourceView* GetShadowPreviewSRV(int32 ShadowPreviewIndex) const
 	{
+		if (ShadowPreviews.Num() <= ShadowPreviewIndex || ShadowPreviewIndex < 0) return nullptr;
 		if (Type == ELightType::Directional)
 		{
-			return ShadowPreview.ShadowSRV;
+			return ShadowPreviews[0].ShadowSRV;
 		}
-		return ShadowIndex >= 0 ? ShadowPreview.ShadowSRV : nullptr;
+		return ShadowIndex >= 0 ? ShadowPreviews[ShadowPreviewIndex].ShadowSRV : nullptr;
 	}
 
 	// Renderer가 채울 때만 사용
-	FShadowPreview& GetShadowPreview() { return ShadowPreview; }
+	//FShadowPreview& GetShadowPreview() { return ShadowPreview; }
+	TArray<FShadowPreview>& GetShadowPreview() { return ShadowPreviews; }
 
 protected:
 	ULightComponentBase* Component = nullptr;
@@ -75,7 +78,8 @@ private:
 
 	//ShadowMap을 디테일 창에 프리뷰 할지
 	bool bPreviewShadowMap = false;
-	FShadowPreview ShadowPreview;
+	//FShadowPreview ShadowPreview;
+	TArray<FShadowPreview> ShadowPreviews;
 };
 
 class FAmbientLightSceneProxy final : public FLightSceneProxy
@@ -112,6 +116,7 @@ public:
 
 	const FDirectionalLightInfo& GetInfo() const { return Info; }
 	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
+	virtual int32 GetShadowInfoNum()const override { return 1; }
 
 private:
 	FDirectionalLightInfo Info;
@@ -128,16 +133,17 @@ public:
 		const UPointLightComponent* Light = static_cast<const UPointLightComponent*>(Component);
 		Info = Light->GetPointLightInfo();
 		bVisible = Light->IsLightVisible();
-
-		ShadowInfo = Light->GetShadowInfo();
+				
+		Light->GetShadowInfo(ShadowInfos);
 	}
 
 	const FPointLightInfo& GetInfo() const { return Info; }
-	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
+	const TArray<FShadowInfo>& GetShadowInfos() const { return ShadowInfos; }
+	virtual int32 GetShadowInfoNum()const override { return ShadowInfos.Num(); }
 
 private:
 	FPointLightInfo Info;
-	FShadowInfo ShadowInfo;
+	TArray<FShadowInfo> ShadowInfos;
 };
 
 class FSpotLightSceneProxy final : public FLightSceneProxy
@@ -155,6 +161,7 @@ public:
 
 	const FSpotLightInfo& GetInfo() const { return Info; }
 	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
+	virtual int32 GetShadowInfoNum()const override { return 1; }
 
 private:
 	FSpotLightInfo Info;

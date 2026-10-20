@@ -1012,22 +1012,36 @@ void FDetailsPanel::OnRender()
 				ImGui::SeparatorText("Shadow Map");
 				//ShadowMap preview 하도록 요청
 				Light->SetPreviewShadowMapFlag(true);
-				FVector2 StartUV = Light->GetSceneProxy()->GetShadowPreview().PreviewUV.StartUV;
-				FVector2 EndUV = Light->GetSceneProxy()->GetShadowPreview().PreviewUV.EndUV;
-				if (ID3D11ShaderResourceView* ShadowSRV = Light->GetShadowPreviewSRV())
+
+				const char* PointShadowMapName[] = { "Forward", "Back", "Right", "Left", "Up", "Down" };
+				int32 ShadowInfoNum = Light->GetShadowInfoNum();
+
+				for (int32 i = 0; i < ShadowInfoNum; i++)
 				{
-					if (FLightSceneProxy* Proxy = Light->GetSceneProxy())
+					//Point 일 때만 이름을 나오게 하고, 1개만 있을 때는 안나오게 한다.
+					if (ShadowInfoNum > 1)
 					{
-						const uint32 Res = Proxy->GetShadowPreview().Resolution;
-						if (Res > 0)
-						{
-							ImGui::Text("Resolution: %u x %u", Res, Res);
-						}
+						ImGui::TextUnformatted(PointShadowMapName[i]);
 					}
-					ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f }, { StartUV.X, StartUV.Y }, { EndUV.X, EndUV.Y });
+
+					if (ID3D11ShaderResourceView* ShadowSRV = Light->GetShadowPreviewSRV(i))
+					{
+						const FShadowPreview& Preview = Light->GetSceneProxy()->GetShadowPreview()[i];
+						if (FLightSceneProxy* Proxy = Light->GetSceneProxy())
+						{
+							const uint32 Res = Proxy->GetShadowPreview()[i].Resolution;
+							if (Res > 0)
+							{
+								ImGui::Text("Resolution: %u x %u", Res, Res);
+							}
+						}
+						const FPreviewUV& UV = Preview.PreviewUV;
+						ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f }, { UV.StartUV.X, UV.StartUV.Y }, { UV.EndUV.X, UV.EndUV.Y });
+					}
+					else
+						ImGui::TextDisabled("No shadow map");
+
 				}
-				else
-					ImGui::TextDisabled("No shadow map");
 			}
 			ImGui::PopID();
 

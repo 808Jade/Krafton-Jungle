@@ -51,7 +51,6 @@ public:
 
 	uint32 GetAtlasResolution() { return AtlasResolution; }
 	uint32 GetNumAtlas() { return NumAtlas; }
-	ID3D11ShaderResourceView* GetPreviewSRV() const { return PreviewShadowSRV.Get(); }
 
 private:
 	// 해상도, 층 수가 바뀔 때만 리소스와 뷰를 다시 만든다
@@ -80,20 +79,20 @@ private:
 	TUniquePtr<FConstantBuffer> DirectionalShadowCB;
 	uint32 DirectionalResolution = 2048;
 
-
 	uint32 ShadowInfoCapacity = 0;
 	uint32 NumShadowInfos = 0;	
 
 	uint32 ShadowMapCapacity = 0;
 	uint32 NumShadowMaps = 0;
 
-	uint32 Resolution = 512;
+	uint32 Resolution = 1024;
 	uint32 NumSlices = 0;
 
 	uint32 AtlasResolution = 4096;
 	uint32 NumAtlas = 1;
 
-	// 프리뷰는 섀도우 매니저가 하나만 들고 있는다.
-	ComPtr<ID3D11Texture2D> PreviewShadowTexture;
-	ComPtr<ID3D11ShaderResourceView> PreviewShadowSRV;
+	// 프리뷰는 섀도우 매니저가 들고 있는다.
+	TArray<ComPtr<ID3D11Texture2D>> PreviewShadowTextures;
+	TArray<ComPtr<ID3D11ShaderResourceView>> PreviewShadowSRVs;
+	// Point Light 는 섀도우 맵이 6개임. 아틀라스 여러개에 걸쳐있을 수 있기 때문에 Array로 관리.
 };
