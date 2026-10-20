@@ -48,7 +48,7 @@ float CalculateShadow(float3 P, float3 N, float3 LightDirection, Texture2DArray 
     if (bReceiveShadow < 0.5f)
         return 1.0f;
     
-    const float Bias = 0.01;
+    const float Bias = 0.00001;
     
     float Result = 1.0;
 
@@ -63,7 +63,10 @@ float CalculateShadow(float3 P, float3 N, float3 LightDirection, Texture2DArray 
             
     float CenterDepth = CoordPos.z;
     
-    if (CoordPos.w > 0.0 && CoordPos.x >= -1.0 && CoordPos.x <= 1.0 && CoordPos.y >= -1.0 && CoordPos.y <= 1.0 && CoordPos.z >= 0 && CoordPos.z <= 1)
+    float EdgeEpsilonX = 2.0f / Shadow.AtlasRect.z;
+    float EdgeEpsilonY = 2.0f / Shadow.AtlasRect.w;
+    
+    if (CoordPos.w > 0.0 && CoordPos.x >= -1.0 - EdgeEpsilonX && CoordPos.x <= 1.0 + EdgeEpsilonX && CoordPos.y >= -1.0 - EdgeEpsilonY && CoordPos.y <= 1.0 + EdgeEpsilonY && CoordPos.z >= 0 && CoordPos.z <= 1)
     {
         float2 AtlasURange = float2((Shadow.AtlasRect.x + 0.5) / AtlasWidth, (Shadow.AtlasRect.x + Shadow.AtlasRect.z - 0.5) / AtlasWidth);
         float2 AtlasVRange = float2((Shadow.AtlasRect.y + 0.5) / AtlasHeight, (Shadow.AtlasRect.y + Shadow.AtlasRect.w - 0.5) / AtlasHeight);
@@ -80,13 +83,8 @@ float CalculateShadow(float3 P, float3 N, float3 LightDirection, Texture2DArray 
             [loop]
             for (uint j = 0; j < KernelSize; j++)
             {
-                float AtlasU = CenterAtlasU + Texel.x * (i - HalfWidth);
-                float AtlasV = CenterAtlasV + Texel.y * (j - HalfWidth);
-                    
-                if (AtlasU < AtlasURange.x || AtlasU > AtlasURange.y || AtlasV < AtlasVRange.x || AtlasV > AtlasVRange.y)
-                {
-                    continue;
-                }
+                float AtlasU = clamp(CenterAtlasU + Texel.x * (i - HalfWidth), AtlasURange.x, AtlasURange.y);
+                float AtlasV = clamp(CenterAtlasV + Texel.y * (j - HalfWidth), AtlasVRange.x, AtlasVRange.y);
                 
                 Sum += Atlas.SampleCmpLevelZero(ShadowSampler, float3(AtlasU, AtlasV, Shadow.AtlasIndex), CenterDepth).r;
                 SampleCount++;

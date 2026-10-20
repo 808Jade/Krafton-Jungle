@@ -311,11 +311,11 @@ void AddAllLocalLights(inout FLightResult Result, float3 P, float3 N,
         uint FaceIndex = 0;
             
         float3 AbsL = abs(L);
-        if (AbsL.x > AbsL.y && AbsL.x > AbsL.z)
+        if (AbsL.x >= AbsL.y && AbsL.x >= AbsL.z)
         {
             FaceIndex = L.x > 0.0 ? 0 : 1;
         }
-        else if (AbsL.y > AbsL.x && AbsL.y > AbsL.z)
+        else if (AbsL.y >= AbsL.z)
         {
             FaceIndex = L.y > 0.0 ? 4 : 5;
         }
@@ -403,11 +403,11 @@ FLightResult CalculateTiledLighting(float3 PixelPosition, float3 P, float ViewDe
             uint FaceIndex = 0;
             
             float3 AbsL = abs(L);
-            if (AbsL.x > AbsL.y && AbsL.x > AbsL.z)
+            if (AbsL.x >= AbsL.y && AbsL.x >= AbsL.z)
             {
                 FaceIndex = L.x > 0.0 ? 0 : 1;
             }
-            else if (AbsL.y > AbsL.x && AbsL.y > AbsL.z)
+            else if (AbsL.y >= AbsL.z)
             {
                 FaceIndex = L.y > 0.0 ? 4 : 5;
             }
