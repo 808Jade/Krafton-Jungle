@@ -61,9 +61,9 @@ public:
 	// Active View의 입력과 Picking 결과만 Gizmo 및 선택 상태에 반영한다.
 	void UpdateGizmoAndPicking();
 	// 뷰포트 하나의 씬과 에디터 요소를 렌더링한다.
-	void RenderFrame(FEditorViewportClient* ViewClient, const FSceneView& SceneView, FSceneRenderer& SceneRenderer, UWorld* TargetWorld, const bool bIsPIE);
+	void RenderFrame(FEditorViewportClient* ViewClient, const FSceneView& SceneView, const FSceneRenderOptions& RenderOptions, FSceneRenderer& SceneRenderer, UWorld* TargetWorld, const bool bIsPIE);
 	// 게임 뷰포트 화면을 렌더링한다.
-	void RenderGameFrame(FGameViewportClient* GameClient, const FSceneView& SceneView, FSceneRenderer& SceneRenderer, bool bIsSIEMode = false);
+	void RenderGameFrame(FGameViewportClient* GameClient, const FSceneView& SceneView, const FSceneRenderOptions& RenderOptions, FSceneRenderer& SceneRenderer, bool bIsSIEMode = false);
 	// 네 View 결과와 ImGui를 메인 Swapchain 백버퍼에 합성한다. Present는 FEngineLoop가 한다.
 	void PresentFrame();
 	void DeleteActor(AActor* Actor);
@@ -117,6 +117,9 @@ private:
 	bool IsPIEInWindow() const { return PIEWindow != nullptr; }
 	// 화면 합성과 View 설정 보관으로 프레임을 마무리한다.
 	void EndFrame();
+
+	void BuildSceneRenderOptions(FGameViewportClient* ViewClient, FSceneRenderOptions& Options);
+	void BuildSceneRenderOptions(FEditorViewportClient* ViewClient, bool IsPIE, FSceneRenderOptions& Options);
 
 	bool RenderScene(FSceneViewTargets& Targets, const FSceneView& SceneView,
 		FSceneRenderer& SceneRenderer, UWorld* TargetWorld, const FSceneRenderOptions& Options,

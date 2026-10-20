@@ -73,7 +73,7 @@ bool FSceneRenderer::IntersectSphereFrustum(const FVector4& PositionRadius, cons
 }
 
 // 가시성 검사 및 렌더 큐 수집
-void FSceneRenderer::InitViews(FRenderer* Renderer)
+void FSceneRenderer::InitViews(FRenderer* Renderer, const FSceneRenderOptions& Options)
 {
 	bLightUploadSucceeded = false;
 	if (!World)
@@ -103,6 +103,10 @@ void FSceneRenderer::InitViews(FRenderer* Renderer)
 		Light->GetLightShaderParameters(Parameters);
 		RenderData.VisibleLights.Add(Parameters);
 	}
+
+	RenderData.DirectionalLightShadowMapSize = Options.DirectionalShadowMapSize;
+	RenderData.PointLightShadowMapSize = Options.PointShadowMapSize;
+	RenderData.SpotLightShadowMapSize = Options.SpotShadowMapSize;
 
 	RenderData.Commit(View.FrustumCorners, View.NearClip, View.FarClip, 4, bLightUploadSucceeded);
 }
