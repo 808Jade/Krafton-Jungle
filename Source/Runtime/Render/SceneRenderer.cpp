@@ -25,7 +25,7 @@ DECLARE_CYCLE_STAT("Gather Elements", STAT_GatherElements);
 
 namespace
 {
-	std::atomic<uint32> GCascadeCount{ 1 };
+	std::atomic<uint32> GCascadeCount{ 4 };
 	std::atomic<float> GCascadeLogRatio{ 0.8f };
 
 	FRenderGraphRasterPassDesc MakeViewportPass(const std::string& Name, FRenderGraphTextureRef Color,

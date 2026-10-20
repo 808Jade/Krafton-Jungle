@@ -296,7 +296,6 @@ struct FSceneRenderData
 				if (LightIndex == PreviewLightIndex) PreviewShadowRange = { uint32(LightShadows.Num()), CascadeShadowCount };
 
 				const FLightRenderParameters& DirectionalLight = VisibleLights[LightIndex];
-				FMatrix ViewMatrix = LookAt(FVector(0.f), DirectionalLight.Direction, UpVector);
 
 				FVector ToTL = CameraFrustumCorners.FTL() - CameraFrustumCorners.NTL();
 				FVector ToTR = CameraFrustumCorners.FTR() - CameraFrustumCorners.NTR();
@@ -337,6 +336,8 @@ struct FSceneRenderData
 					for (int32 k = 0; k < 8; k++)
 						CascadeCenter += *WorldCorners[k];
 					CascadeCenter *= 1.f / 8.f;
+					const FVector LightCameraPosition = CascadeCenter - DirectionalLight.Direction.Normalized() * 100.f;
+					const FMatrix ViewMatrix = LookAt(LightCameraPosition, CascadeCenter, UpVector);
 
 					float RadiusSquared = 0.f;
 					float MinLightX = FLT_MAX;
