@@ -77,6 +77,10 @@ struct FShadowInfo
 {
     matrix LightViewProjection;
     float Bias;
+    uint AtlasIndex;
+    uint AtlasStartX;
+    uint AtlasStartY;
+    uint AtlasSize;
     float3 Padding;
 };
 
@@ -304,9 +308,16 @@ float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
     //들어온 UV 중 u와 v중 하나라도 0.0보다 작다면으로 해석됨
     if (any(UV < 0.0f) || any(UV > 1.0f) || Ndc.z > 1.0f)
         return 1.0f;
+    
+    // 아틀라스 UV 구하는 로직
+    float AtlasWidth, AtlasHeight, NumPages;
+    ShadowTextureArray.GetDimensions(AtlasWidth, AtlasHeight, NumPages);
+    
+    float2 AtlasUV = (float2(Info.AtlasStartX, Info.AtlasStartY) + UV * Info.AtlasSize) / float2(AtlasWidth, AtlasHeight);
+    
 
     // 저장된 최소 깊이. z = 층 번호 (지금은 ShadowIndex == 층)
-    float StoredDepth = ShadowTextureArray.SampleLevel(ShadowSampler, float3(UV, ShadowIndex), 0);
+    float StoredDepth = ShadowTextureArray.SampleLevel(ShadowSampler, float3(AtlasUV, Info.AtlasIndex), 0);
 
     // 비교 + 상수 Bias
     // 샘플링 한 것보다 크다면 그림자임

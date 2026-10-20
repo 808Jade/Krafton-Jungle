@@ -16,8 +16,8 @@ void FShadowMapManager::UploadShadowInfos(const TArray<FShadowInfo>& ShadowInfos
         return;
     }
 
-    //일단 해상도 512로 하드코딩
-    EnsureShadowMaps(512, NumShadowInfos);
+    // 일단 아틀라스 해상도 4096으로 하드코딩
+    EnsureShadowMapAtlas(4096, NumAtlas);
 
     ID3D11DeviceContext* Context = RenderCommand::GetContext();
     D3D11_MAPPED_SUBRESOURCE Mapped{};
@@ -92,6 +92,9 @@ bool FShadowMapManager::EnsureShadowMaps(uint32 InResolution, uint32 InNumSlices
         assert(false);
     }
 
+    
+
+
     // DSV: 층마다 하나씩 (그릴 때는 한 층만 대상)
     for (uint32 i = 0; i < NumSlices; ++i)
     {
@@ -125,6 +128,86 @@ bool FShadowMapManager::EnsureShadowMaps(uint32 InResolution, uint32 InNumSlices
     return true;
 }
 
+bool FShadowMapManager::EnsureShadowMapAtlas(uint32 InNewAtlasResolution, uint32 InNewNumAtlas)
+{
+    //개수가 바뀐다면, 해상도가 바뀐다면
+    if (ShadowMapAtlasBuffer && ShadowMapAtlasArraySRV &&
+        InNewNumAtlas == static_cast<uint32>(ShadowAtlasDepthView.Num()) && AtlasResoltion == InNewAtlasResolution)
+    {
+        return true;
+    }
+
+    NumAtlas = InNewNumAtlas;
+    NumAtlas = std::max(NumAtlas, 1u);
+    AtlasResoltion = InNewAtlasResolution;
+
+    ShadowMapAtlasBuffer.Reset();
+    for (uint32 i = 0; i < ShadowAtlasDepthView.Num(); i++)
+    {
+        ShadowAtlasDepthView[i].Reset();
+    }
+    ShadowAtlasDepthView.Empty();
+    ShadowAtlasDepthView.SetNum(NumAtlas);
+
+    ShadowMapAtlasArraySRV.Reset();
+
+
+    ID3D11Device* Device = RenderCommand::GetDevice();
+
+    D3D11_TEXTURE2D_DESC Desc{};
+    // 정사각형
+    Desc.Width = AtlasResoltion;
+    Desc.Height = AtlasResoltion;
+    Desc.MipLevels = 1;
+    // 층 수 (Spot 수 + Point 수 × 6 ...)
+    Desc.ArraySize = NumAtlas;   // TODO : 아틀라스 배열로 수정
+    Desc.Format = DXGI_FORMAT_R32_TYPELESS;
+    Desc.SampleDesc.Count = 1;
+    Desc.Usage = D3D11_USAGE_DEFAULT;
+    Desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+
+    HRESULT hr = Device->CreateTexture2D(&Desc, nullptr, ShadowMapAtlasBuffer.GetAddressOf());
+    if (FAILED(hr))
+    {
+        assert(false);
+    }
+
+
+    // DSV: 층마다 하나씩 (그릴 때는 한 층만 대상)
+    for (uint32 i = 0; i < NumAtlas; ++i)
+    {
+        D3D11_DEPTH_STENCIL_VIEW_DESC Dsv{};
+        Dsv.Format = DXGI_FORMAT_D32_FLOAT;
+        Dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+        Dsv.Texture2DArray.MipSlice = 0;
+        Dsv.Texture2DArray.FirstArraySlice = i;
+        Dsv.Texture2DArray.ArraySize = 1;
+        // TODO: RenderCommand 에 DSV 생성 함수 만들기
+        hr = Device->CreateDepthStencilView(ShadowMapAtlasBuffer.Get(), &Dsv, ShadowAtlasDepthView[i].GetAddressOf());
+        if (FAILED(hr))
+        {
+            assert(false);
+        }
+    }
+
+    // SRV: 전체 층을 한 번에 (셰이더는 이걸 Texture2DArray로 본다)
+    D3D11_SHADER_RESOURCE_VIEW_DESC Srv{};
+    Srv.Format = DXGI_FORMAT_R32_FLOAT;
+    Srv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+    Srv.Texture2DArray.MostDetailedMip = 0;
+    Srv.Texture2DArray.MipLevels = 1;
+    Srv.Texture2DArray.FirstArraySlice = 0;
+    Srv.Texture2DArray.ArraySize = NumAtlas;  // TODO : 아틀라스 배열로 수정
+    // TODO: RenderCommand 에 SRV 생성 함수 만들기
+    hr = Device->CreateShaderResourceView(ShadowMapAtlasBuffer.Get(), &Srv, ShadowMapAtlasArraySRV.GetAddressOf());
+    if (FAILED(hr))
+    {
+        assert(false);
+    }
+
+    return true;
+}
+
 void FShadowMapManager::BeginShadowRender(uint32 Slice)
 {
     //DSV, Viewport 바인딩
@@ -148,6 +231,32 @@ void FShadowMapManager::BeginShadowRender(uint32 Slice)
     RenderCommand::SetViewport(0, 0, Resolution, Resolution);
 }
 
+void FShadowMapManager::ClearAtlas()
+{
+    ID3D11DeviceContext* Context = RenderCommand::GetContext();
+    for (uint32 i = 0; i < NumAtlas; ++i)
+        Context->ClearDepthStencilView(ShadowAtlasDepthView[i].Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+}
+
+void FShadowMapManager::BeginShadowRenderWithAtlas(const FShadowInfo& ShadowInfo)
+{
+    //DSV, Viewport 바인딩
+    //Viewport는 나중에 다른 해상도로 바뀔 것이다.
+
+    ID3D11DeviceContext* Context = RenderCommand::GetContext();
+
+    //해당하는 DSV 있다면 초기화
+    ID3D11DepthStencilView* DSV = ShadowAtlasDepthView[ShadowInfo.AtlasIndex].Get();
+
+    // RTV 없이 DSV만 : Depth-only
+    Context->OMSetRenderTargets(0, nullptr, DSV);
+
+    // 섀도맵 해상도로 Viewport (뷰포트 크기와 무관)
+    //나중에 맵마다 해상도를 다르게 한다면 좀 더 구조적으로 잡혀야한다.
+    //지금은 모든 텍스처가 같다.
+    RenderCommand::SetViewport(ShadowInfo.AtlasStartX, ShadowInfo.AtlasStartY, ShadowInfo.AtlasSize, ShadowInfo.AtlasSize);
+}
+
 void FShadowMapManager::EndShadowPass()
 {
     // DSV를 풀어야 같은 리소스를 SRV로 읽을 수 있다
@@ -158,7 +267,7 @@ void FShadowMapManager::BindForShading()
 {
     ID3D11DeviceContext* Context = RenderCommand::GetContext();
     // Texture2DArray
-    Context->PSSetShaderResources(2, 1, ShadowMapArraySRV.GetAddressOf());   
+    Context->PSSetShaderResources(2, 1, ShadowMapAtlasArraySRV.GetAddressOf());
     // StructuredBuffer
     Context->PSSetShaderResources(12, 1, ShadowInfoSRV.GetAddressOf());       
     // s0은 BindMaterial이 머티리얼마다 덮어쓰므로 섀도 샘플러는 s1
@@ -239,6 +348,38 @@ void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
     RenderCommand::GetContext()->CopySubresourceRegion(
         PreviewShadowMapProxy->GetShadowPreview().ShadowTexture.Get(), 0, 0, 0, 0,
         ShadowMapArrayBuffer.Get(), SrcSubresource, nullptr);
+}
+
+void FShadowMapManager::BuildAtlas(TArray<FShadowInfo>& ShadowInfos)
+{
+    uint32 CurrentAtlasIndex = 0;
+    uint32 CurrentX = 0;
+    uint32 CurrentY = 0;
+    
+    for (FShadowInfo& Info : ShadowInfos)
+    {
+        // 아틀라스 계산
+        if (CurrentX + Resolution > AtlasResoltion)
+        {
+            CurrentX = 0;
+            CurrentY += Resolution;
+        }
+
+        if (CurrentY + Resolution > AtlasResoltion)
+        {   // 다음줄
+            CurrentX = CurrentY = 0;
+            ++CurrentAtlasIndex;
+        }
+
+        Info.AtlasIndex = CurrentAtlasIndex;
+        // TODO: ShadowManager가 갖고있는 값이 아니라 컴포넌트가 들고있기 혹은 라이트 타입 별 전역옵션으로 수정필요
+        Info.AtlasSize = Resolution;    
+        Info.AtlasStartX = CurrentX;
+        Info.AtlasStartY = CurrentY;
+
+        CurrentX += Resolution;
+    }
+    NumAtlas = CurrentAtlasIndex + 1;
 }
 
 void FShadowMapManager::UnbindForShading()
