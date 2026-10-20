@@ -133,8 +133,8 @@ bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uin
 	Constants.SkyColorIntensity = Sky ? RenderData.SkyLight.ColorIntensity : FVector4(0.f);
 	Constants.ShadowAtlasWidth = LightShadowAtlas ? LightShadowAtlas->GetWidth() : 0;
 	Constants.ShadowAtlasHeight = LightShadowAtlas ? LightShadowAtlas->GetHeight() : 0;
-	Constants.DirectionalCascadeCount = RenderData.DirectionalCascadeCount;
-	std::memcpy(Constants.DirectionalCascadeFars, RenderData.DirectionalCascadeFars, sizeof(RenderData.DirectionalCascadeFars));
+	Constants.CascadeShadowCount = RenderData.CascadeShadowCount;
+	std::memcpy(Constants.CascadeShadowDistances, RenderData.CascadeShadowDistances, sizeof(RenderData.CascadeShadowDistances));
 
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
 	std::memcpy(Constants.LightOffsets, RenderData.LightParameterOffsets, sizeof(RenderData.LightParameterOffsets)); // LightOffset은 각 조명별로 시작하는 위치
@@ -147,7 +147,8 @@ bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uin
 	Renderer->BindStructured(4, LightShadows, EShaderBindFlagBits::Pixel);
 	RenderCommand::BindShaderResource(5, LightShadowAtlas, EShaderBindFlagBits::Pixel);
 
-	Renderer->BindSampler(1, ESamplerState::LinearClamp, EShaderBindFlagBits::Pixel);
+	Renderer->BindSampler(2, ESamplerState::PointClamp, EShaderBindFlagBits::Pixel);
+	Renderer->BindSampler(3, ESamplerState::ShadowComparison, EShaderBindFlagBits::Pixel);
 
 	return true;
 }
@@ -179,7 +180,6 @@ bool FSceneRenderer::BindForwardLighting(FRenderer* Renderer, const FSceneRender
 	Constants.Ambient = Sky ? FAmbientLightRenderData{ FVector4(0.0f) } : RenderData.AmbientLight;
 	Constants.SkyColorIntensity = Sky ? RenderData.SkyLight.ColorIntensity : FVector4(0.f);
 	Constants.CameraPosition = FVector4(View.ViewLocation.X, View.ViewLocation.Y, View.ViewLocation.Z, 1.0f);
-	Constants.CameraForward = FVector4(View.ViewForward.X, View.ViewForward.Y, View.ViewForward.Z, 0.0f);
 	Constants.ShadowAtlasWidth = LightShadowAtlas ? LightShadowAtlas->GetWidth() : 0;
 	Constants.ShadowAtlasHeight = LightShadowAtlas ? LightShadowAtlas->GetHeight() : 0;
 	Constants.CascadeShadowCount = RenderData.CascadeShadowCount;
@@ -242,77 +242,6 @@ bool FSceneRenderer::AddWorldNormalPass(FRenderGraphBuilder& Graph, FRenderer* R
 			if (bCorePassSucceeded)
 				Renderer->DrawMeshes(Batches);
 		});
-}
-
-bool FSceneRenderer::AssignShadowAtlasRects(TArray<FShadowDrawPass>& Passes, uint32& OutAtlasCount)
-{
-#if 0
-	constexpr float AtlasSize = static_cast<float>(FSceneViewTargets::ShadowAtlasSize);
-	OutAtlasCount = 0;
-	TArray<FShadowDrawPass*> Requests;
-	Requests.Reserve(Passes.Num());
-	for (FShadowDrawPass& Pass : Passes)
-	{
-		if (!Pass.Resolution || static_cast<float>(Pass.Resolution) > AtlasSize)
-			return false;
-		Requests.Add(&Pass);
-	}
-	// 큰 영역부터 배정하되 조명/face 순서로 저장된 원본 목록은 유지한다.
-	std::stable_sort(Requests.begin(), Requests.end(), [](const auto* A, const auto* B)
-	{
-		return A->Resolution > B->Resolution;
-	});
-	TArray<TArray<FRect>> FreeRects; // FreeRects[0] 은 0번 atlas의 빈 사각형 목록, FreeRects[0][0]은 첫 번째 빈 사각형
-	for (FShadowDrawPass* Pass : Requests)
-	{
-		const float Size = static_cast<float>(Pass->Resolution);
-		bool bAssigned = false;
-		for (uint32 AtlasIndex = 0; !bAssigned; ++AtlasIndex)
-		{
-			if (AtlasIndex == FreeRects.Num())
-			{
-				const uint32 NewAtlasSize = FSceneViewTargets::GetShadowAtlasSize(AtlasIndex);
-				if (!NewAtlasSize)
-				{
-					HTR_LOG(Error, "[Shadow] Atlas growth exceeds the D3D11 texture size limit");
-					return false;
-				}
-				const float AtlasSize = static_cast<float>(NewAtlasSize);
-				FreeRects.Add({ FRect{ 0, 0, AtlasSize, AtlasSize } }); // 새로운 atlas 추가하고 atlas 크기의 빈 사각형 하나 넣음
-			}
-			auto& Rects = FreeRects[AtlasIndex]; // 새 atlas라면 Rects.Num() == 1
-			for (size_t RectIndex = 0; RectIndex < Rects.Num(); ++RectIndex)
-			{
-				const FRect Free = Rects[RectIndex];
-				if (Free.Width < Size || Free.Height < Size) continue; // 안 들어가면 다음 빈 영역 검사
-				Rects.RemoveAt(static_cast<uint32>(RectIndex)); // 배정할 빈 사각형을 원본 목록에서 제거
-				// 빈 영역을 겹치지 않는 오른쪽/아래쪽 사각형으로 분할한다.
-				if (Free.Width > Size) // 오른쪽에 남은 빈 영역 추가
-					Rects.Add({
-						Free.X + Size,     // 사용한 영역의 오른쪽부터
-						Free.Y,            // 같은 Y 위치
-						Free.Width - Size, // 남은 너비
-						Size               // 사용한 영역과 같은 높이
-					});
-				if (Free.Height > Size) // 아래쪽에 공간이 남았다면
-					Rects.Add({
-						Free.X,            // 기존 왼쪽 위치
-						Free.Y + Size,     // 배치한 그림자 맵 아래부터
-						Free.Width,        // 기존 영역의 전체 너비
-						Free.Height - Size // 남은 높이
-					});
-				Pass->Parameters.AtlasIndex = AtlasIndex; // 이 Pass가 사용할 atlas 번호
-				Pass->Parameters.AtlasRect = { Free.X, Free.Y,
-					static_cast<float>(Pass->Resolution), static_cast<float>(Pass->Resolution) }; // atlas 안의 위치와 크기
-				bAssigned = true;
-				break;
-			}
-		}
-	}
-	OutAtlasCount = static_cast<uint32>(FreeRects.Num());
-	return true;
-#endif
-	return true;
 }
 
 bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Renderer, FSceneViewTargets& Targets,

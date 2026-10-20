@@ -6,10 +6,8 @@
 #include "Engine/LightSceneProxy.h"
 #include "Render/LightRenderData.h"
 #include "Render/SceneLightResources.h"
-#include "Render/SceneView.h"
 #include "Math/Matrix.h"
 #include <algorithm>
-#include <cmath>
 #include <iterator>
 #include <vector>
 
@@ -72,8 +70,8 @@ struct FSceneRenderData
 	TArray<FLightShadowRenderData> LightShadows;
 	uint32 LightShadowOffsets[4]; // 라이트 그림자 리스트 내 구간의 offset
 
-	float CascadeShadowDistances[MaxCascadeShadowCount];
-	uint32 CascadeShadowCount;
+	float CascadeShadowDistances[MaxCascadeShadowCount]{};
+	uint32 CascadeShadowCount = 0;
 	// CPU-only preview state for this view. Never uploaded with the light parameters.
 	const ULightComponent* PreviewLight = nullptr;
 	int32 PreviewLightIndex = INDEX_NONE;
@@ -104,9 +102,6 @@ struct FSceneRenderData
 		OutAtlas = Atlas;
 		return true;
 	}
-	uint32 LightShadowOffsets[4];
-	uint32 DirectionalCascadeCount = 1;
-	FVector4 DirectionalCascadeFars[2];
 
 	void ResetScene()
 	{
@@ -133,9 +128,8 @@ struct FSceneRenderData
 		LightShadows.Reset();
 		PreviewLightIndex = INDEX_NONE;
 		PreviewShadowRange = {};
-		DirectionalCascadeCount = 1;
-		DirectionalCascadeFars[0] = FVector4(0.0f);
-		DirectionalCascadeFars[1] = FVector4(0.0f);
+		CascadeShadowCount = 0;
+		std::fill(std::begin(CascadeShadowDistances), std::end(CascadeShadowDistances), 0.0f);
 		std::memset(LightParameterOffsets, 0, sizeof(LightParameterOffsets));
 		std::memset(LightParameterCounts, 0, sizeof(LightParameterCounts));
 
@@ -166,7 +160,8 @@ struct FSceneRenderData
 			};
 
 			// Sort indices so the selected light's identity survives sorting, including identical lights.
-			std::vector<int32> LightOrder(VisibleLights.Num());
+			TArray<int32> LightOrder;
+			LightOrder.SetNum(VisibleLights.Num());
 			for (int32 i = 0; i < VisibleLights.Num(); ++i) LightOrder[i] = i;
 			std::sort(LightOrder.begin(), LightOrder.end(), [&](int32 A, int32 B) {
 				const uint32 ASlot = TypeToSlot[VisibleLights[A].Type];
@@ -226,6 +221,7 @@ struct FSceneRenderData
 			for (int32 i = 0; i < GetPointLightCount(); i++)
 			{
 				int32 LightIndex = GetPointLightOffset() + i;
+				if (LightIndex == PreviewLightIndex) PreviewShadowRange = { uint32(LightShadows.Num()), 6 };
 
 				const FLightRenderParameters& PointLight = VisibleLights[LightIndex];
 
@@ -258,6 +254,7 @@ struct FSceneRenderData
 			for (int32 i = 0; i < GetSpotLightCount(); i++)
 			{
 				int32 LightIndex = GetSpotLightOffset() + i;
+				if (LightIndex == PreviewLightIndex) PreviewShadowRange = { uint32(LightShadows.Num()), 1 };
 
 				const FLightRenderParameters& SpotLight = VisibleLights[LightIndex];
 
@@ -285,61 +282,9 @@ struct FSceneRenderData
 			for (int32 i = 0; i < GetDirectionalLightCount(); i++)
 			{
 				int32 LightIndex = GetDirectionalLightOffset() + i;
+				if (LightIndex == PreviewLightIndex) PreviewShadowRange = { uint32(LightShadows.Num()), CascadeShadowCount };
 
 				const FLightRenderParameters& DirectionalLight = VisibleLights[LightIndex];
-				const FVector LightDirection = DirectionalLight.Direction.GetSafeNormal();
-				const FVector LightUp = std::abs(LightDirection.Z) > 0.99f
-					? FVector(0, 1, 0) : FVector(0, 0, 1);
-				const FMatrix LightOrientation = LookAt(FVector(0, 0, 0), LightDirection, LightUp);
-				const FMatrix InverseLightOrientation = LightOrientation.Inverse();
-				for (uint32 CascadeIndex = 0; CascadeIndex < DirectionalCascadeCount; ++CascadeIndex)
-				{
-					FMatrix ViewMatrix;
-					FMatrix ProjectionMatrix;
-					if (bValidCameraRange)
-					{
-						const float NearDistance = CascadeIndex == 0 ? CameraNear
-							: DirectionalCascadeFars[(CascadeIndex - 1) / 4].Component((CascadeIndex - 1) % 4);
-						const float FarDistance = DirectionalCascadeFars[CascadeIndex / 4].Component(CascadeIndex % 4);
-						const float NearFraction = (NearDistance - CameraNear) / (CameraFar - CameraNear);
-						const float FarFraction = (FarDistance - CameraNear) / (CameraFar - CameraNear);
-						FVector Min, Max;
-						for (int32 CornerIndex = 0; CornerIndex < 4; ++CornerIndex)
-						{
-							const FVector Ray = CameraCorners[1][CornerIndex] - CameraCorners[0][CornerIndex];
-							for (int32 PlaneIndex = 0; PlaneIndex < 2; ++PlaneIndex)
-							{
-								const float Fraction = PlaneIndex ? FarFraction : NearFraction;
-								const FVector WorldCorner = CameraCorners[0][CornerIndex] + Ray * Fraction;
-								const FVector4 LightCorner = FVector4(WorldCorner, 1.0f) * LightOrientation;
-								const FVector Point(LightCorner.X, LightCorner.Y, LightCorner.Z);
-								if (CornerIndex == 0 && PlaneIndex == 0) Min = Max = Point;
-								else
-								{
-									for (int32 Axis = 0; Axis < 3; ++Axis)
-									{
-										Min.Component(Axis) = std::min(Min.Component(Axis), Point.Component(Axis));
-										Max.Component(Axis) = std::max(Max.Component(Axis), Point.Component(Axis));
-									}
-								}
-							}
-						}
-						const float Width = std::max(Max.Y - Min.Y, 0.01f);
-						const float Height = std::max(Max.Z - Min.Z, 0.01f);
-						const float Depth = std::max(Max.X - Min.X + CasterDepthPadding, 0.01f);
-						const FVector4 Eye = FVector4(Min.X - CasterDepthPadding - 0.1f,
-							(Min.Y + Max.Y) * 0.5f, (Min.Z + Max.Z) * 0.5f, 1.0f) * InverseLightOrientation;
-						const FVector EyePosition(Eye.X, Eye.Y, Eye.Z);
-						ViewMatrix = LookAt(EyePosition, EyePosition + LightDirection, LightUp);
-						ProjectionMatrix = Ortho(Width, Width / Height, 0.1f, Depth + 0.1f);
-					}
-					else
-					{
-						ViewMatrix = LookAt(DirectionalLight.Position,
-							DirectionalLight.Position + LightDirection, LightUp);
-						ProjectionMatrix = Ortho(20, 1.0f, 0.1f, 1000.f);
-					}
-
 				FMatrix ViewMatrix = LookAt(FVector(0.f), DirectionalLight.Direction, UpVector);
 
 				FVector ToTL = CameraFrustumCorners.FTL() - CameraFrustumCorners.NTL();

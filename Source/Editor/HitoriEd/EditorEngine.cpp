@@ -199,6 +199,7 @@ bool UEditorEngine::Init()
 			}
 			Outline->SetTarget(Primitive);
 		});
+
 	DetailsPanel->SetSelectionCallback(
 		[this](UActorComponent* Component)
 		{
@@ -500,11 +501,16 @@ void UEditorEngine::RenderViewports()
 		Client->GetRenderData().PreviewLight = PreviewLight;
 		Client->GetRenderData().PreviewShadowRange = {};
 	}
-	for (FWorldContext& Context : WorldContextlist)
+	if (bIsPIE)
 	{
-		if (!Context.GameViewport) continue;
-		Context.GameViewport->GetRenderData().PreviewLight = PreviewLight;
-		Context.GameViewport->GetRenderData().PreviewShadowRange = {};
+		if (FWorldContext* Context = GetPIEWorldContext())
+		{
+			if (Context->GameViewport)
+			{
+				Context->GameViewport->GetRenderData().PreviewLight = PreviewLight;
+				Context->GameViewport->GetRenderData().PreviewShadowRange = {};
+			}
+		}
 	}
 
 	for (int32 ViewIndex = 0; ViewIndex < AllViewportClients.Num(); ++ViewIndex) {

@@ -4,13 +4,7 @@
 #include "Render/ForwardLightTiles.h"
 #include "Render/Buffer.h"
 #include "Render/Texture2D.h"
-#include "Math/Rect.h"
 #include "Containers/Array.h"
-
-struct FSceneRenderData;
-
-struct FShadowDrawPass;
-class FRenderer;
 
 struct FDeferredLightConstants
 {
@@ -25,9 +19,9 @@ struct FDeferredLightConstants
 	FVector4 SkyColorIntensity;
 	uint32 ShadowAtlasWidth;
 	uint32 ShadowAtlasHeight;
-	uint32 DirectionalCascadeCount = 1;
+	uint32 CascadeShadowCount = 0;
 	uint32 Padding = 0;
-	FVector4 DirectionalCascadeFars[2];
+	float CascadeShadowDistances[4]{};
 };
 
 // 뷰별 조명 GPU 리소스. 패스나 드로우는 실행하지 않는다.
@@ -61,11 +55,6 @@ private:
 	TUniquePtr<FConstantBuffer> ForwardLightCB;
 	TUniquePtr<FConstantBuffer> DeferredLightCB;
 
-	TArray<uint32> PackedLightIndices; // VisibleLights 인덱스 -> SceneLights 인덱스
-	uint32 PackedLightCount = 0;
-	TArray<FShadowParameters> ShadowParameters;
-	TArray<FLightShadowRange> LightShadowRanges;
-	bool bShadowsUploaded = false;
 	FForwardLightTileGrid ForwardTileGrid;
 	bool bInitialized = false;
 };
