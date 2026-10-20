@@ -20,6 +20,13 @@ struct FRenderStats
 	uint32 LODCounts[4] = {};
 	uint64 LODTriangles[4] = {};
 
+	uint32 DirectionalCount = 0;
+	uint32 PointCount = 0;
+	uint32 SpotCount = 0;
+	uint32 RectCount = 0;
+	float AtlasCapacity = 0.0f;
+	float ShadowTiles = 0.0f;
+
 	void Reset() { *this = FRenderStats(); }
 };
 
@@ -32,7 +39,7 @@ struct FSceneRenderData
 	static constexpr int32 RectLightSlotIndex = 3;
 	
 	static constexpr uint32 ShadowMapSize = 4096;
-	static constexpr uint32 DirectionalLightShadowMapSize = 4096;
+	static constexpr uint32 DirectionalLightShadowMapSize = 2048;
 	static constexpr uint32 MaxCascadeShadowCount = 4;
 	static constexpr float MaxCascadeDistance = 1000.f;
 	static constexpr uint32 PointLightShadowMapSize = 512;
@@ -351,6 +358,17 @@ struct FSceneRenderData
 			ViewLightResources.CreateShadowAtlasIfNeed(ShadowMapSize, ShadowMapSize, AtlasNeedCount);
 			bLightUpaloadSucceeded &= ViewLightResources.UploadLightShadows(LightShadows);
 		}
+		RenderStats.DirectionalCount = GetDirectionalLightCount();
+		RenderStats.PointCount = GetPointLightCount();
+		RenderStats.SpotCount = GetSpotLightCount();
+		RenderStats.AtlasCapacity = ShadowMapSize * ShadowMapSize * AtlasNeedCount * 4;
+		RenderStats.ShadowTiles = DirectionalLightShadowMapSize * DirectionalLightShadowMapSize * RenderStats.DirectionalCount;
+		RenderStats.ShadowTiles += (DirectionalLightShadowMapSize / 2) * (DirectionalLightShadowMapSize / 2) * RenderStats.DirectionalCount;
+		RenderStats.ShadowTiles += (DirectionalLightShadowMapSize / 4) * (DirectionalLightShadowMapSize / 4) * RenderStats.DirectionalCount;
+		RenderStats.ShadowTiles += (DirectionalLightShadowMapSize / 8) * (DirectionalLightShadowMapSize / 8) * RenderStats.DirectionalCount;
+		RenderStats.ShadowTiles += PointLightShadowMapSize * PointLightShadowMapSize * 6 * RenderStats.PointCount;
+		RenderStats.ShadowTiles += SpotLightShadowMapSize * SpotLightShadowMapSize * RenderStats.SpotCount;
+		RenderStats.ShadowTiles *= 4;
 	}
 
 	inline bool HasDirectionalLight() { return LightParameterCounts[DirectionalLightSlotIndex]; }
