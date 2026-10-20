@@ -289,7 +289,7 @@ void FScene::MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy)
 	RenderStateDirtyProxies.Add(Proxy);
 }
 
-void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats & ShadowStats) const
+void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats & ShadowStats, bool bShadow) const
 {
 	OutPointLight.Reset();
 	OutSpotLight.Reset();
@@ -316,10 +316,13 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FDirectionalLightInfo DirectionalLightInfo = DirectionalProxy->GetInfo();
 			FShadowInfo DirectionalShadowInfo = DirectionalProxy->GetShadowInfo();
 
-			DirectionalLightInfo.ShadowIndex = OutShadowInfo.Add(DirectionalShadowInfo);
-			Proxy->ShadowIndex = DirectionalLightInfo.ShadowIndex;
-			OutDirectionalLight.Add(DirectionalLightInfo);
+			if (bShadow) {
+				DirectionalLightInfo.ShadowIndex = OutShadowInfo.Add(DirectionalShadowInfo);
+				Proxy->ShadowIndex = DirectionalLightInfo.ShadowIndex;
+			}
+
 			ShadowStats.DirectionalLightCount++;
+			OutDirectionalLight.Add(DirectionalLightInfo);
 			break;
 		}
 
@@ -332,8 +335,11 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
 			FShadowInfo PointShadowInfo = PointProxy->GetShadowInfo();
 
-			PointLightInfo.ShadowIndex = OutShadowInfo.Add(PointShadowInfo);
-			Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
+			if (bShadow) {
+				PointLightInfo.ShadowIndex = OutShadowInfo.Add(PointShadowInfo);
+				Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
+			}
+
 			OutPointLight.Add(PointLightInfo);
 			ShadowStats.PointLightCount++;
 
@@ -345,20 +351,23 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 
 			FSpotLightSceneProxy* SpotProxy = static_cast<FSpotLightSceneProxy*>(Proxy);
 			FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
-			FShadowInfo SpotShadowInfo = SpotProxy->GetShadowInfo();
+			if (bShadow) {
+				FShadowInfo SpotShadowInfo = SpotProxy->GetShadowInfo();
 
-			SpotLightInfo.ShadowIndex = OutShadowInfo.Add(SpotShadowInfo);
-			Proxy->ShadowIndex = SpotLightInfo.ShadowIndex;
-			OutSpotLight.Add(SpotLightInfo);
+				SpotLightInfo.ShadowIndex = OutShadowInfo.Add(SpotShadowInfo);
+				Proxy->ShadowIndex = SpotLightInfo.ShadowIndex;
 
-			//Preview가 켜져있다면 넣기
-			if (SpotProxy->bPreviewShadowMap)
-			{
-				OutPreviewShadowMapLightProxy = SpotProxy;
-				//한번만 복사하기 위해
-				//어차피 다음 프레임에서도 Detail Panel이 true로 요청할 것
-				SpotProxy->bPreviewShadowMap = false;
+				//Preview가 켜져있다면 넣기
+			
+				if (SpotProxy->bPreviewShadowMap)
+				{
+					OutPreviewShadowMapLightProxy = SpotProxy;
+					//한번만 복사하기 위해
+					//어차피 다음 프레임에서도 Detail Panel이 true로 요청할 것
+					SpotProxy->bPreviewShadowMap = false;
+				}
 			}
+			OutSpotLight.Add(SpotLightInfo);
 			ShadowStats.SpotLightCount++;
 			break;
 		}			
