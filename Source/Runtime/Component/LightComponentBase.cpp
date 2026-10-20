@@ -12,6 +12,10 @@ void ULightComponentBase::MarkSceneProxyDirty()
 void ULightComponentBase::PostEditChangeProperty(const FProperty& Property)
 {
 	Super::PostEditChangeProperty(Property);
+	
+	if (Intensity < 0.0f)
+		Intensity = 0.0f;
+
 	MarkSceneProxyDirty();
 }
 

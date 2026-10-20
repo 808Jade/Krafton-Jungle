@@ -196,7 +196,7 @@ const FShadowInfo* FScene::GetDirectionalShadowInfo() const
 	const FShadowInfo* Result = nullptr;
 	for (const FLightSceneProxy* Proxy : Lights)
 	{
-		if (Proxy->IsVisible() && Proxy->GetLightType() == ELightType::Directional)
+		if (Proxy->GetLightType() == ELightType::Directional && Proxy->ShouldCastShadow())
 		{
 			Result = &static_cast<const FDirectionalLightSceneProxy*>(Proxy)->GetShadowInfo();
 		}

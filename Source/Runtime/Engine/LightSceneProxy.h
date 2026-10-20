@@ -43,7 +43,7 @@ public:
 	bool IsVisible() const { return bVisible; }
 	bool IsCastShadows() const { return bCastShadows; }
 	virtual bool ShouldCastShadow() const {
-		if (!bVisible || !bCastShadows || GetLightBrightness() < KINDA_SMALL_NUMBER) return false;
+		if (!bVisible || !bCastShadows || GetLightBrightness() < 1e-5) return false;
 		return true;
 	}
 
@@ -145,7 +145,7 @@ public:
 
 	bool ShouldCastShadow() const override {
 		if (!FLightSceneProxy::ShouldCastShadow()) return false;
-		if (Info.AttenuationRadius < KINDA_SMALL_NUMBER) return false;
+		if (Info.AttenuationRadius < 1e-05) return false;
 
 		return true;
 	}
@@ -178,7 +178,7 @@ public:
 
 	bool ShouldCastShadow() const override {
 		if (!FLightSceneProxy::ShouldCastShadow()) return false;
-		if (Info.AttenuationRadius < KINDA_SMALL_NUMBER) return false;
+		if (Info.AttenuationRadius < 1e-05) return false;
 
 		return true;
 	}
