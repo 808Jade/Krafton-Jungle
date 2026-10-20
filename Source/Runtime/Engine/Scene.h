@@ -47,6 +47,15 @@ public:
 	void MarkDirty(FPrimitiveSceneProxy* Proxy);
 	void MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy);
 
+	bool HasAnyShadowCaster() const {
+		for (auto* Proxy : Proxies) {
+			if (Proxy && Proxy->IsVisible() && Proxy->GetMesh() && Proxy->GetRenderState() && Proxy->IsCastShadow()) {
+				return true;
+			}
+		}
+
+		return false;
+	}
 	void BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats& ShadowStats, bool bShadow) const;
 	
 	TArray<FPrimitiveSceneProxy*> Proxies;
