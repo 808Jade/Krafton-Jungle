@@ -39,8 +39,13 @@ public:
 	ULightComponentBase* GetComponent() const { return Component; }
 	ELightType GetLightType() const { return Type; }
 	FScene* GetScene() const { return Scene; }
+	virtual float GetLightBrightness() const = 0;
 	bool IsVisible() const { return bVisible; }
 	bool IsCastShadows() const { return bCastShadows; }
+	virtual bool ShouldCastShadow() const {
+		if (!bVisible || !bCastShadows || GetLightBrightness() < KINDA_SMALL_NUMBER) return false;
+		return true;
+	}
 
 	int32 GetShadowIndex() const { return ShadowIndex; }
 
@@ -89,6 +94,7 @@ public:
 	}
 
 	const FAmbientLightInfo& GetInfo() const { return Info; }
+	float GetLightBrightness() const override { return Info.Color.Length(); }
 
 private:
 	FAmbientLightInfo Info;
@@ -111,6 +117,7 @@ public:
 
 	const FDirectionalLightInfo& GetInfo() const { return Info; }
 	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
+	float GetLightBrightness() const override { return Info.Color.Length(); }
 
 private:
 	FDirectionalLightInfo Info;
@@ -132,8 +139,18 @@ public:
 		ShadowInfo = Light->GetShadowInfo();
 	}
 
+	bool ShouldCastShadow() const override {
+		if (!FLightSceneProxy::ShouldCastShadow()) return false;
+		if (Info.AttenuationRadius < KINDA_SMALL_NUMBER) return false;
+
+		return true;
+	}
+
 	const FPointLightInfo& GetInfo() const { return Info; }
 	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
+	float GetLightBrightness() const override {
+		return Info.Color.Length();
+	}
 
 private:
 	FPointLightInfo Info;
@@ -155,8 +172,18 @@ public:
 		ShadowInfo = Light->GetShadowInfo();
 	}
 
+	bool ShouldCastShadow() const override {
+		if (!FLightSceneProxy::ShouldCastShadow()) return false;
+		if (Info.AttenuationRadius < KINDA_SMALL_NUMBER) return false;
+
+		return true;
+	}
+
 	const FSpotLightInfo& GetInfo() const { return Info; }
 	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
+	float GetLightBrightness() const override {
+		return Info.Color.Length();
+	}
 
 private:
 	FSpotLightInfo Info;

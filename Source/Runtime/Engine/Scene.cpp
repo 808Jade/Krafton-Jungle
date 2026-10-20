@@ -307,10 +307,6 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 		{
 			continue;
 		}
-		
-		if (!Proxy->IsCastShadows()) {
-			ShadowStats.NumSkipped_CastShadowsOff++;
-		}
 
 		switch (Proxy->GetLightType())
 		{
@@ -320,9 +316,12 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FDirectionalLightInfo DirectionalLightInfo = DirectionalProxy->GetInfo();
 			FShadowInfo DirectionalShadowInfo = DirectionalProxy->GetShadowInfo();
 
-			if (bShadow && DirectionalProxy->IsCastShadows()) {
+			if (bShadow && DirectionalProxy->ShouldCastShadow()) {
 				DirectionalLightInfo.ShadowIndex = OutShadowInfo.Add(DirectionalShadowInfo);
 				Proxy->ShadowIndex = DirectionalLightInfo.ShadowIndex;
+			}
+			else {
+				ShadowStats.NumSkipped_CastShadowsOff++;
 			}
 
 			ShadowStats.DirectionalLightCount++;
@@ -339,9 +338,12 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
 			FShadowInfo PointShadowInfo = PointProxy->GetShadowInfo();
 
-			if (bShadow && PointProxy->IsCastShadows()) {
+			if (bShadow && PointProxy->ShouldCastShadow()) {
 				PointLightInfo.ShadowIndex = OutShadowInfo.Add(PointShadowInfo);
 				Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
+			}
+			else {
+				ShadowStats.NumSkipped_CastShadowsOff++;
 			}
 
 			OutPointLight.Add(PointLightInfo);
@@ -355,7 +357,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 
 			FSpotLightSceneProxy* SpotProxy = static_cast<FSpotLightSceneProxy*>(Proxy);
 			FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
-			if (bShadow && SpotProxy->IsCastShadows()) {
+			if (bShadow && SpotProxy->ShouldCastShadow()) {
 				FShadowInfo SpotShadowInfo = SpotProxy->GetShadowInfo();
 
 				SpotLightInfo.ShadowIndex = OutShadowInfo.Add(SpotShadowInfo);
@@ -370,6 +372,9 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 					//어차피 다음 프레임에서도 Detail Panel이 true로 요청할 것
 					SpotProxy->bPreviewShadowMap = false;
 				}
+			}
+			else {
+				ShadowStats.NumSkipped_CastShadowsOff++;
 			}
 			OutSpotLight.Add(SpotLightInfo);
 			ShadowStats.SpotLightCount++;
