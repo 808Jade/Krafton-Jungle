@@ -603,17 +603,27 @@ void FRenderer::EnsureTileLightCapacity(const FMatrix& ViewProjection, uint32 Wi
 
 }
 
-void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, const TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy, FShadowStats& ShadowStats)
+void FRenderer::RenderShadowPass(
+	const FShadowInfo* DirectionalShadow,
+	const FVector& LightDirection,
+	const FVector& CameraPosition,
+	const FVector& CameraForward,
+	float FovDegrees,
+	float AspectRatio,
+	const TArray<FShadowInfo>& ShadowInfos,
+	const TArray<FPrimitiveSceneProxy*>& Casters,
+	FLightSceneProxy* PreviewShadowMapProxy,
+	FShadowStats& ShadowStats)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Shadow);
 
 	//이전 pass에서의 바인딩을 끊는다.
 	ShadowMapManager.UnbindForShading();
 
-	// Directional 상수 버퍼 준비
+	// Directional 상수 버퍼 준비 (카메라 기준 4개 외접구 및 Light VP 행렬 계산 후 b5 업로드)
 	if (DirectionalShadow != nullptr)
 	{
-		ShadowMapManager.SetupDirectionalShadow(*DirectionalShadow);
+		ShadowMapManager.SetupDirectionalShadow(*DirectionalShadow, LightDirection, CameraPosition, CameraForward, FovDegrees, AspectRatio);
 	}
 
 	// Local Light들 준비
@@ -661,11 +671,14 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, const TAr
 
 	if (DirectionalShadow != nullptr)
 	{
-		// DirectionalShadowDSV 바인딩, 클리어 및 2048x2048 뷰포트 설정
-		ShadowMapManager.BeginDirectionalShadowRender();
-		// Directional Light의 VP 행렬을 ShadowViewCB(b0)에 업로드 후 렌더
-		RenderCommand::UpdateBufferData(ShadowViewCB.get(), &DirectionalShadow->LightViewProjection, sizeof(FMatrix));
-		DrawCasters();
+		// 4개의 캐스케이드를 4096 Atlas의 2x2 분할 영역에 각각 렌더
+		for (uint32 Cascade = 0; Cascade < 4; ++Cascade)
+		{
+			ShadowMapManager.BeginDirectionalCascadeRender(Cascade);
+			const FMatrix& CascadeVP = ShadowMapManager.GetCascadeMatrix(Cascade);
+			RenderCommand::UpdateBufferData(ShadowViewCB.get(), &CascadeVP, sizeof(FMatrix));
+			DrawCasters();
+		}
 		ShadowMapManager.EndDirectionalShadowRender();
 	}
 
@@ -698,7 +711,7 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, const TAr
 	int32 RenderedCount = ShadowInfos.Num();
 	if (DirectionalShadow != nullptr)
 	{
-		RenderedCount += 1;
+		RenderedCount += 4;
 	}
 	ShadowStats.NumShadowMapsRendered = RenderedCount;
 

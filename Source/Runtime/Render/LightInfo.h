@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Math/Vector.h"
 
@@ -55,11 +55,11 @@ struct FShadowInfo
 
 struct FDirectionalShadowConstants // b5
 {
-	FMatrix CascadeViewProjection[4];
-	FVector4 CascadeSplits;                 
-	FVector4 CascadeOffsets[4];      
-	FVector4 CascadeBiases;                     
-	int32 NumCascades = 1;                      
+	FMatrix CascadeViewProjection[4]; // 4 Cascade VP Matrices
+	FVector4 CascadeSplitSpheres[4]; // xyz: WorldCenter, w: Radius
+	FVector4 CascadeOffsets[4]; // 4096 Atlas 2x2 offsets
+	FVector4 CascadeBiases; // Cascade depth biases
+	int32 NumCascades = 4; 
 	float NormalBias = 2.0f;
 	int32 Padding[2] = {};
 };
@@ -70,4 +70,4 @@ static_assert(sizeof(FPointLightInfo) == 32);
 static_assert(sizeof(FSpotLightInfo) == 64);
 static_assert(sizeof(FLightingConstants) == 48);
 static_assert(sizeof(FShadowInfo) == 80);
-static_assert(sizeof(FDirectionalShadowConstants) == 368);
+static_assert(sizeof(FDirectionalShadowConstants) == 416);

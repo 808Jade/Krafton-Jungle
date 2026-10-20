@@ -231,7 +231,164 @@ bool FShadowMapManager::EnsureDirectionalShadowMap(uint32 InResolution)
     return true;
 }
 
-void FShadowMapManager::SetupDirectionalShadow(const FShadowInfo& DirectionalShadow)
+// 카메라의 절두체(Frustum)를 4구간으로 나누고, 각 구간을 완벽히 감싸는 4개의 최소 외접구(Bounding Sphere)를 계산
+void FShadowMapManager::ComputeCascadeSpheres(
+    const FVector& CameraPosition,
+    const FVector& CameraForward,
+    float FovDegrees,
+    float AspectRatio,
+    float NearClip,
+    float ShadowMaxDist,
+    FVector4 OutCascadeSpheres[4])
+{
+    // 1. 파라미터 유효성 검사 및 보정
+    if (FovDegrees <= 1.0f || FovDegrees >= 179.0f)
+    {
+        FovDegrees = 60.0f;
+    }
+    if (AspectRatio <= 0.01f)
+    {
+        AspectRatio = 16.0f / 9.0f;
+    }
+    if (NearClip <= 0.0f)
+    {
+        NearClip = 0.1f;
+    }
+    if (ShadowMaxDist <= NearClip)
+    {
+        ShadowMaxDist = 300.0f;
+    }
+
+    // 2. FOV와 종횡비 기반의 대각선 비율 계수(Alpha) 계산
+    const float HalfFOVRad = FMath::DegreesToRadians(FovDegrees * 0.5f);
+    const float TanHalf = tan(HalfFOVRad);
+    const float Alpha = TanHalf * TanHalf * (1.0f + AspectRatio * AspectRatio);
+
+    // 3. 4개 구간 분할 거리 (Splits)
+    // 눈앞 초근거리(12) -> 근거리(35) -> 중거리(100) -> 원거리(ShadowMaxDist)
+    float Splits[4] = { 12.0f, 35.0f, 100.0f, ShadowMaxDist };
+    for (int i = 0; i < 4; ++i)
+    {
+        if (Splits[i] > ShadowMaxDist)
+        {
+            Splits[i] = ShadowMaxDist;
+        }
+    }
+
+    // 4. 구간별 최소 외접구(Center, Radius) 계산
+    float PrevFar = NearClip;
+    for (int i = 0; i < 4; ++i)
+    {
+        const float n = PrevFar;
+        const float f = Splits[i];
+        PrevFar = f;
+
+        // 구 중심까지의 시선 방향 거리 d 계산
+        float d = 0.5f * (f + n) * (1.0f + Alpha);
+        float Radius = 0.0f;
+
+        // 시야각이 너무 넓어 중심이 뒷면보다 뒤로 넘어가는 경우 뒷면 중심으로 클램핑
+        if (d > f)
+        {
+            d = f;
+            Radius = sqrt(Alpha) * f;
+        }
+        else
+        {
+            Radius = sqrt((f - d) * (f - d) + Alpha * f * f);
+        }
+
+        // 월드 공간 구 중심 좌표
+        const FVector Center = CameraPosition + CameraForward * d;
+        OutCascadeSpheres[i] = FVector4(Center.X, Center.Y, Center.Z, Radius);
+    }
+}
+
+// 4개의 구체와 라이트 방향을 받아 텍셀 스내핑이 적용된 4개의 Light VP 행렬 생성
+void FShadowMapManager::ComputeCascadeLightMatrices(
+    const FVector& LightDirection,
+    const FVector4 InCascadeSpheres[4],
+    uint32 CascadeResolution,
+    FMatrix OutCascadeMatrices[4])
+{
+    // 1. Directional Light 카메라의 기저 벡터 정의
+    FVector Forward = LightDirection.GetSafeNormal();
+    if (Forward.SizeSquared() < 1e-4f)
+    {
+        Forward = FVector(0.0f, 0.0f, -1.0f);
+    }
+    const FVector UpGuide = (std::abs(Forward.Z) > 0.99f) ? FVector(0.0f, 1.0f, 0.0f) : FVector(0.0f, 0.0f, 1.0f);
+    const FVector Right = FVector::Cross(UpGuide, Forward).GetSafeNormal();
+    const FVector Up = FVector::Cross(Forward, Right).GetSafeNormal();
+
+    const FMatrix Rotation(
+        Forward.X, Right.X, Up.X, 0.0f,
+        Forward.Y, Right.Y, Up.Y, 0.0f,
+        Forward.Z, Right.Z, Up.Z, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    );
+
+    // 2. 각 캐스케이드별 행렬 계산
+    for (int i = 0; i < 4; ++i)
+    {
+        const FVector Center(InCascadeSpheres[i].X, InCascadeSpheres[i].Y, InCascadeSpheres[i].Z);
+        const float Radius = InCascadeSpheres[i].W;
+
+        // 캐스터를 수용하기 위해 구체 중심에서 빛의 반대 방향으로 충분히 물러남
+        const float BackDistance = Radius * 2.0f;
+        FVector Eye = Center - Forward * BackDistance;
+
+        // 3. 텍셀 스내핑 (Texel Snapping - 섀도우 지터링 방지)
+        if (CascadeResolution > 0)
+        {
+            const float WorldUnitsPerTexel = (2.0f * Radius) / static_cast<float>(CascadeResolution);
+
+            const FVector Diff = Center - Eye;
+            const float CenterViewY = Diff.Dot(Right);
+            const float CenterViewZ = Diff.Dot(Up);
+
+            const float SnappedY = floor(CenterViewY / WorldUnitsPerTexel) * WorldUnitsPerTexel;
+            const float SnappedZ = floor(CenterViewZ / WorldUnitsPerTexel) * WorldUnitsPerTexel;
+
+            const float OffsetY = SnappedY - CenterViewY;
+            const float OffsetZ = SnappedZ - CenterViewZ;
+
+            Eye = Eye - (Right * OffsetY + Up * OffsetZ);
+        }
+
+        // Light View 행렬: Translation(-Eye) * Rotation
+        const FMatrix View = FMatrix::MakeTranslation(Eye * -1.0f) * Rotation;
+
+        // 4. 직교 투영 (Orthographic Projection) 행렬
+        // View 공간: X = Depth [0.1f, Radius * 4.0f], Y = Width [-Radius, +Radius], Z = Height [-Radius, +Radius]
+        const float Width = 2.0f * Radius;
+        const float Height = Width;
+        const float NearClip = 0.1f;
+        const float FarClip = Radius * 4.0f;
+
+        const float XScale = 2.0f / Width;
+        const float YScale = 2.0f / Height;
+        const float ZScale = 1.0f / (FarClip - NearClip);
+        const float ZOffset = -NearClip / (FarClip - NearClip);
+
+        const FMatrix Proj = FMatrix(
+            0.0f, 0.0f, ZScale, 0.0f,
+            XScale, 0.0f, 0.0f, 0.0f,
+            0.0f, YScale, 0.0f, 0.0f,
+            0.0f, 0.0f, ZOffset, 1.0f
+        );
+
+        OutCascadeMatrices[i] = View * Proj;
+    }
+}
+
+void FShadowMapManager::SetupDirectionalShadow(
+    const FShadowInfo& DirectionalShadow,
+    const FVector& LightDirection,
+    const FVector& CameraPosition,
+    const FVector& CameraForward,
+    float FovDegrees,
+    float AspectRatio)
 {
     EnsureDirectionalShadowMap(DirectionalResolution);
 
@@ -240,38 +397,71 @@ void FShadowMapManager::SetupDirectionalShadow(const FShadowInfo& DirectionalSha
         DirectionalShadowCB = RenderCommand::CreateConstantBuffer(sizeof(FDirectionalShadowConstants));
     }
 
+    // 1. 카메라 Frustum 기반 4개 Bounding Sphere 계산
+    FVector4 CascadeSpheres[4];
+    ComputeCascadeSpheres(CameraPosition, CameraForward, FovDegrees, AspectRatio, 0.1f, 300.0f, CascadeSpheres);
+
+    // 2. 4개 구체 기반 텍셀 스내핑된 Light VP 행렬 계산 (4096 Atlas의 2x2 분할이므로 캐스케이드당 2048)
+    ComputeCascadeLightMatrices(LightDirection, CascadeSpheres, DirectionalResolution / 2, CachedCascadeMatrices);
+
     FDirectionalShadowConstants Constants{};
+    for (int i = 0; i < 4; ++i)
+    {
+        Constants.CascadeViewProjection[i] = CachedCascadeMatrices[i];
+        Constants.CascadeSplitSpheres[i] = CascadeSpheres[i];
+    }
 
-    // [0번 캐스케이드] 현재 Directional Light의 뷰-프로젝션 행렬
-    // @todo 4분할 알고리즘을 넣을 때, 0~3번 슬롯을 채워준다. 그리고 NumCascades = 4 해주면 됨
-    Constants.CascadeViewProjection[0] = DirectionalShadow.LightViewProjection;
+    // 3. 4096 Atlas 내 2x2 쿼드런트 오프셋 (Scale: 0.5, 0.5)
+    Constants.CascadeOffsets[0] = FVector4(0.5f, 0.5f, 0.0f, 0.0f); // Top-Left
+    Constants.CascadeOffsets[1] = FVector4(0.5f, 0.5f, 0.5f, 0.0f); // Top-Right
+    Constants.CascadeOffsets[2] = FVector4(0.5f, 0.5f, 0.0f, 0.5f); // Bottom-Left
+    Constants.CascadeOffsets[3] = FVector4(0.5f, 0.5f, 0.5f, 0.5f); // Bottom-Right
 
-    // [분할 거리] 모든 픽셀이 0번 캐스케이드에 걸리도록 큰 값 설정
-    Constants.CascadeSplits = FVector4(10000.0f, 10000.0f, 10000.0f, 10000.0f);
-
-    // [아틀라스 UV] 현재는 2048x2048 텍스처 1장을 통째로 쓰므로 (Scale: 1.0, Offset: 0.0)
-    Constants.CascadeOffsets[0] = FVector4(1.0f, 1.0f, 0.0f, 0.0f);
-
-    // [바이어스]
-    Constants.CascadeBiases = FVector4(DirectionalShadow.Bias, 0.002f, 0.004f, 0.008f);
+    // 4. 바이어스 및 캐스케이드 개수
+    Constants.CascadeBiases = FVector4(DirectionalShadow.Bias, DirectionalShadow.Bias * 1.5f, DirectionalShadow.Bias * 2.5f, DirectionalShadow.Bias * 4.0f);
     Constants.NormalBias = DirectionalShadow.NormalBias;
+    Constants.NumCascades = 4;
 
-    // [캐스케이드 개수] 현재는 1개
-    Constants.NumCascades = 1;
-
-    // 2. GPU 상수 버퍼(DirectionalShadowCB)로 업로드
+    // 5. GPU 상수 버퍼(DirectionalShadowCB, b5)로 업로드
     RenderCommand::UpdateBufferData(DirectionalShadowCB.get(), &Constants);
 }
 
-void FShadowMapManager::BeginDirectionalShadowRender()
+void FShadowMapManager::BeginDirectionalCascadeRender(uint32 CascadeIndex)
 {
     ID3D11DeviceContext* Context = RenderCommand::GetContext();
     if (!DirectionalShadowDSV) return;
 
-    Context->OMSetRenderTargets(0, nullptr, DirectionalShadowDSV.Get());
-    Context->ClearDepthStencilView(DirectionalShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+    // 이전 패스 셰이딩용 t3 바인딩 해제
+    ID3D11ShaderResourceView* NullSRV = nullptr;
+    Context->PSSetShaderResources(3, 1, &NullSRV);
 
-    RenderCommand::SetViewport(0, 0, DirectionalResolution, DirectionalResolution);
+    Context->OMSetRenderTargets(0, nullptr, DirectionalShadowDSV.Get());
+
+    // 0번 캐스케이드 렌더 전 4096 Atlas 전체 1회 클리어
+    if (CascadeIndex == 0)
+    {
+        Context->ClearDepthStencilView(DirectionalShadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+    }
+
+    // 2x2 그리드 뷰포트 (4096 해상도 기준 각 2048x2048)
+    const uint32 HalfRes = DirectionalResolution / 2;
+    const uint32 ViewportX = (CascadeIndex % 2) * HalfRes;
+    const uint32 ViewportY = (CascadeIndex / 2) * HalfRes;
+
+    D3D11_VIEWPORT Viewport{};
+    Viewport.TopLeftX = static_cast<float>(ViewportX);
+    Viewport.TopLeftY = static_cast<float>(ViewportY);
+    Viewport.Width = static_cast<float>(HalfRes);
+    Viewport.Height = static_cast<float>(HalfRes);
+    Viewport.MinDepth = 0.0f;
+    Viewport.MaxDepth = 1.0f;
+
+    Context->RSSetViewports(1, &Viewport);
+}
+
+void FShadowMapManager::BeginDirectionalShadowRender()
+{
+    BeginDirectionalCascadeRender(0);
 }
 
 void FShadowMapManager::EndDirectionalShadowRender()

@@ -927,10 +927,25 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 
 	const FShadowInfo* DirectionalShadowInfo = bDrawShadows ? ViewWorld.GetScene().GetDirectionalShadowInfo() : nullptr;
 
+	const FViewCamera& Camera = MultipleViewportsAdapter.GetViewCamera(ViewIndex);
+	const FRect& Rect = MultipleViewportsAdapter.GetViewRect(ViewIndex);
+	const float AspectRatio = (Rect.Width > 0.0f && Rect.Height > 0.0f) ? (Rect.Width / Rect.Height) : (16.0f / 9.0f);
+	const float FovDegrees = (Camera.Projection.FovDegrees > 0.0f) ? Camera.Projection.FovDegrees : 60.0f;
+
 	//Shadow Info StructuredBuffer, ShadowMap 만들기
 	if (DirectionalShadowInfo != nullptr || ShadowInfos.Num() > 0)
 	{
-		Renderer->RenderShadowPass(DirectionalShadowInfo, ShadowInfos, ViewWorld.GetScene().Proxies, PreviewShadowMapLightProxy, ShadowStats);
+		Renderer->RenderShadowPass(
+			DirectionalShadowInfo,
+			Lighting.Directional.Direction,
+			ViewCameraLocation,
+			ViewCameraForward,
+			FovDegrees,
+			AspectRatio,
+			ShadowInfos,
+			ViewWorld.GetScene().Proxies,
+			PreviewShadowMapLightProxy,
+			ShadowStats);
 	}
 
 	FStatOverlay::SetShadowStats(ShadowStats);

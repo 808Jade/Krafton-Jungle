@@ -149,7 +149,7 @@ cbuffer TileLightConstants : register(b4)
 cbuffer DirectionalShadowConstants : register(b5)
 {
     matrix CascadeViewProjection[4];
-    float4 CascadeSplits;
+    float4 CascadeSplitSpheres[4];
     float4 CascadeOffsets[4];
     float4 CascadeBiases;
     int NumCascades;
@@ -279,17 +279,31 @@ float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
     if (NumCascades <= 0)
         return 1.0f;
 
-    int CascadeIndex = 0;
+    // 1. 최소 외접구(Bounding Sphere) 중심과의 거리를 비교하여 0번(초근거리)부터 캐스케이드 선택
+    int CascadeIndex = NumCascades - 1;
+    [unroll]
+    for (int i = 0; i < 3; ++i)
+    {
+        float3 ToCenter = WorldPosition - CascadeSplitSpheres[i].xyz;
+        float DistSq = dot(ToCenter, ToCenter);
+        float RadiusSq = CascadeSplitSpheres[i].w * CascadeSplitSpheres[i].w;
+        if (DistSq < RadiusSq)
+        {
+            CascadeIndex = i;
+            break;
+        }
+    }
+
     float3 L = -DirectionalLight.Direction;
 
-    // 1. 빛과 표면 사이의 각도 계산 (비스듬할수록 오프셋을 더 많이 줌)
+    // 2. 빛과 표면 사이의 각도 계산 (비스듬할수록 오프셋을 더 많이 줌)
     float NdotL = dot(Normal, L);
     float NormalOffsetScale = clamp(1.0f - saturate(NdotL), 0.0f, 1.0f);
 
-    // 2. 표면 노멀 방향으로 월드 좌표를 이동 (NormalBias: 상수 버퍼 b5에서 전달)
+    // 3. 표면 노멀 방향으로 월드 좌표를 이동 (NormalBias: 상수 버퍼 b5에서 전달)
     float3 ShadowWorldPos = WorldPosition + Normal * (NormalBias * NormalOffsetScale);
 
-    // 3. 이동된 좌표로 Light Clip Space 계산
+    // 4. 선택된 캐스케이드의 VP 행렬로 Light Clip Space 계산
     float4 LightClip = mul(float4(ShadowWorldPos, 1.0f), CascadeViewProjection[CascadeIndex]);
     if (LightClip.w <= 0.0f)
         return 1.0f;
@@ -300,12 +314,13 @@ float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
     if (any(BaseUV < 0.0f) || any(BaseUV > 1.0f) || Ndc.z < 0.0f || Ndc.z > 1.0f)
         return 1.0f;
 
+    // 5. 4096 Atlas의 2x2 쿼드런트 오프셋 적용
     float4 Offset = CascadeOffsets[CascadeIndex];
     float2 AtlasUV = BaseUV * Offset.xy + Offset.zw;
 
     float StoredDepth = DirectionalLightShadowmapAtlas.SampleLevel(ShadowSampler, AtlasUV, 0);
 
-    // 4. 깊이 비교 (Normal Offset이 Acne를 제거하므로 작은 Depth Bias 적용)
+    // 6. 깊이 비교 (Normal Offset이 Acne를 제거하므로 작은 Depth Bias 적용)
     float DepthBias = CascadeBiases[CascadeIndex];
     return (Ndc.z - DepthBias) > StoredDepth ? 0.0f : 1.0f;
 }
