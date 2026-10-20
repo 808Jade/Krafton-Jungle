@@ -342,20 +342,30 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 		{
 			FPointLightSceneProxy* PointProxy = static_cast<FPointLightSceneProxy*>(Proxy);
 			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
-			FShadowInfo PointShadowInfo = PointProxy->GetShadowInfo();
+			const TArray<FShadowInfo>& PointShadowInfos = PointProxy->GetShadowInfos();
 
 			if (bShadow && PointProxy->ShouldCastShadow()) {
-				PointLightInfo.ShadowIndex = OutShadowInfo.Add(PointShadowInfo);
+				PointLightInfo.ShadowIndex = OutShadowInfo.Num();
 				Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
+				OutShadowInfo.Append(PointShadowInfos);
 			}
 			else {
 				ShadowStats.NumSkipped_CastShadowsOff++;
 			}
 
 			OutPointLight.Add(PointLightInfo);
+
+			//Preview가 켜져있다면 넣기
+			if (PointProxy->bPreviewShadowMap)
+			{
+				OutPreviewShadowMapLightProxy = PointProxy;
+				//한번만 복사하기 위해
+				//어차피 다음 프레임에서도 Detail Panel이 true로 요청할 것
+				PointProxy->bPreviewShadowMap = false;
+			}
 			ShadowStats.PointLightCount++;
 			break;
-		}			
+		}
 		case ELightType::Spot:
 		{
 			FSpotLightSceneProxy* SpotProxy = static_cast<FSpotLightSceneProxy*>(Proxy);

@@ -4,10 +4,13 @@
 
 FMatrix ULightComponent::GetViewMatrix() const
 {
-    //return GetWorldMatrix().Inverse();
+    return GetViewMatrix(GetWorldRotation());
+}
 
+FMatrix ULightComponent::GetViewMatrix(FRotator Rotation) const
+{
     FVector WorldLocation = GetWorldLocation();
-    FRotator WorldRotation = GetWorldRotation();
+    FRotator WorldRotation = Rotation;
 
     FQuat WorldQuat = WorldRotation.Quaternion();
     FMatrix RotationMatrix = WorldQuat.ToFMatrix();
@@ -69,14 +72,27 @@ FMatrix ULightComponent::GetViewProjectionMatrix(bool bIsOrthogonal, float FarCl
     return GetViewMatrix() * GetProjectionMatrix(bIsOrthogonal, FarClipPlane, FieldOfView, AspectRatio);
 }
 
+FMatrix ULightComponent::GetViewProjectionMatrix(FRotator Rotation, bool bIsOrthogonal, float FarClipPlane, float FieldOfView, float AspectRatio) const
+{
+    return GetViewMatrix(Rotation) * GetProjectionMatrix(bIsOrthogonal, FarClipPlane, FieldOfView, AspectRatio);
+}
+
 FShadowInfo ULightComponent::GetShadowInfo() const
 {
     return FShadowInfo();
 }
 
-ID3D11ShaderResourceView* ULightComponent::GetShadowPreviewSRV() const
+
+ID3D11ShaderResourceView* ULightComponent::GetShadowPreviewSRV(int32 Index) const
 {
-    return GetSceneProxy() ? GetSceneProxy()->GetShadowPreviewSRV() : nullptr;
+    return GetSceneProxy() ? GetSceneProxy()->GetShadowPreviewSRV(Index) : nullptr;
+}
+
+int32 ULightComponent::GetShadowInfoNum() const
+{
+    if (GetSceneProxy() == nullptr) return 0;
+
+    return GetSceneProxy()->GetShadowInfoNum();
 }
 
 void ULightComponent::SetPreviewShadowMapFlag(bool InShow)

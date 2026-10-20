@@ -173,7 +173,8 @@ Texture2DArray<float> ShadowTextureArray : register(t2);
 Texture2D<float> DirectionalLightShadowmapAtlas : register(t3);
 
 SamplerState AlbedoSampler : register(s0);
-SamplerState ShadowSampler : register(s1);
+SamplerState ShadowPointSampler : register(s1);
+SamplerComparisonState ShadowCmpSampler : register(s2);
 
 float3 DiffuseTerm(float3 Il, float3 N, float3 L)
 {
@@ -238,6 +239,20 @@ void ComputeLighting(float3 N, float3 WorldPosition, float3 V, float n, out floa
     }
 }
 
+// 라이트에서 픽셀 방향에서 절댓값이 가장 큰 축이 그 픽셀이 들어 있는 면이다
+uint SelectCubeFace(float3 LightToPixel)
+{
+    float3 A = abs(LightToPixel);
+    if (A.x >= A.y && A.x >= A.z)
+         // Forward, Back
+        return LightToPixel.x > 0 ? 0 : 1;
+    if (A.y >= A.z)
+        // Right, Left
+        return LightToPixel.y > 0 ? 2 : 3;
+    // Up, Down
+    return LightToPixel.z > 0 ? 4 : 5;
+}
+
 // 반환값: 1 = 빛 받음, 0 = 그림자
 float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
 {
@@ -266,11 +281,62 @@ float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
         return 1.0f;
 
     // 저장된 최소 깊이. z = 층 번호 (지금은 ShadowIndex == 층)
-    float StoredDepth = ShadowTextureArray.SampleLevel(ShadowSampler, float3(UV, ShadowIndex), 0);
+    
+    //Point Sampler
+    //float StoredDepth = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV, ShadowIndex), 0);
+    //return (Ndc.z - Info.Bias) > StoredDepth ? 0.0f : 1.0f;
 
     // 비교 + 상수 Bias
     // 샘플링 한 것보다 크다면 그림자임
-    return (Ndc.z - Info.Bias) > StoredDepth ? 0.0f : 1.0f;
+    
+    //ComparisonLinearSampler
+    //float StoredDepth = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV, ShadowIndex), Ndc.z - Info.Bias);
+    //return StoredDepth;
+    
+    //3x3 Software PCF
+    //해상도 512로 일단 하드코딩
+    //float2 TexelSize = 1.0 / 1024.0;
+    //float Lit = 0;
+    //for (int y = -1; y <= 1; ++y)
+    //{
+    //    for (int x = -1; x < 1; ++x)
+    //    {
+    //        float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), 0);
+    //        Lit += (Ndc.z - Info.Bias) > Stored ? 0.0 : 1.0;
+    //    }
+    //}
+    //Lit /= 9.0;
+    //return Lit;
+    
+    //5x5 Software PCF
+    //해상도 일단 하드코딩
+    //float2 TexelSize = 1.0 / 512.0;
+    //float Lit = 0;
+    //for (int y = -2; y <= 2; ++y)
+    //{
+    //    for (int x = -2; x < 2; ++x)
+    //    {
+    //        float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), 0);
+    //        Lit += (Ndc.z - Info.Bias) > Stored ? 0.0 : 1.0;
+    //    }
+    //}
+    //Lit /= 25.0;
+    //return Lit;
+    
+    //Comparison Linear + 3x3 Software PCF
+    //해상도 하드코딩
+    float2 TexelSize = 1.0 / 1024.0;
+    float Lit = 0;
+    for (int y = -1; y <= 1; ++y)
+    {
+        for (int x = -1; x < 1; ++x)
+        {
+            float Stored = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), Ndc.z - Info.Bias);
+            Lit += Stored;
+        }
+    }
+    Lit /= 9.0;
+    return Lit;
 }
 
 // Directional Light 전용 그림자 판정 (CSM 아틀라스 텍스처 t3 및 DirectionalShadowConstants b5 사용)
@@ -303,7 +369,7 @@ float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
     float4 Offset = CascadeOffsets[CascadeIndex];
     float2 AtlasUV = BaseUV * Offset.xy + Offset.zw;
 
-    float StoredDepth = DirectionalLightShadowmapAtlas.SampleLevel(ShadowSampler, AtlasUV, 0);
+    float StoredDepth = DirectionalLightShadowmapAtlas.SampleLevel(ShadowPointSampler, AtlasUV, 0);
 
     // 4. 깊이 비교 (Normal Offset이 Acne를 제거하므로 작은 Depth Bias 적용)
     float DepthBias = CascadeBiases[CascadeIndex];
@@ -364,7 +430,14 @@ float3 WorldPosition, float3 V, float n, float2 PixelPosition, out float3 Diffus
 #endif
 
         float DistanceAttenuation = ComputeDistanceAttenuation(Distance, Radius);
-        float3 Il = Light.Color * DistanceAttenuation * GeoFactor;
+        
+        //선택할 ShadowIndex
+        uint PointShadowIndex = SelectCubeFace(-ToLight);
+        //spot light는 ComputeShadowFactor()내부에서 검사로 충분하지만 PointLight는 PointShadowIndex를 더해버리면서
+        //ShadowIndex -1이 양수가 될 수 있다. 그래서 여기서도 한번 검사해줌.
+        float Shadow = Light.ShadowIndex < 0 ? 1.0 : ComputeShadowFactor(Light.ShadowIndex + PointShadowIndex, WorldPosition);
+        
+        float3 Il = Light.Color * DistanceAttenuation * GeoFactor * Shadow;
         AccumulateLight(Il, N, L, V, n, DiffuseLight, SpecularLight);
     }
 
