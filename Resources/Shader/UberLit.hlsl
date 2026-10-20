@@ -277,8 +277,8 @@ float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
     //범위 검사: 섀도맵 밖이거나 Far 너머면 그림자 판정 불가 : 빛 받음
     //any 함수는 입력된 값 중 하나라도 0이 아닌 것(True)이 있으면 true를 반환
     //들어온 UV 중 u와 v중 하나라도 0.0보다 작다면으로 해석됨
-    if (any(UV < 0.0f) || any(UV > 1.0f) || Ndc.z < 0.0f || Ndc.z > 1.0f)
-        return 1.0f;
+    //if (any(UV < 0.0f) || any(UV > 1.0f) || Ndc.z < 0.0f || Ndc.z > 1.0f)
+    //    return 1.0f;
 
     // 저장된 최소 깊이. z = 층 번호 (지금은 ShadowIndex == 층)
     
@@ -299,7 +299,7 @@ float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
     //float Lit = 0;
     //for (int y = -1; y <= 1; ++y)
     //{
-    //    for (int x = -1; x < 1; ++x)
+    //    for (int x = -1; x <= 1; ++x)
     //    {
     //        float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), 0);
     //        Lit += (Ndc.z - Info.Bias) > Stored ? 0.0 : 1.0;
@@ -314,7 +314,7 @@ float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
     //float Lit = 0;
     //for (int y = -2; y <= 2; ++y)
     //{
-    //    for (int x = -2; x < 2; ++x)
+    //    for (int x = -2; x <= 2; ++x)
     //    {
     //        float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), 0);
     //        Lit += (Ndc.z - Info.Bias) > Stored ? 0.0 : 1.0;
@@ -329,7 +329,7 @@ float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
     float Lit = 0;
     for (int y = -1; y <= 1; ++y)
     {
-        for (int x = -1; x < 1; ++x)
+        for (int x = -1; x <= 1; ++x)
         {
             float Stored = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), Ndc.z - Info.Bias);
             Lit += Stored;
