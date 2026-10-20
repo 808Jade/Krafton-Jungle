@@ -680,6 +680,7 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, const TAr
 
 		DrawCasters();
 	}
+
 	//DSV 해제
 	if (ShadowInfos.Num() > 0)
 	{
