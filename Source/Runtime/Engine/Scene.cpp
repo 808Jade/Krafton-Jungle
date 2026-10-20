@@ -307,6 +307,10 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 		{
 			continue;
 		}
+		
+		if (!Proxy->IsCastShadows()) {
+			ShadowStats.NumSkipped_CastShadowsOff++;
+		}
 
 		switch (Proxy->GetLightType())
 		{
@@ -316,7 +320,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FDirectionalLightInfo DirectionalLightInfo = DirectionalProxy->GetInfo();
 			FShadowInfo DirectionalShadowInfo = DirectionalProxy->GetShadowInfo();
 
-			if (bShadow) {
+			if (bShadow && DirectionalProxy->IsCastShadows()) {
 				DirectionalLightInfo.ShadowIndex = OutShadowInfo.Add(DirectionalShadowInfo);
 				Proxy->ShadowIndex = DirectionalLightInfo.ShadowIndex;
 			}
@@ -335,7 +339,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
 			FShadowInfo PointShadowInfo = PointProxy->GetShadowInfo();
 
-			if (bShadow) {
+			if (bShadow && PointProxy->IsCastShadows()) {
 				PointLightInfo.ShadowIndex = OutShadowInfo.Add(PointShadowInfo);
 				Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
 			}
@@ -351,7 +355,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 
 			FSpotLightSceneProxy* SpotProxy = static_cast<FSpotLightSceneProxy*>(Proxy);
 			FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
-			if (bShadow) {
+			if (bShadow && SpotProxy->IsCastShadows()) {
 				FShadowInfo SpotShadowInfo = SpotProxy->GetShadowInfo();
 
 				SpotLightInfo.ShadowIndex = OutShadowInfo.Add(SpotShadowInfo);

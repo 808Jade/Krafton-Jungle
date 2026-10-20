@@ -40,6 +40,7 @@ public:
 	ELightType GetLightType() const { return Type; }
 	FScene* GetScene() const { return Scene; }
 	bool IsVisible() const { return bVisible; }
+	bool IsCastShadows() const { return bCastShadows; }
 
 	int32 GetShadowIndex() const { return ShadowIndex; }
 
@@ -58,6 +59,7 @@ public:
 protected:
 	ULightComponentBase* Component = nullptr;
 	bool bVisible = true;
+	bool bCastShadows = true;
 
 private:
 	friend class FScene;
@@ -83,6 +85,7 @@ public:
 		const UAmbientLightComponent* Light = static_cast<const UAmbientLightComponent*>(Component);
 		Info = Light->GetAmbientLightInfo();
 		bVisible = Light->IsLightVisible();
+		bCastShadows = Light->IsCastShadows();
 	}
 
 	const FAmbientLightInfo& GetInfo() const { return Info; }
@@ -101,6 +104,7 @@ public:
 		const UDirectionalLightComponent* Light = static_cast<const UDirectionalLightComponent*>(Component);
 		Info = Light->GetDirectionalLightInfo();
 		bVisible = Light->IsLightVisible();
+		bCastShadows = Light->IsCastShadows();
 
 		ShadowInfo = Light->GetShadowInfo();
 	}
@@ -123,6 +127,7 @@ public:
 		const UPointLightComponent* Light = static_cast<const UPointLightComponent*>(Component);
 		Info = Light->GetPointLightInfo();
 		bVisible = Light->IsLightVisible();
+		bCastShadows = Light->IsCastShadows();
 
 		ShadowInfo = Light->GetShadowInfo();
 	}
@@ -145,6 +150,8 @@ public:
 		const USpotLightComponent* Light = static_cast<const USpotLightComponent*>(Component);
 		Info = Light->GetSpotLightInfo();
 		bVisible = Light->IsLightVisible();
+		bCastShadows = Light->IsCastShadows();
+
 		ShadowInfo = Light->GetShadowInfo();
 	}
 

@@ -19,6 +19,7 @@ struct FShadowStats {
 	int32 SpotLightCount = 0;
 	int32 NumShadowMapsRendered = 0;
 	int32 NumShadowDrawCalls = 0;
+	int32 NumSkipped_CastShadowsOff = 0;
 	int64 ShadowMapMemoryBytes = 0;
 };
 
