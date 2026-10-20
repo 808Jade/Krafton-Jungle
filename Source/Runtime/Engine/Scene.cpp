@@ -330,11 +330,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FDirectionalLightInfo DirectionalLightInfo = DirectionalProxy->GetInfo();
 			FShadowInfo DirectionalShadowInfo = DirectionalProxy->GetShadowInfo();
 
-			if (bShadow && DirectionalProxy->ShouldCastShadow()) {
-				DirectionalLightInfo.ShadowIndex = OutShadowInfo.Add(DirectionalShadowInfo);
-				Proxy->ShadowIndex = DirectionalLightInfo.ShadowIndex;
-			}
-			else {
+			if (!(bShadow && DirectionalProxy->ShouldCastShadow())) {
 				ShadowStats.NumSkipped_CastShadowsOff++;
 			}
 
