@@ -296,7 +296,7 @@ void FScene::MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy)
 	RenderStateDirtyProxies.Add(Proxy);
 }
 
-void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats & ShadowStats) const
+void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats & ShadowStats, bool bShadow) const
 {
 	OutPointLight.Reset();
 	OutSpotLight.Reset();
@@ -327,8 +327,9 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 		case ELightType::Directional:
 		{
 			FDirectionalLightSceneProxy* DirectionalProxy = static_cast<FDirectionalLightSceneProxy*>(Proxy);
-			OutDirectionalLight.Add(DirectionalProxy->GetInfo());
+			FDirectionalLightInfo DirectionalLightInfo = DirectionalProxy->GetInfo();
 			ShadowStats.DirectionalLightCount++;
+			OutDirectionalLight.Add(DirectionalLightInfo);
 			break;
 		}
 		case ELightType::Point:
@@ -337,8 +338,11 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
 			FShadowInfo PointShadowInfo = PointProxy->GetShadowInfo();
 
-			PointLightInfo.ShadowIndex = OutShadowInfo.Add(PointShadowInfo);
-			Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
+			if (bShadow) {
+				PointLightInfo.ShadowIndex = OutShadowInfo.Add(PointShadowInfo);
+				Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
+			}
+
 			OutPointLight.Add(PointLightInfo);
 			ShadowStats.PointLightCount++;
 			break;
@@ -347,10 +351,11 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 		{
 			FSpotLightSceneProxy* SpotProxy = static_cast<FSpotLightSceneProxy*>(Proxy);
 			FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
-			FShadowInfo SpotShadowInfo = SpotProxy->GetShadowInfo();
-
-			SpotLightInfo.ShadowIndex = OutShadowInfo.Add(SpotShadowInfo);
-			Proxy->ShadowIndex = SpotLightInfo.ShadowIndex;
+			if (bShadow) {
+				FShadowInfo SpotShadowInfo = SpotProxy->GetShadowInfo();
+				SpotLightInfo.ShadowIndex = OutShadowInfo.Add(SpotShadowInfo);
+				Proxy->ShadowIndex = SpotLightInfo.ShadowIndex;
+			}
 			OutSpotLight.Add(SpotLightInfo);
 			ShadowStats.SpotLightCount++;
 			break;

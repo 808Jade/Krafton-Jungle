@@ -921,10 +921,11 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 	FLightSceneProxy* PreviewShadowMapLightProxy = nullptr;
 
 	ViewWorld.GetScene().BuildLightingConstants(Lighting);
-	ViewWorld.GetScene().BuildStructuredLightAndShadowData(PointLights, SpotLights, DirectionalLights, ShadowInfos, PreviewShadowMapLightProxy, ShadowStats);
+	const bool bDrawShadows = SettingsPanel->GetSettings().bDrawShadows;
+	ViewWorld.GetScene().BuildStructuredLightAndShadowData(PointLights, SpotLights, DirectionalLights, ShadowInfos, PreviewShadowMapLightProxy, ShadowStats, bDrawShadows);
 	Renderer->SetLighting(Lighting, PointLights, SpotLights);
 
-	const FShadowInfo* DirectionalShadowInfo = ViewWorld.GetScene().GetDirectionalShadowInfo();
+	const FShadowInfo* DirectionalShadowInfo = bDrawShadows ? ViewWorld.GetScene().GetDirectionalShadowInfo() : nullptr;
 
 	//Shadow Info StructuredBuffer, ShadowMap 만들기
 	if (DirectionalShadowInfo != nullptr || ShadowInfos.Num() > 0)
