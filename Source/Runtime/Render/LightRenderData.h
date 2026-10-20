@@ -75,6 +75,7 @@ struct FLightShadowRenderData
 };
 
 static_assert(sizeof(FVector4) == 16);
+static_assert(sizeof(FLightShadowRenderData) == 84);
 static_assert(sizeof(FAmbientLightRenderData) == 16);
 static_assert(offsetof(FForwardLightingConstants, CameraPosition) == 16);
 static_assert(offsetof(FForwardLightingConstants, LightCounts) == 32);

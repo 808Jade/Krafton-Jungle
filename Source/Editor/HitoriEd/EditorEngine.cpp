@@ -117,6 +117,26 @@ bool UEditorEngine::Init()
 	Gizmo = MakeUnique<FGizmo>();
 
 	DetailsPanel = EditorUI->AddEditorPanel<FDetailsPanel>();
+	DetailsPanel->SetImGuiRenderer(ImGuiRenderer.get());
+	DetailsPanel->SetShadowPreviewQuery([this](const ULightComponent* Light, FTexture2DArray*& Atlas,
+		TArray<FLightShadowRenderData>& Shadows)
+	{
+		Atlas = nullptr;
+		Shadows.Reset();
+		if (!Light || !ViewportsPanel) return false;
+		const int32 Index = ViewportsPanel->GetActiveViewIndex();
+		FEditorViewportClient* Client = ViewportsPanel->GetViewportClient(Index);
+		if (!Client || !Client->IsActive() || Client->GetRect().Width <= 0 || Client->GetRect().Height <= 0)
+			return false;
+		if (PlayWorld && !IsPIEInWindow() && PlayMode == EPlayModeType::InViewport && Index == PIEStartEditorViewIndex)
+		{
+			FWorldContext* Context = GetPIEWorldContext();
+			if (!Context || !Context->GameViewport || Light->GetWorld() != Context->World()) return false;
+			return Context->GameViewport->GetRenderData().GetShadowPreview(Light, Atlas, Shadows);
+		}
+		if (Light->GetWorld() != (PlayWorld ? PlayWorld : EditorWorld)) return false;
+		return Client->GetRenderData().GetShadowPreview(Light, Atlas, Shadows);
+	});
 	EditorControlsPanel = EditorUI->AddEditorPanel<FEditorControlsPanel>();
 	ViewportsPanel = EditorUI->AddEditorPanel<FViewportsPanel>();
 	ContentDrawerPanel = EditorUI->AddEditorPanel<FContentDrawerPanel>();
@@ -472,6 +492,20 @@ void UEditorEngine::TickWorldAndEditor(const float DeltaTime)
 void UEditorEngine::RenderViewports()
 {
 	const bool bIsPIE = (PlayWorld != nullptr);
+	const ULightComponent* PreviewLight = DetailsPanel ? DetailsPanel->GetSelectedLight() : nullptr;
+	// Invalidate skipped views too: never expose a previous frame's atlas range.
+	for (FEditorViewportClient* Client : AllViewportClients)
+	{
+		if (!Client) continue;
+		Client->GetRenderData().PreviewLight = PreviewLight;
+		Client->GetRenderData().PreviewShadowRange = {};
+	}
+	for (FWorldContext& Context : WorldContextlist)
+	{
+		if (!Context.GameViewport) continue;
+		Context.GameViewport->GetRenderData().PreviewLight = PreviewLight;
+		Context.GameViewport->GetRenderData().PreviewShadowRange = {};
+	}
 
 	for (int32 ViewIndex = 0; ViewIndex < AllViewportClients.Num(); ++ViewIndex) {
 		FEditorViewportClient* ViewClient = AllViewportClients[ViewIndex];

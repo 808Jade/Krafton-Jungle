@@ -6,6 +6,9 @@
 
 #include <backends/imgui_impl_dx11.h>
 #include <backends/imgui_impl_win32.h>
+#include <d3dcompiler.h>
+#include <cstring>
+#pragma comment(lib, "d3dcompiler.lib")
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
@@ -224,6 +227,37 @@ bool FImGuiRenderer::Init(HWND WindowHandle, ID3D11Device* Device, ID3D11DeviceC
 
 	ImGui_ImplWin32_Init(WindowHandle);
 	ImGui_ImplDX11_Init(Device, DeviceContext);
+	// Reuse ImGui's vertex shader and draw commands; only array-depth sampling differs.
+	ComPtr<ID3DBlob> Bytecode;
+	ComPtr<ID3DBlob> Errors;
+	HRESULT PreviewResult = D3DCompileFromFile(L"Resources/Shader/ShadowPreview.hlsl", nullptr,
+		D3D_COMPILE_STANDARD_FILE_INCLUDE, "mainPS", "ps_5_0", D3DCOMPILE_ENABLE_STRICTNESS, 0,
+		Bytecode.GetAddressOf(), Errors.GetAddressOf());
+	if (FAILED(PreviewResult))
+	{
+		if (Errors) OutputDebugStringA(static_cast<const char*>(Errors->GetBufferPointer()));
+	}
+	else
+	{
+		PreviewResult = Device->CreatePixelShader(Bytecode->GetBufferPointer(), Bytecode->GetBufferSize(),
+			nullptr, ShadowPreviewPS.GetAddressOf());
+		D3D11_BUFFER_DESC BufferDesc{};
+		BufferDesc.ByteWidth = 16;
+		BufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		if (SUCCEEDED(PreviewResult)) PreviewResult = Device->CreateBuffer(&BufferDesc, nullptr, ShadowPreviewCB.GetAddressOf());
+		D3D11_SAMPLER_DESC SamplerDesc{};
+		SamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+		SamplerDesc.AddressU = SamplerDesc.AddressV = SamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		SamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		if (SUCCEEDED(PreviewResult)) PreviewResult = Device->CreateSamplerState(&SamplerDesc, ShadowPreviewSampler.GetAddressOf());
+	}
+	if (FAILED(PreviewResult))
+	{
+		ShadowPreviewPS.Reset();
+		ShadowPreviewCB.Reset();
+		ShadowPreviewSampler.Reset();
+	}
 	FWindow::SetWndProcHook(&ImGuiWndProcHook);
 
 	ApplyDefaultStyle();
@@ -260,10 +294,65 @@ void FImGuiRenderer::End()
 
 	ImGui::UpdatePlatformWindows();
 	ImGui::RenderPlatformWindowsDefault();
+	// Detached Details windows consume their draw commands above as well.
+	PreviewTextures.clear();
+}
+
+bool FImGuiRenderer::DrawShadowMap(ID3D11ShaderResourceView* AtlasSRV, unsigned int AtlasIndex,
+	ImVec2 Size, ImVec2 UV0, ImVec2 UV1, float Contrast)
+{
+	if (!AtlasSRV || !ShadowPreviewPS || !ShadowPreviewCB || !ShadowPreviewSampler) return false;
+	PreviewTextures.emplace_back(AtlasSRV);
+	ImDrawList* DrawList = ImGui::GetWindowDrawList();
+	DrawList->AddCallback(BindShadowPreview, this);
+	// Copy the constants into ImGui-owned storage until actual GPU draws.
+	unsigned int Constants[4] = { AtlasIndex, 0, 0, 0 };
+	static_assert(sizeof(Contrast) == sizeof(Constants[1]));
+	std::memcpy(&Constants[1], &Contrast, sizeof(Contrast));
+	DrawList->AddCallback(SetShadowPreviewSlice, Constants, sizeof(Constants));
+	ImGui::Image((ImTextureID)AtlasSRV, Size, UV0, UV1);
+	DrawList->AddCallback(RestoreShadowPreview, this);
+	DrawList->AddCallback(ImGui::GetPlatformIO().DrawCallback_ResetRenderState);
+	return true;
+}
+
+void FImGuiRenderer::BindShadowPreview(const ImDrawList*, const ImDrawCmd* Command)
+{
+	auto* Self = static_cast<FImGuiRenderer*>(Command->UserCallbackData);
+	auto* State = static_cast<ImGui_ImplDX11_RenderState*>(ImGui::GetPlatformIO().Renderer_RenderState);
+	ID3D11DeviceContext* Context = State->DeviceContext;
+	Context->PSGetConstantBuffers(0, 1, Self->PreviousPSConstants.ReleaseAndGetAddressOf());
+	Context->PSSetShader(Self->ShadowPreviewPS.Get(), nullptr, 0);
+	ID3D11Buffer* Buffer = Self->ShadowPreviewCB.Get();
+	Context->PSSetConstantBuffers(0, 1, &Buffer);
+	ID3D11SamplerState* Sampler = Self->ShadowPreviewSampler.Get();
+	Context->PSSetSamplers(0, 1, &Sampler);
+}
+
+void FImGuiRenderer::SetShadowPreviewSlice(const ImDrawList*, const ImDrawCmd* Command)
+{
+	auto* State = static_cast<ImGui_ImplDX11_RenderState*>(ImGui::GetPlatformIO().Renderer_RenderState);
+	ComPtr<ID3D11Buffer> Buffer;
+	State->DeviceContext->PSGetConstantBuffers(0, 1, Buffer.GetAddressOf());
+	State->DeviceContext->UpdateSubresource(Buffer.Get(), 0, nullptr, Command->UserCallbackData, 0, 0);
+}
+
+void FImGuiRenderer::RestoreShadowPreview(const ImDrawList*, const ImDrawCmd* Command)
+{
+	auto* Self = static_cast<FImGuiRenderer*>(Command->UserCallbackData);
+	auto* State = static_cast<ImGui_ImplDX11_RenderState*>(ImGui::GetPlatformIO().Renderer_RenderState);
+	ID3D11Buffer* Buffer = Self->PreviousPSConstants.Get();
+	State->DeviceContext->PSSetConstantBuffers(0, 1, &Buffer);
+	Self->PreviousPSConstants.Reset();
 }
 
 void FImGuiRenderer::Shutdown()
 {
+	PreviewTextures.clear();
+	PreviousPSConstants.Reset();
+	ShadowPreviewSampler.Reset();
+	ShadowPreviewCB.Reset();
+	ShadowPreviewPS.Reset();
 	ImGui_ImplDX11_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 }

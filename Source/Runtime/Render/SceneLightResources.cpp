@@ -19,7 +19,8 @@ namespace
 	static_assert(offsetof(FDeferredLightConstants, SkyColorIntensity) == 176);
 	static_assert(offsetof(FDeferredLightConstants, ShadowAtlasWidth) == 192);
 	static_assert(offsetof(FDeferredLightConstants, ShadowAtlasHeight) == 196);
-	static_assert(sizeof(FDeferredLightConstants) == 208);
+	static_assert(offsetof(FDeferredLightConstants, DirectionalCascadeFars) == 208);
+	static_assert(sizeof(FDeferredLightConstants) == 240);
 
 	// 용량이 모자랄 때만 두 배로 키우고 Map 한 번으로 채운다.
 	bool UploadStructured(TUniquePtr<FStructuredBuffer>& Buffer, const void* Data, uint32 Count, uint32 Stride)

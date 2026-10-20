@@ -6,8 +6,10 @@
 #include "Engine/LightSceneProxy.h"
 #include "Render/LightRenderData.h"
 #include "Render/SceneLightResources.h"
+#include "Render/SceneView.h"
 #include "Math/Matrix.h"
 #include <algorithm>
+#include <cmath>
 #include <iterator>
 #include <vector>
 
@@ -72,6 +74,39 @@ struct FSceneRenderData
 
 	float CascadeShadowDistances[MaxCascadeShadowCount];
 	uint32 CascadeShadowCount;
+	// CPU-only preview state for this view. Never uploaded with the light parameters.
+	const ULightComponent* PreviewLight = nullptr;
+	int32 PreviewLightIndex = INDEX_NONE;
+	FLightShadowRange PreviewShadowRange{};
+
+	bool GetShadowPreview(const ULightComponent* Light, FTexture2DArray*& OutAtlas,
+		TArray<FLightShadowRenderData>& OutShadows) const
+	{
+		OutAtlas = nullptr;
+		OutShadows.Reset();
+		const uint32 Start = PreviewShadowRange.StartIndex;
+		const uint32 Count = PreviewShadowRange.ViewCount;
+		if (!Light || Light != PreviewLight || !Count || Start > uint32(LightShadows.Num()) ||
+			Count > uint32(LightShadows.Num()) - Start)
+			return false;
+		FTexture2DArray* Atlas = ViewLightResources.GetShadowMapAtlas();
+		if (!Atlas || !Atlas->GetSRV()) return false;
+		for (uint32 i = 0; i < Count; ++i)
+		{
+			const auto& Shadow = LightShadows[Start + i];
+			if (Shadow.AtlasIndex >= Atlas->GetArraySize() || Shadow.AtlasRect.Width <= 0 || Shadow.AtlasRect.Height <= 0)
+			{
+				OutShadows.Reset();
+				return false;
+			}
+			OutShadows.Add(Shadow);
+		}
+		OutAtlas = Atlas;
+		return true;
+	}
+	uint32 LightShadowOffsets[4];
+	uint32 DirectionalCascadeCount = 1;
+	FVector4 DirectionalCascadeFars[2];
 
 	void ResetScene()
 	{
@@ -96,6 +131,11 @@ struct FSceneRenderData
 		bHasSkyLight = false;
 		VisibleLights.Reset();
 		LightShadows.Reset();
+		PreviewLightIndex = INDEX_NONE;
+		PreviewShadowRange = {};
+		DirectionalCascadeCount = 1;
+		DirectionalCascadeFars[0] = FVector4(0.0f);
+		DirectionalCascadeFars[1] = FVector4(0.0f);
 		std::memset(LightParameterOffsets, 0, sizeof(LightParameterOffsets));
 		std::memset(LightParameterCounts, 0, sizeof(LightParameterCounts));
 
@@ -125,11 +165,23 @@ struct FSceneRenderData
 				FSceneRenderData::RectLightSlotIndex,
 			};
 
-			std::sort(VisibleLights.GetData(), VisibleLights.GetData() + VisibleLights.Num(), [&TypeCount, &TypeToSlot](const FLightRenderParameters& A, const FLightRenderParameters& B) {
-				const uint32 ASlot = TypeToSlot[A.Type];
-				const uint32 BSlot = TypeToSlot[B.Type];
+			// Sort indices so the selected light's identity survives sorting, including identical lights.
+			std::vector<int32> LightOrder(VisibleLights.Num());
+			for (int32 i = 0; i < VisibleLights.Num(); ++i) LightOrder[i] = i;
+			std::sort(LightOrder.begin(), LightOrder.end(), [&](int32 A, int32 B) {
+				const uint32 ASlot = TypeToSlot[VisibleLights[A].Type];
+				const uint32 BSlot = TypeToSlot[VisibleLights[B].Type];
 				return ASlot < BSlot;
 			});
+			TArray<FLightRenderParameters> SortedLights;
+			int32 SortedPreviewIndex = INDEX_NONE;
+			for (int32 Index : LightOrder)
+			{
+				if (Index == PreviewLightIndex) SortedPreviewIndex = SortedLights.Num();
+				SortedLights.Add(VisibleLights[Index]);
+			}
+			VisibleLights = std::move(SortedLights);
+			PreviewLightIndex = SortedPreviewIndex;
 
 			// Light 배열 정리 및 구간 별 Offset, Count 기록
 			int32 Offset = 0;
@@ -235,6 +287,58 @@ struct FSceneRenderData
 				int32 LightIndex = GetDirectionalLightOffset() + i;
 
 				const FLightRenderParameters& DirectionalLight = VisibleLights[LightIndex];
+				const FVector LightDirection = DirectionalLight.Direction.GetSafeNormal();
+				const FVector LightUp = std::abs(LightDirection.Z) > 0.99f
+					? FVector(0, 1, 0) : FVector(0, 0, 1);
+				const FMatrix LightOrientation = LookAt(FVector(0, 0, 0), LightDirection, LightUp);
+				const FMatrix InverseLightOrientation = LightOrientation.Inverse();
+				for (uint32 CascadeIndex = 0; CascadeIndex < DirectionalCascadeCount; ++CascadeIndex)
+				{
+					FMatrix ViewMatrix;
+					FMatrix ProjectionMatrix;
+					if (bValidCameraRange)
+					{
+						const float NearDistance = CascadeIndex == 0 ? CameraNear
+							: DirectionalCascadeFars[(CascadeIndex - 1) / 4].Component((CascadeIndex - 1) % 4);
+						const float FarDistance = DirectionalCascadeFars[CascadeIndex / 4].Component(CascadeIndex % 4);
+						const float NearFraction = (NearDistance - CameraNear) / (CameraFar - CameraNear);
+						const float FarFraction = (FarDistance - CameraNear) / (CameraFar - CameraNear);
+						FVector Min, Max;
+						for (int32 CornerIndex = 0; CornerIndex < 4; ++CornerIndex)
+						{
+							const FVector Ray = CameraCorners[1][CornerIndex] - CameraCorners[0][CornerIndex];
+							for (int32 PlaneIndex = 0; PlaneIndex < 2; ++PlaneIndex)
+							{
+								const float Fraction = PlaneIndex ? FarFraction : NearFraction;
+								const FVector WorldCorner = CameraCorners[0][CornerIndex] + Ray * Fraction;
+								const FVector4 LightCorner = FVector4(WorldCorner, 1.0f) * LightOrientation;
+								const FVector Point(LightCorner.X, LightCorner.Y, LightCorner.Z);
+								if (CornerIndex == 0 && PlaneIndex == 0) Min = Max = Point;
+								else
+								{
+									for (int32 Axis = 0; Axis < 3; ++Axis)
+									{
+										Min.Component(Axis) = std::min(Min.Component(Axis), Point.Component(Axis));
+										Max.Component(Axis) = std::max(Max.Component(Axis), Point.Component(Axis));
+									}
+								}
+							}
+						}
+						const float Width = std::max(Max.Y - Min.Y, 0.01f);
+						const float Height = std::max(Max.Z - Min.Z, 0.01f);
+						const float Depth = std::max(Max.X - Min.X + CasterDepthPadding, 0.01f);
+						const FVector4 Eye = FVector4(Min.X - CasterDepthPadding - 0.1f,
+							(Min.Y + Max.Y) * 0.5f, (Min.Z + Max.Z) * 0.5f, 1.0f) * InverseLightOrientation;
+						const FVector EyePosition(Eye.X, Eye.Y, Eye.Z);
+						ViewMatrix = LookAt(EyePosition, EyePosition + LightDirection, LightUp);
+						ProjectionMatrix = Ortho(Width, Width / Height, 0.1f, Depth + 0.1f);
+					}
+					else
+					{
+						ViewMatrix = LookAt(DirectionalLight.Position,
+							DirectionalLight.Position + LightDirection, LightUp);
+						ProjectionMatrix = Ortho(20, 1.0f, 0.1f, 1000.f);
+					}
 
 				FMatrix ViewMatrix = LookAt(FVector(0.f), DirectionalLight.Direction, UpVector);
 
@@ -328,6 +432,13 @@ struct FSceneRenderData
 						MaxHeightInLine = 0;
 					}
 				}
+				if (AtlasCursorY + AreaInfo.Size > ShadowMapSize)
+				{
+					AtlasNeedCount++;
+					AtlasCursorX = 0;
+					AtlasCursorY = 0;
+					MaxHeightInLine = 0;
+				}
 
 				FLightShadowRenderData& RenderData = LightShadows[AreaInfo.Index];
 
@@ -351,6 +462,7 @@ struct FSceneRenderData
 			ViewLightResources.CreateShadowAtlasIfNeed(ShadowMapSize, ShadowMapSize, AtlasNeedCount);
 			bLightUpaloadSucceeded &= ViewLightResources.UploadLightShadows(LightShadows);
 		}
+		if (!bLightUpaloadSucceeded) PreviewShadowRange = {};
 	}
 
 	inline bool HasDirectionalLight() { return LightParameterCounts[DirectionalLightSlotIndex]; }

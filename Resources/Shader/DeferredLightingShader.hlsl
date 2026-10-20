@@ -20,7 +20,9 @@ cbuffer DeferredLightConstants : register(b0)
     float4 SkyColorIntensity;
     uint ShadowAtlasWidth;
     uint ShadowAtlasHeight;
-    uint2 LightingPadding;
+    uint DirectionalCascadeCount;
+    uint LightingPadding;
+    float4 DirectionalCascadeFars[2];
 };
 
 StructuredBuffer<FLightRenderParameters> SceneLights : register(t3);
