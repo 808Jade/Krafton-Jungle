@@ -1,7 +1,8 @@
-﻿#include "EnginePCH.h"
+#include "EnginePCH.h"
 #include "Scene.h"
 #include "LightSceneProxy.h"
 #include "Render/ColorWorkflow.h"
+#include <Core/StatOverlay.h>
 
 void FScene::AddPrimitive(UPrimitiveComponent* Component)
 {
@@ -184,16 +185,23 @@ void FScene::BuildLightingConstants(FLightingConstants& Out) const
 		case ELightType::Directional:
 			Out.Directional = static_cast<const FDirectionalLightSceneProxy*>(Proxy)->GetInfo();
 			break;
-		case ELightType::Point:
-			if (Out.NumPointLights < MaxPointLights)
-				Out.PointLights[Out.NumPointLights++] = static_cast<const FPointLightSceneProxy*>(Proxy)->GetInfo();
-			break;
-		case ELightType::Spot:
-			if (Out.NumSpotLights < MaxSpotLights)
-				Out.SpotLights[Out.NumSpotLights++] = static_cast<const FSpotLightSceneProxy*>(Proxy)->GetInfo();
+		default:
 			break;
 		}
 	}
+}
+
+const FShadowInfo* FScene::GetDirectionalShadowInfo() const
+{
+	const FShadowInfo* Result = nullptr;
+	for (const FLightSceneProxy* Proxy : Lights)
+	{
+		if (Proxy->IsVisible() && Proxy->GetLightType() == ELightType::Directional)
+		{
+			Result = &static_cast<const FDirectionalLightSceneProxy*>(Proxy)->GetShadowInfo();
+		}
+	}
+	return Result;
 }
 
 void FScene::UpdateAllTransforms()
@@ -288,29 +296,87 @@ void FScene::MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy)
 	RenderStateDirtyProxies.Add(Proxy);
 }
 
-void FScene::BuildStructuredLight(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight) const
+void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats & ShadowStats, bool bShadow) const
 {
 	OutPointLight.Reset();
 	OutSpotLight.Reset();
+	OutShadowInfo.Reset();
 
 	for (FLightSceneProxy* Proxy : Lights)
 	{
+		// 안 보이거나 그림자가 없으면 -1로 남는다
+		Proxy->ShadowIndex = -1;
+		//ShadowPreview 초기화
+		//매프레임 Preview 요청이 있는 것만 복사하게 된다.
+		//Proxy->GetShadowPreview().Reset();
+
 		if (!Proxy->IsVisible())
 		{
 			continue;
 		}
 
+		// Preview가 켜져있다면 넣기 (Directional, Spot 등)
+		if (Proxy->bPreviewShadowMap)
+		{
+			OutPreviewShadowMapLightProxy = Proxy;
+			Proxy->bPreviewShadowMap = false;
+		}
+
 		switch (Proxy->GetLightType())
 		{
-		case ELightType::Point:
-			OutPointLight.Add(static_cast<FPointLightSceneProxy*>(Proxy)->GetInfo());
-			break;
-		case ELightType::Spot:
-			OutSpotLight.Add(static_cast<FSpotLightSceneProxy*>(Proxy)->GetInfo());
-			break;
-		default:
+		case ELightType::Directional:
+		{
+			FDirectionalLightSceneProxy* DirectionalProxy = static_cast<FDirectionalLightSceneProxy*>(Proxy);
+			FDirectionalLightInfo DirectionalLightInfo = DirectionalProxy->GetInfo();
+			ShadowStats.DirectionalLightCount++;
+			OutDirectionalLight.Add(DirectionalLightInfo);
 			break;
 		}
-	}
+		case ELightType::Point:
+		{
+			FPointLightSceneProxy* PointProxy = static_cast<FPointLightSceneProxy*>(Proxy);
+			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
+			const TArray<FShadowInfo>& PointShadowInfos = PointProxy->GetShadowInfos();
 
+			//추가하기 전 개수가 시작 인덱스이다.
+			if (bShadow)
+			{
+				PointLightInfo.ShadowIndex = OutShadowInfo.Num();
+				Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
+				OutShadowInfo.Append(PointShadowInfos);
+			}
+
+			OutPointLight.Add(PointLightInfo);
+
+			//Preview가 켜져있다면 넣기
+			if (PointProxy->bPreviewShadowMap)
+			{
+				OutPreviewShadowMapLightProxy = PointProxy;
+				//한번만 복사하기 위해
+				//어차피 다음 프레임에서도 Detail Panel이 true로 요청할 것
+				PointProxy->bPreviewShadowMap = false;
+			}
+			ShadowStats.PointLightCount++;
+			break;
+		}
+		case ELightType::Spot:
+		{
+			FSpotLightSceneProxy* SpotProxy = static_cast<FSpotLightSceneProxy*>(Proxy);
+			FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
+			if (bShadow) {
+				FShadowInfo SpotShadowInfo = SpotProxy->GetShadowInfo();
+				SpotLightInfo.ShadowIndex = OutShadowInfo.Add(SpotShadowInfo);
+				Proxy->ShadowIndex = SpotLightInfo.ShadowIndex;
+			}
+			OutSpotLight.Add(SpotLightInfo);
+			ShadowStats.SpotLightCount++;
+			break;
+		}			
+		default:
+		{
+			break;
+		}
+		}
+	}
 }
+

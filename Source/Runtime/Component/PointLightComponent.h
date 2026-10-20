@@ -2,6 +2,8 @@
 
 #include "LightComponent.h"
 
+struct FShadowInfo;
+
 class UPointLightComponent : public ULightComponent
 {
 	DECLARE_CLASS(UPointLightComponent, ULightComponent)
@@ -16,6 +18,7 @@ public:
 	float GetAttenuationRadius() const { return AttenuationRadius; }
 
 	FPointLightInfo GetPointLightInfo() const;
+	virtual void GetShadowInfo(TArray<FShadowInfo>& OutShadowInfo) const override;
 	virtual FLightSceneProxy* CreateSceneProxy() override;
 
 	virtual void PostEditChangeProperty(const FProperty& Property) override;

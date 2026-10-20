@@ -19,9 +19,14 @@
 #include <unordered_map>
 #include <bit>
 
+#include "Engine/LightSceneProxy.h"
+#include <Core/StatOverlay.h>
+
 DECLARE_CYCLE_STAT("Draw Render Packets", STAT_DrawRenderPackets);
 DECLARE_CYCLE_STAT("Render Queue Sorting", STAT_RenderQueueSorting);
 DECLARE_CYCLE_STAT("Upload Per-Object CB", STAT_UploadPerObjectCB);
+DECLARE_CYCLE_STAT("Shadow Pass (Total)", STAT_Shadow);
+
 
 namespace
 {
@@ -69,6 +74,7 @@ bool FRenderer::Init()
 	bUsePerObjectSlots = RenderCommand::SupportsConstantBufferOffsets();
 	PerObjectCB = RenderCommand::CreateConstantBuffer(sizeof(FPerObjectConstants));
 	ViewCB = RenderCommand::CreateConstantBuffer(sizeof(FViewConstants));
+	ShadowViewCB = RenderCommand::CreateConstantBuffer(sizeof(FMatrix));
 	LightingCB = RenderCommand::CreateConstantBuffer(sizeof(FLightingConstants));
 	FLightingConstants LightingConstant{};
 	RenderCommand::UpdateBufferData(LightingCB.get(), &LightingConstant);
@@ -594,5 +600,126 @@ void FRenderer::EnsureTileLightCapacity(const FMatrix& ViewProjection, uint32 Wi
 {
 	if (TileLightCulling.EnsureTileCapacity(Width, Height))
 		TileLightCulling.Dispatch(LocalLight, ViewProjection, Width, Height, bVisualizeLightCount);
+
+}
+
+
+void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy, FShadowStats& ShadowStats)
+{
+	SCOPE_CYCLE_COUNTER(STAT_Shadow);
+
+	//이전 pass에서의 바인딩을 끊는다.
+	ShadowMapManager.UnbindForShading();
+	
+	// Shadow Atlas 를 계산한다.
+	ShadowMapManager.BuildAtlas(ShadowInfos);
+
+
+	// Directional 상수 버퍼 준비
+	if (DirectionalShadow != nullptr)
+	{
+		ShadowMapManager.SetupDirectionalShadow(*DirectionalShadow);
+	}
+
+	// Local Light들 준비
+	ShadowMapManager.UploadShadowInfos(ShadowInfos);
+
+	ID3D11DeviceContext* Context = RenderCommand::GetContext();
+
+	//공통 파이프라인 상태 (층마다 바뀌지 않음)
+	FShaderProgram* DepthShader = FRenderResourceManager::GetShaderProgram("Resources/Shader/ShaderMap.hlsl");
+
+	//VS만 바인딩
+	Context->VSSetShader(DepthShader->VertexShader->GetShader(), nullptr, 0);
+	Context->IASetInputLayout(DepthShader->VertexShader->GetLayout());
+	Context->PSSetShader(nullptr, nullptr, 0);
+
+	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
+	// Depth on, LESS, Write
+	RenderCommand::SetDepthStencilState(EDepthStencilState::Default);
+	RenderCommand::SetBlendState(EBlendState::Opaque);
+
+	RenderCommand::BindConstantBuffer(0, ShadowViewCB.get(), EShaderBindFlagBits::Vertex);
+	RenderCommand::BindConstantBuffer(2, PerObjectCB.get(), EShaderBindFlagBits::Vertex);
+
+
+	ShadowMapManager.ClearAtlas();
+
+	// 아틀라스
+	// 캐스터 메쉬들을 그리는 공통 람다
+	auto DrawCasters = [&]()
+		{
+			for (FPrimitiveSceneProxy* Proxy : Casters)
+			{
+				if (!Proxy || !Proxy->IsVisible() || !Proxy->GetMesh() || !Proxy->GetRenderState())
+					continue;
+				UpdatePerObjectConstants(Proxy->GetLocalToWorld(), Proxy->GetNormalMatrix());
+				RenderCommand::BindMesh(Proxy->GetMesh(), 0);
+				const FCachedMeshLOD& LOD = Proxy->GetLOD(0);
+				for (uint32 i = 0; i < LOD.NumSections; ++i)
+				{
+					const FCachedMeshSection& Section = Proxy->GetSection(LOD.FirstSection + i);
+					if (Section.Material && Section.Material->BlendState != EBlendState::Opaque)
+						continue;
+					RenderCommand::DrawIndexed(Section.IndexCount, Section.StartIndex);
+					ShadowStats.NumShadowDrawCalls++;
+				}
+			}
+		};
+
+	if (DirectionalShadow != nullptr)
+	{
+		// DirectionalShadowDSV 바인딩, 클리어 및 2048x2048 뷰포트 설정
+		ShadowMapManager.BeginDirectionalShadowRender();
+		// Directional Light의 VP 행렬을 ShadowViewCB(b0)에 업로드 후 렌더
+		RenderCommand::UpdateBufferData(ShadowViewCB.get(), &DirectionalShadow->LightViewProjection, sizeof(FMatrix));
+		DrawCasters();
+		ShadowMapManager.EndDirectionalShadowRender();
+	}
+
+	//층(라이트)마다
+	for (int32 Slice = 0; Slice < ShadowInfos.Num(); ++Slice)
+	{
+		//렌더 전 개별 바인딩
+		ShadowMapManager.BeginShadowRenderWithAtlas(ShadowInfos[Slice]);
+
+
+		//라이트마다의 VP 행렬 Map Unmap
+		RenderCommand::UpdateBufferData(ShadowViewCB.get(), &ShadowInfos[Slice].LightViewProjection, sizeof(FMatrix));
+
+		DrawCasters();
+	}
+
+	//DSV 해제
+	if (ShadowInfos.Num() > 0)
+	{
+		ShadowMapManager.EndShadowPass();
+	}
+
+	// TODO : 아틀라스 프리뷰
+	//Preview 인덱스의 ShadowMap 서브 리소스를 복사한다.
+	if (PreviewShadowMapProxy != nullptr)
+	{
+		ShadowMapManager.UpdatePreview(PreviewShadowMapProxy, ShadowInfos);
+	}
+
+	//Opaque에서 읽도록 SRV 바인딩
+	ShadowMapManager.BindForShading();
+
+
+	int32 RenderedCount = ShadowInfos.Num();
+	if (DirectionalShadow != nullptr)
+	{
+		RenderedCount += 1;
+	}
+	ShadowStats.NumShadowMapsRendered = RenderedCount;
+
+	int64 TotalBytes = (int64)ShadowMapManager.GetAtlasResolution() * ShadowMapManager.GetAtlasResolution() * 4 * ShadowMapManager.GetNumAtlas();
+	if (DirectionalShadow != nullptr)
+	{
+		TotalBytes += (int64)ShadowMapManager.GetDirectionalResolution() * ShadowMapManager.GetDirectionalResolution() * 4;
+	}
+	ShadowStats.ShadowMapMemoryBytes = TotalBytes;
 
 }

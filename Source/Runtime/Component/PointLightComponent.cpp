@@ -1,6 +1,7 @@
 #include "EnginePCH.h"
 #include "PointLightComponent.h"
 #include "Engine/LightSceneProxy.h"
+#include "Render/LightInfo.h"
 
 void UPointLightComponent::PostEditChangeProperty(const FProperty& Property)
 {
@@ -19,6 +20,49 @@ FPointLightInfo UPointLightComponent::GetPointLightInfo() const
 	Info.Position = GetWorldLocation();
 	return Info;
 }
+
+
+void UPointLightComponent::GetShadowInfo(TArray<FShadowInfo>& OutShadowInfo) const
+{
+	//FOV는 90도
+	//ViewProjection이 달라서 월드 축 6방향으로 찍는다.
+	OutShadowInfo.Reset();
+
+	FShadowInfo ShadowInfo;
+	ShadowInfo.Bias = GetShadowBias();
+
+	//FRotator Pitch Yaw Roll 순서
+	//Forward 0.f, 0.f, 0.f
+	FRotator Rotator = FRotator(0.f, 0.f, 0.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, 90.f, 1.f);
+	OutShadowInfo.Add(ShadowInfo);
+
+	//Back 0.f, 180.f, 0.f
+	Rotator = FRotator(0.f, 180.f, 0.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, 90.f, 1.f);
+	OutShadowInfo.Add(ShadowInfo);
+
+	//Right 0.f, 90.f, 0.f
+	Rotator = FRotator(0.f, 90.f, 0.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, 90.f, 1.f);
+	OutShadowInfo.Add(ShadowInfo);
+
+	//Left 0.f, -90.f, 0.f
+	Rotator = FRotator(0.f, -90.f, 0.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, 90.f, 1.f);
+	OutShadowInfo.Add(ShadowInfo);
+
+	//Up -90.f, 0.f, 0.f
+	Rotator = FRotator(-90.f, 0.f, 0.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, 90.f, 1.f);
+	OutShadowInfo.Add(ShadowInfo);
+
+	//Down 90.f, 0.f, 0.f
+	Rotator = FRotator(90.f, 0.f, 0.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, 90.f, 1.f);
+	OutShadowInfo.Add(ShadowInfo);
+}
+
 
 FLightSceneProxy* UPointLightComponent::CreateSceneProxy()
 {

@@ -34,9 +34,6 @@
 
 #define GOURAUD (VIEWMODE == VIEWMODE_LIT && SHADING_MODEL == SHADING_MODEL_GOURAUD)
 
-#define MAX_POINT_LIGHTS 4
-#define MAX_SPOT_LIGHTS 4
-
 struct FAmbientLightInfo
 {
     float3 Color;
@@ -48,7 +45,8 @@ struct FDirectionalLightInfo
     float3 Color;
     float Padding0;
     float3 Direction;
-    float Padding1;
+    int ShadowIndex;
+    //float Padding1;
 };
 
 struct FPointLightInfo
@@ -56,7 +54,8 @@ struct FPointLightInfo
     float3 Color;
     float AttenuationRadius;
     float3 Position;
-    float Padding;
+    int ShadowIndex;
+    //float Padding;
 };
 
 struct FSpotLightInfo
@@ -67,6 +66,20 @@ struct FSpotLightInfo
     float CosInnerCone;
     float3 Direction;
     float CosOuterCone;
+    int ShadowIndex;
+    float3 Padding_s;
+};
+
+struct FShadowInfo
+{
+    matrix LightViewProjection;
+    float Bias;
+    uint AtlasIndex;
+    uint AtlasStartX;
+    uint AtlasStartY;
+    uint AtlasSize;
+    float NormalBias;
+    float2 Padding;
 };
 
 struct FVSInput
@@ -121,11 +134,6 @@ cbuffer LightingConstants : register(b3)
 {
     FAmbientLightInfo AmbientLight;
     FDirectionalLightInfo DirectionalLight;
-    FPointLightInfo PointLights[MAX_POINT_LIGHTS];
-    FSpotLightInfo SpotLights[MAX_SPOT_LIGHTS];
-    uint NumPointLights;
-    uint NumSpotLights;
-    float2 LightingPadding;
 };
 
 cbuffer TileLightConstants : register(b4)
@@ -143,10 +151,22 @@ cbuffer TileLightConstants : register(b4)
     uint3 TileCullingPadding;
 };
 
+cbuffer DirectionalShadowConstants : register(b5)
+{
+    matrix CascadeViewProjection[4];
+    float4 CascadeSplits;
+    float4 CascadeOffsets[4];
+    float4 CascadeBiases;
+    int NumCascades;
+    float NormalBias;
+    float2 CSMPadding;
+};
+
 StructuredBuffer<FPointLightInfo> StructuredPointLights : register(t8);
 StructuredBuffer<FSpotLightInfo> StructuredSpotLights : register(t9);
 StructuredBuffer<uint> PointTileList : register(t10);
 StructuredBuffer<uint> SpotTileList : register(t11);
+StructuredBuffer<FShadowInfo> StructuredShadowData : register(t12);
 
 Texture2D AlbedoTexture : register(t0);
 
@@ -154,7 +174,12 @@ Texture2D AlbedoTexture : register(t0);
 Texture2D NormalTexture : register(t1);
 #endif
 
+Texture2DArray<float> ShadowTextureArray : register(t2);
+Texture2D<float> DirectionalLightShadowmapAtlas : register(t3);
+
 SamplerState AlbedoSampler : register(s0);
+SamplerState ShadowPointSampler : register(s1);
+SamplerComparisonState ShadowCmpSampler : register(s2);
 
 float3 DiffuseTerm(float3 Il, float3 N, float3 L)
 {
@@ -217,52 +242,153 @@ void ComputeLighting(float3 N, float3 WorldPosition, float3 V, float n, out floa
         float GeoFactor = 1.0f;
         AccumulateLight(Il * GeoFactor, N, L, V, n, DiffuseLight, SpecularLight);
     }
-
-    // Point Light
-    {
-        for (uint Index = 0; Index < NumPointLights; ++Index)
-        {
-            FPointLightInfo Light = PointLights[Index];
-            float3 ToLight = Light.Position - WorldPosition;
-            float Distance = length(ToLight);
-            float Radius = Light.AttenuationRadius;
-            if (Distance >= Radius)
-                continue;
-
-            float3 L = ToLight / Distance;
-            float GeoFactor = 1.0f;
-
-            float DistanceAttenuation = ComputeDistanceAttenuation(Distance, Radius);
-            float3 Il = Light.Color * DistanceAttenuation * GeoFactor;
-            AccumulateLight(Il, N, L, V, n, DiffuseLight, SpecularLight);
-        }
-    }
-
-    // Spot Light
-    {
-        for (uint Index = 0; Index < NumSpotLights; ++Index)
-        {
-            FSpotLightInfo Light = SpotLights[Index];
-            float3 ToLight = Light.Position - WorldPosition;
-            float Distance = length(ToLight);
-            float Radius = Light.AttenuationRadius;
-            if (Distance >= Radius)
-                continue;
-            float3 L = ToLight / Distance;
-            float GeoFactor = 1.0f;
-
-            float DistanceAttenuation = ComputeDistanceAttenuation(Distance, Radius);
-            float CosAngle = dot(-L, Light.Direction);
-            float SpotAttenuation = Light.CosInnerCone == Light.CosOuterCone
-            ? (CosAngle > Light.CosOuterCone ? 1.0f : 0.0f)
-            : saturate((CosAngle - Light.CosOuterCone) / (Light.CosInnerCone - Light.CosOuterCone));
-            
-            float3 Il = Light.Color * DistanceAttenuation * SpotAttenuation * GeoFactor;
-            AccumulateLight(Il, N, L, V, n, DiffuseLight, SpecularLight);
-        }
-    }
 }
 
+// 라이트에서 픽셀 방향에서 절댓값이 가장 큰 축이 그 픽셀이 들어 있는 면이다
+uint SelectCubeFace(float3 LightToPixel)
+{
+    float3 A = abs(LightToPixel);
+    if (A.x >= A.y && A.x >= A.z)
+         // Forward, Back
+        return LightToPixel.x > 0 ? 0 : 1;
+    if (A.y >= A.z)
+        // Right, Left
+        return LightToPixel.y > 0 ? 2 : 3;
+    // Up, Down
+    return LightToPixel.z > 0 ? 4 : 5;
+}
+
+// 반환값: 1 = 빛 받음, 0 = 그림자
+float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
+{
+    //-1이면 그림자 없는 라이트
+    if (ShadowIndex < 0)
+        return 1.0f;
+
+    FShadowInfo Info = StructuredShadowData[ShadowIndex];
+
+    // light Clip Space 클립 공간
+    float4 LightClip = mul(float4(WorldPosition, 1.0f), Info.LightViewProjection);
+    // 광원 뒤쪽
+    if (LightClip.w <= 0.0f)
+        return 1.0f; 
+
+    //원근 나눗셈은 PS에서 (VS에서 나누고 보간하면 원근 보정이 깨짐)
+    float3 Ndc = LightClip.xyz / LightClip.w;
+
+    //NDC → UV. D3D 텍스처는 v가 아래로 증가하므로 y를 뒤집는다
+    float2 UV = float2(Ndc.x * 0.5f + 0.5f, 1.0f - (Ndc.y * 0.5f + 0.5f));
+
+    //범위 검사: 섀도맵 밖이거나 Far 너머면 그림자 판정 불가 : 빛 받음
+    //any 함수는 입력된 값 중 하나라도 0이 아닌 것(True)이 있으면 true를 반환
+    //들어온 UV 중 u와 v중 하나라도 0.0보다 작다면으로 해석됨
+    if (any(UV < 0.0f) || any(UV > 1.0f) || Ndc.z < 0.0f || Ndc.z > 1.0f)
+        return 1.0f;
+    
+    // 아틀라스 UV 구하는 로직
+    float AtlasWidth, AtlasHeight, NumPages;
+    ShadowTextureArray.GetDimensions(AtlasWidth, AtlasHeight, NumPages);
+    
+    float2 AtlasUV = (float2(Info.AtlasStartX, Info.AtlasStartY) + UV * Info.AtlasSize) / float2(AtlasWidth, AtlasHeight);
+    
+    //Point Sampler
+    //float StoredDepth = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV, ShadowIndex), 0);
+    //return (Ndc.z - Info.Bias) > StoredDepth ? 0.0f : 1.0f;
+
+    // 비교 + 상수 Bias
+    // 샘플링 한 것보다 크다면 그림자임
+    
+    //ComparisonLinearSampler
+    //float StoredDepth = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV, ShadowIndex), Ndc.z - Info.Bias);
+    //return StoredDepth;
+    
+    //3x3 Software PCF
+    //해상도 512로 일단 하드코딩
+    //float2 TexelSize = 1.0 / 1024.0;
+    //float Lit = 0;
+    //for (int y = -1; y <= 1; ++y)
+    //{
+    //    for (int x = -1; x < 1; ++x)
+    //    {
+    //        float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), 0);
+    //        Lit += (Ndc.z - Info.Bias) > Stored ? 0.0 : 1.0;
+    //    }
+    //}
+    //Lit /= 9.0;
+    //return Lit;
+    
+    //5x5 Software PCF
+    //해상도 일단 하드코딩
+    //float2 TexelSize = 1.0 / 512.0;
+    //float Lit = 0;
+    //for (int y = -2; y <= 2; ++y)
+    //{
+    //    for (int x = -2; x < 2; ++x)
+    //    {
+    //        float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), 0);
+    //        Lit += (Ndc.z - Info.Bias) > Stored ? 0.0 : 1.0;
+    //    }
+    //}
+    //Lit /= 25.0;
+    //return Lit;
+    
+    //Comparison Linear + 3x3 Software PCF
+    //해상도 하드코딩
+    float2 TexelSize = 1.0 / 1024.0;
+    
+    float2 TileMin = (float2(Info.AtlasStartX, Info.AtlasStartY) + 0.5f) * TexelSize;
+    float2 TileMax = (float2(Info.AtlasStartX, Info.AtlasStartY) + Info.AtlasSize - 0.5f) * TexelSize;
+        
+    float Lit = 0;
+    for (int y = -1; y <= 1; ++y)
+    {
+        for (int x = -1; x < 1; ++x)
+        {
+            float2 SampleUV = clamp(AtlasUV + float2(x, y) * TexelSize, TileMin, TileMax);
+            float Stored = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(AtlasUV, Info.AtlasIndex), Ndc.z - Info.Bias);
+            Lit += Stored;
+        }
+    }
+    Lit /= 9.0;
+    return Lit;
+}
+
+// Directional Light 전용 그림자 판정 (CSM 아틀라스 텍스처 t3 및 DirectionalShadowConstants b5 사용)
+float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
+{
+    if (NumCascades <= 0)
+        return 1.0f;
+
+    int CascadeIndex = 0;
+    float3 L = -DirectionalLight.Direction;
+
+    // 1. 빛과 표면 사이의 각도 계산 (비스듬할수록 오프셋을 더 많이 줌)
+    float NdotL = dot(Normal, L);
+    float NormalOffsetScale = clamp(1.0f - saturate(NdotL), 0.0f, 1.0f);
+
+    // 2. 표면 노멀 방향으로 월드 좌표를 이동 (NormalBias: 상수 버퍼 b5에서 전달)
+    float3 ShadowWorldPos = WorldPosition + Normal * (NormalBias * NormalOffsetScale);
+
+    // 3. 이동된 좌표로 Light Clip Space 계산
+    float4 LightClip = mul(float4(ShadowWorldPos, 1.0f), CascadeViewProjection[CascadeIndex]);
+    if (LightClip.w <= 0.0f)
+        return 1.0f;
+
+    float3 Ndc = LightClip.xyz / LightClip.w;
+    float2 BaseUV = float2(Ndc.x * 0.5f + 0.5f, 1.0f - (Ndc.y * 0.5f + 0.5f));
+
+    if (any(BaseUV < 0.0f) || any(BaseUV > 1.0f) || Ndc.z < 0.0f || Ndc.z > 1.0f)
+        return 1.0f;
+
+    float4 Offset = CascadeOffsets[CascadeIndex];
+    float2 AtlasUV = BaseUV * Offset.xy + Offset.zw;
+
+    float StoredDepth = DirectionalLightShadowmapAtlas.SampleLevel(ShadowPointSampler, AtlasUV, 0);
+
+    // 4. 깊이 비교 (Normal Offset이 Acne를 제거하므로 작은 Depth Bias 적용)
+    float DepthBias = CascadeBiases[CascadeIndex];
+    return (Ndc.z - DepthBias) > StoredDepth ? 0.0f : 1.0f;
+}
 
 void ComputeTiledLighting(float3 N,
 #if USE_NORMAL_MAP
@@ -279,10 +405,14 @@ float3 WorldPosition, float3 V, float n, float2 PixelPosition, out float3 Diffus
         float3 L = -DirectionalLight.Direction;
 #if USE_NORMAL_MAP
         float GeoFactor = saturate(dot(GeoNormal, L) * 4.0f);
+        float3 ShadowNormal = GeoNormal;
 #else
         float GeoFactor = 1.0f;
+        float3 ShadowNormal = N;
 #endif
-        AccumulateLight(Il * GeoFactor, N, L, V, n, DiffuseLight, SpecularLight);
+        float Shadow = ComputeDirectionalShadowFactor(WorldPosition, ShadowNormal);
+        
+        AccumulateLight(Il * GeoFactor * Shadow, N, L, V, n, DiffuseLight, SpecularLight);
     }
 
     uint2 TileCoord = min(uint2(PixelPosition) / 16u, uint2(TileCountX - 1u, TileCountY - 1u));
@@ -314,7 +444,14 @@ float3 WorldPosition, float3 V, float n, float2 PixelPosition, out float3 Diffus
 #endif
 
         float DistanceAttenuation = ComputeDistanceAttenuation(Distance, Radius);
-        float3 Il = Light.Color * DistanceAttenuation * GeoFactor;
+        
+        //선택할 ShadowIndex
+        uint PointShadowIndex = SelectCubeFace(-ToLight);
+        //spot light는 ComputeShadowFactor()내부에서 검사로 충분하지만 PointLight는 PointShadowIndex를 더해버리면서
+        //ShadowIndex -1이 양수가 될 수 있다. 그래서 여기서도 한번 검사해줌.
+        float Shadow = Light.ShadowIndex < 0 ? 1.0 : ComputeShadowFactor(Light.ShadowIndex + PointShadowIndex, WorldPosition);
+        
+        float3 Il = Light.Color * DistanceAttenuation * GeoFactor * Shadow;
         AccumulateLight(Il, N, L, V, n, DiffuseLight, SpecularLight);
     }
 
@@ -342,14 +479,16 @@ float3 WorldPosition, float3 V, float n, float2 PixelPosition, out float3 Diffus
 #else
         float GeoFactor = 1.0f;
 #endif
-
+        //그림자 판단
+        float Shadow = ComputeShadowFactor(Light.ShadowIndex, WorldPosition);        
+        
         float DistanceAttenuation = ComputeDistanceAttenuation(Distance, Radius);
         float CosAngle = dot(-L, normalize(Light.Direction));
         float SpotAttenuation = Light.CosInnerCone == Light.CosOuterCone
             ? (CosAngle > Light.CosOuterCone ? 1.0f : 0.0f)
             : saturate((CosAngle - Light.CosOuterCone) / (Light.CosInnerCone - Light.CosOuterCone));
 
-        float3 Il = Light.Color * DistanceAttenuation * SpotAttenuation * GeoFactor;
+        float3 Il = Light.Color * DistanceAttenuation * SpotAttenuation * GeoFactor * Shadow;
         AccumulateLight(Il, N, L, V, n, DiffuseLight, SpecularLight);
     }
 }

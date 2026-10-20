@@ -2,10 +2,6 @@
 
 #include "Math/Vector.h"
 
-// UberLit.hlsl의 MAX_POINT_LIGHTS, MAX_SPOT_LIGHTS
-constexpr uint32 MaxPointLights = 4;
-constexpr uint32 MaxSpotLights = 4;
-
 // Linear
 struct FAmbientLightInfo
 {
@@ -18,7 +14,8 @@ struct FDirectionalLightInfo
 	FVector Color;
 	float Padding0 = 0.0f;
 	FVector Direction;
-	float Padding1 = 0.0f;
+	int32 bCastShadow = 0;
+	//float Padding1 = 0.0f;
 };
 
 struct FPointLightInfo
@@ -26,7 +23,8 @@ struct FPointLightInfo
 	FVector Color;
 	float AttenuationRadius = 0.0f;
 	FVector Position;
-	float Padding = 0.0f;
+	int32 ShadowIndex = -1;
+	//float Padding = 0.0f;
 };
 
 struct FSpotLightInfo
@@ -37,21 +35,43 @@ struct FSpotLightInfo
 	float CosInnerCone = 1.0f;
 	FVector Direction;
 	float CosOuterCone = 1.0f;
+	int32 ShadowIndex = -1;
+	uint32 Padding_s[3];
 };
 
 struct FLightingConstants
 {
 	FAmbientLightInfo Ambient;
 	FDirectionalLightInfo Directional;
-	FPointLightInfo PointLights[MaxPointLights];
-	FSpotLightInfo SpotLights[MaxSpotLights];
-	uint32 NumPointLights = 0;
-	uint32 NumSpotLights = 0;
-	uint32 Padding[2] = {};
+};
+
+struct FShadowInfo
+{
+	FMatrix LightViewProjection;	// 64
+	float Bias = 0.001f;			// 4
+	uint32 AtlasIndex = 0;			// 4
+	uint32 AtlasStartX = 0;			// 4
+	uint32 AtlasStartY = 0;			// 4
+	uint32 AtlasSize{};				// 4
+	float NormalBias = 2.0f;
+	float Padding[2] = {};
+};
+
+struct FDirectionalShadowConstants // b5
+{
+	FMatrix CascadeViewProjection[4];
+	FVector4 CascadeSplits;                 
+	FVector4 CascadeOffsets[4];      
+	FVector4 CascadeBiases;                     
+	int32 NumCascades = 1;                      
+	float NormalBias = 2.0f;
+	int32 Padding[2] = {};
 };
 
 static_assert(sizeof(FAmbientLightInfo) == 16);
 static_assert(sizeof(FDirectionalLightInfo) == 32);
 static_assert(sizeof(FPointLightInfo) == 32);
-static_assert(sizeof(FSpotLightInfo) == 48);
-static_assert(sizeof(FLightingConstants) == 384);
+static_assert(sizeof(FSpotLightInfo) == 64);
+static_assert(sizeof(FShadowInfo) == 96);
+static_assert(sizeof(FLightingConstants) == 48);
+static_assert(sizeof(FDirectionalShadowConstants) == 368);

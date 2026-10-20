@@ -10,6 +10,7 @@ class USpotLightComponent : public UPointLightComponent
 	REFLECT_START(USpotLightComponent)
 		PROPERTY(InnerConeAngle)
 		PROPERTY(OuterConeAngle)
+		PROPERTY(IsDebugLine)
 	REFLECT_END()
 
 public:
@@ -20,6 +21,7 @@ public:
 	float GetOuterConeAngle() const { return OuterConeAngle; }
 
 	FSpotLightInfo GetSpotLightInfo() const;
+	virtual FShadowInfo GetShadowInfo() const override;
 	virtual FLightSceneProxy* CreateSceneProxy() override;
 
 	virtual void PostEditChangeProperty(const FProperty& Property) override;
@@ -29,4 +31,7 @@ public:
 protected:
 	float InnerConeAngle = 0.0f;
 	float OuterConeAngle = 44.0f;
+
+private:
+	bool IsDebugLine = false;
 };

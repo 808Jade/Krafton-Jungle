@@ -47,6 +47,7 @@ void FSettingsPanel::OnRender()
 	ImGui::Checkbox("Grid", &Settings.bDrawGrid);
 	ImGui::Checkbox("Exponential Height Fog", &Settings.bExponentialHeightFog);
 	ImGui::Checkbox("Tile Light Count", &Settings.bVisualizeTileLightCount);
+	ImGui::Checkbox("Shadow", &Settings.bDrawShadows);
 
 	//////////////////////////////////////////////////////////
 
@@ -150,6 +151,7 @@ bool FSettingsPanel::SaveSettings() const
 	File << "[Rendering]\n";
 	File << "EnableFXAA=" << Settings.bEnableFXAA << "\n";
 	File << "DepthView=" << Settings.bDepthView << "\n";
+	File << "DrawShadows=" << Settings.bDrawShadows << "\n";
 	File << "LinearWorkflow=" << Settings.bLinearWorkflow << "\n";
 	File << "ToneMapping=" << Settings.bToneMapping << "\n";
 	File << "ExposureEV=" << Settings.ExposureEV << "\n";
@@ -292,6 +294,7 @@ bool FSettingsPanel::LoadSettings()
 
 				else if (Key == "EnableFXAA") Settings.bEnableFXAA = std::stoi(ValueStr);
 				else if (Key == "DepthView") Settings.bDepthView = std::stoi(ValueStr);
+				else if (Key == "DrawShadows") Settings.bDrawShadows = std::stoi(ValueStr);
 				else if (Key == "LinearWorkflow") Settings.bLinearWorkflow = std::stoi(ValueStr);
 				else if (Key == "ToneMapping") Settings.bToneMapping = std::stoi(ValueStr);
 				else if (Key == "ExposureEV") Settings.ExposureEV = std::stof(ValueStr);

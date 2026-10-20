@@ -11,6 +11,39 @@ FDirectionalLightInfo UDirectionalLightComponent::GetDirectionalLightInfo() cons
 	return Info;
 }
 
+FShadowInfo UDirectionalLightComponent::GetShadowInfo() const
+{
+    FShadowInfo ShadowInfo;
+    // OrthoWidth, FarClipPlane(예: 10000.0f) 적용
+    const float FarClip = 10000.0f;
+    const float AspectRatio = 1.0f; // 섀도우 맵은 2048x2048 정사각형이므로 1.0
+
+    // View 행렬 (라이트 위치와 방향 기준)
+    FMatrix View = GetViewMatrix();
+
+    // Orthographic Projection 행렬
+    // (OrthoWidth를 가로/세로 범위로 직교 박스 생성)
+    const float Width = OrthoWidth;
+    const float Height = Width / AspectRatio;
+    const float NearClip = 0.1f;
+
+    const float XScale = 2.0f / Width;
+    const float YScale = 2.0f / Height;
+    const float ZScale = 1.0f / (FarClip - NearClip);
+    const float ZOffset = -NearClip / (FarClip - NearClip);
+    FMatrix Proj = FMatrix(
+        0.0f, 0.0f, ZScale, 0.0f,
+        XScale, 0.0f, 0.0f, 0.0f,
+        0.0f, YScale, 0.0f, 0.0f,
+        0.0f, 0.0f, ZOffset, 1.0f
+    );
+    ShadowInfo.LightViewProjection = View * Proj;
+    ShadowInfo.Bias = GetShadowBias();
+    ShadowInfo.NormalBias = ShadowNormalBias;
+
+    return ShadowInfo;
+}
+
 FLightSceneProxy* UDirectionalLightComponent::CreateSceneProxy()
 {
 	return new FDirectionalLightSceneProxy(this);
