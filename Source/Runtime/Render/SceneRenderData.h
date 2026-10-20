@@ -39,11 +39,8 @@ struct FSceneRenderData
 	static constexpr int32 RectLightSlotIndex = 3;
 	
 	static constexpr uint32 ShadowMapSize = 4096;
-	static constexpr uint32 DirectionalLightShadowMapSize = 2048;
 	static constexpr uint32 MaxCascadeShadowCount = 4;
 	static constexpr float MaxCascadeDistance = 1000.f;
-	static constexpr uint32 PointLightShadowMapSize = 512;
-	static constexpr uint32 SpotLightShadowMapSize = 4096;
 
 	struct alignas(64) FGatherChunk
 	{
@@ -73,6 +70,10 @@ struct FSceneRenderData
 	TArray<FLightRenderParameters> VisibleLights; // 모든 종류의 광원. 업로드할 때 종류별 구간으로 정렬한다
 	uint32 LightParameterOffsets[4]; // 라이트 리스트 내 구간의 offset
 	uint32 LightParameterCounts[4]; // 라이트 리스트 내 구간의 count
+
+	uint32 DirectionalLightShadowMapSize = 4096;
+	uint32 PointLightShadowMapSize = 512;
+	uint32 SpotLightShadowMapSize = 512;
 
 	TArray<FLightShadowRenderData> LightShadows;
 	uint32 LightShadowOffsets[4]; // 라이트 그림자 리스트 내 구간의 offset

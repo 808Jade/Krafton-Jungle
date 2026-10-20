@@ -10,6 +10,10 @@ class UWorld;
 
 struct FEditorSettings
 {
+	const uint32 DirectionalShadowMapSizePerLevels[5] = { 256, 512, 1024, 2048, 4096 };
+	const uint32 PointShadowMapSizePerLevels[5] = { 128, 256, 512, 1024, 2048 };
+	const uint32 SpotShadowMapSizePerLevels[5] = { 128, 256, 512, 1024, 2048 };
+
 	// 에디터 렌더 옵션과 Multiple Viewports 레이아웃의 영구 설정을 한곳에 담는다.
 	// Toggles
 	bool bWireframe = false;
@@ -34,20 +38,29 @@ struct FEditorSettings
 	float MultipleViewportsVertical = 0.5f;
 	bool bMultipleViewportsSingle = false;
 	int32 MultipleViewportsSingleViewIndex = 0;
+
     // 미저장 표식은 초기 카메라 값을 유지한다. 위치·회전은 저장하지 않는다.
     float ViewFov[4]{};
     float ViewOrthoWidth[4]{};
     int32 ViewPreset[4]{-1,-1,-1,-1};
     int32 ViewWireframe[4]{-1,-1,-1,-1};
     int32 ViewMode[4]{-1,-1,-1,-1};
+
     // View별 카메라 Transform은 Quaternion 그대로 저장해 재실행 후 같은 시점을 복원한다.
     // 구형 editor.ini에 키가 없으면 Saved가 false로 남아 Adapter의 초기 Transform을 유지한다.
     FVector ViewLocation[4]{};
     FQuat ViewRotation[4]{};
     bool bViewLocationSaved[4]{};
     bool bViewRotationSaved[4]{};
-};
 
+	int32 DirectionalShadowMapSizeLevel = 2;
+	int32 PointShadowMapSizeLevel = 2;
+	int32 SpotShadowMapSizeLevel = 2;
+
+	inline uint32 GetDirectionalShadowMapSize() const { return DirectionalShadowMapSizePerLevels[DirectionalShadowMapSizeLevel]; }
+	inline uint32 GetPointShadowMapSize() const { return PointShadowMapSizePerLevels[PointShadowMapSizeLevel]; }
+	inline uint32 GetSpotShadowMapSize() const { return SpotShadowMapSizePerLevels[SpotShadowMapSizeLevel]; }
+};
 
 class FViewportsPanel;
 
@@ -84,6 +97,8 @@ private:
     void ReadViewportSettings(FEditorSettings& Out) const;
 	void ApplySceneDepthRange();
 	void DrawDefaultPawnSettings();
+	void DrawShadowMapSettings();
+
 	UWorld* World = nullptr;
 	FViewportsPanel* ViewportsPanel = nullptr;
 	FEditorSettings Settings;

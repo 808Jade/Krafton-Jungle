@@ -494,8 +494,9 @@ void UEditorEngine::RenderViewports()
 
 		// 선택된 게임 뷰포트와 나머지 에디터 뷰포트는 같은 PIE 월드를 본다.
 		UWorld* CurrentWorld = bIsPIE ? PlayWorld : EditorWorld;
-		FSceneView SceneView;
 
+		FSceneView SceneView;
+		FSceneRenderOptions Options;
 		if (bIsGameView && TargetPlayerIndex >= 0)
 		{
 			FGameViewportClient* GameClient = nullptr;
@@ -506,6 +507,8 @@ void UEditorEngine::RenderViewports()
 					WorldContextlist[WorldIdx].GameViewport)
 				{
 					GameClient = WorldContextlist[WorldIdx].GameViewport.get();
+					BuildSceneRenderOptions(GameClient, Options);
+
 					if (WorldContextlist[WorldIdx].World())
 					{
 						CurrentWorld = WorldContextlist[WorldIdx].World();
@@ -514,9 +517,9 @@ void UEditorEngine::RenderViewports()
 					SceneView = GameClient->CalcSceneView(ViewRect);
 
 					FSceneRenderer SceneRenderer(CurrentWorld, SceneView, GameClient->GetRenderData());
-					SceneRenderer.InitViews(Renderer);
+					SceneRenderer.InitViews(Renderer, Options);
 
-					RenderGameFrame(GameClient, SceneView, SceneRenderer, bIsSIEMode);
+					RenderGameFrame(GameClient, SceneView, Options, SceneRenderer, bIsSIEMode);
 
 					break;
 				}
@@ -524,12 +527,14 @@ void UEditorEngine::RenderViewports()
 		}
 		else
 		{
+			BuildSceneRenderOptions(ViewClient, bIsGameView, Options);
+
 			SceneView = ViewClient->CalcSceneView(ViewRect);
 
 			FSceneRenderer SceneRenderer(CurrentWorld, SceneView, ViewClient->GetRenderData());
-			SceneRenderer.InitViews(Renderer);
+			SceneRenderer.InitViews(Renderer, Options);
 
-			RenderFrame(ViewClient, SceneView, SceneRenderer, CurrentWorld, bIsGameView);
+			RenderFrame(ViewClient, SceneView, Options, SceneRenderer, CurrentWorld, bIsGameView);
 		}
 	}
 
@@ -545,11 +550,17 @@ void UEditorEngine::RenderViewports()
 			const uint32 Height = GameClient->GetHeight();
 			if (Width > 0 && Height > 0)
 			{
+				FSceneRenderOptions Options;
+				BuildSceneRenderOptions(GameClient, Options);
+
 				FRect ViewRect{ 0.0f, 0.0f, static_cast<float>(Width), static_cast<float>(Height) };
 				FSceneView SceneView = GameClient->CalcSceneView(ViewRect);
+
 				FSceneRenderer SceneRenderer(Context->World(), SceneView, GameClient->GetRenderData());
-				SceneRenderer.InitViews(Renderer);
-				RenderGameFrame(GameClient, SceneView, SceneRenderer, bIsSIEMode);
+				SceneRenderer.InitViews(Renderer, Options);
+
+				RenderGameFrame(GameClient, SceneView, Options, SceneRenderer, bIsSIEMode);
+
 				CopyPIEWindowToBackbuffer();
 			}
 		}
@@ -740,24 +751,56 @@ void UEditorEngine::UpdateGizmoAndPicking()
 	});
 }
 
+void UEditorEngine::BuildSceneRenderOptions(FGameViewportClient* ViewClient, FSceneRenderOptions& Options)
+{
+	if (!SettingsPanel)
+	{
+		return;
+	}
+
+	Options.bEnableFXAA = SettingsPanel->GetSettings().bEnableFXAA;
+	Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
+	Options.ShadowDepthBias = SettingsPanel->GetSettings().ShadowDepthBias;
+	Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;
+	Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
+	Options.LightCullingMode = SettingsPanel->GetSettings().LightCullingMode;
+	Options.DirectionalShadowMapSize = SettingsPanel->GetSettings().GetDirectionalShadowMapSize();
+	Options.PointShadowMapSize = SettingsPanel->GetSettings().GetPointShadowMapSize();
+	Options.SpotShadowMapSize = SettingsPanel->GetSettings().GetSpotShadowMapSize();
+}
+
+void UEditorEngine::BuildSceneRenderOptions(FEditorViewportClient* ViewClient, bool IsPIE, FSceneRenderOptions& Options)
+{
+	if (!SettingsPanel)
+	{
+		return;
+	}
+
+	Options.bEnableFXAA = SettingsPanel->GetSettings().bEnableFXAA;
+	Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
+	Options.ShadowDepthBias = SettingsPanel->GetSettings().ShadowDepthBias;
+	Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;
+	Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
+	Options.LightCullingMode = SettingsPanel->GetSettings().LightCullingMode;
+	Options.DirectionalShadowMapSize = SettingsPanel->GetSettings().GetDirectionalShadowMapSize();
+	Options.PointShadowMapSize = SettingsPanel->GetSettings().GetPointShadowMapSize();
+	Options.SpotShadowMapSize = SettingsPanel->GetSettings().GetSpotShadowMapSize();
+
+	Options.bDrawPrimitives = IsPIE || SettingsPanel->GetSettings().bDrawPrimitives;
+	Options.bEnableFog = ViewClient->GetViewportMode() == EViewportMode::Solid;
+	Options.bShowSceneDepth = !IsPIE && ViewClient->IsSceneDepth();
+	Options.bShowWorldNormal = !IsPIE && ViewClient->IsWorldNormal();
+	Options.bShowLightCulling = !IsPIE && ViewClient->IsLightCulling();
+	Options.SceneDepthRange = ViewClient->GetMaxRange();
+}
+
 // 게임 뷰포트 화면을 렌더링한다
-void UEditorEngine::RenderGameFrame(FGameViewportClient* GameClient, const FSceneView& SceneView, FSceneRenderer& SceneRenderer, bool bIsSIEMode)
+void UEditorEngine::RenderGameFrame(FGameViewportClient* GameClient, const FSceneView& SceneView, const FSceneRenderOptions& RenderOptions, FSceneRenderer& SceneRenderer, bool bIsSIEMode)
 {
 	if (!GameClient) return;
 
-	FSceneRenderOptions Options;
-	Options.bEnableFXAA = SettingsPanel && SettingsPanel->GetSettings().bEnableFXAA;
-	if (SettingsPanel)
-	{
-		Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
-		Options.ShadowDepthBias = SettingsPanel->GetSettings().ShadowDepthBias;
-		Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;
-		Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
-		Options.LightCullingMode = SettingsPanel->GetSettings().LightCullingMode;
-	}
-
 	FSceneViewTargets& Targets = GameClient->GetViewTargets();
-	const bool bRendered = RenderScene(Targets, SceneView, SceneRenderer, GameClient->GetWorld(), Options,
+	const bool bRendered = RenderScene(Targets, SceneView, SceneRenderer, GameClient->GetWorld(), RenderOptions,
 		[this, &Targets, &SceneView, bIsSIEMode](FSceneOverlayCallbacks& Overlays)
 	{
 		if (!bIsSIEMode) return;
@@ -943,24 +986,12 @@ void UEditorEngine::RenderActorUUIDs(const FSceneView& SceneView)
 // 뷰포트 하나의 씬과 에디터 요소를 렌더링한다
 void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 	const FSceneView& SceneView,
+	const FSceneRenderOptions& Options,
 	FSceneRenderer& SceneRenderer,
 	UWorld* TargetWorld,
 	const bool bIsPIE)
 {
 	if (!ViewClient || !SettingsPanel) return;
-	FSceneRenderOptions Options;
-	Options.bDrawPrimitives = bIsPIE || SettingsPanel->GetSettings().bDrawPrimitives;
-	Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
-	Options.ShadowDepthBias = SettingsPanel->GetSettings().ShadowDepthBias;
-	Options.bEnableFog = ViewClient->GetViewportMode() == EViewportMode::Solid;
-	Options.bEnableFXAA = SettingsPanel->GetSettings().bEnableFXAA;
-	Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;
-	Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
-	Options.LightCullingMode = SettingsPanel->GetSettings().LightCullingMode;
-	Options.bShowSceneDepth = !bIsPIE && ViewClient->IsSceneDepth();
-	Options.bShowWorldNormal = !bIsPIE && ViewClient->IsWorldNormal();
-	Options.bShowLightCulling = !bIsPIE && ViewClient->IsLightCulling();
-	Options.SceneDepthRange = ViewClient->GetMaxRange();
 
 	FSceneViewTargets& Targets = ViewClient->GetViewTargets();
 	const bool bRendered = RenderScene(Targets, SceneView, SceneRenderer, TargetWorld, Options,
