@@ -326,7 +326,7 @@ void AddAllLocalLights(inout FLightResult Result, float3 P, float3 N,
         FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.x + (PointIndex * 6 + FaceIndex)];
             
         float Shadow = CalculateShadow(P, N, normalize(-L), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler);
-            
+
         FLightResult PointResult = (FLightResult) 0;
         CalculatePointLight(PointResult, SceneLights[LightOffsets.x + PointIndex], P, N, V, bIncludeSpecular);
          
@@ -344,7 +344,7 @@ void AddAllLocalLights(inout FLightResult Result, float3 P, float3 N,
             
         FLightResult SpotResult = (FLightResult) 0;
         CalculateSpotLight(SpotResult, Light, P, N, V, bIncludeSpecular);
-            
+
         Result.Diffuse += SpotResult.Diffuse * Shadow;
         Result.Specular += SpotResult.Specular * Shadow;
     }

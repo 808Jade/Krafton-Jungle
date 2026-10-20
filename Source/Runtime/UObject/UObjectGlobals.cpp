@@ -108,8 +108,16 @@ FName MakeUniqueObjectName(UObject* Outer, const UClass* Class, FName BaseName)
 		BaseName = FName(Class->Name);
 	}
 
+	// 로드된 객체는 저장된 이름(예: AActor_3)을 그대로 쓰지만 ClassUnique는 0부터 다시 시작하므로,
+	// 같은 Outer 안에 이미 있는 이름이면 번호를 계속 올린다. (겹치면 StaticAllocateObject가 기존 객체를 덮어쓴다)
 	const FString Base = BaseName.ToString();
-	return FName(Base + "_" + std::to_string(Class->ClassUnique++));
+	FName Candidate;
+	do
+	{
+		Candidate = FName(Base + "_" + std::to_string(Class->ClassUnique++));
+	} while (StaticFindObjectFast(nullptr, Outer, Candidate) != nullptr);
+
+	return Candidate;
 }
 
 UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, const FName DestName, EObjectFlags FlagMask, UClass* DestClass)

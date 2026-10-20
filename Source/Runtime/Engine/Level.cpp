@@ -94,8 +94,14 @@ void ULevel::Serialize(FStructuredArchive::FRecord Record)
 			HTR_LOG(Warning, "Load: unknown actor class '{}', skipped", ClassName);
 			continue;
 		}
-		AActor* Actor = ActorName.empty() ? OwningWorld->SpawnActor(Class)
-			: OwningWorld->SpawnActor(Class, FName(ActorName));
+		// 파일 안에 같은 이름이 또 있으면 그대로 생성할 때 앞서 만든 액터를 덮어쓰게 되므로 새 이름을 받는다
+		FName Name = ActorName.empty() ? NAME_None : FName(ActorName);
+		if (!Name.IsNone() && StaticFindObjectFast(nullptr, this, Name))
+		{
+			HTR_LOG(Warning, "Load: duplicate actor name '{}', renamed", ActorName);
+			Name = NAME_None;
+		}
+		AActor* Actor = OwningWorld->SpawnActor(Class, Name);
 
 		if (Actor)
 		{
