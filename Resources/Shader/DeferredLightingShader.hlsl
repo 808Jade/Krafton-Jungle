@@ -133,7 +133,7 @@ float4 mainPS(FPSInput Input) : SV_Target
         float3 LightColor = Light.Color * Light.Intensity;
                 
         FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + DirectionalIndex];
-        float Shadow = CalculateShadow(WorldPosition, N, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, SkySampler);
+        float Shadow = CalculateShadow(WorldPosition, N, LightShadow.ViewProjection, LightShadow.AtlasRect, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow.AtlasIndex, SkySampler, 0.0f);
 
         BaseLighting += LightColor * saturate(dot(N, -LightDir)) * Shadow;
     }
