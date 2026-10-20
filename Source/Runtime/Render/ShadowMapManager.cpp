@@ -290,8 +290,13 @@ void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
     // Directional Light의 경우 이미 단일 Texture2D 형태이므로 SRV를 직접 전달
     if (PreviewShadowMapProxy->GetLightType() == ELightType::Directional)
     {
-        PreviewShadowMapProxy->GetShadowPreview().ShadowSRV = DirectionalShadowSRV;
-        PreviewShadowMapProxy->GetShadowPreview().Resolution = DirectionalResolution;
+        if (PreviewShadowMapProxy->GetShadowPreview().IsValidIndex(0) == false)
+        {
+            PreviewShadowMapProxy->GetShadowPreview().Add(FShadowPreview());
+        }
+
+        PreviewShadowMapProxy->GetShadowPreview()[0].ShadowSRV = DirectionalShadowSRV;
+        PreviewShadowMapProxy->GetShadowPreview()[0].Resolution = DirectionalResolution;
         return;
     }
 

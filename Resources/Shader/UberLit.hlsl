@@ -369,7 +369,7 @@ float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
     float4 Offset = CascadeOffsets[CascadeIndex];
     float2 AtlasUV = BaseUV * Offset.xy + Offset.zw;
 
-    float StoredDepth = DirectionalLightShadowmapAtlas.SampleLevel(ShadowSampler, AtlasUV, 0);
+    float StoredDepth = DirectionalLightShadowmapAtlas.SampleLevel(ShadowPointSampler, AtlasUV, 0);
 
     // 4. 깊이 비교 (Normal Offset이 Acne를 제거하므로 작은 Depth Bias 적용)
     float DepthBias = CascadeBiases[CascadeIndex];
