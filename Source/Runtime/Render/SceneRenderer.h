@@ -52,7 +52,7 @@ public:
 	FSceneRenderer& operator=(const FSceneRenderer&) = delete;
 
 	// 가시성 검사 및 렌더 큐 수집
-	void InitViews(FRenderer* Renderer);
+	void InitViews(FRenderer* Renderer, const FSceneRenderOptions& Options);
 
 	// 뷰 결과를 하나 유지하는 벤치마크에서도 사용한다.
 	static void GatherRenderPackets(FScene& Scene, FSceneRenderData& Data, const FViewContext& View,

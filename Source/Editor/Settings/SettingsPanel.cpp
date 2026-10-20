@@ -119,6 +119,10 @@ void FSettingsPanel::OnRender()
 	CamCom->SetMoveSpeed(Settings.CameraSpeed);
 
 	//////////////////////////////////////////////////////////
+	DrawShadowMapSettings();
+	//////////////////////////////////////////////////////////
+
+	//////////////////////////////////////////////////////////
 	DrawDefaultPawnSettings();
 
 	//////////////////////////////////////////////////////////
@@ -205,6 +209,11 @@ bool FSettingsPanel::SaveSettings() const
         File << "View" << Index << "RotationZ=" << Snapshot.ViewRotation[Index].Z << "\n";
         File << "View" << Index << "RotationW=" << Snapshot.ViewRotation[Index].W << "\n";
     }
+
+	File << "DirectionalShadowMapSizeLevel=" << Settings.DirectionalShadowMapSizeLevel << '\n';
+	File << "PointShadowMapSizeLevel=" << Settings.PointShadowMapSizeLevel << '\n';
+	File << "SpotShadowMapSizeLevel=" << Settings.SpotShadowMapSizeLevel << '\n';
+
     File.close();
 	return true;
 }
@@ -343,6 +352,18 @@ bool FSettingsPanel::LoadSettings()
 					const int32 ViewIndex = std::stoi(ValueStr);
 					Settings.MultipleViewportsSingleViewIndex = ViewIndex >= 0 && ViewIndex < 4 ? ViewIndex : 0;
 				}
+				else if (Key == "DirectionalShadowMapSizeLevel")
+				{
+					Settings.DirectionalShadowMapSizeLevel = std::stoi(ValueStr);
+				}
+				else if (Key == "PointShadowMapSizeLevel")
+				{
+					Settings.PointShadowMapSizeLevel = std::stoi(ValueStr);
+				}
+				else if (Key == "SpotShadowMapSizeLevel")
+				{
+					Settings.SpotShadowMapSizeLevel = std::stoi(ValueStr);
+				}
 			}
 		}
 	}
@@ -368,6 +389,9 @@ bool FSettingsPanel::LoadSettings()
 			}
 		}
 	}
+	Settings.DirectionalShadowMapSizeLevel = FMath::Clamp(Settings.DirectionalShadowMapSizeLevel, 0, 4);
+	Settings.PointShadowMapSizeLevel = FMath::Clamp(Settings.PointShadowMapSizeLevel, 0, 4);
+	Settings.SpotShadowMapSizeLevel = FMath::Clamp(Settings.SpotShadowMapSizeLevel, 0, 4);
 	ApplyViewportSettings();
 	return true;
 }
@@ -500,3 +524,28 @@ void FSettingsPanel::DrawDefaultPawnSettings()
     }
     ImGui::TextDisabled("Projectile settings apply to the next shot.");
 }
+
+void FSettingsPanel::DrawShadowMapSettings()
+{
+	ImGui::Dummy(ImVec2(0.0f, SectionGap));
+
+	ImGui::SeparatorText("ShadowMap Settings");
+
+	const char* QualityLevelStr[] = { "Very Low", "Low", "Middle", "Hight", "Very High" };
+	
+	if (ImGui::Combo("Directional", &Settings.DirectionalShadowMapSizeLevel, QualityLevelStr, IM_ARRAYSIZE(QualityLevelStr)))
+	{
+		Settings.DirectionalShadowMapSizeLevel = FMath::Clamp(Settings.DirectionalShadowMapSizeLevel, 0, IM_ARRAYSIZE(QualityLevelStr) - 1);
+	}
+
+	if (ImGui::Combo("Point", &Settings.PointShadowMapSizeLevel, QualityLevelStr, IM_ARRAYSIZE(QualityLevelStr)))
+	{
+		Settings.PointShadowMapSizeLevel = FMath::Clamp(Settings.PointShadowMapSizeLevel, 0, IM_ARRAYSIZE(QualityLevelStr) - 1);
+	}
+
+	if (ImGui::Combo("Spot", &Settings.SpotShadowMapSizeLevel, QualityLevelStr, IM_ARRAYSIZE(QualityLevelStr)))
+	{
+		Settings.SpotShadowMapSizeLevel = FMath::Clamp(Settings.SpotShadowMapSizeLevel, 0, IM_ARRAYSIZE(QualityLevelStr) - 1);
+	}
+}
+
