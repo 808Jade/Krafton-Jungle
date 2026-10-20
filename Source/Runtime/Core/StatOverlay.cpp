@@ -85,7 +85,7 @@ bool FStatOverlay::ExecCommand(const FString& CommandLine, FString& OutMessage)
 
 	if (EqualsIgnoreCase(Arg, "all"))
 	{
-		Flags = EStatFlags::FPS | EStatFlags::Memory | EStatFlags::Profile;
+		Flags = EStatFlags::FPS | EStatFlags::Memory | EStatFlags::Profile | EStatFlags::Light;
 		OutMessage = "stat all: all overlays enabled";
 		return true;
 	}
@@ -97,6 +97,8 @@ bool FStatOverlay::ExecCommand(const FString& CommandLine, FString& OutMessage)
 		Target = EStatFlags::Memory;
 	else if (EqualsIgnoreCase(Arg, "profile"))
 		Target = EStatFlags::Profile;
+	else if (EqualsIgnoreCase(Arg, "light"))
+		Target = EStatFlags::Light;
 
 	if (Target == EStatFlags::None)
 	{

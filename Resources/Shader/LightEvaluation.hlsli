@@ -42,8 +42,12 @@ float CalculateLinearDepth(float Z, float Near, float Far)
     return (Near * Far) / (Far - Z * (Far - Near));
 }
 
-float CalculateShadow(float3 P, float3 N, float3 LightDirection, Texture2DArray Atlas, uint AtlasWidth, uint AtlasHeight, FLightShadowRenderData Shadow, SamplerState PointSampler, SamplerComparisonState ShadowSampler)
+float CalculateShadow(float3 P, float3 N, float3 LightDirection, Texture2DArray Atlas, uint AtlasWidth, uint AtlasHeight, FLightShadowRenderData Shadow, SamplerState PointSampler, SamplerComparisonState ShadowSampler, float bReceiveShadow)
 {
+    [branch]
+    if (bReceiveShadow < 0.5f)
+        return 1.0f;
+    
     const float Bias = 0.01;
     
     float Result = 1.0;

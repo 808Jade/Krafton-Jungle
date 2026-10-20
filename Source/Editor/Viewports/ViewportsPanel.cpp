@@ -322,8 +322,8 @@ void FViewportsPanel::OnRender() {
 }
 
 // 항목별 줄을 모아 한 번에 배경과 텍스트를 그린다.
-void FViewportsPanel::DrawStatOverlay(ImDrawList *DrawList,
-			const ImVec2 &ViewMin) const {
+void FViewportsPanel::DrawStatOverlay(ImDrawList *DrawList, const ImVec2 &ViewMin) const 
+{
 	if (!DrawList || !FStatOverlay::IsAnyEnabled())
 		return;
 
@@ -388,6 +388,29 @@ void FViewportsPanel::DrawStatOverlay(ImDrawList *DrawList,
 		Line.Values[1] = std::format("Attempts: {}", PickingData->CallCount);
 		Line.Values[2] = std::format("Acc.: {:.2f}", PickingData->GetTotalMs());
 		ProfileLines.Add(Line);
+	}
+
+	FRenderStats Stats = ViewportClients[0].get()->GetRenderData().RenderStats;
+	if (FStatOverlay::IsEnabled(EStatFlags::Light)) {
+		Lines.Add({ "Light", TitleColor });
+		Lines.Add({ std::format("  Total Lights {} ", Stats.DirectionalCount + Stats.PointCount + Stats.SpotCount), ValueColor });
+		Lines.Add({ std::format("  Directional {} ", Stats.DirectionalCount), ValueColor });
+		Lines.Add({ std::format("  Point {} ", Stats.PointCount), ValueColor });
+		Lines.Add({ std::format("  Spot {} ", Stats.SpotCount), ValueColor });
+
+		Lines.Add({ "Shadow Atlas", TitleColor });
+		Lines.Add({ std::format("  Atlas Capacity  {:.2f} MB",
+			static_cast<double>(Stats.AtlasCapacity) /
+			BytesPerMegabyte),
+			ValueColor });
+		Lines.Add({ std::format("  Shadow Tiles  {:.2f} MB",
+			static_cast<double>(Stats.ShadowTiles) /
+			BytesPerMegabyte),
+			ValueColor });
+		Lines.Add({ std::format("  Tile Usage  {:.1f} %",
+			static_cast<double>(Stats.ShadowTiles) /
+			static_cast<double>(Stats.AtlasCapacity) * 100),
+			ValueColor });
 	}
 
 	if (Lines.Num() == 0 && ProfileLines.Num() == 0)

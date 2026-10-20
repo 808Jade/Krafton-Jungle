@@ -27,6 +27,8 @@ class UPrimitiveComponent :public USceneComponent
 	// Material은 여기서 등록하지 않는다. 컴포넌트마다 머티리얼을 다루는 방식이 달라서
 	// (빌보드는 단일 머티리얼, 스태틱 메시는 슬롯별 덮어쓰기) 각자 등록한다.
 	REFLECT_START(ClassName)
+		PROPERTY(bCastShadow)
+		PROPERTY(bReceiveShadow)
 		REFLECT_END()
 public:
 	UPrimitiveComponent();
@@ -68,6 +70,14 @@ public:
 	virtual void OnTransformDirty() override;
 
 	virtual bool MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* Hit = nullptr) override;
+
+	virtual void PostEditChangeProperty(const FProperty& Property) override;
+
+	void SetCastShadow(bool NewValue);
+	void SetReceiveShadow(bool NewValue);
+
+	bool bCastShadow = true;
+	bool bReceiveShadow = true;
 
 protected:
 	virtual bool ShouldCreateRenderState() const override

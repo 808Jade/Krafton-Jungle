@@ -25,6 +25,7 @@ cbuffer PerObject : register(b0)
     matrix View;
     matrix Projection;
     matrix NormalMatrix; // World 행렬의 역행렬을 전치한 법선 변환 행렬
+    float4 ShadowFlags;
 };
 
 cbuffer Lighting : register(b1)
@@ -281,7 +282,7 @@ FLightResult CalculateBaseLighting(float3 P, float ViewDepth, float3 N, float3 V
         if (CascadeIndex != -1)
         {
             FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + (DirectionalIndex * CascadeShadowCount + CascadeIndex)];
-            Shadow = CalculateShadow(P, N, -Light.Direction, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler);
+            Shadow = CalculateShadow(P, N, -Light.Direction, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x);
         }
             
         FLightResult DirectionalResult = (FLightResult) 0;
@@ -325,7 +326,7 @@ void AddAllLocalLights(inout FLightResult Result, float3 P, float3 N,
             
         FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.x + (PointIndex * 6 + FaceIndex)];
             
-        float Shadow = CalculateShadow(P, N, normalize(-L), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler);
+        float Shadow = CalculateShadow(P, N, normalize(-L), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x);
 
         FLightResult PointResult = (FLightResult) 0;
         CalculatePointLight(PointResult, SceneLights[LightOffsets.x + PointIndex], P, N, V, bIncludeSpecular);
@@ -340,7 +341,7 @@ void AddAllLocalLights(inout FLightResult Result, float3 P, float3 N,
         
         FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.y + SpotIndex];
             
-        float Shadow = CalculateShadow(P, N, normalize(Light.Position - P), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler);
+        float Shadow = CalculateShadow(P, N, normalize(Light.Position - P), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x);
             
         FLightResult SpotResult = (FLightResult) 0;
         CalculateSpotLight(SpotResult, Light, P, N, V, bIncludeSpecular);
@@ -417,7 +418,7 @@ FLightResult CalculateTiledLighting(float3 PixelPosition, float3 P, float ViewDe
             
             FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.x + (LightIndex * 6 + FaceIndex)];
             
-            float Shadow = CalculateShadow(P, Normal, normalize(-L), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler);
+            float Shadow = CalculateShadow(P, Normal, normalize(-L), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x);
             
             FLightResult PointResult = (FLightResult) 0;
             CalculatePointLight(PointResult, Light, P, N, V, bIncludeSpecular);
@@ -435,7 +436,7 @@ FLightResult CalculateTiledLighting(float3 PixelPosition, float3 P, float ViewDe
             
             FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.y + LightIndex];
             
-            float Shadow = CalculateShadow(P, Normal, normalize(Light.Position - P), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler);
+            float Shadow = CalculateShadow(P, Normal, normalize(Light.Position - P), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x);
             
             FLightResult SpotResult = (FLightResult) 0;
             CalculateSpotLight(SpotResult, Light, P, N, V, bIncludeSpecular);
