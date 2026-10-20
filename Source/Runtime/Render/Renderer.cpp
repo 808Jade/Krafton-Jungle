@@ -603,13 +603,20 @@ void FRenderer::EnsureTileLightCapacity(const FMatrix& ViewProjection, uint32 Wi
 
 }
 
-void FRenderer::RenderShadowPass(const TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy, FShadowStats& ShadowStats)
+void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, const TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy, FShadowStats& ShadowStats)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Shadow);
 
 	//이전 pass에서의 바인딩을 끊는다.
 	ShadowMapManager.UnbindForShading();
-	//준비
+
+	// Directional 상수 버퍼 준비
+	if (DirectionalShadow != nullptr)
+	{
+		ShadowMapManager.SetupDirectionalShadow(*DirectionalShadow);
+	}
+
+	// Local Light들 준비
 	ShadowMapManager.UploadShadowInfos(ShadowInfos);
 
 	ID3D11DeviceContext* Context = RenderCommand::GetContext();
@@ -631,42 +638,53 @@ void FRenderer::RenderShadowPass(const TArray<FShadowInfo>& ShadowInfos, const T
 	RenderCommand::BindConstantBuffer(0, ShadowViewCB.get(), EShaderBindFlagBits::Vertex);
 	RenderCommand::BindConstantBuffer(2, PerObjectCB.get(), EShaderBindFlagBits::Vertex);
 
+	// 캐스터 메쉬들을 그리는 공통 람다
+	auto DrawCasters = [&]()
+		{
+			for (FPrimitiveSceneProxy* Proxy : Casters)
+			{
+				if (!Proxy || !Proxy->IsVisible() || !Proxy->GetMesh() || !Proxy->GetRenderState())
+					continue;
+				UpdatePerObjectConstants(Proxy->GetLocalToWorld(), Proxy->GetNormalMatrix());
+				RenderCommand::BindMesh(Proxy->GetMesh(), 0);
+				const FCachedMeshLOD& LOD = Proxy->GetLOD(0);
+				for (uint32 i = 0; i < LOD.NumSections; ++i)
+				{
+					const FCachedMeshSection& Section = Proxy->GetSection(LOD.FirstSection + i);
+					if (Section.Material && Section.Material->BlendState != EBlendState::Opaque)
+						continue;
+					RenderCommand::DrawIndexed(Section.IndexCount, Section.StartIndex);
+					ShadowStats.NumShadowDrawCalls++;
+				}
+			}
+		};
+
+	if (DirectionalShadow != nullptr)
+	{
+		// DirectionalShadowDSV 바인딩, 클리어 및 2048x2048 뷰포트 설정
+		ShadowMapManager.BeginDirectionalShadowRender();
+		// Directional Light의 VP 행렬을 ShadowViewCB(b0)에 업로드 후 렌더
+		RenderCommand::UpdateBufferData(ShadowViewCB.get(), &DirectionalShadow->LightViewProjection, sizeof(FMatrix));
+		DrawCasters();
+		ShadowMapManager.EndDirectionalShadowRender();
+	}
+
 	//층(라이트)마다
-	for (uint32 Slice = 0; Slice < ShadowInfos.Num(); ++Slice)
+	for (int32 Slice = 0; Slice < ShadowInfos.Num(); ++Slice)
 	{
 		//렌더 전 개별 바인딩
-		ShadowMapManager.BeginShadowRender(Slice);
+		ShadowMapManager.BeginShadowRender(static_cast<uint32>(Slice));
 
 		//라이트마다의 VP 행렬 Map Unmap
 		RenderCommand::UpdateBufferData(ShadowViewCB.get(), &ShadowInfos[Slice].LightViewProjection, sizeof(FMatrix));
 
-		//오브젝트 프록시 순회하며 렌더
-		for (FPrimitiveSceneProxy* Proxy : Casters)
-		{
-			if (!Proxy || !Proxy->IsVisible() || !Proxy->GetMesh() || !Proxy->GetRenderState())
-				continue;
-
-			// b2
-			UpdatePerObjectConstants(Proxy->GetLocalToWorld(), Proxy->GetNormalMatrix());
-			// LOD 0
-			RenderCommand::BindMesh(Proxy->GetMesh(), 0);
-
-			//생각해보니 PS를 갈게 아니니까 한방에 해도 되지 않나? 수정하자
-
-			const FCachedMeshLOD& LOD = Proxy->GetLOD(0);
-			for (uint32 i = 0; i < LOD.NumSections; ++i)
-			{
-				const FCachedMeshSection& Section = Proxy->GetSection(LOD.FirstSection + i);
-				// 반투명은 Caster에서 제외
-				if (Section.Material && Section.Material->BlendState != EBlendState::Opaque)
-					continue;
-				RenderCommand::DrawIndexed(Section.IndexCount, Section.StartIndex);
-				ShadowStats.NumShadowDrawCalls++;
-			}
-		}
+		DrawCasters();
 	}
 	//DSV 해제
-	ShadowMapManager.EndShadowPass();
+	if (ShadowInfos.Num() > 0)
+	{
+		ShadowMapManager.EndShadowPass();
+	}
 
 	//Preview 인덱스의 ShadowMap 서브 리소스를 복사한다.
 	if (PreviewShadowMapProxy != nullptr)
@@ -677,7 +695,17 @@ void FRenderer::RenderShadowPass(const TArray<FShadowInfo>& ShadowInfos, const T
 	//Opaque에서 읽도록 SRV 바인딩
 	ShadowMapManager.BindForShading();
 
-	
-	ShadowStats.NumShadowMapsRendered = ShadowInfos.Num();
-	ShadowStats.ShadowMapMemoryBytes = ShadowMapManager.GetResolution() * ShadowMapManager.GetResolution() * 4 * ShadowMapManager.GetNumSlices();
+	int32 RenderedCount = ShadowInfos.Num();
+	if (DirectionalShadow != nullptr)
+	{
+		RenderedCount += 1;
+	}
+	ShadowStats.NumShadowMapsRendered = RenderedCount;
+
+	int64 TotalBytes = (int64)ShadowMapManager.GetResolution() * ShadowMapManager.GetResolution() * 4 * ShadowMapManager.GetNumSlices();
+	if (DirectionalShadow != nullptr)
+	{
+		TotalBytes += (int64)ShadowMapManager.GetDirectionalResolution() * ShadowMapManager.GetDirectionalResolution() * 4;
+	}
+	ShadowStats.ShadowMapMemoryBytes = TotalBytes;
 }

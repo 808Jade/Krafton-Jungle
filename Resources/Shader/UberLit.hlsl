@@ -34,9 +34,6 @@
 
 #define GOURAUD (VIEWMODE == VIEWMODE_LIT && SHADING_MODEL == SHADING_MODEL_GOURAUD)
 
-#define MAX_POINT_LIGHTS 4
-#define MAX_SPOT_LIGHTS 4
-
 struct FAmbientLightInfo
 {
     float3 Color;
@@ -132,11 +129,6 @@ cbuffer LightingConstants : register(b3)
 {
     FAmbientLightInfo AmbientLight;
     FDirectionalLightInfo DirectionalLight;
-    FPointLightInfo PointLights[MAX_POINT_LIGHTS];
-    FSpotLightInfo SpotLights[MAX_SPOT_LIGHTS];
-    uint NumPointLights;
-    uint NumSpotLights;
-    float2 LightingPadding;
 };
 
 cbuffer TileLightConstants : register(b4)
@@ -154,6 +146,17 @@ cbuffer TileLightConstants : register(b4)
     uint3 TileCullingPadding;
 };
 
+cbuffer DirectionalShadowConstants : register(b5)
+{
+    matrix CascadeViewProjection[4];
+    float4 CascadeSplits;
+    float4 CascadeOffsets[4];
+    float4 CascadeBiases;
+    int NumCascades;
+    float NormalBias;
+    float2 CSMPadding;
+};
+
 StructuredBuffer<FPointLightInfo> StructuredPointLights : register(t8);
 StructuredBuffer<FSpotLightInfo> StructuredSpotLights : register(t9);
 StructuredBuffer<uint> PointTileList : register(t10);
@@ -167,6 +170,7 @@ Texture2D NormalTexture : register(t1);
 #endif
 
 Texture2DArray<float> ShadowTextureArray : register(t2);
+Texture2D<float> DirectionalLightShadowmapAtlas : register(t3);
 
 SamplerState AlbedoSampler : register(s0);
 SamplerState ShadowSampler : register(s1);
@@ -232,50 +236,6 @@ void ComputeLighting(float3 N, float3 WorldPosition, float3 V, float n, out floa
         float GeoFactor = 1.0f;
         AccumulateLight(Il * GeoFactor, N, L, V, n, DiffuseLight, SpecularLight);
     }
-
-    // Point Light
-    {
-        for (uint Index = 0; Index < NumPointLights; ++Index)
-        {
-            FPointLightInfo Light = PointLights[Index];
-            float3 ToLight = Light.Position - WorldPosition;
-            float Distance = length(ToLight);
-            float Radius = Light.AttenuationRadius;
-            if (Distance >= Radius)
-                continue;
-
-            float3 L = ToLight / Distance;
-            float GeoFactor = 1.0f;
-
-            float DistanceAttenuation = ComputeDistanceAttenuation(Distance, Radius);
-            float3 Il = Light.Color * DistanceAttenuation * GeoFactor;
-            AccumulateLight(Il, N, L, V, n, DiffuseLight, SpecularLight);
-        }
-    }
-
-    // Spot Light
-    {
-        for (uint Index = 0; Index < NumSpotLights; ++Index)
-        {
-            FSpotLightInfo Light = SpotLights[Index];
-            float3 ToLight = Light.Position - WorldPosition;
-            float Distance = length(ToLight);
-            float Radius = Light.AttenuationRadius;
-            if (Distance >= Radius)
-                continue;
-            float3 L = ToLight / Distance;
-            float GeoFactor = 1.0f;
-
-            float DistanceAttenuation = ComputeDistanceAttenuation(Distance, Radius);
-            float CosAngle = dot(-L, Light.Direction);
-            float SpotAttenuation = Light.CosInnerCone == Light.CosOuterCone
-            ? (CosAngle > Light.CosOuterCone ? 1.0f : 0.0f)
-            : saturate((CosAngle - Light.CosOuterCone) / (Light.CosInnerCone - Light.CosOuterCone));
-            
-            float3 Il = Light.Color * DistanceAttenuation * SpotAttenuation * GeoFactor;
-            AccumulateLight(Il, N, L, V, n, DiffuseLight, SpecularLight);
-        }
-    }
 }
 
 // 반환값: 1 = 빛 받음, 0 = 그림자
@@ -302,7 +262,7 @@ float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
     //범위 검사: 섀도맵 밖이거나 Far 너머면 그림자 판정 불가 : 빛 받음
     //any 함수는 입력된 값 중 하나라도 0이 아닌 것(True)이 있으면 true를 반환
     //들어온 UV 중 u와 v중 하나라도 0.0보다 작다면으로 해석됨
-    if (any(UV < 0.0f) || any(UV > 1.0f) || Ndc.z > 1.0f)
+    if (any(UV < 0.0f) || any(UV > 1.0f) || Ndc.z < 0.0f || Ndc.z > 1.0f)
         return 1.0f;
 
     // 저장된 최소 깊이. z = 층 번호 (지금은 ShadowIndex == 층)
@@ -313,6 +273,42 @@ float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
     return (Ndc.z - Info.Bias) > StoredDepth ? 0.0f : 1.0f;
 }
 
+// Directional Light 전용 그림자 판정 (CSM 아틀라스 텍스처 t3 및 DirectionalShadowConstants b5 사용)
+float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
+{
+    if (NumCascades <= 0)
+        return 1.0f;
+
+    int CascadeIndex = 0;
+    float3 L = -DirectionalLight.Direction;
+
+    // 1. 빛과 표면 사이의 각도 계산 (비스듬할수록 오프셋을 더 많이 줌)
+    float NdotL = dot(Normal, L);
+    float NormalOffsetScale = clamp(1.0f - saturate(NdotL), 0.0f, 1.0f);
+
+    // 2. 표면 노멀 방향으로 월드 좌표를 이동 (NormalBias: 상수 버퍼 b5에서 전달)
+    float3 ShadowWorldPos = WorldPosition + Normal * (NormalBias * NormalOffsetScale);
+
+    // 3. 이동된 좌표로 Light Clip Space 계산
+    float4 LightClip = mul(float4(ShadowWorldPos, 1.0f), CascadeViewProjection[CascadeIndex]);
+    if (LightClip.w <= 0.0f)
+        return 1.0f;
+
+    float3 Ndc = LightClip.xyz / LightClip.w;
+    float2 BaseUV = float2(Ndc.x * 0.5f + 0.5f, 1.0f - (Ndc.y * 0.5f + 0.5f));
+
+    if (any(BaseUV < 0.0f) || any(BaseUV > 1.0f) || Ndc.z < 0.0f || Ndc.z > 1.0f)
+        return 1.0f;
+
+    float4 Offset = CascadeOffsets[CascadeIndex];
+    float2 AtlasUV = BaseUV * Offset.xy + Offset.zw;
+
+    float StoredDepth = DirectionalLightShadowmapAtlas.SampleLevel(ShadowSampler, AtlasUV, 0);
+
+    // 4. 깊이 비교 (Normal Offset이 Acne를 제거하므로 작은 Depth Bias 적용)
+    float DepthBias = CascadeBiases[CascadeIndex];
+    return (Ndc.z - DepthBias) > StoredDepth ? 0.0f : 1.0f;
+}
 
 void ComputeTiledLighting(float3 N,
 #if USE_NORMAL_MAP
@@ -329,10 +325,14 @@ float3 WorldPosition, float3 V, float n, float2 PixelPosition, out float3 Diffus
         float3 L = -DirectionalLight.Direction;
 #if USE_NORMAL_MAP
         float GeoFactor = saturate(dot(GeoNormal, L) * 4.0f);
+        float3 ShadowNormal = GeoNormal;
 #else
         float GeoFactor = 1.0f;
+        float3 ShadowNormal = N;
 #endif
-        AccumulateLight(Il * GeoFactor, N, L, V, n, DiffuseLight, SpecularLight);
+        float Shadow = ComputeDirectionalShadowFactor(WorldPosition, ShadowNormal);
+        
+        AccumulateLight(Il * GeoFactor * Shadow, N, L, V, n, DiffuseLight, SpecularLight);
     }
 
     uint2 TileCoord = min(uint2(PixelPosition) / 16u, uint2(TileCountX - 1u, TileCountY - 1u));
