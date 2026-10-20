@@ -1023,7 +1023,17 @@ void FDetailsPanel::OnRender()
 						ImGui::TextUnformatted(PointShadowMapName[i]);
 					}
 					if (ID3D11ShaderResourceView* ShadowSRV = Light->GetShadowPreviewSRV(i))
+					{
+						if (FLightSceneProxy* Proxy = Light->GetSceneProxy())
+						{
+							const uint32 Res = Proxy->GetShadowPreview()[i].Resolution;
+							if (Res > 0)
+							{
+								ImGui::Text("Resolution: %u x %u", Res, Res);
+							}
+						}
 						ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f });
+					}
 					else
 						ImGui::TextDisabled("No shadow map");
 				}

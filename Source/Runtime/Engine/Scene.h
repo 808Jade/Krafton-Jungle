@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "PrimitiveSceneProxy.h"
 #include "Component/BillboardComponent.h"
@@ -36,8 +36,9 @@ public:
 	void RemoveLight(ULightComponentBase* Component);
 	void RemoveAllLights();
 	void MarkLightDirty(FLightSceneProxy* Proxy);
-	// Ambient·Directional은 마지막으로 등록된 것 하나, Point·Spot은 MaxPointLights·MaxSpotLights개까지 담는다.
+	// Ambient와 Directional 라이트 정보를 담는다. (Point·Spot은 BuildStructuredLightAndShadowData에서 처리)
 	void BuildLightingConstants(FLightingConstants& Out) const;
+	const FShadowInfo* GetDirectionalShadowInfo() const;
 
 	void UpdateAllTransforms();
 
@@ -46,7 +47,7 @@ public:
 	void MarkDirty(FPrimitiveSceneProxy* Proxy);
 	void MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy);
 
-	void BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats& ShadowStats) const;
+	void BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats& ShadowStats, bool bShadow) const;
 	
 	TArray<FPrimitiveSceneProxy*> Proxies;
 	TArray<FPrimitiveSceneProxy*> DirtyProxies;

@@ -42,6 +42,10 @@ public:
 	ID3D11ShaderResourceView* GetShadowPreviewSRV(int32 ShadowPreviewIndex) const
 	{
 		if (ShadowPreviews.Num() <= ShadowPreviewIndex || ShadowPreviewIndex < 0) return nullptr;
+		if (Type == ELightType::Directional)
+		{
+			return ShadowPreviews[0].ShadowSRV.Get();
+		}
 		return ShadowIndex >= 0 ? ShadowPreviews[ShadowPreviewIndex].ShadowSRV.Get() : nullptr;
 	}
 
