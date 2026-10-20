@@ -441,14 +441,15 @@ void FRenderDevice::CreateStates()
 		Device->CreateSamplerState(&PointDesc, SamplerStates[(uint8)ESamplerState::PointClamp].GetAddressOf());
 
 		D3D11_SAMPLER_DESC ShadowComparisionDesc = {};
-		PointDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-		PointDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-		PointDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-		PointDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		PointDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+		PointDesc.AddressU = D3D11_TEXTURE_ADDRESS_MIRROR;
+		PointDesc.AddressV = D3D11_TEXTURE_ADDRESS_MIRROR;
+		PointDesc.AddressW = D3D11_TEXTURE_ADDRESS_MIRROR;
 		PointDesc.MaxAnisotropy = 1;
 		PointDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
 		PointDesc.MinLOD = 0.0f;
 		PointDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		PointDesc.BorderColor[0] = PointDesc.BorderColor[1] = PointDesc.BorderColor[2] = PointDesc.BorderColor[3] = 0.0f;
 
 		Device->CreateSamplerState(&PointDesc, SamplerStates[(uint8)ESamplerState::ShadowComparison].GetAddressOf());
 	}

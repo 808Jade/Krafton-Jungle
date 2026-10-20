@@ -35,6 +35,8 @@ struct FLightShadowRenderData
     row_major float4x4 ViewProjection;
     float4 AtlasRect;
     uint AtlasIndex;
+    float Near;
+    float Far;
 };
 
 #endif

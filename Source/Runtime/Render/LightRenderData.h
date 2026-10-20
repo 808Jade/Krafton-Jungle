@@ -70,6 +70,8 @@ struct FLightShadowRenderData
 	FMatrix ViewProjection;
 	FRect AtlasRect;
 	uint32 AtlasIndex;
+	float Near;
+	float Far;
 };
 
 static_assert(sizeof(FVector4) == 16);

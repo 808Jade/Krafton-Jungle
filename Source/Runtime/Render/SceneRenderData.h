@@ -36,7 +36,7 @@ struct FSceneRenderData
 	static constexpr uint32 MaxCascadeShadowCount = 4;
 	static constexpr float MaxCascadeDistance = 1000.f;
 	static constexpr uint32 PointLightShadowMapSize = 512;
-	static constexpr uint32 SpotLightShadowMapSize = 1024;
+	static constexpr uint32 SpotLightShadowMapSize = 4096;
 
 	struct alignas(64) FGatherChunk
 	{
@@ -191,6 +191,8 @@ struct FSceneRenderData
 				{
 					FLightShadowRenderData Shadow{};
 					Shadow.ViewProjection = Views[j] * PerspectiveMatrix;
+					Shadow.Near = 0.1f;
+					Shadow.Far = PointLight.Radius;
 					
 					uint32 Index = LightShadows.Add(Shadow);
 
@@ -212,6 +214,8 @@ struct FSceneRenderData
 
 				FLightShadowRenderData Shadow{};
 				Shadow.ViewProjection = ViewMatrix * ProjectionMatrix;
+				Shadow.Near = 0.1f;
+				Shadow.Far = SpotLight.Radius;
 				
 				uint32 Index = LightShadows.Add(Shadow);
 
@@ -282,6 +286,8 @@ struct FSceneRenderData
 
 					FLightShadowRenderData Shadow{};
 					Shadow.ViewProjection = ViewMatrix * CascadeProjectionMatrix;
+					Shadow.Near = MinInCascadeLight.X;
+					Shadow.Far = MaxInCascadeLight.X;
 
 					uint32 Index = LightShadows.Add(Shadow);
 
