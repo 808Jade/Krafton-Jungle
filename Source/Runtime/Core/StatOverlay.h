@@ -19,7 +19,8 @@ struct FShadowStats {
 	int32 SpotLightCount = 0;
 	int32 NumShadowMapsRendered = 0;
 	int32 NumShadowDrawCalls = 0;
-	int32 NumSkipped_CastShadowsOff = 0;
+	int32 NumSkippedLights = 0;			// 생략 광원수
+	int32 NumSkippedCasterDraws = 0;	// 생략된 Caster 그리기 횟수
 	int64 ShadowMapMemoryBytes = 0;
 };
 

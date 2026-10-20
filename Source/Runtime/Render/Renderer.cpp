@@ -645,6 +645,10 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, const TAr
 			{
 				if (!Proxy || !Proxy->IsVisible() || !Proxy->GetMesh() || !Proxy->GetRenderState())
 					continue;
+				if (!Proxy->IsCastShadow()) {
+					ShadowStats.NumSkippedCasterDraws++;
+					continue;
+				}
 				UpdatePerObjectConstants(Proxy->GetLocalToWorld(), Proxy->GetNormalMatrix());
 				RenderCommand::BindMesh(Proxy->GetMesh(), 0);
 				const FCachedMeshLOD& LOD = Proxy->GetLOD(0);

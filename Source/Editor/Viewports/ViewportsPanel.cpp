@@ -378,7 +378,8 @@ void FViewportsPanel::DrawStatOverlay(ImDrawList* DrawList, const ImVec2& ViewMi
 			shadow.DirectionalLightCount, shadow.PointLightCount, shadow.SpotLightCount), ValueColor });
 		Lines.Add({ std::format("  Maps Rendered  {}", shadow.NumShadowMapsRendered), ValueColor });
 		Lines.Add({ std::format("  Draw Calls     {}", shadow.NumShadowDrawCalls), ValueColor });
-		Lines.Add({ std::format("  Shadow Skipped (CastOff)     {}", shadow.NumSkipped_CastShadowsOff), ValueColor });
+		Lines.Add({ std::format("  Skipped Lights {}", shadow.NumSkippedLights), ValueColor });
+		Lines.Add({ std::format("  Skipped Casters {}", shadow.NumSkippedCasterDraws), ValueColor });
 		Lines.Add({ std::format("  Memory         {:.2f} MB",
 			static_cast<int64>(shadow.ShadowMapMemoryBytes) / BytesPerMegabyte), ValueColor });
 	}
