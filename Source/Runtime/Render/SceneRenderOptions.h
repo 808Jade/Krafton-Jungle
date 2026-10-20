@@ -16,9 +16,9 @@ struct FSceneRenderOptions
 	bool bShowWorldNormal = false;
 	bool bShowLightCulling = false;
 	float SceneDepthRange = 1.0f;
-	uint32 DirectionalShadowMapSize = 0.f;
-	uint32 PointShadowMapSize = 0.f;
-	uint32 SpotShadowMapSize = 0.f;
+	uint32 DirectionalShadowMapSize = 0;
+	uint32 PointShadowMapSize = 0;
+	uint32 SpotShadowMapSize = 0;
 
 	ERenderingPath RenderingPath = ERenderingPath::Deferred;
 	ELightingModel LightingModel = ELightingModel::Gouraud;

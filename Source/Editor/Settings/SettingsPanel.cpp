@@ -44,11 +44,6 @@ void FSettingsPanel::OnRender()
 	ImGui::TextDisabled("Fill mode is configured per viewport.");
 	ImGui::Checkbox("Draw Primitives", &Settings.bDrawPrimitives);
 	ImGui::Checkbox("Show Shadow", &Settings.bShowShadow);
-	const char* PcfModes[] = { "Off", "On (3x3)", "4x4", "5x5" };
-	int PcfModeIndex = static_cast<int>(Settings.PcfMode);
-	ImGui::SetNextItemWidth(200.0f);
-	if (ImGui::Combo("PCF", &PcfModeIndex, PcfModes, IM_ARRAYSIZE(PcfModes)))
-		Settings.PcfMode = static_cast<EPcfMode>(PcfModeIndex);
 	ImGui::SetNextItemWidth(200.0f);
 	ImGui::DragFloat("Shadow Depth Bias", &Settings.ShadowDepthBias, 0.00001f,
 		0.0f, 0.01f, "%.6f", ImGuiSliderFlags_AlwaysClamp);
@@ -547,5 +542,11 @@ void FSettingsPanel::DrawShadowMapSettings()
 	{
 		Settings.SpotShadowMapSizeLevel = FMath::Clamp(Settings.SpotShadowMapSizeLevel, 0, IM_ARRAYSIZE(QualityLevelStr) - 1);
 	}
+
+	const char* PcfModes[] = { "Off", "On (3x3)", "4x4", "5x5" };
+	int PcfModeIndex = static_cast<int>(Settings.PcfMode);
+	ImGui::SetNextItemWidth(200.0f);
+	if (ImGui::Combo("PCF", &PcfModeIndex, PcfModes, IM_ARRAYSIZE(PcfModes)))
+		Settings.PcfMode = static_cast<EPcfMode>(PcfModeIndex);
 }
 

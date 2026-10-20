@@ -802,6 +802,7 @@ void UEditorEngine::BuildSceneRenderOptions(FGameViewportClient* ViewClient, FSc
 
 	Options.bEnableFXAA = SettingsPanel->GetSettings().bEnableFXAA;
 	Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
+	Options.PcfMode = SettingsPanel->GetSettings().PcfMode;
 	Options.ShadowDepthBias = SettingsPanel->GetSettings().ShadowDepthBias;
 	Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;
 	Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
@@ -820,6 +821,7 @@ void UEditorEngine::BuildSceneRenderOptions(FEditorViewportClient* ViewClient, b
 
 	Options.bEnableFXAA = SettingsPanel->GetSettings().bEnableFXAA;
 	Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
+	Options.PcfMode = SettingsPanel->GetSettings().PcfMode;
 	Options.ShadowDepthBias = SettingsPanel->GetSettings().ShadowDepthBias;
 	Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;
 	Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
@@ -840,18 +842,6 @@ void UEditorEngine::BuildSceneRenderOptions(FEditorViewportClient* ViewClient, b
 void UEditorEngine::RenderGameFrame(FGameViewportClient* GameClient, const FSceneView& SceneView, const FSceneRenderOptions& RenderOptions, FSceneRenderer& SceneRenderer, bool bIsSIEMode)
 {
 	if (!GameClient) return;
-
-	FSceneRenderOptions Options;
-	Options.bEnableFXAA = SettingsPanel && SettingsPanel->GetSettings().bEnableFXAA;
-	if (SettingsPanel)
-	{
-		Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
-		Options.PcfMode = SettingsPanel->GetSettings().PcfMode;
-		Options.ShadowDepthBias = SettingsPanel->GetSettings().ShadowDepthBias;
-		Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;
-		Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
-		Options.LightCullingMode = SettingsPanel->GetSettings().LightCullingMode;
-	}
 
 	FSceneViewTargets& Targets = GameClient->GetViewTargets();
 	const bool bRendered = RenderScene(Targets, SceneView, SceneRenderer, GameClient->GetWorld(), RenderOptions,
@@ -1046,20 +1036,6 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 	const bool bIsPIE)
 {
 	if (!ViewClient || !SettingsPanel) return;
-	FSceneRenderOptions Options;
-	Options.bDrawPrimitives = bIsPIE || SettingsPanel->GetSettings().bDrawPrimitives;
-	Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
-	Options.PcfMode = SettingsPanel->GetSettings().PcfMode;
-	Options.ShadowDepthBias = SettingsPanel->GetSettings().ShadowDepthBias;
-	Options.bEnableFog = ViewClient->GetViewportMode() == EViewportMode::Solid;
-	Options.bEnableFXAA = SettingsPanel->GetSettings().bEnableFXAA;
-	Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;
-	Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
-	Options.LightCullingMode = SettingsPanel->GetSettings().LightCullingMode;
-	Options.bShowSceneDepth = !bIsPIE && ViewClient->IsSceneDepth();
-	Options.bShowWorldNormal = !bIsPIE && ViewClient->IsWorldNormal();
-	Options.bShowLightCulling = !bIsPIE && ViewClient->IsLightCulling();
-	Options.SceneDepthRange = ViewClient->GetMaxRange();
 
 	FSceneViewTargets& Targets = ViewClient->GetViewTargets();
 	const bool bRendered = RenderScene(Targets, SceneView, SceneRenderer, TargetWorld, Options,
