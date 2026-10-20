@@ -68,6 +68,36 @@ struct FSceneRenderData
 	uint32 LightParameterCounts[4]; // 라이트 리스트 내 구간의 count
 
 	TArray<FLightShadowRenderData> LightShadows;
+	// CPU-only preview state for this view. Never uploaded with the light parameters.
+	const ULightComponent* PreviewLight = nullptr;
+	int32 PreviewLightIndex = INDEX_NONE;
+	FLightShadowRange PreviewShadowRange{};
+
+	bool GetShadowPreview(const ULightComponent* Light, FTexture2DArray*& OutAtlas,
+		TArray<FLightShadowRenderData>& OutShadows) const
+	{
+		OutAtlas = nullptr;
+		OutShadows.Reset();
+		const uint32 Start = PreviewShadowRange.StartIndex;
+		const uint32 Count = PreviewShadowRange.ViewCount;
+		if (!Light || Light != PreviewLight || !Count || Start > uint32(LightShadows.Num()) ||
+			Count > uint32(LightShadows.Num()) - Start)
+			return false;
+		FTexture2DArray* Atlas = ViewLightResources.GetShadowMapAtlas();
+		if (!Atlas || !Atlas->GetSRV()) return false;
+		for (uint32 i = 0; i < Count; ++i)
+		{
+			const auto& Shadow = LightShadows[Start + i];
+			if (Shadow.AtlasIndex >= Atlas->GetArraySize() || Shadow.AtlasRect.Width <= 0 || Shadow.AtlasRect.Height <= 0)
+			{
+				OutShadows.Reset();
+				return false;
+			}
+			OutShadows.Add(Shadow);
+		}
+		OutAtlas = Atlas;
+		return true;
+	}
 	uint32 LightShadowOffsets[4];
 	uint32 DirectionalCascadeCount = 1;
 	FVector4 DirectionalCascadeFars[2];
@@ -95,6 +125,8 @@ struct FSceneRenderData
 		bHasSkyLight = false;
 		VisibleLights.Reset();
 		LightShadows.Reset();
+		PreviewLightIndex = INDEX_NONE;
+		PreviewShadowRange = {};
 		DirectionalCascadeCount = 1;
 		DirectionalCascadeFars[0] = FVector4(0.0f);
 		DirectionalCascadeFars[1] = FVector4(0.0f);
@@ -127,11 +159,23 @@ struct FSceneRenderData
 				FSceneRenderData::RectLightSlotIndex,
 			};
 
-			std::sort(VisibleLights.GetData(), VisibleLights.GetData() + VisibleLights.Num(), [&TypeCount, &TypeToSlot](const FLightRenderParameters& A, const FLightRenderParameters& B) {
-				const uint32 ASlot = TypeToSlot[A.Type];
-				const uint32 BSlot = TypeToSlot[B.Type];
+			// Sort indices so the selected light's identity survives sorting, including identical lights.
+			std::vector<int32> LightOrder(VisibleLights.Num());
+			for (int32 i = 0; i < VisibleLights.Num(); ++i) LightOrder[i] = i;
+			std::sort(LightOrder.begin(), LightOrder.end(), [&](int32 A, int32 B) {
+				const uint32 ASlot = TypeToSlot[VisibleLights[A].Type];
+				const uint32 BSlot = TypeToSlot[VisibleLights[B].Type];
 				return ASlot < BSlot;
 			});
+			TArray<FLightRenderParameters> SortedLights;
+			int32 SortedPreviewIndex = INDEX_NONE;
+			for (int32 Index : LightOrder)
+			{
+				if (Index == PreviewLightIndex) SortedPreviewIndex = SortedLights.Num();
+				SortedLights.Add(VisibleLights[Index]);
+			}
+			VisibleLights = std::move(SortedLights);
+			PreviewLightIndex = SortedPreviewIndex;
 
 			// Light 배열 정리 및 구간 별 Offset, Count 기록
 			int32 Offset = 0;
@@ -337,6 +381,16 @@ struct FSceneRenderData
 				}
 			}
 
+			if (PreviewLightIndex != INDEX_NONE)
+			{
+				const uint32 Slot = TypeToSlot[VisibleLights[PreviewLightIndex].Type];
+				const uint32 Views = Slot == PointLightSlotIndex ? 6u :
+					Slot == SpotLightSlotIndex ? 1u : Slot == DirectionalLightSlotIndex ? DirectionalCascadeCount : 0u;
+				if (Views)
+					PreviewShadowRange = { LightShadowOffsets[Slot] +
+						(uint32(PreviewLightIndex) - LightParameterOffsets[Slot]) * Views, Views };
+			}
+
 			std::sort(AreaInfos.GetData(), AreaInfos.GetData() + AreaInfos.Num(), [](const FAreaInfo& A, const FAreaInfo& B) { return A.Size > B.Size; });
 
 			// TODO: 패킹 알고리즘 필요
@@ -383,6 +437,7 @@ struct FSceneRenderData
 			ViewLightResources.CreateShadowAtlasIfNeed(ShadowMapSize, ShadowMapSize, AtlasNeedCount);
 			bLightUpaloadSucceeded &= ViewLightResources.UploadLightShadows(LightShadows);
 		}
+		if (!bLightUpaloadSucceeded) PreviewShadowRange = {};
 	}
 
 	inline bool HasDirectionalLight() { return LightParameterCounts[DirectionalLightSlotIndex]; }

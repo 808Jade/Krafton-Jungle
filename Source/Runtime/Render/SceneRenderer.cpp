@@ -93,7 +93,8 @@ void FSceneRenderer::InitViews(FRenderer* Renderer)
 		if (!Light->IsEnabled() || !Light->IsShown(View.bGameView)) continue;
 		FLightRenderParameters Parameters{};
 		Light->GetLightShaderParameters(Parameters);
-		RenderData.VisibleLights.Add(Parameters);
+		const int32 Index = RenderData.VisibleLights.Add(Parameters);
+		if (Light->GetLightComponent() == RenderData.PreviewLight) RenderData.PreviewLightIndex = Index;
 	}
 
 	for (const FLocalLightSceneProxy* Light : Scene.GetLocalLights())
@@ -101,7 +102,8 @@ void FSceneRenderer::InitViews(FRenderer* Renderer)
 		if (!Light->IsEnabled() || !Light->IsShown(View.bGameView)) continue;
 		FLightRenderParameters Parameters{};
 		Light->GetLightShaderParameters(Parameters);
-		RenderData.VisibleLights.Add(Parameters);
+		const int32 Index = RenderData.VisibleLights.Add(Parameters);
+		if (Light->GetLightComponent() == RenderData.PreviewLight) RenderData.PreviewLightIndex = Index;
 	}
 
 	RenderData.Commit(bLightUploadSucceeded, View);

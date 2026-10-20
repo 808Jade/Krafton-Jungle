@@ -6,6 +6,8 @@
 #include "Engine/World.h"
 
 struct FTransform;
+class FImGuiRenderer;
+using FShadowPreviewQuery = std::function<bool(const ULightComponent*, FTexture2DArray*&, TArray<FLightShadowRenderData>&)>;
 
 using DetailsSelectionCallback = std::function<void(UActorComponent*)>;
 using DetailsDeleteComponentCallback = std::function<void(UActorComponent*)>;
@@ -36,10 +38,17 @@ public:
 	void SetDeleteComponentCallback(DetailsDeleteComponentCallback InCallback) { DeleteCallback = InCallback; }
 
 	void SetWorld(UWorld* InWorld) { World = InWorld; }
+	const ULightComponent* GetSelectedLight() const;
+	void SetShadowPreviewQuery(FShadowPreviewQuery InQuery) { QueryShadowPreview = std::move(InQuery); }
+	void SetImGuiRenderer(FImGuiRenderer* InRenderer) { ImGuiRenderer = InRenderer; }
 
 	ImFont* GetCustomFont() { return CustomFont; }
 
 private:
+	void DrawShadowPreview();
+	FShadowPreviewQuery QueryShadowPreview;
+	FImGuiRenderer* ImGuiRenderer = nullptr;
+	float ShadowPreviewContrast = 32.0f;
 	void DrawSceneComponentNode(USceneComponent* Component, USceneComponent* Root, UActorComponent*& OutSelectedComponent);
 	void TryReparent(USceneComponent* DroppedComponent, USceneComponent* DragComponent);
 

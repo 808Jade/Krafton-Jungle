@@ -8,6 +8,7 @@
 #include "Components/TextRenderComponent.h"
 #include "Components/ParticleSubUVComponent.h"
 #include "Components/SpotLightComponent.h"
+#include "Editor/EditorUI/ImGuiRenderer.h"
 #include "Components/DirectionalLightComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Components/RectLightComponent.h"
@@ -857,6 +858,55 @@ void FDetailsPanel::Tick(float DeltaTime)
 {
 }
 
+const ULightComponent* FDetailsPanel::GetSelectedLight() const
+{
+	UActorComponent* Component = TargetComponent;
+	while (Component && Component->IsHiddenInDetails())
+	{
+		USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
+		Component = SceneComponent ? SceneComponent->GetAttachParent() : nullptr;
+	}
+	return Cast<ULightComponent>(Component);
+}
+
+void FDetailsPanel::DrawShadowPreview()
+{
+	const ULightComponent* Light = GetSelectedLight();
+	if (!Light || !QueryShadowPreview || !ImGuiRenderer) return;
+	if (!ImGui::CollapsingHeader("Shadow Maps", ImGuiTreeNodeFlags_DefaultOpen)) return;
+	FTexture2DArray* Atlas = nullptr;
+	TArray<FLightShadowRenderData> Shadows;
+	if (!QueryShadowPreview(Light, Atlas, Shadows) || !Atlas || !Atlas->GetWidth() || !Atlas->GetHeight())
+	{
+		ImGui::TextDisabled("No shadow map available for this light in the active view.");
+		return;
+	}
+	ImGui::SliderFloat("Preview Contrast", &ShadowPreviewContrast, 1.0f, 256.0f, "%.1f", ImGuiSliderFlags_Logarithmic);
+	const float Width = float(Atlas->GetWidth());
+	const float Height = float(Atlas->GetHeight());
+	const float DisplayWidth = ImGui::GetContentRegionAvail().x;
+	if (DisplayWidth <= 0) return;
+	static const char* PointFaces[] = { "+X", "-X", "+Z", "-Z", "+Y", "-Y" };
+	for (int32 i = 0; i < Shadows.Num(); ++i)
+	{
+		const auto& Shadow = Shadows[i];
+		const FRect& Rect = Shadow.AtlasRect;
+		if (Rect.Width <= 0 || Rect.Height <= 0) continue;
+		ImGui::PushID(i);
+		if (Light->GetLightType() == ELightType::Point)
+			ImGui::Text("Face %s", PointFaces[i % 6]);
+		else if (Light->GetLightType() == ELightType::Directional)
+			ImGui::Text("Cascade %d", i + 1);
+		ImGui::TextDisabled("Slice %u | %.0f x %.0f", Shadow.AtlasIndex, Rect.Width, Rect.Height);
+		const ImVec2 UV0(Rect.X / Width, Rect.Y / Height);
+		const ImVec2 UV1((Rect.X + Rect.Width) / Width, (Rect.Y + Rect.Height) / Height);
+		if (!ImGuiRenderer->DrawShadowMap(Atlas->GetSRV(), Shadow.AtlasIndex,
+			ImVec2(DisplayWidth, DisplayWidth * Rect.Height / Rect.Width), UV0, UV1, ShadowPreviewContrast))
+			ImGui::TextDisabled("Shadow preview shader is unavailable.");
+		ImGui::PopID();
+	}
+}
+
 
 void FDetailsPanel::OnRender()
 {
@@ -890,6 +940,7 @@ void FDetailsPanel::OnRender()
 			ImGui::PushID(TargetComponent);
 			ImGui::SeparatorText("Component Properties");
 			DrawProperties(TargetComponent, CustomFont);
+			DrawShadowPreview();
 
 			if(SelectCandidateComponent != TargetComponent)
 			{
