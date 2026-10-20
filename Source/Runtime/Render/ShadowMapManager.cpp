@@ -483,7 +483,7 @@ void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy, c
             }
         }
 
-        if (!CopiedPages.Find(Page))
+        if (CopiedPages.Find(Page) == -1)
         {
             const UINT SrcSubresource = D3D11CalcSubresource(0, Info.AtlasIndex, 1);
 
