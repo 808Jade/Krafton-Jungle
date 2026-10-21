@@ -409,7 +409,7 @@ struct FSceneRenderData
 				FLightRenderParameters& PointLight = VisibleLights[LightIndex];
 				PointLight.ShadowIndex = uint32(LightShadows.Num());
 				const uint32 PointShadowMapSize = ScaleShadowMapSize(PointLightShadowMapSize, ShadowSettings.ResolutionScale);
-				FMatrix PerspectiveMatrix = Perspective(FMath::DegreesToRadians(90.f), 1.0, 0.1f, PointLight.Radius);
+				FMatrix PerspectiveMatrix = Perspective(FMath::DegreesToRadians(91.f), 1.0, 0.1f, PointLight.Radius);
 				FMatrix Views[] = {
 					LookAt(PointLight.Position, PointLight.Position + ForwardVector, UpVector),
 					LookAt(PointLight.Position, PointLight.Position + BackwardVector, UpVector),
