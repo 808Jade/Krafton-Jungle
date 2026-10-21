@@ -283,14 +283,20 @@ float LinearizeShadowDepth(float depth, float Near, float Far)
     return ZOffset / (depth - ZScale);
 }
 
-float PCF_CmpLinear(float2 UV, float ShadowIndex, float Ref)
+float BasicShadow(float2 UV, float TextureIndex, float Ref)
+{
+    float StoredDepth = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV, TextureIndex), 0);
+    return Ref > StoredDepth ? 0.0f : 1.0f;
+}
+
+float PCF_CmpLinear(float2 UV, float TextureIndex, float Ref)
 {
     //비교 샘플러 사용
-    float StoredDepth = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV, ShadowIndex), Ref);
+    float StoredDepth = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV, TextureIndex), Ref);
     return StoredDepth;
 }
 
-float PCF_Software3x3(float2 TexelSize, float2 UV, float ShadowIndex, float Ref)
+float PCF_Software3x3(float2 TexelSize, float2 UV, float TextureIndex, float Ref, float2 TileMin, float2 TileMax)
 {
     //3x3 Software PCF
     //해상도 512로 일단 하드코딩
@@ -299,15 +305,17 @@ float PCF_Software3x3(float2 TexelSize, float2 UV, float ShadowIndex, float Ref)
     {
         for (int x = -1; x <= 1; ++x)
         {
-            float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), 0);
+            float2 SampleUV = clamp(UV + float2(x, y) * TexelSize, TileMin, TileMax);
+            
+            float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(SampleUV, TextureIndex), 0);
             Lit += (Ref) > Stored ? 0.0 : 1.0;
         }
     }
     Lit /= 9.0;
-    return Lit;
+    return Lit;   
 }
 
-float PCF_Software5x5(float2 TexelSize, float2 UV, float ShadowIndex, float Ref)
+float PCF_Software5x5(float2 TexelSize, float2 UV, float TextureIndex, float Ref, float2 TileMin, float2 TileMax)
 {
     //5x5 Software PCF
     float Lit = 0;
@@ -315,7 +323,8 @@ float PCF_Software5x5(float2 TexelSize, float2 UV, float ShadowIndex, float Ref)
     {
         for (int x = -2; x <= 2; ++x)
         {
-            float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), 0);
+            float2 SampleUV = clamp(UV + float2(x, y) * TexelSize, TileMin, TileMax);
+            float Stored = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(SampleUV, TextureIndex), 0);
             Lit += (Ref) > Stored ? 0.0 : 1.0;
         }
     }
@@ -323,7 +332,7 @@ float PCF_Software5x5(float2 TexelSize, float2 UV, float ShadowIndex, float Ref)
     return Lit;
 }
 
-float PCF_CmpLinear_Software3x3(float2 TexelSize, float2 UV, float ShadowIndex, float Ref)
+float PCF_CmpLinear_Software3x3(float2 TexelSize, float2 UV, float TextureIndex, float Ref, float2 TileMin, float2 TileMax)
 {
     //Comparison Linear + 3x3 Software PCF
     float Lit = 0;
@@ -331,7 +340,8 @@ float PCF_CmpLinear_Software3x3(float2 TexelSize, float2 UV, float ShadowIndex, 
     {
         for (int x = -1; x <= 1; ++x)
         {
-            float Stored = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV + float2(x, y) * TexelSize, ShadowIndex), Ref);
+            float2 SampleUV = clamp(UV + float2(x, y) * TexelSize, TileMin, TileMax);
+            float Stored = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(SampleUV, TextureIndex), Ref);
             Lit += Stored;
         }
     }
@@ -465,6 +475,7 @@ float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition)
         return 1.0f; 
 
     //원근 나눗셈은 PS에서 (VS에서 나누고 보간하면 원근 보정이 깨짐)
+    //Receiver의 NDC 좌표 = Light 기준의 Depth를 구할 수 있다.
     float3 Ndc = LightClip.xyz / LightClip.w;
 
     //NDC → UV. D3D 텍스처는 v가 아래로 증가하므로 y를 뒤집는다
@@ -482,58 +493,30 @@ float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition)
     
     float2 AtlasUV = (float2(Info.AtlasStartX, Info.AtlasStartY) + UV * Info.AtlasSize) / float2(AtlasWidth, AtlasHeight);
     
-    //Point Sampler
-
-    //float StoredDepth = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(UV, ShadowIndex), 0);
-    //return (Ndc.z - Info.Bias) > StoredDepth ? 0.0f : 1.0f;
-
-    // 비교 + 상수 Bias
-    // 샘플링 한 것보다 크다면 그림자임
-    
-    //ComparisonLinearSampler
-
-    //return PCF_CmpLinear(UV, ShadowIndex, Ndc.z - Info.Bias);
-    
-    //3x3 Software PCF
-    //해상도 512로 일단 하드코딩
-    //float2 TexelSize = 1.0 / 1024.0;
-    //float Lit = 0;
-    //return PCF_Software3x3(TexelSize, UV, ShadowIndex, Ndc.z - Info.Bias, Lit);
-       
-    
-    //5x5 Software PCF
-    //해상도 일단 하드코딩
-    //float2 TexelSize = 1.0 / 512.0;
-    //return PCF_Software5x5(TexelSize, UV, ShadowIndex, Ndc.z - Info.Bias);
-    
-    
-    //Comparison Linear + 3x3 Software PCF
-    
-    ////해상도 하드코딩
-    //float2 TexelSize = 1.0 / 1024.0;
-    //return PCF_CmpLinear_Software3x3(TexelSize, UV, ShadowIndex, Ndc.z - Info.Bias);
-    
-    //return PCSS(1.0 / 1024.0, UV, ShadowIndex, Ndc.z, Info);
-    
-    //해상도 하드코딩
-    //float2 TexelSize = 1.0 / 1024.0;
     float2 TexelSize = 1.0 / AtlasWidth;
-    
     float2 TileMin = (float2(Info.AtlasStartX, Info.AtlasStartY) + 0.5f) * TexelSize;
     float2 TileMax = (float2(Info.AtlasStartX, Info.AtlasStartY) + Info.AtlasSize - 0.5f) * TexelSize;
+    
+    //TODO 추후 PCF 옵션 설정으로 고르게 될 거 같다.
+    //  Point Sampler, ComparisonSampler, 3x3 Software, 5x5 Software, Comparision + 3x3, PCSS
+    
+    //Point Sampler
+    //return BasicShadow(AtlasUV, Info.AtlasIndex, Ndc.z - Info.Bias);
         
-    float Lit = 0;
-    for (int y = -1; y <= 1; ++y)
-    {
-        for (int x = -1; x < 1; ++x)
-        {
-            float2 SampleUV = clamp(AtlasUV + float2(x, y) * TexelSize, TileMin, TileMax);
-            float Stored = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(SampleUV, Info.AtlasIndex), Ndc.z - Info.Bias);
-            Lit += Stored;
-        }
-    }
-    Lit /= 9.0;
-    return Lit;
+    //ComparisonLinearSampler
+    //return PCF_CmpLinear(AtlasUV, Info.AtlasIndex, Ndc.z - Info.Bias);
+    
+    //3x3 Software PCF
+    //return PCF_Software3x3(TexelSize, AtlasUV, Info.AtlasIndex, Ndc.z - Info.Bias, TileMin, TileMax);       
+    
+    //5x5 Software PCF
+    //return PCF_Software5x5(TexelSize, AtlasUV, Info.AtlasIndex, Ndc.z - Info.Bias, TileMin, TileMax);
+        
+    //Comparison Linear + 3x3 Software PCF
+    return PCF_CmpLinear_Software3x3(TexelSize, AtlasUV, Info.AtlasIndex, Ndc.z - Info.Bias, TileMin, TileMax);
+    
+    //PCSS
+    //return PCSS(1.0 / 1024.0, UV, ShadowIndex, Ndc.z, Info);
 }
 
 // Directional Light 전용 그림자 판정 (CSM 아틀라스 텍스처 t3 및 DirectionalShadowConstants b5 사용)
