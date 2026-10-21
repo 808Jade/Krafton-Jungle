@@ -63,9 +63,16 @@ float CalculateShadowGrid(float3 P, float3 N, float3 LightDirection, Texture2DAr
     if (bReceiveShadow < 0.5f)
         return 1.0f;
     
+    // LightDirection은 표면에서 광원을 향하는 방향이다.
+    // Bias는 빛 쪽으로, SlopeBias는 법선 쪽으로 밀되 빛과 비스듬할수록(sin) 크게 민다.
+    float3 L = normalize(LightDirection);
+    float NoL = saturate(dot(N, L));
+    float SinTheta = sqrt(saturate(1.0 - NoL * NoL));
+    float3 BiasedP = P + L * Shadow.Bias + N * (Shadow.SlopeBias * SinTheta);
+
     float Result = 1.0;
 
-    float4 CoordPos = mul(float4(P + N * Bias, 1.0), Shadow.ViewProjection);
+    float4 CoordPos = mul(float4(BiasedP, 1.0), Shadow.ViewProjection);
     CoordPos.xyz /= CoordPos.w == 0.0 ? 0.0001 : CoordPos.w;
         
     float CenterAtlasU = CoordPos.x * 0.5 + 0.5;
@@ -115,6 +122,9 @@ float CalculateShadowGrid(float3 P, float3 N, float3 LightDirection, Texture2DAr
 
         if (SampleCount > 0)
             Result = Sum / (float) SampleCount;
+            // 0.5를 기준으로 대비를 키워 반그림자 폭을 좁힌다. Sharpen 1이면 기울기 8배.
+            Result = saturate((Result - 0.5) * (1.0 + Shadow.Sharpen * 7.0) + 0.5);
+        }
     }
     
     return Result;

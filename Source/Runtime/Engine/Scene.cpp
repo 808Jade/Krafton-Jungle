@@ -30,6 +30,9 @@ void FScene::RemovePrimitive(UPrimitiveComponent* Component)
 
 	const uint32 Index = static_cast<uint32>(Proxy->PackedIndex);
 
+	// 사라진 Caster의 그림자가 캐시에 남지 않도록 마지막 위치를 기록한다.
+	if (Proxy->bCastsShadow) RecordShadowInvalidation(Proxy->GetBounds());
+
 	PrimitiveSceneProxies.RemoveAtSwap(Index);
 	PrimitiveBounds.RemoveAtSwap(Index);
 	PrimitiveFlags.RemoveAtSwap(Index);
@@ -71,6 +74,7 @@ void FScene::RemoveAllPrimitives()
 	RenderStateDirtyProxies.Reset();
 	BVH.Clear();
 	bElementListChanged = true;
+	InvalidateAllShadows();
 }
 
 void FScene::AddLight(ULightComponent* Component)
@@ -181,6 +185,8 @@ void FScene::UpdateAllTransforms()
 {
 	for (FPrimitiveSceneProxy* Proxy : RenderStateDirtyProxies)
 	{
+		// CastShadow·표시 여부·메시가 바뀌면 그림자 결과가 달라질 수 있다. 드물게 일어나므로 Caster 여부와 무관하게 기록한다.
+		RecordShadowInvalidation(Proxy->GetBounds());
 		Proxy->UpdateRenderState();
 		PrimitiveFlags[Proxy->PackedIndex] = Proxy->IsVisible() ? 1 : 0;
 		Proxy->bRenderStateQueued = false;
@@ -189,7 +195,14 @@ void FScene::UpdateAllTransforms()
 
 	for (FPrimitiveSceneProxy* Proxy : DirtyProxies)
 	{
+		const FAABB OldBounds = Proxy->GetBounds();
 		Proxy->UpdateTransform();
+		// 그림자가 사라진 자리(이전)와 새로 생긴 자리(이후)를 모두 지워야 한다.
+		if (Proxy->bCastsShadow)
+		{
+			RecordShadowInvalidation(OldBounds);
+			RecordShadowInvalidation(Proxy->GetBounds());
+		}
 		PrimitiveBounds[Proxy->PackedIndex] = Proxy->GetBounds();
 		PrimitiveFlags[Proxy->PackedIndex] = Proxy->IsVisible() ? 1 : 0;
 		Proxy->bQueuedForUpdate = false;
@@ -240,6 +253,24 @@ void FScene::BuildBVH()
 	}
 
 	BVH.Build(std::span(Elements.GetData(), Elements.Num()));
+}
+
+void FScene::RecordShadowInvalidation(const FAABB& Bounds)
+{
+	if (ShadowInvalidations.Num() >= MaxShadowInvalidations)
+	{
+		// 오래된 절반을 버린다. 버린 기록을 아직 처리하지 않은 뷰는 OldestVersion을 보고 전부 다시 그린다.
+		const int32 DropCount = ShadowInvalidations.Num() / 2;
+		ShadowOldestVersion = ShadowInvalidations[DropCount - 1].Version;
+		ShadowInvalidations.RemoveAt(0, DropCount);
+	}
+	ShadowInvalidations.Add({ ++ShadowVersion, Bounds });
+}
+
+void FScene::InvalidateAllShadows()
+{
+	ShadowInvalidations.Reset();
+	ShadowOldestVersion = ++ShadowVersion;
 }
 
 void FScene::MarkDirty(FPrimitiveSceneProxy* Proxy)

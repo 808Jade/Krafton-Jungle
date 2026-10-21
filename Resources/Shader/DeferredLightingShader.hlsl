@@ -115,7 +115,7 @@ float4 mainPS(FPSInput Input) : SV_Target
             }
         }
         float Shadow = 1.0f;
-        if (CascadeIndex != -1)
+        if (CascadeIndex != -1 && Light.ShadowIndex != INVALID_SHADOW_INDEX)
         {
             FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + DirectionalIndex * CascadeShadowCount + CascadeIndex];
             Shadow = CalculateDirectionalShadowPCSS(WorldPosition, N, -Light.Direction, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, 1.0f, PcfMode, ShadowDepthBias, Light.ShadowAngularRadius);
@@ -173,9 +173,12 @@ float4 mainPS(FPSInput Input) : SV_Target
             FaceIndex = ToPixel.z > 0.0 ? 2 : 3;
         }
         
-        FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.x + (PointIndex * 6 + FaceIndex)];
-            
-        float Shadow = CalculateShadow(WorldPosition, N, normalize(-ToPixel), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, 1.0f, PcfMode, ShadowDepthBias);
+        float Shadow = 1.0f;
+        if (Light.ShadowIndex != INVALID_SHADOW_INDEX)
+        {
+            FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex + FaceIndex];
+            Shadow = CalculateShadow(WorldPosition, N, normalize(-ToPixel), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, 1.0f, PcfMode);
+        }
         
         float3 Radiance = Light.Color * max(Light.Intensity, 0.0f) * Attenuation * Shadow;
         
@@ -206,9 +209,12 @@ float4 mainPS(FPSInput Input) : SV_Target
 		float DistanceFactor = saturate(1.0f - Distance / Light.Radius);
 		float RadiusFade = DistanceFactor * DistanceFactor;
         
-        FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.y + SpotIndex];
-            
-        float Shadow = CalculateShadow(WorldPosition, N, L, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, 1.0f, PcfMode, ShadowDepthBias);
+        float Shadow = 1.0f;
+        if (Light.ShadowIndex != INVALID_SHADOW_INDEX)
+        {
+            FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex];
+            Shadow = CalculateShadow(WorldPosition, N, L, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, 1.0f, PcfMode);
+        }
         
         float3 Radiance = Light.Color * max(Light.Intensity, 0.0f) * ConeFade * RadiusFade * Shadow;
         

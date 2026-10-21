@@ -26,6 +26,7 @@ enum class EPSOType : uint8
 	StaticMesh_DepthOnly,
 	StaticMesh_LightShadow,
 	LightCullingDebug,
+	ShadowTileClear,         // 그림자 캐시: 다시 그릴 아틀라스 타일만 깊이 1로 지운다
 	Count
 };
 

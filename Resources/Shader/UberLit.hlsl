@@ -6,11 +6,11 @@
 
 // 셰이더 스캐너는 매크로 정의 없이 이 파일을 컴파일하므로 기본 변형에는 Lambert를 쓴다.
 // 명시적인 변형은 조명 모델 또는 뷰 모드 하나만 1로 설정한다.
-#if !defined(LIGHTING_MODEL_GOURAUD) && !defined(LIGHTING_MODEL_LAMBERT) && !defined(LIGHTING_MODEL_PHONG) && !defined(VIEW_MODE_WORLD_NORMAL)
+#if !defined(LIGHTING_MODEL_GOURAUD) && !defined(LIGHTING_MODEL_LAMBERT) && !defined(LIGHTING_MODEL_PHONG) && !defined(LIGHTING_MODEL_UNLIT) && !defined(VIEW_MODE_WORLD_NORMAL)
     #define LIGHTING_MODEL_LAMBERT 1
 #endif
 
-#if (LIGHTING_MODEL_GOURAUD + LIGHTING_MODEL_LAMBERT + LIGHTING_MODEL_PHONG + VIEW_MODE_WORLD_NORMAL) != 1
+#if (LIGHTING_MODEL_GOURAUD + LIGHTING_MODEL_LAMBERT + LIGHTING_MODEL_PHONG + LIGHTING_MODEL_UNLIT + VIEW_MODE_WORLD_NORMAL) != 1
     #error Exactly one lighting model or view mode must be enabled.
 #endif
 
@@ -281,7 +281,7 @@ FLightResult CalculateBaseLighting(float3 P, float ViewDepth, float3 N, float3 V
         }
         
         float Shadow = 1.0;
-        if (CascadeIndex != -1)
+        if (CascadeIndex != -1 && Light.ShadowIndex != INVALID_SHADOW_INDEX)
         {
             FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + (DirectionalIndex * CascadeShadowCount + CascadeIndex)];
 #if LIGHTING_MODEL_GOURAUD
@@ -520,6 +520,9 @@ FUberOutput Uber_PS(VS_OUT Input)
     FLightResult Lit = CalculateTiledLighting(Input.Position.xyz, Input.WorldPosition, Input.ViewDepth, ShadingNormal, true);
     Diffuse = Lit.Diffuse;
     Specular = Lit.Specular;
+#elif LIGHTING_MODEL_UNLIT
+    // 조명·그림자를 계산하지 않고 표면 색을 그대로 낸다.
+    Diffuse = 1.0f;
 #endif
 
     Output.LitColor = float4(Albedo * Diffuse + Specular + Emissive.rgb,

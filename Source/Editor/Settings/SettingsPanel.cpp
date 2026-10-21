@@ -44,6 +44,7 @@ void FSettingsPanel::OnRender()
 	ImGui::TextDisabled("Fill mode is configured per viewport.");
 	ImGui::Checkbox("Draw Primitives", &Settings.bDrawPrimitives);
 	ImGui::Checkbox("Show Shadow", &Settings.bShowShadow);
+	ImGui::Checkbox("Cache Shadows", &Settings.bCacheShadows);
 	ImGui::SetNextItemWidth(200.0f);
 	ImGui::DragFloat("Shadow Depth Bias", &Settings.ShadowDepthBias, 0.00001f,
 		0.0f, 0.01f, "%.6f", ImGuiSliderFlags_AlwaysClamp);
@@ -55,7 +56,7 @@ void FSettingsPanel::OnRender()
 	if (ImGui::Combo("Rendering Path", &RenderingPathIndex, RenderingPaths, IM_ARRAYSIZE(RenderingPaths)))
 		Settings.RenderingPath = static_cast<ERenderingPath>(RenderingPathIndex);
 
-	const char* LightingModels[] = { "Gouraud", "Lambert", "Phong" };
+	const char* LightingModels[] = { "Gouraud", "Lambert", "Phong", "Unlit" };
 	int LightingModelIndex = static_cast<int>(Settings.LightingModel);
 	ImGui::SetNextItemWidth(200.0f);
 	if (ImGui::Combo("Lighting Model", &LightingModelIndex, LightingModels, IM_ARRAYSIZE(LightingModels)))
@@ -163,6 +164,7 @@ bool FSettingsPanel::SaveSettings() const
 	File << "Wireframe=" << Settings.bWireframe << "\n";
 	File << "DrawPrimitives=" << Settings.bDrawPrimitives << "\n";
 	File << "ShowShadow=" << Settings.bShowShadow << "\n";
+	File << "CacheShadows=" << Settings.bCacheShadows << "\n";
 	File << "PcfMode=" << static_cast<uint32_t>(Settings.PcfMode) << "\n";
 	File << "ShadowDepthBias=" << Settings.ShadowDepthBias << "\n";
 	File << "DrawBoundingBox=" << Settings.bDrawBoundingBox << "\n";
@@ -175,7 +177,8 @@ bool FSettingsPanel::SaveSettings() const
 	File << "LightCullingMode=" << (Settings.LightCullingMode == ELightCullingMode::Off ? "Off" : Settings.LightCullingMode == ELightCullingMode::Tiled ? "Tiled" : "Clustered") << "\n";
 	File << "RenderingPath=" << (Settings.RenderingPath == ERenderingPath::Forward ? "Forward" : "Deferred") << "\n";
 	File << "LightingModel=" << (Settings.LightingModel == ELightingModel::Gouraud ? "Gouraud" :
-		Settings.LightingModel == ELightingModel::Lambert ? "Lambert" : "Phong") << "\n";
+		Settings.LightingModel == ELightingModel::Lambert ? "Lambert" :
+		Settings.LightingModel == ELightingModel::Unlit ? "Unlit" : "Phong") << "\n";
 	File << "\n";
 
 	File << "[Editor]\n";
@@ -302,6 +305,7 @@ bool FSettingsPanel::LoadSettings()
                 if (Key == "Wireframe") Settings.bWireframe = std::stoi(ValueStr);
 				else if (Key == "DrawPrimitives") Settings.bDrawPrimitives = std::stoi(ValueStr);
 				else if (Key == "ShowShadow") Settings.bShowShadow = std::stoi(ValueStr);
+				else if (Key == "CacheShadows") Settings.bCacheShadows = std::stoi(ValueStr);
 				else if (Key == "PcfMode")
 				{
 					const int Mode = std::stoi(ValueStr);
@@ -336,6 +340,7 @@ bool FSettingsPanel::LoadSettings()
 					if (ValueStr == "Gouraud") Settings.LightingModel = ELightingModel::Gouraud;
 					else if (ValueStr == "Lambert") Settings.LightingModel = ELightingModel::Lambert;
 					else if (ValueStr == "Phong") Settings.LightingModel = ELightingModel::Phong;
+					else if (ValueStr == "Unlit") Settings.LightingModel = ELightingModel::Unlit;
 				}
 
 				else if (Key == "CameraMoveSpeed") Settings.CameraSpeed = std::stof(ValueStr);

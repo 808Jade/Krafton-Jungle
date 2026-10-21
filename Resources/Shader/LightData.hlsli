@@ -10,6 +10,9 @@
 #define LIGHT_TYPE_SPOT  2
 #define LIGHT_TYPE_RECT  3
 
+// FLightRenderParameters::InvalidShadowIndex와 같은 값이다.
+#define INVALID_SHADOW_INDEX 0xFFFFFFFF
+
 struct FLightRenderParameters
 {
     float3 Position;
@@ -27,6 +30,7 @@ struct FLightRenderParameters
     float BarnDoorCos;      // Rect 전용: 발광면 가장자리의 문(Barn Door)
     float BarnDoorSin;
     float BarnDoorLength;
+    uint ShadowIndex;       // LightShadows에서 첫 그림자 뷰 위치, 없으면 INVALID_SHADOW_INDEX
     float ShadowAngularRadius;
 };
 
@@ -38,6 +42,9 @@ struct FLightShadowRenderData
     float Near;
     float Far;
     float WorldUnitsPerTexel;
+    float Bias;      // 빛 방향 오프셋(월드)
+    float SlopeBias; // 법선 방향 오프셋(월드), 빛과의 각도에 비례
+    float Sharpen;   // 0~1, PCF 결과의 반그림자 폭을 좁힌다
 };
 
 #endif

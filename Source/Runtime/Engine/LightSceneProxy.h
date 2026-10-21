@@ -25,6 +25,24 @@ public:
 	bool IsVisible() const { return LightComponent ? LightComponent->IsVisible() : false; }
 	bool IsEnabled() const { return LightComponent && LightComponent->GetIntensity() > 0.0f; }
 	bool IsShown(bool bGameView) const { return LightComponent ? LightComponent->IsShown(bGameView) : false; }
+
+	// 컴포넌트 값을 매 프레임 읽는다. 에디터에서 잘못 입력한 값은 여기서 범위를 맞춘다.
+	FLightShadowSettings GetShadowSettings() const
+	{
+		FLightShadowSettings Settings{};
+		if (!LightComponent)
+		{
+			Settings.bCastShadows = false;
+			return Settings;
+		}
+		Settings.Light = LightComponent;
+		Settings.bCastShadows = LightComponent->CastsShadows();
+		Settings.ResolutionScale = FMath::Clamp(LightComponent->GetShadowResolutionScale(), 0.0625f, 4.0f);
+		Settings.Bias = std::max(LightComponent->GetShadowBias(), 0.0f);
+		Settings.SlopeBias = std::max(LightComponent->GetShadowSlopeBias(), 0.0f);
+		Settings.Sharpen = FMath::Clamp(LightComponent->GetShadowSharpen(), 0.0f, 1.0f);
+		return Settings;
+	}
 protected:
 	const ULightComponent* LightComponent = nullptr;
 
