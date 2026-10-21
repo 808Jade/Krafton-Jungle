@@ -199,6 +199,17 @@ void FRenderDevice::CreateStates()
 		Desc.FillMode = D3D11_FILL_WIREFRAME;
 		Desc.CullMode = D3D11_CULL_NONE;
 		Device->CreateRasterizerState(&Desc, RasterizerStates[(uint8)ERasterizerState::Wireframe].GetAddressOf());
+
+		// 섀도우 맵 렌더 전용: Shadow Pancaking (DepthClipEnable = FALSE) 및 하드웨어 Slope-Scaled Depth Bias 적용
+		D3D11_RASTERIZER_DESC ShadowDesc = {};
+		ShadowDesc.FillMode = D3D11_FILL_SOLID;
+		ShadowDesc.CullMode = D3D11_CULL_BACK;
+		ShadowDesc.FrontCounterClockwise = FALSE;
+		ShadowDesc.DepthClipEnable = FALSE; // Shadow Pancaking: Near Plane 너머의 원거리 캐스터를 잘라버리지 않고 0.0으로 클램핑
+		ShadowDesc.DepthBias = 100;
+		ShadowDesc.SlopeScaledDepthBias = 2.0f;
+		ShadowDesc.DepthBiasClamp = 0.0f;
+		Device->CreateRasterizerState(&ShadowDesc, RasterizerStates[(uint8)ERasterizerState::ShadowDepth].GetAddressOf());
 	}
 
 	// ---------- DepthStencil ----------
