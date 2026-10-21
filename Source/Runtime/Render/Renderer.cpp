@@ -749,12 +749,29 @@ void FRenderer::RenderShadowPass(
 	ShadowMapManager.BindForShading();
 
 
-	int32 RenderedCount = ShadowInfos.Num();
-	if (DirectionalShadow != nullptr)
-	{
-		RenderedCount += 4;
+	
+	if (!bCacheHit) {
+		// 다 새로 그리기
+		int32 RenderedCount = ShadowInfos.Num();
+		if (DirectionalShadow != nullptr)
+		{
+			RenderedCount += 4;
+		}
+		ShadowStats.NumShadowMapsRendered = RenderedCount;
+		ShadowStats.NumCachedShadowMaps = 0;
 	}
-	ShadowStats.NumShadowMapsRendered = RenderedCount;
+	else {
+		// 재사용 
+		int32 RenderedCount = 0;
+		if (DirectionalShadow != nullptr)
+		{
+			RenderedCount += 4;
+		}
+		ShadowStats.NumShadowMapsRendered = RenderedCount;
+		ShadowStats.NumCachedShadowMaps = ShadowInfos.Num();
+	}
+
+	
 
 	int64 TotalBytes = (int64)ShadowMapManager.GetAtlasResolution() * ShadowMapManager.GetAtlasResolution() * 4 * ShadowMapManager.GetNumAtlas();
 	if (DirectionalShadow != nullptr)
