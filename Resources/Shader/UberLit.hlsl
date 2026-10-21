@@ -108,7 +108,7 @@ float SampleDirectionalCascade(float3 PixelPosition, float3 P, float3 N, FLightR
 {
     FLightShadowRenderData LightShadow = LightShadows[ShadowArrayIndex];
     return CalculateShadow(PixelPosition, P, N, -Light.Direction, Light, LightShadow,
-        LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+        LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode, LIGHT_TYPE_DIRECTIONAL);
 }
 
 
@@ -344,7 +344,7 @@ void AddAllLocalLights(inout FLightResult Result, float3 PixelPosition, float3 P
         if (Light.ShadowIndex != INVALID_SHADOW_INDEX)
         {
             FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex + FaceIndex];
-            Shadow = CalculateShadow(PixelPosition, P, N, normalize(-L), Light, LightShadow, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+            Shadow = CalculateShadow(PixelPosition, P, N, normalize(-L), Light, LightShadow, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode, LIGHT_TYPE_POINT);
         }
 
         FLightResult PointResult = (FLightResult) 0;
@@ -362,7 +362,7 @@ void AddAllLocalLights(inout FLightResult Result, float3 PixelPosition, float3 P
         if (Light.ShadowIndex != INVALID_SHADOW_INDEX)
         {
             FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex];
-            Shadow = CalculateShadow(PixelPosition, P, N, normalize(Light.Position - P), Light, LightShadow, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+            Shadow = CalculateShadow(PixelPosition, P, N, normalize(Light.Position - P), Light, LightShadow, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode, LIGHT_TYPE_SPOT);
         }
             
         FLightResult SpotResult = (FLightResult) 0;
@@ -442,7 +442,7 @@ FLightResult CalculateTiledLighting(float3 PixelPosition, float3 P, float ViewDe
             if (Light.ShadowIndex != INVALID_SHADOW_INDEX)
             {
                 FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex + FaceIndex];
-                Shadow = CalculateShadow(PixelPosition, P, Normal, normalize(-L), Light, LightShadow, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+                Shadow = CalculateShadow(PixelPosition, P, Normal, normalize(-L), Light, LightShadow, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode, LIGHT_TYPE_POINT);
             }
             
             FLightResult PointResult = (FLightResult) 0;
@@ -463,7 +463,7 @@ FLightResult CalculateTiledLighting(float3 PixelPosition, float3 P, float ViewDe
             if (Light.ShadowIndex != INVALID_SHADOW_INDEX)
             {
                 FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex];
-                Shadow = CalculateShadow(PixelPosition, P, Normal, normalize(Light.Position - P), Light, LightShadow, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+                Shadow = CalculateShadow(PixelPosition, P, Normal, normalize(Light.Position - P), Light, LightShadow, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode, LIGHT_TYPE_SPOT);
             }
             
             FLightResult SpotResult = (FLightResult) 0;

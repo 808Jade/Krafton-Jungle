@@ -72,8 +72,11 @@ void FRenderResourceManager::InitPipelineStates()
 	{
 		const D3D_SHADER_MACRO Defines[] = { { Name, "1" }, { nullptr, nullptr } };
 		const FString Path = "Resources/Shader/UberLit.hlsl";
-		FShaderByteCode VSCode = RenderUtil::CompileShader(Path, "mainVS", EShaderType::Vertex, Defines);
-		FShaderByteCode PSCode = RenderUtil::CompileShader(Path, "mainPS", EShaderType::Pixel, Defines);
+		// 변형도 .cso 캐시를 쓴다(매크로 이름이 캐시 파일 이름에 들어간다). 매번 컴파일하면 Release에서 시작이 크게 늦어진다.
+		FString VSCSOPath;
+		FString PSCSOPath;
+		FShaderByteCode VSCode = RenderUtil::GetOrCompile(Path, "mainVS", EShaderType::Vertex, VSCSOPath, Defines);
+		FShaderByteCode PSCode = RenderUtil::GetOrCompile(Path, "mainPS", EShaderType::Pixel, PSCSOPath, Defines);
 		if (!VSCode.IsValid() || !PSCode.IsValid())
 		{
 			HTR_LOG(Error, "[Shader] UberShader variant compile failed: {}", Name);

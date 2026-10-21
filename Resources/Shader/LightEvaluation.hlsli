@@ -121,6 +121,8 @@ float PCF(uint SampleCount, FShadowCoordinates Coordinates, float3 PixelPosition
 
     int ValidSample = 0;
     float Sum = 0.0;
+    // 펼치지 않는다: 이 함수는 라이트 종류·cascade 블렌딩마다 여러 번 인라인되어, 펼치면 Release(최적화) 컴파일이 수십 초 걸린다.
+    [loop]
     for (uint i = 0; i < SampleCount; i++)
     {
         float2 Rotated = float2(C * PoissonDisk[i].x - S * PoissonDisk[i].y, S * PoissonDisk[i].x + C * PoissonDisk[i].y);
@@ -236,6 +238,8 @@ bool FindAverageBlockerDepth(FShadowCoordinates Coordinates, float2 SearchRadius
         BlockerCount++;
     }
 
+    // PCF와 같은 이유로 펼치지 않는다.
+    [loop]
     for (uint i = 0; i < POISSON_COUNT; i++)
     {
         float2 Offset = PoissonDisk[i] * SearchRadiusUV;
@@ -400,7 +404,9 @@ float CalculateSpotShadowPCSS(float3 PixelPosition, float3 P, float3 N, FLightRe
     return PCF(POISSON_COUNT, Coordinates, PixelPosition, P, FilterRadiusUV, DepthBias, Atlas, Shadow.AtlasIndex, ShadowSampler);
 }
 
-float CalculateShadow(float3 PixelPosition, float3 P, float3 N, FLightRenderParameters Light, FLightShadowRenderData Shadow, Texture2DArray Atlas, uint AtlasWidth, uint AtlasHeight, SamplerState PointSampler, SamplerComparisonState ShadowSampler, float bReceiveShadow, uint PcfMode)
+// LightType은 호출하는 곳에서 상수(LIGHT_TYPE_*)로 넘긴다. Light.Type(버퍼 값)으로 분기하면 컴파일러가
+// 안 쓰는 라이트 종류의 PCSS를 지우지 못해 호출마다 세 종류가 모두 인라인되고, Release(최적화) 컴파일이 매우 느려진다.
+float CalculateShadow(float3 PixelPosition, float3 P, float3 N, FLightRenderParameters Light, FLightShadowRenderData Shadow, Texture2DArray Atlas, uint AtlasWidth, uint AtlasHeight, SamplerState PointSampler, SamplerComparisonState ShadowSampler, float bReceiveShadow, uint PcfMode, uint LightType)
 {
     [branch]
     if (bReceiveShadow < 0.5f)
@@ -411,15 +417,15 @@ float CalculateShadow(float3 PixelPosition, float3 P, float3 N, FLightRenderPara
     if (PcfMode == 4)
     {
         // PCSSMode
-        if (Light.Type == LIGHT_TYPE_DIRECTIONAL)
+        if (LightType == LIGHT_TYPE_DIRECTIONAL)
         {
             return CalculateDirectionalShadowPCSS(PixelPosition, P, N, Light, Shadow, Atlas, AtlasWidth, AtlasHeight, PointSampler, ShadowSampler);
         }
-        else if (Light.Type == LIGHT_TYPE_POINT)
+        else if (LightType == LIGHT_TYPE_POINT)
         {
             return CalculatePointShadowPCSS(PixelPosition, P, N, Light, Shadow, Atlas, AtlasWidth, AtlasHeight, PointSampler, ShadowSampler);
         }
-        else if (Light.Type == LIGHT_TYPE_SPOT)
+        else if (LightType == LIGHT_TYPE_SPOT)
         {
             return CalculateSpotShadowPCSS(PixelPosition, P, N, Light, Shadow, Atlas, AtlasWidth, AtlasHeight, PointSampler, ShadowSampler);
         }
@@ -433,7 +439,7 @@ float CalculateShadow(float3 PixelPosition, float3 P, float3 N, FLightRenderPara
     }
 
     // 정규화 깊이 고정값 대신 월드 거리 기준 bias (방향광은 선형, Spot/Point는 원근 깊이로 환산)
-    const float DepthBias = CalculateShadowDepthBias(Coordinates, Shadow, Light.Type != LIGHT_TYPE_DIRECTIONAL);
+    const float DepthBias = CalculateShadowDepthBias(Coordinates, Shadow, LightType != LIGHT_TYPE_DIRECTIONAL);
 
     uint SampleCount = 0;
     if (PcfMode == 0)
@@ -464,14 +470,14 @@ float CalculateShadow(float3 PixelPosition, float3 P, float3 N, FLightRenderPara
 float CalculateShadow(float3 PixelPosition, float3 P, float3 N, float3 LightDirection,
     FLightRenderParameters Light, FLightShadowRenderData Shadow, Texture2DArray Atlas,
     uint AtlasWidth, uint AtlasHeight, SamplerState PointSampler,
-    SamplerComparisonState ShadowSampler, float bReceiveShadow, uint PcfMode)
+    SamplerComparisonState ShadowSampler, float bReceiveShadow, uint PcfMode, uint LightType)
 {
     float3 L = normalize(LightDirection);
     float NoL = saturate(dot(N, L));
     float SinTheta = sqrt(saturate(1.0f - NoL * NoL));
     float3 BiasedP = P + L * Shadow.Bias + N * (Shadow.SlopeBias * SinTheta);
     float Result = CalculateShadow(PixelPosition, BiasedP, N, Light, Shadow, Atlas,
-        AtlasWidth, AtlasHeight, PointSampler, ShadowSampler, bReceiveShadow, PcfMode);
+        AtlasWidth, AtlasHeight, PointSampler, ShadowSampler, bReceiveShadow, PcfMode, LightType);
     return saturate((Result - 0.5f) * (1.0f + Shadow.Sharpen * 7.0f) + 0.5f);
 }
 
