@@ -48,6 +48,12 @@ namespace FMath
 		return Max(InMin, Min(InValue, InMax));
 	}
 
+	template <typename T>
+	static inline T Log2(T InValue)
+	{
+		return static_cast<T>(std::log2(InValue));
+	}
+
 	static inline bool IsNearlyZero(float Value, float ErrorTolerance = 1e-20f)
 	{
 		return std::abs(Value) <= ErrorTolerance;

@@ -49,6 +49,12 @@ public:
 	void MarkDirty(FPrimitiveSceneProxy* Proxy);
 	void MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy);
 
+	// 그림자 캐시 무효화 기록. 뷰마다 처리한 Version이 다르므로 지우지 않고 쌓다가 한도를 넘으면 오래된 절반을 버린다.
+	FShadowInvalidationList GetShadowInvalidations() const
+	{
+		return { &ShadowInvalidations, ShadowOldestVersion, ShadowVersion };
+	}
+
 	TArray<FPrimitiveSceneProxy*> PrimitiveSceneProxies;
 	TArray<FPrimitiveSceneProxy*> DirtyProxies;
 	TArray<FPrimitiveSceneProxy*> RenderStateDirtyProxies;
@@ -70,5 +76,13 @@ public:
 	TArray<USkyLightComponent*>           SkyLights;               // 프록시 없음
 
 private:
+	void RecordShadowInvalidation(const FAABB& Bounds);
+	void InvalidateAllShadows();
+
+	static constexpr int32 MaxShadowInvalidations = 4096;
+	TArray<FShadowInvalidation> ShadowInvalidations;
+	uint64 ShadowVersion = 0;
+	uint64 ShadowOldestVersion = 0;
+
 	std::unordered_map<FString, TUniquePtr<FSkyLightEnvironment>> SkyLightEnvironments;
 };

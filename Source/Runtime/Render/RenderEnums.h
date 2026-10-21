@@ -19,7 +19,8 @@ enum class ELightingModel
 {
     Gouraud,
     Lambert,
-    Phong
+    Phong,
+    Unlit // 조명과 그림자 없이 Base Color만 출력한다
 };
 
 enum class ELightCullingMode
