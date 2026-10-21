@@ -489,8 +489,15 @@ void UEditorEngine::RenderMultipleViewports()
 	}
 
 	EMultipleViewportsCameraPreset CameraPresets[4]{};
-	for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
+	for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex) {
 		CameraPresets[ViewIndex] = MultipleViewportsAdapter.GetCameraPreset(ViewIndex);
+	}
+	for (int32 ViewIndex = 0; ViewIndex < 5; ++ViewIndex) {
+		UWorld * World = GetWorldForView(ViewIndex);
+		if (World == nullptr) continue;
+		World->GetScene().ClearShadowDirty();
+	}
+		
 	ViewportsPanel->SetControlState(
 		MultipleViewportsAdapter.GetLayoutMode(),
 		MultipleViewportsAdapter.GetSingleViewIndex(),
@@ -922,10 +929,16 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 
 	ViewWorld.GetScene().BuildLightingConstants(Lighting);
 	const bool bDrawShadows = SettingsPanel->GetSettings().bDrawShadows;
-	ViewWorld.GetScene().BuildStructuredLightAndShadowData(PointLights, SpotLights, DirectionalLights, ShadowInfos, PreviewShadowMapLightProxy, ShadowStats, bDrawShadows);
-	Renderer->SetLighting(Lighting, PointLights, SpotLights);
 
-	const FShadowInfo* DirectionalShadowInfo = bDrawShadows ? ViewWorld.GetScene().GetDirectionalShadowInfo() : nullptr;
+	FFrustumPlanes frustemPlanes = ExtractFrustumPlanes(ViewProjection);
+
+	ViewWorld.GetScene().BuildStructuredLightAndShadowData(PointLights, SpotLights, DirectionalLights, ShadowInfos, PreviewShadowMapLightProxy, ShadowStats, bDrawShadows, &frustemPlanes, ViewCameraLocation);
+	
+	bool bCacheHit;
+	bCacheHit = !ViewWorld.GetScene().IsShadowDirty() && (ShadowInfos.Num() == PrevShadowCount[ViewIndex]) && FScene::bCacheWholeSceneShadows;
+	PrevShadowCount[ViewIndex] = ShadowInfos.Num();
+
+	Renderer->SetLighting(Lighting, PointLights, SpotLights);
 
 	// Settings 창의 그림자 필터 옵션을 Runtime 설정으로 옮긴다. 값이 바뀔 때만 GPU에 올라간다.
 	{
@@ -941,10 +954,31 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 		Renderer->SetShadowFilterSettings(Filter);
 	}
 
+	const FShadowInfo* DirectionalShadowInfo = bDrawShadows ? ViewWorld.GetScene().GetDirectionalShadowInfo() : nullptr;
+
+	const FViewCamera& Camera = MultipleViewportsAdapter.GetViewCamera(ViewIndex);
+	const FRect& Rect = MultipleViewportsAdapter.GetViewRect(ViewIndex);
+	const float AspectRatio = (Rect.Width > 0.0f && Rect.Height > 0.0f) ? (Rect.Width / Rect.Height) : (16.0f / 9.0f);
+	const float FovDegrees = (Camera.Projection.FovDegrees > 0.0f) ? Camera.Projection.FovDegrees : 60.0f;
+
+
 	//Shadow Info StructuredBuffer, ShadowMap 만들기
 	if (DirectionalShadowInfo != nullptr || ShadowInfos.Num() > 0)
 	{
-		Renderer->RenderShadowPass(DirectionalShadowInfo, ShadowInfos, ViewWorld.GetScene().Proxies, PreviewShadowMapLightProxy, ShadowStats);
+		Renderer->RenderShadowPass(
+			DirectionalShadowInfo,
+			Lighting.Directional.Direction,
+			ViewCameraLocation,
+			ViewCameraForward,
+			FovDegrees,
+			AspectRatio,
+			ShadowInfos,
+			ViewWorld.GetScene().Proxies,
+			PreviewShadowMapLightProxy,
+			ShadowStats,
+			SettingsPanel->GetSettings().bVisualizeCascades,
+			bCacheHit
+		);
 	}
 
 	FStatOverlay::SetShadowStats(ShadowStats);

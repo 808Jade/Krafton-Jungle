@@ -181,20 +181,34 @@ void FRenderer::DrawStaticGroups()
 	RenderCommand::BindConstantBuffer(3, LightingCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
 	UMaterial* BoundMaterial = nullptr;
+	int8 LastReceiveShadow = -1;
+
 	for (const FStaticDrawGroup* Group : StaticGroups)
 	{
 		RenderCommand::BindMesh(Group->Mesh, Group->LODIndex);
-		if (Group->Material != BoundMaterial)
-		{
-			BoundMaterial = Group->Material;
-			BindMaterial(BoundMaterial);
-			FRenderPacket MaterialOnly;           // 머티리얼 파라미터 갱신은 패킷을 받으므로 머티리얼만 채워 넘긴다
-			MaterialOnly.Material = BoundMaterial;
-			UpdateMaterialParams(MaterialOnly);
-		}
 
+		// 한계: 같은 머티리얼인데 ReceiveShadow가 번갈아 다르면 셰이더를 매번 재바인딩하게 됨.
+		// 제대로 하려면 정렬 키에 플래그를 넣어 같은 값끼리 모아야 하는데, 이번 마감 범위 밖입니다.
 		for (const FStaticDrawItem& Item : Group->Items)
 		{
+			const bool bReceiveShadow = Item.Proxy ? Item.Proxy->IsReceiveShadow() : true;
+			const int8 CurrentRS = bReceiveShadow ? 1 : 0;
+			const bool bMaterialChanged = (Group->Material != BoundMaterial);
+			const bool bShadowChanged = (CurrentRS != LastReceiveShadow);
+
+			if (bMaterialChanged || bShadowChanged)
+			{
+				BoundMaterial = Group->Material;
+				LastReceiveShadow = CurrentRS;
+				BindMaterial(BoundMaterial, bReceiveShadow);
+				if (bMaterialChanged)
+				{
+					FRenderPacket MaterialOnly;           // 머티리얼 파라미터 갱신은 패킷을 받으므로 머티리얼만 채워 넘긴다
+					MaterialOnly.Material = BoundMaterial;
+					UpdateMaterialParams(MaterialOnly);
+				}
+			}
+
 			if (bUsePerObjectSlots && Item.Slot != InvalidObjectSlot)
 			{
 				RenderCommand::BindConstantBufferRange(2, PerObjectSlotCB.get(), Item.Slot * PerObjectSlotConstants, PerObjectSlotConstants, EShaderBindFlagBits::Vertex);
@@ -263,11 +277,13 @@ void FRenderer::DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProject
 	LastMesh = nullptr;
 	LastMaterial = nullptr;
 	uint8 LastLODIndex = 0;
+	int8 LastReceiveShadow = -1;
 
 	RenderCommand::BindConstantBuffer(0, ViewCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	RenderCommand::BindConstantBuffer(3, LightingCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
-
+	// 한계: 같은 머티리얼인데 ReceiveShadow가 번갈아 다르면 셰이더를 매번 재바인딩하게 됨.
+	// 제대로 하려면 정렬 키에 플래그를 넣어 같은 값끼리 모아야 하는데, 이번 마감 범위 밖입니다.
 	for (uint32 k = Begin; k < End; ++k)          // k = 정렬된 위치
 	{
 		const uint32 PacketIndex = SortEntries[k].PacketIndex;
@@ -276,8 +292,10 @@ void FRenderer::DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProject
 		if (RenderPacket.Mesh != LastMesh || RenderPacket.LODIndex != LastLODIndex) {
 			RenderCommand::BindMesh(RenderPacket.Mesh, RenderPacket.LODIndex);
 		}
-		if (RenderPacket.Material != LastMaterial) {
-			BindMaterial(RenderPacket.Material);
+		const bool bReceiveShadow = RenderPacket.Proxy ? RenderPacket.Proxy->IsReceiveShadow() : true;
+		const int8 CurrentRS = bReceiveShadow ? 1 : 0;
+		if (RenderPacket.Material != LastMaterial || CurrentRS != LastReceiveShadow) {
+			BindMaterial(RenderPacket.Material, bReceiveShadow);
 		}
 		if (RenderPacket.Material != LastMaterial || RenderPacket.MaterialParamData)
 			UpdateMaterialParams(RenderPacket);
@@ -298,6 +316,7 @@ void FRenderer::DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProject
 		LastMaterial = RenderPacket.Material;
 		LastMesh = RenderPacket.Mesh;
 		LastLODIndex = RenderPacket.LODIndex;
+		LastReceiveShadow = CurrentRS;
 	}
 }
 
@@ -382,7 +401,7 @@ FOcclusionMeasureResult FRenderer::MeasureOpaqueOcclusion(const FMatrix& ViewPro
 			RenderCommand::BindMesh(Draw.Mesh, Draw.LODIndex);
 		if (Draw.Material != BoundMaterial)
 		{
-			BindMaterial(Draw.Material);
+			BindMaterial(Draw.Material, true);
 			// BindMaterial이 바꾼 상태를 측정용으로 덮어쓴다.
 			RenderCommand::SetBlendState(EBlendState::NoColorWrite);
 			Context->OMSetDepthStencilState(DepthLessEqualReadOnly.Get(), 0);
@@ -475,8 +494,11 @@ void FRenderer::EndObjectConstants()
 
 void FRenderer::SetViewMode(const FViewRenderMode& Mode)
 {
-	ViewModeShader = FRenderResourceManager::GetUberLitProgram(Mode, false);
-	ViewModeNormalShader = FRenderResourceManager::GetUberLitProgram(Mode, true);
+	for (int32 NM = 0; NM < 2; NM++) {
+		for (int32 RS = 0; RS < 2; RS++) {
+			ViewModeShaders[NM][RS] = FRenderResourceManager::GetUberLitProgram(Mode, NM, RS);
+		}
+	}
 }
 
 void FRenderer::SetLighting(const FLightingConstants& GlobalLights,
@@ -490,22 +512,22 @@ void FRenderer::SetLighting(const FLightingConstants& GlobalLights,
 }
 
 // Material마다 Shader/Texture/Sampler/State 꽂기
-void FRenderer::BindMaterial(UMaterial* material)
+void FRenderer::BindMaterial(UMaterial* material, bool bReceiveShadow)
 {
 	// 스태틱 메시 머티리얼만 조명 대상이다. 빌보드·파티클(ParticleSubUV)은 자기 셰이더를 그대로 쓴다.
 	if (material->ParamLayout == EMaterialParamLayout::StaticMesh)
 	{
-		if (!ViewModeShader)
+		if (!ViewModeShaders[0][1])
 			SetViewMode(FViewRenderMode{});
 
 		bool bUseNormalMap = material->Textures.size() > 1 && material->Textures[1] != nullptr;
 		if (bUseNormalMap)
 		{
-			RenderCommand::BindShaderProgram(ViewModeNormalShader);
+			RenderCommand::BindShaderProgram(ViewModeShaders[1][bReceiveShadow ? 1 : 0]);
 		}
 		else
 		{
-			RenderCommand::BindShaderProgram(ViewModeShader);
+			RenderCommand::BindShaderProgram(ViewModeShaders[0][bReceiveShadow ? 1 : 0]);
 		}
 	}
 	else
@@ -603,8 +625,19 @@ void FRenderer::EnsureTileLightCapacity(const FMatrix& ViewProjection, uint32 Wi
 
 }
 
-
-void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy, FShadowStats& ShadowStats)
+void FRenderer::RenderShadowPass(
+	const FShadowInfo* DirectionalShadow,
+	const FVector& LightDirection,
+	const FVector& CameraPosition,
+	const FVector& CameraForward,
+	float FovDegrees,
+	float AspectRatio,
+	TArray<FShadowInfo>& ShadowInfos,
+	const TArray<FPrimitiveSceneProxy*>& Casters,
+	FLightSceneProxy* PreviewShadowMapProxy,
+	FShadowStats& ShadowStats,
+	bool bVisualizeCascades,
+	bool bCacheHit)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Shadow);
 
@@ -615,10 +648,10 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, TArray<FS
 	ShadowMapManager.BuildAtlas(ShadowInfos);
 
 
-	// Directional 상수 버퍼 준비
+	// Directional 상수 버퍼 준비 (카메라 기준 4개 외접구 및 Light VP 행렬 계산 후 b5 업로드)
 	if (DirectionalShadow != nullptr)
 	{
-		ShadowMapManager.SetupDirectionalShadow(*DirectionalShadow);
+		ShadowMapManager.SetupDirectionalShadow(*DirectionalShadow, LightDirection, CameraPosition, CameraForward, FovDegrees, AspectRatio, bVisualizeCascades);
 	}
 
 	// Local Light들 준비
@@ -635,16 +668,13 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, TArray<FS
 	Context->PSSetShader(nullptr, nullptr, 0);
 
 	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
+	RenderCommand::SetRasterizerState(ERasterizerState::ShadowDepth);
 	// Depth on, LESS, Write
 	RenderCommand::SetDepthStencilState(EDepthStencilState::Default);
 	RenderCommand::SetBlendState(EBlendState::Opaque);
 
 	RenderCommand::BindConstantBuffer(0, ShadowViewCB.get(), EShaderBindFlagBits::Vertex);
 	RenderCommand::BindConstantBuffer(2, PerObjectCB.get(), EShaderBindFlagBits::Vertex);
-
-
-	ShadowMapManager.ClearAtlas();
 
 	// 아틀라스
 	// 캐스터 메쉬들을 그리는 공통 람다
@@ -654,6 +684,10 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, TArray<FS
 			{
 				if (!Proxy || !Proxy->IsVisible() || !Proxy->GetMesh() || !Proxy->GetRenderState())
 					continue;
+				if (!Proxy->IsCastShadow()) {
+					ShadowStats.NumSkippedCasterDraws++;
+					continue;
+				}
 				UpdatePerObjectConstants(Proxy->GetLocalToWorld(), Proxy->GetNormalMatrix());
 				RenderCommand::BindMesh(Proxy->GetMesh(), 0);
 				const FCachedMeshLOD& LOD = Proxy->GetLOD(0);
@@ -667,34 +701,41 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, TArray<FS
 				}
 			}
 		};
-
 	if (DirectionalShadow != nullptr)
 	{
-		// DirectionalShadowDSV 바인딩, 클리어 및 2048x2048 뷰포트 설정
-		ShadowMapManager.BeginDirectionalShadowRender();
-		// Directional Light의 VP 행렬을 ShadowViewCB(b0)에 업로드 후 렌더
-		RenderCommand::UpdateBufferData(ShadowViewCB.get(), &DirectionalShadow->LightViewProjection, sizeof(FMatrix));
-		DrawCasters();
+		// 4개의 캐스케이드를 4096 Atlas의 2x2 분할 영역에 각각 렌더
+		for (uint32 Cascade = 0; Cascade < 4; ++Cascade)
+		{
+			ShadowMapManager.BeginDirectionalCascadeRender(Cascade);
+			const FMatrix& CascadeVP = ShadowMapManager.GetCascadeMatrix(Cascade);
+			RenderCommand::UpdateBufferData(ShadowViewCB.get(), &CascadeVP, sizeof(FMatrix));
+			DrawCasters();
+		}
 		ShadowMapManager.EndDirectionalShadowRender();
 	}
 
-	//층(라이트)마다
-	for (int32 Slice = 0; Slice < ShadowInfos.Num(); ++Slice)
+	if (!bCacheHit)
 	{
-		//렌더 전 개별 바인딩
-		ShadowMapManager.BeginShadowRenderWithAtlas(ShadowInfos[Slice]);
+		ShadowMapManager.ClearAtlas();
+
+		//층(라이트)마다
+		for (int32 Slice = 0; Slice < ShadowInfos.Num(); ++Slice)
+		{
+			//렌더 전 개별 바인딩
+			ShadowMapManager.BeginShadowRenderWithAtlas(ShadowInfos[Slice]);
 
 
-		//라이트마다의 VP 행렬 Map Unmap
-		RenderCommand::UpdateBufferData(ShadowViewCB.get(), &ShadowInfos[Slice].LightViewProjection, sizeof(FMatrix));
+			//라이트마다의 VP 행렬 Map Unmap
+			RenderCommand::UpdateBufferData(ShadowViewCB.get(), &ShadowInfos[Slice].LightViewProjection, sizeof(FMatrix));
 
-		DrawCasters();
-	}
+			DrawCasters();
+		}
 
-	//DSV 해제
-	if (ShadowInfos.Num() > 0)
-	{
-		ShadowMapManager.EndShadowPass();
+		//DSV 해제
+		if (ShadowInfos.Num() > 0)
+		{
+			ShadowMapManager.EndShadowPass();
+		}
 	}
 
 	// TODO : 아틀라스 프리뷰
@@ -708,15 +749,32 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, TArray<FS
 	ShadowMapManager.BindForShading();
 
 
-	int32 RenderedCount = ShadowInfos.Num();
-	if (DirectionalShadow != nullptr)
-	{
-		RenderedCount += 1;
+	
+	if (!bCacheHit) {
+		// 다 새로 그리기
+		int32 RenderedCount = ShadowInfos.Num();
+		if (DirectionalShadow != nullptr)
+		{
+			RenderedCount += 4;
+		}
+		ShadowStats.NumShadowMapsRendered = RenderedCount;
+		ShadowStats.NumCachedShadowMaps = 0;
 	}
-	ShadowStats.NumShadowMapsRendered = RenderedCount;
+	else {
+		// 재사용 
+		int32 RenderedCount = 0;
+		if (DirectionalShadow != nullptr)
+		{
+			RenderedCount += 4;
+		}
+		ShadowStats.NumShadowMapsRendered = RenderedCount;
+		ShadowStats.NumCachedShadowMaps = ShadowInfos.Num();
+	}
+
+	
 
 	int64 TotalBytes = (int64)ShadowMapManager.GetAtlasResolution() * ShadowMapManager.GetAtlasResolution() * 4 * ShadowMapManager.GetNumAtlas();
-	if (DirectionalShadow != nullptr)
+	if (ShadowMapManager.GetDirectionalShadowSRV() != nullptr)
 	{
 		TotalBytes += (int64)ShadowMapManager.GetDirectionalResolution() * ShadowMapManager.GetDirectionalResolution() * 4;
 	}

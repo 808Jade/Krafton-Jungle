@@ -47,8 +47,24 @@ public:
 	void MarkDirty(FPrimitiveSceneProxy* Proxy);
 	void MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy);
 
-	void BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats& ShadowStats, bool bShadow) const;
-	
+	bool IsFrustemCulling(const FLightSceneProxy* Proxy, const FFrustumPlanes* FrustemPlanes) const;
+	bool TryGetLightBounds(const FLightSceneProxy* Proxy, FAABB &OUT) const;
+
+	bool HasAnyShadowCaster(const FLightSceneProxy* LightProxy) const;
+	bool HasAnyShadowReceiver(const FLightSceneProxy* LightProxy, const FFrustumPlanes* FrustemPlanes) const;
+
+	bool IsDrawSize(const FLightSceneProxy* Proxy, const FVector& cameraPos) const;
+
+	void MarkShadowDirty() { bShadowDirty = true; }
+	bool IsShadowDirty() const { return bShadowDirty; }
+	void ClearShadowDirty() { bShadowDirty = false; }
+
+	// TODO : 인자를 줄입시다.......................... 
+	void BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, 
+		TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, 
+		FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats& ShadowStats, bool bShadow, 
+		const FFrustumPlanes* FrustemPlanes, const FVector &CameraPos) const;
+
 	TArray<FPrimitiveSceneProxy*> Proxies;
 	TArray<FPrimitiveSceneProxy*> DirtyProxies;
 	TArray<FPrimitiveSceneProxy*> RenderStateDirtyProxies;
@@ -71,4 +87,6 @@ public:
 		}
 	};
 	bool bElementListChanged = false;
+	bool bShadowDirty = true;
+	inline static bool bCacheWholeSceneShadows = true;
 };

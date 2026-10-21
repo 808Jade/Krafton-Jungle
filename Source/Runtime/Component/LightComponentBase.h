@@ -14,6 +14,7 @@ class ULightComponentBase : public USceneComponent
 		PROPERTY(LightColor)
 		PROPERTY(Intensity)
 		PROPERTY(bVisible)
+		PROPERTY(bCastShadows)
 	REFLECT_END()
 
 public:
@@ -28,6 +29,9 @@ public:
 
 	bool IsLightVisible() const { return bVisible; }
 	void SetLightVisible(bool bInVisible) { bVisible = bInVisible; }
+
+	bool IsCastShadows() const { return bCastShadows; }
+	void SetCastShadows(bool inCastShadows) { bCastShadows = inCastShadows; }
 
 	// 감마 모드에서는 sRGB 색을 디코딩하지 않은 채 Intensity를 곱한다.
 	FVector GetShaderColorWithIntensity() const
@@ -47,6 +51,7 @@ protected:
 	FColor LightColor = FColor(255, 255, 255);
 	float Intensity = 1.0f;
 	bool bVisible = true;
+	bool bCastShadows = true;
 
 private:
 	friend class FScene;

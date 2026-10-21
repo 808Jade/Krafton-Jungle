@@ -2,6 +2,7 @@
 #include "Editor/OutputLog/OutputLogPanel.h"
 
 #include "Core/StatOverlay.h"
+#include "Engine/Scene.h"
 
 static int TextEditCallbackStub(ImGuiInputTextCallbackData* data)
 {
@@ -172,6 +173,22 @@ void FOutputLogPanel::ExecCommand(const FString& CommandLine)
 	{
 		FLog::Log(ELogVerbosity::Info, "{}", StatMessage);
 		ScrollToBottom = true;
+		return;
+	}
+
+	if (EqualsIgnoreCase(CommandLine, "r.shadow.CacheWholeSceneShadows 1"))
+	{
+		FLog::Log(ELogVerbosity::Info, "r.shadow.CacheWholeSceneShadows: 1 (caching enabled)");
+		FScene::bCacheWholeSceneShadows = true;
+		return;
+	}
+	else if (EqualsIgnoreCase(CommandLine, "r.shadow.CacheWholeSceneShadows 0")) {
+		FLog::Log(ELogVerbosity::Info, "r.shadow.CacheWholeSceneShadows: 0 (caching disabled)");
+		FScene::bCacheWholeSceneShadows = false;
+		return;
+	}
+	else if (EqualsIgnoreCase(CommandLine, "r.shadow.CacheWholeSceneShadows")) {
+		FLog::Log(ELogVerbosity::Info, "r.shadow.CacheWholeSceneShadows = {}", FScene::bCacheWholeSceneShadows);
 		return;
 	}
 

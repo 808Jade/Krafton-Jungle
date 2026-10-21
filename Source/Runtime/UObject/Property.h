@@ -8,7 +8,7 @@
 class UMaterial;
 class UFont;
 
-enum class EPropertyType { Unknown, Float, Int, String, Bool, Vector, Vector4, Rotator, Transform, Object, LinearColor, ByteColor};
+enum class EPropertyType { Unknown, Float, Int, Uint, String, Bool, Vector, Vector4, Rotator, Transform, Object, LinearColor, ByteColor};
 
 template <typename T>
 constexpr EPropertyType GetPropertyType()
@@ -56,6 +56,7 @@ enum EPropertyFlags : uint32
     CPF_Edit      = 1 << 0, // 디테일 패널에 노출
     CPF_EditConst = 1 << 1, // 노출하되 수정 불가
     CPF_Transient = 1 << 2, // 직렬화에서 제외
+    CPF_Pow2Combo = 1 << 3, // 2의 거듭제곱 해상도 콤보 박스로 표시
 
     CPF_EditAnywhere    = CPF_Edit,
     CPF_VisibleAnywhere = CPF_Edit | CPF_EditConst,

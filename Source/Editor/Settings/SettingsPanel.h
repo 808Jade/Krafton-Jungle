@@ -20,6 +20,7 @@ struct FEditorSettings
 	bool bDrawGrid = true;
 	bool bExponentialHeightFog = true;
 	bool bVisualizeTileLightCount = false;
+	bool bVisualizeCascades = false;
 
 	// Rendering
 	bool bEnableFXAA = true;

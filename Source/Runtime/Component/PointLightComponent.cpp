@@ -10,6 +10,9 @@ void UPointLightComponent::PostEditChangeProperty(const FProperty& Property)
 	// 음수 반경은 감쇠 계산을 뒤집으므로 막는다.
 	if (AttenuationRadius < 0.0f)
 		AttenuationRadius = 0.0f;
+
+	if (Intensity < 0.0f)
+		Intensity = 0.0f;
 }
 
 FPointLightInfo UPointLightComponent::GetPointLightInfo() const
@@ -36,6 +39,7 @@ void UPointLightComponent::GetShadowInfo(TArray<FShadowInfo>& OutShadowInfo) con
 	ShadowInfo.Far = AttenuationRadius;
 	ShadowInfo.LightSize = LightSourceRadius;
 	ShadowInfo.ProjScale = 1.f / (2.f * std::tan(FMath::DegreesToRadians(FOV) * 0.5f));
+	ShadowInfo.AtlasSize = ShadowResolution;
 
 	//FRotator Pitch Yaw Roll 순서
 	//Forward 0.f, 0.f, 0.f
