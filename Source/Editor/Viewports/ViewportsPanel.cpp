@@ -411,6 +411,9 @@ void FViewportsPanel::DrawStatOverlay(ImDrawList *DrawList, const ImVec2 &ViewMi
 			static_cast<double>(Stats.ShadowTiles) /
 			static_cast<double>(Stats.AtlasCapacity) * 100),
 			ValueColor });
+		Lines.Add({ std::format("  Shadow Views  Redrawn {} / Cached {}",
+			Stats.ShadowViewsRedrawn, Stats.ShadowViewsCached),
+			ValueColor });
 	}
 
 	if (Lines.Num() == 0 && ProfileLines.Num() == 0)

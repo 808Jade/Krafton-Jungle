@@ -87,30 +87,38 @@ void FSceneRenderer::InitViews(FRenderer* Renderer, const FSceneRenderOptions& O
 	RenderData.AmbientLight = World->GetScene().GetSkyAmbientLight(View.bGameView);
 
 	// 모든 프록시가 같은 FLightRenderParameters를 채우고, 종류는 Type으로만 구분한다.
+	// Unlit은 조명을 계산하지 않으므로 모든 광원의 그림자 뷰를 만들지 않는다.
+	const bool bAllowShadows = Options.LightingModel != ELightingModel::Unlit;
+	auto AddVisibleLight = [this, bAllowShadows](const FLightSceneProxy* Light)
+	{
+		FLightRenderParameters Parameters{};
+		Light->GetLightShaderParameters(Parameters);
+		FLightShadowSettings ShadowSettings = Light->GetShadowSettings();
+		ShadowSettings.bCastShadows &= bAllowShadows;
+		const int32 Index = RenderData.VisibleLights.Add(Parameters);
+		RenderData.VisibleLightShadowSettings.Add(ShadowSettings);
+		if (Light->GetLightComponent() == RenderData.PreviewLight) RenderData.PreviewLightIndex = Index;
+	};
+
 	const FScene& Scene = World->GetScene();
 	for (const FDirectionalLightSceneProxy* Light : Scene.GetDirectionalLights())
 	{
 		if (!Light->IsEnabled() || !Light->IsShown(View.bGameView)) continue;
-		FLightRenderParameters Parameters{};
-		Light->GetLightShaderParameters(Parameters);
-		const int32 Index = RenderData.VisibleLights.Add(Parameters);
-		if (Light->GetLightComponent() == RenderData.PreviewLight) RenderData.PreviewLightIndex = Index;
+		AddVisibleLight(Light);
 	}
 
 	for (const FLocalLightSceneProxy* Light : Scene.GetLocalLights())
 	{
 		if (!Light->IsEnabled() || !Light->IsShown(View.bGameView)) continue;
-		FLightRenderParameters Parameters{};
-		Light->GetLightShaderParameters(Parameters);
-		const int32 Index = RenderData.VisibleLights.Add(Parameters);
-		if (Light->GetLightComponent() == RenderData.PreviewLight) RenderData.PreviewLightIndex = Index;
+		AddVisibleLight(Light);
 	}
 
 	RenderData.DirectionalLightShadowMapSize = Options.DirectionalShadowMapSize;
 	RenderData.PointLightShadowMapSize = Options.PointShadowMapSize;
 	RenderData.SpotLightShadowMapSize = Options.SpotShadowMapSize;
 
-	RenderData.Commit(View.FrustumCorners, View.NearClip, View.FarClip, 4, bLightUploadSucceeded);
+	RenderData.Commit(View.FrustumCorners, View.NearClip, View.FarClip, 4,
+		Options.bCacheShadows, Scene.GetShadowInvalidations(), bLightUploadSucceeded);
 }
 
 bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uint32 Height, EPcfMode PcfMode)
@@ -298,13 +306,18 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 		return false;
 	}
 
-	if (ShadowMapAtlas && RenderData.HasLights())
+	// 그림자 뷰가 하나도 없으면(Unlit, 모든 광원 CastShadows 끔) 셰이더도 아틀라스를 읽지 않으므로 패스를 건너뛴다.
+	// 캐시가 모든 타일을 재사용하면 패스 자체를 등록하지 않는다.
+	const bool bAnyShadowRedraw = std::find(RenderData.ShadowNeedsRedraw.begin(), RenderData.ShadowNeedsRedraw.end(), uint8(1)) != RenderData.ShadowNeedsRedraw.end();
+	if (ShadowMapAtlas && RenderData.HasLights() && !RenderData.LightShadows.IsEmpty() && bAnyShadowRedraw)
 	{
+		// 배치를 새로 했으면 전체를 지우고, 이전 배치를 재사용하면 남은 타일을 보존하도록 Load한다.
+		const bool bClearWholeAtlas = RenderData.bClearWholeShadowAtlas;
 		FRenderGraphRasterPassDesc Shadows{};
 		Shadows.Name = "Shadows";
-		Shadows.DepthAttachment = { ShadowMapRef, ERenderGraphLoadAction::Clear, 1.0f, 0 };
+		Shadows.DepthAttachment = { ShadowMapRef, bClearWholeAtlas ? ERenderGraphLoadAction::Clear : ERenderGraphLoadAction::Load, 1.0f, 0 };
 
-		auto ShadowMapPassHandler = [this, Renderer, &Graph, ShadowMapRef]() {
+		auto ShadowMapPassHandler = [this, Renderer, &Graph, ShadowMapRef, bClearWholeAtlas]() {
 			if (!bCorePassSucceeded)
 			{
 				return;
@@ -317,13 +330,26 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 			TArray<FMeshDrawBatch> Batched;
 			Processor.Build(RenderData.ShadowCasterProxies, EPSOType::StaticMesh_LightShadow, Batched);
 
+			FPipelineState* TileClear = FRenderResourceManager::GetPSO(EPSOType::ShadowTileClear);
+			const bool bCanClearTile = TileClear && TileClear->Shader && TileClear->Shader->VertexShader;
+
 			// 실제 메시 패스와 같은 VS를 사용해 깊이 계산을 일치시킨다.
 			for (int32 i = 0; i < RenderData.LightShadows.Num(); i++)
 			{
+				if (!RenderData.ShadowNeedsRedraw[i]) continue; // 캐시된 깊이를 그대로 쓴다
+
 				const FLightShadowRenderData& LightShadow = RenderData.LightShadows[i];
 
 				RenderCommand::SetViewport(LightShadow.AtlasRect.X, LightShadow.AtlasRect.Y, LightShadow.AtlasRect.Width, LightShadow.AtlasRect.Height);
 				RenderCommand::SetRenderTargets(nullptr, 0, DepthArray->GetDSV(LightShadow.AtlasIndex));
+				if (!bClearWholeAtlas)
+				{
+					// 이 타일에 남은 지난 프레임 깊이를 1로 지운다. 뷰포트가 타일 크기라 다른 타일은 건드리지 않는다.
+					if (!bCanClearTile) { bCorePassSucceeded = false; return; }
+					RenderCommand::BindPipelineState(*TileClear);
+					RenderCommand::BindVertexBuffer(nullptr);
+					RenderCommand::Draw(3);
+				}
 				Renderer->UploadViewMatrix(LightShadow.ViewProjection);
 				Renderer->DrawMeshes(Batched);
 			}
@@ -423,7 +449,8 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 		std::memcpy(GridLighting.LightOffsets, RenderData.LightParameterOffsets, sizeof(RenderData.LightParameterOffsets));
 
 		// 픽셀 조명 경로에서만 목록을 사용한다.
-		const ELightCullingMode CullingMode = !View.bIsWireframe &&	Options.LightingModel != ELightingModel::Gouraud ? Options.LightCullingMode : ELightCullingMode::Off;
+		const ELightCullingMode CullingMode = !View.bIsWireframe && Options.LightingModel != ELightingModel::Gouraud &&
+			Options.LightingModel != ELightingModel::Unlit ? Options.LightCullingMode : ELightCullingMode::Off;
 
 		// Off도 이번 프레임의 화면 정보와 입력 광원 개수를 갱신한다.
 		bool bUseDepthPrepass = false;
@@ -527,6 +554,11 @@ bool FSceneRenderer::AddViewportPasses(FRenderGraphBuilder& Graph, FRenderer* Re
 		// 디버그 보기에서 현재 뷰의 실제 타일 목록을 생성한다.
 		CoreOptions.RenderingPath = ERenderingPath::Forward;
 		CoreOptions.LightingModel = ELightingModel::Lambert;
+	}
+	else if (Options.LightingModel == ELightingModel::Unlit)
+	{
+		// Deferred 조명 패스는 Unlit 변형이 없다. 조명이 필요 없으므로 Uber Shader의 Unlit 변형으로 바로 그린다.
+		CoreOptions.RenderingPath = ERenderingPath::Forward;
 	}
 	if (!AddCorePasses(Graph, Renderer, Targets, CoreOptions, Skybox)) // 기본적으로 그려져야 되는 Core Pass 들
 		return false;

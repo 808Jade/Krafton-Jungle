@@ -371,6 +371,14 @@ void FRenderDevice::CreateStates()
 		Desc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
 		Desc.BackFace = Desc.FrontFace;
 		Device->CreateDepthStencilState(&Desc, DepthStencilStates[(uint8)EDepthStencilState::StencilOutline].GetAddressOf());
+
+		// 기존 깊이와 상관없이 덮어쓴다. 그림자 아틀라스의 타일 하나만 지울 때 쓴다.
+		D3D11_DEPTH_STENCIL_DESC AlwaysDesc = {};
+		AlwaysDesc.DepthEnable = TRUE;
+		AlwaysDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		AlwaysDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+		AlwaysDesc.StencilEnable = FALSE;
+		Device->CreateDepthStencilState(&AlwaysDesc, DepthStencilStates[(uint8)EDepthStencilState::AlwaysWrite].GetAddressOf());
 	}
 
 	// ---------- Blend ----------

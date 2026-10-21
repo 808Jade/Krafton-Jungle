@@ -42,6 +42,7 @@ constexpr FPipelineTableEntry PipelineTable[] =
 	{ EPSOType::StaticMesh_DepthOnly, "Resources/Shader/DepthPrepass.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidBack, EBlendState::NoColorWrite, EDepthStencilState::Default },
 	{ EPSOType::StaticMesh_LightShadow, "Resources/Shader/DepthPrepass.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::LightShadow, EBlendState::NoColorWrite, EDepthStencilState::Default },
 	{ EPSOType::LightCullingDebug, "Resources/Shader/LightCullingDebug.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::AlphaBlend, EDepthStencilState::Disabled },
+	{ EPSOType::ShadowTileClear, "Resources/Shader/ShadowTileClear.hlsl", D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, ERasterizerState::SolidNone, EBlendState::NoColorWrite, EDepthStencilState::AlwaysWrite },
 };
 
 static_assert(sizeof(PipelineTable) / sizeof(PipelineTable[0]) == static_cast<size_t>(EPSOType::Count));
@@ -66,7 +67,7 @@ void FRenderResourceManager::InitPipelineStates()
 	if (DepthProgram && DepthProgram->VertexShader)
 		ShaderProgramMap["ShadowDepth"] = MakeUnique<FShaderProgram>(DepthProgram->VertexShader, nullptr);
 
-	const char* Names[] = { "LIGHTING_MODEL_GOURAUD", "LIGHTING_MODEL_LAMBERT", "LIGHTING_MODEL_PHONG", "VIEW_MODE_WORLD_NORMAL" };
+	const char* Names[] = { "LIGHTING_MODEL_GOURAUD", "LIGHTING_MODEL_LAMBERT", "LIGHTING_MODEL_PHONG", "LIGHTING_MODEL_UNLIT", "VIEW_MODE_WORLD_NORMAL" };
 	for (const char* Name : Names)
 	{
 		const D3D_SHADER_MACRO Defines[] = { { Name, "1" }, { nullptr, nullptr } };
@@ -108,6 +109,7 @@ FShaderProgram* FRenderResourceManager::GetForwardShaderProgram(ELightingModel M
 	{
 	case ELightingModel::Gouraud: Name = "LIGHTING_MODEL_GOURAUD"; break;
 	case ELightingModel::Phong: Name = "LIGHTING_MODEL_PHONG"; break;
+	case ELightingModel::Unlit: Name = "LIGHTING_MODEL_UNLIT"; break;
 	default: break;
 	}
 	const FString Key = FString("Resources/Shader/UberLit.hlsl#") + Name;

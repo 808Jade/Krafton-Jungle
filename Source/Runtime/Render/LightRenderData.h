@@ -4,6 +4,8 @@
 #include "Math/Rect.h"
 #include "Core/EngineString.h"
 #include "Engine/SceneManagement.h"
+#include "Math/Frustum.h"
+#include "Containers/Array.h"
 #include <cstddef>
 
 // CPU의 그림자 그리기와 GPU 업로드에서 공유하는 데이터.
@@ -44,6 +46,7 @@ struct FForwardLightingConstants
 	uint32 PcfMode;
 };
 
+// LightData.hlsli의 FLightShadowRenderData와 같은 배치다. 그림자 뷰 하나(큐브 면, cascade 하나)마다 하나씩 만든다.
 struct FLightShadowRenderData
 {
 	FMatrix ViewProjection;
@@ -51,10 +54,42 @@ struct FLightShadowRenderData
 	uint32 AtlasIndex;
 	float Near;
 	float Far;
+	float Bias;      // 빛 방향 오프셋(월드)
+	float SlopeBias; // 법선 방향 오프셋(월드), 빛과의 각도에 비례
+	float Sharpen;   // 0~1, PCF 결과의 반그림자 폭을 좁힌다
+};
+
+class ULightComponent;
+
+// 광원 컴포넌트의 그림자 설정을 렌더 스레드 쪽으로 옮긴 사본. VisibleLights와 같은 순서로 둔다. GPU에 올리지 않는다.
+struct FLightShadowSettings
+{
+	const ULightComponent* Light = nullptr; // 그림자 캐시가 프레임 사이에 같은 광원인지 비교하는 키
+	bool bCastShadows = true;
+	float ResolutionScale = 1.0f;
+	float Bias = 0.0f;
+	float SlopeBias = 0.0f;
+	float Sharpen = 0.0f;
+};
+
+// 그림자 캐시 무효화 기록. 그림자를 드리우는 프리미티브가 움직이거나 생기거나 사라지면 그 영역을 남긴다.
+// Version은 FScene이 기록할 때마다 1씩 올리는 번호다. 뷰는 마지막으로 처리한 번호 이후의 기록만 본다.
+struct FShadowInvalidation
+{
+	uint64 Version = 0;
+	FAABB Bounds{};
+};
+
+// FScene의 무효화 기록을 FSceneRenderData::Commit에 넘기는 읽기 전용 묶음.
+struct FShadowInvalidationList
+{
+	const TArray<FShadowInvalidation>* Records = nullptr;
+	uint64 OldestVersion = 0;  // 이 번호 이하의 기록은 버려졌다. 이보다 뒤처진 뷰는 전부 다시 그린다.
+	uint64 CurrentVersion = 0; // 지금까지 기록된 마지막 번호
 };
 
 static_assert(sizeof(FVector4) == 16);
-static_assert(sizeof(FLightShadowRenderData) == 92);
+static_assert(sizeof(FLightShadowRenderData) == 104);
 static_assert(sizeof(FAmbientLightRenderData) == 16);
 static_assert(offsetof(FForwardLightingConstants, CameraPosition) == 16);
 static_assert(offsetof(FForwardLightingConstants, LightCounts) == 32);

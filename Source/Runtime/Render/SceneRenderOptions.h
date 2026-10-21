@@ -9,6 +9,7 @@ struct FSceneRenderOptions
 	bool bShowShadow = true;
 	EPcfMode PcfMode = EPcfMode::On;
 	float ShadowDepthBias = 0.0001f;
+	bool bCacheShadows = true; // r.Shadow.CacheWholeSceneShadows: 바뀌지 않은 그림자 타일은 다시 그리지 않는다
 	bool bEnableFog = true;
 	bool bEnableFXAA = false;
 	ELightCullingMode LightCullingMode = ELightCullingMode::Tiled;

@@ -6,11 +6,11 @@
 
 // 셰이더 스캐너는 매크로 정의 없이 이 파일을 컴파일하므로 기본 변형에는 Lambert를 쓴다.
 // 명시적인 변형은 조명 모델 또는 뷰 모드 하나만 1로 설정한다.
-#if !defined(LIGHTING_MODEL_GOURAUD) && !defined(LIGHTING_MODEL_LAMBERT) && !defined(LIGHTING_MODEL_PHONG) && !defined(VIEW_MODE_WORLD_NORMAL)
+#if !defined(LIGHTING_MODEL_GOURAUD) && !defined(LIGHTING_MODEL_LAMBERT) && !defined(LIGHTING_MODEL_PHONG) && !defined(LIGHTING_MODEL_UNLIT) && !defined(VIEW_MODE_WORLD_NORMAL)
     #define LIGHTING_MODEL_LAMBERT 1
 #endif
 
-#if (LIGHTING_MODEL_GOURAUD + LIGHTING_MODEL_LAMBERT + LIGHTING_MODEL_PHONG + VIEW_MODE_WORLD_NORMAL) != 1
+#if (LIGHTING_MODEL_GOURAUD + LIGHTING_MODEL_LAMBERT + LIGHTING_MODEL_PHONG + LIGHTING_MODEL_UNLIT + VIEW_MODE_WORLD_NORMAL) != 1
     #error Exactly one lighting model or view mode must be enabled.
 #endif
 
@@ -279,9 +279,9 @@ FLightResult CalculateBaseLighting(float3 P, float ViewDepth, float3 N, float3 V
         }
         
         float Shadow = 1.0;
-        if (CascadeIndex != -1)
+        if (CascadeIndex != -1 && Light.ShadowIndex != INVALID_SHADOW_INDEX)
         {
-            FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + (DirectionalIndex * CascadeShadowCount + CascadeIndex)];
+            FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex + CascadeIndex];
             Shadow = CalculateShadow(P, N, -Light.Direction, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
         }
             
@@ -324,9 +324,12 @@ void AddAllLocalLights(inout FLightResult Result, float3 P, float3 N,
             FaceIndex = L.z > 0.0 ? 2 : 3;
         }
             
-        FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.x + (PointIndex * 6 + FaceIndex)];
-            
-        float Shadow = CalculateShadow(P, N, normalize(-L), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+        float Shadow = 1.0;
+        if (Light.ShadowIndex != INVALID_SHADOW_INDEX)
+        {
+            FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex + FaceIndex];
+            Shadow = CalculateShadow(P, N, normalize(-L), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+        }
 
         FLightResult PointResult = (FLightResult) 0;
         CalculatePointLight(PointResult, SceneLights[LightOffsets.x + PointIndex], P, N, V, bIncludeSpecular);
@@ -339,9 +342,12 @@ void AddAllLocalLights(inout FLightResult Result, float3 P, float3 N,
     {
         FLightRenderParameters Light = SceneLights[LightOffsets.y + SpotIndex];
         
-        FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.y + SpotIndex];
-            
-        float Shadow = CalculateShadow(P, N, normalize(Light.Position - P), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+        float Shadow = 1.0;
+        if (Light.ShadowIndex != INVALID_SHADOW_INDEX)
+        {
+            FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex];
+            Shadow = CalculateShadow(P, N, normalize(Light.Position - P), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+        }
             
         FLightResult SpotResult = (FLightResult) 0;
         CalculateSpotLight(SpotResult, Light, P, N, V, bIncludeSpecular);
@@ -416,9 +422,12 @@ FLightResult CalculateTiledLighting(float3 PixelPosition, float3 P, float ViewDe
                 FaceIndex = L.z > 0.0 ? 2 : 3;
             }
             
-            FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.x + (LightIndex * 6 + FaceIndex)];
-            
-            float Shadow = CalculateShadow(P, Normal, normalize(-L), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+            float Shadow = 1.0;
+            if (Light.ShadowIndex != INVALID_SHADOW_INDEX)
+            {
+                FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex + FaceIndex];
+                Shadow = CalculateShadow(P, Normal, normalize(-L), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+            }
             
             FLightResult PointResult = (FLightResult) 0;
             CalculatePointLight(PointResult, Light, P, N, V, bIncludeSpecular);
@@ -434,9 +443,12 @@ FLightResult CalculateTiledLighting(float3 PixelPosition, float3 P, float ViewDe
             
             FLightRenderParameters Light = SceneLights[LightOffsets.y + LightIndex];
             
-            FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.y + LightIndex];
-            
-            float Shadow = CalculateShadow(P, Normal, normalize(Light.Position - P), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+            float Shadow = 1.0;
+            if (Light.ShadowIndex != INVALID_SHADOW_INDEX)
+            {
+                FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex];
+                Shadow = CalculateShadow(P, Normal, normalize(Light.Position - P), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode);
+            }
             
             FLightResult SpotResult = (FLightResult) 0;
             CalculateSpotLight(SpotResult, Light, P, N, V, bIncludeSpecular);
@@ -514,6 +526,9 @@ FUberOutput Uber_PS(VS_OUT Input)
     FLightResult Lit = CalculateTiledLighting(Input.Position.xyz, Input.WorldPosition, Input.ViewDepth, ShadingNormal, true);
     Diffuse = Lit.Diffuse;
     Specular = Lit.Specular;
+#elif LIGHTING_MODEL_UNLIT
+    // 조명·그림자를 계산하지 않고 표면 색을 그대로 낸다.
+    Diffuse = 1.0f;
 #endif
 
     Output.LitColor = float4(Albedo * Diffuse + Specular + Emissive.rgb,
