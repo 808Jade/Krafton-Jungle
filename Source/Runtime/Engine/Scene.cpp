@@ -310,6 +310,7 @@ bool FScene::IsFrustemCulling(const FLightSceneProxy* Proxy, const FFrustumPlane
 		{
 			FAABB Bounds;
 			if (!TryGetLightBounds(Proxy, Bounds)) return true;
+			if (FrustemPlanes == nullptr) return true;
 			return IsAABBInFrustum(Bounds, *FrustemPlanes);
 		}
 		default:
@@ -375,6 +376,37 @@ bool FScene::HasAnyShadowCaster(const FLightSceneProxy* LightProxy) const
 	return false;
 }
 
+bool FScene::HasAnyShadowReceiver(const FLightSceneProxy* LightProxy, const FFrustumPlanes* FrustemPlanes) const
+{
+	if (FrustemPlanes == nullptr) return true;
+	FAABB Bounds;
+	if (TryGetLightBounds(LightProxy, Bounds)) {
+		// Proxies(Object) 와 LightProxy(Light) AABB 에 겹치는 Caster가 있는 경우에만 true
+		for (auto CasterProxy : Proxies) {
+			
+			if (!CasterProxy || !CasterProxy->IsVisible() || !CasterProxy->GetMesh() || !CasterProxy->GetRenderState() || !IsAABBInFrustum(CasterProxy->GetBounds(), *FrustemPlanes)) {
+				continue;
+			}
+			FAABB CasterBounds = CasterProxy->GetBounds();
+			if (abs(Bounds.Center.X - CasterBounds.Center.X) <= Bounds.Extent.X + CasterBounds.Extent.X
+				&& abs(Bounds.Center.Y - CasterBounds.Center.Y) <= Bounds.Extent.Y + CasterBounds.Extent.Y
+				&& abs(Bounds.Center.Z - CasterBounds.Center.Z) <= Bounds.Extent.Z + CasterBounds.Extent.Z) return true;
+		}
+
+		return false;
+	}
+
+	// directional light : 범위 무한이므로 씬 전체 검사 필요
+	for (auto CasterProxy : Proxies) {
+		if (CasterProxy && CasterProxy->IsVisible() && CasterProxy->GetMesh() && CasterProxy->GetRenderState()) {
+			return true;
+		}
+	}
+
+
+	return false;
+}
+
 bool FScene::IsDrawSize(const FLightSceneProxy* Proxy, const FVector& cameraPos) const
 {
 	FAABB Bounds;
@@ -421,7 +453,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FShadowInfo DirectionalShadowInfo = DirectionalProxy->GetShadowInfo();
 
 			if (!(bShadow  && DirectionalProxy->ShouldCastShadow() && IsFrustemCulling(DirectionalProxy, FrustemPlanes) 
-				&& HasAnyShadowCaster(Proxy) && IsDrawSize(Proxy, CameraPos))) {
+				&& HasAnyShadowCaster(Proxy) && IsDrawSize(Proxy, CameraPos) && HasAnyShadowReceiver(Proxy, FrustemPlanes))) {
 				ShadowStats.NumSkippedLights++;
 			}
 
@@ -436,7 +468,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			const TArray<FShadowInfo>& PointShadowInfos = PointProxy->GetShadowInfos();
 
 			if (bShadow && PointProxy->ShouldCastShadow() && IsFrustemCulling(PointProxy, FrustemPlanes) 
-				&& HasAnyShadowCaster(Proxy) && IsDrawSize(Proxy, CameraPos)) {
+				&& HasAnyShadowCaster(Proxy) && IsDrawSize(Proxy, CameraPos) && HasAnyShadowReceiver(Proxy, FrustemPlanes)) {
 				PointLightInfo.ShadowIndex = OutShadowInfo.Num();
 				Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
 				OutShadowInfo.Append(PointShadowInfos);
@@ -454,7 +486,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FSpotLightSceneProxy* SpotProxy = static_cast<FSpotLightSceneProxy*>(Proxy);
 			FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
 			if (bShadow && SpotProxy->ShouldCastShadow() && IsFrustemCulling(SpotProxy, FrustemPlanes) 
-				&& HasAnyShadowCaster(Proxy) && IsDrawSize(Proxy, CameraPos)) {
+				&& HasAnyShadowCaster(Proxy) && IsDrawSize(Proxy, CameraPos) && HasAnyShadowReceiver(Proxy, FrustemPlanes)) {
 				FShadowInfo SpotShadowInfo = SpotProxy->GetShadowInfo();
 				SpotLightInfo.ShadowIndex = OutShadowInfo.Add(SpotShadowInfo);
 				Proxy->ShadowIndex = SpotLightInfo.ShadowIndex;

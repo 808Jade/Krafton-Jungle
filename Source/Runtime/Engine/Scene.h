@@ -50,7 +50,8 @@ public:
 	bool IsFrustemCulling(const FLightSceneProxy* Proxy, const FFrustumPlanes* FrustemPlanes) const;
 	bool TryGetLightBounds(const FLightSceneProxy* Proxy, FAABB &OUT) const;
 
-	bool HasAnyShadowCaster(const FLightSceneProxy* Proxy) const;
+	bool HasAnyShadowCaster(const FLightSceneProxy* LightProxy) const;
+	bool HasAnyShadowReceiver(const FLightSceneProxy* LightProxy, const FFrustumPlanes* FrustemPlanes) const;
 
 	bool IsDrawSize(const FLightSceneProxy* Proxy, const FVector& cameraPos) const;
 
