@@ -307,7 +307,7 @@ void FShadowMapManager::ComputeCascadeSpheres(
 // 4개의 구체와 라이트 방향을 받아 텍셀 스내핑이 적용된 4개의 Light VP 행렬 생성
 void FShadowMapManager::ComputeCascadeLightMatrices(
     const FVector& LightDirection,
-    const FVector4 InCascadeSpheres[4],
+    FVector4 InOutCascadeSpheres[4],
     uint32 CascadeResolution,
     FMatrix OutCascadeMatrices[4])
 {
@@ -331,30 +331,35 @@ void FShadowMapManager::ComputeCascadeLightMatrices(
     // 2. 각 캐스케이드별 행렬 계산
     for (int i = 0; i < 4; ++i)
     {
-        const FVector Center(InCascadeSpheres[i].X, InCascadeSpheres[i].Y, InCascadeSpheres[i].Z);
-        const float Radius = InCascadeSpheres[i].W;
-
-        // 캐스터를 수용하기 위해 구체 중심에서 빛의 반대 방향으로 충분히 물러남
-        const float BackDistance = Radius * 2.0f;
-        FVector Eye = Center - Forward * BackDistance;
+        const FVector Center(InOutCascadeSpheres[i].X, InOutCascadeSpheres[i].Y, InOutCascadeSpheres[i].Z);
+        const float Radius = InOutCascadeSpheres[i].W;
 
         // 3. 텍셀 스내핑 (Texel Snapping - 섀도우 지터링 방지)
+        // 월드 원점 (0,0,0) 기준 라이트 기저 공간에서의 구체 중심 좌표(Center·Right, Center·Up)를 텍셀 단위로 스냅
+        FVector SnappedCenter = Center;
         if (CascadeResolution > 0)
         {
             const float WorldUnitsPerTexel = (2.0f * Radius) / static_cast<float>(CascadeResolution);
 
-            const FVector Diff = Center - Eye;
-            const float CenterViewY = Diff.Dot(Right);
-            const float CenterViewZ = Diff.Dot(Up);
+            // 월드 원점 기준 Light 공간 좌표 (Right, Up 성분)
+            const float CenterY = Center.Dot(Right);
+            const float CenterZ = Center.Dot(Up);
 
-            const float SnappedY = floor(CenterViewY / WorldUnitsPerTexel) * WorldUnitsPerTexel;
-            const float SnappedZ = floor(CenterViewZ / WorldUnitsPerTexel) * WorldUnitsPerTexel;
+            // 텍셀 크기 단위로 내림(floor)하여 정수 격자에 맞춤
+            const float SnappedY = std::floor(CenterY / WorldUnitsPerTexel) * WorldUnitsPerTexel;
+            const float SnappedZ = std::floor(CenterZ / WorldUnitsPerTexel) * WorldUnitsPerTexel;
 
-            const float OffsetY = SnappedY - CenterViewY;
-            const float OffsetZ = SnappedZ - CenterViewZ;
+            const float OffsetY = SnappedY - CenterY;
+            const float OffsetZ = SnappedZ - CenterZ;
 
-            Eye = Eye - (Right * OffsetY + Up * OffsetZ);
+            // 스냅 오차만큼 Center 보정
+            SnappedCenter = Center + Right * OffsetY + Up * OffsetZ;
+            InOutCascadeSpheres[i] = FVector4(SnappedCenter.X, SnappedCenter.Y, SnappedCenter.Z, Radius);
         }
+
+        // 캐스터를 수용하기 위해 구체 중심에서 빛의 반대 방향으로 충분히 물러남
+        const float BackDistance = Radius * 2.0f;
+        const FVector Eye = SnappedCenter - Forward * BackDistance;
 
         // Light View 행렬: Translation(-Eye) * Rotation
         const FMatrix View = FMatrix::MakeTranslation(Eye * -1.0f) * Rotation;
@@ -388,7 +393,8 @@ void FShadowMapManager::SetupDirectionalShadow(
     const FVector& CameraPosition,
     const FVector& CameraForward,
     float FovDegrees,
-    float AspectRatio)
+    float AspectRatio,
+    bool bVisualizeCascades)
 {
     EnsureDirectionalShadowMap(DirectionalResolution);
 
@@ -421,6 +427,7 @@ void FShadowMapManager::SetupDirectionalShadow(
     Constants.CascadeBiases = FVector4(DirectionalShadow.Bias, DirectionalShadow.Bias * 1.5f, DirectionalShadow.Bias * 2.5f, DirectionalShadow.Bias * 4.0f);
     Constants.NormalBias = DirectionalShadow.NormalBias;
     Constants.NumCascades = 4;
+    Constants.bVisualizeCascades = bVisualizeCascades ? 1 : 0;
 
     // 5. GPU 상수 버퍼(DirectionalShadowCB, b5)로 업로드
     RenderCommand::UpdateBufferData(DirectionalShadowCB.get(), &Constants);

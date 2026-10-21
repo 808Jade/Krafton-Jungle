@@ -118,7 +118,8 @@ public:
 		const TArray<FShadowInfo>& ShadowInfos,
 		const TArray<FPrimitiveSceneProxy*>& Casters,
 		FLightSceneProxy* PreviewShadowMapProxy,
-		FShadowStats& ShadowStats);
+		FShadowStats& ShadowStats,
+		bool bVisualizeCascades = false);
 
 	//ImGui용 PreviewSRV 반환
 	//ID3D11ShaderResourceView* GetShadowPreviewSRV() const { return ShadowMapManager.GetPreviewSRV(); }

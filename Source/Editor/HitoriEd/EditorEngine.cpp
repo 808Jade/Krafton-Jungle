@@ -945,7 +945,8 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 			ShadowInfos,
 			ViewWorld.GetScene().Proxies,
 			PreviewShadowMapLightProxy,
-			ShadowStats);
+			ShadowStats,
+			SettingsPanel->GetSettings().bVisualizeCascades);
 	}
 
 	FStatOverlay::SetShadowStats(ShadowStats);

@@ -613,7 +613,8 @@ void FRenderer::RenderShadowPass(
 	const TArray<FShadowInfo>& ShadowInfos,
 	const TArray<FPrimitiveSceneProxy*>& Casters,
 	FLightSceneProxy* PreviewShadowMapProxy,
-	FShadowStats& ShadowStats)
+	FShadowStats& ShadowStats,
+	bool bVisualizeCascades)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Shadow);
 
@@ -623,7 +624,7 @@ void FRenderer::RenderShadowPass(
 	// Directional 상수 버퍼 준비 (카메라 기준 4개 외접구 및 Light VP 행렬 계산 후 b5 업로드)
 	if (DirectionalShadow != nullptr)
 	{
-		ShadowMapManager.SetupDirectionalShadow(*DirectionalShadow, LightDirection, CameraPosition, CameraForward, FovDegrees, AspectRatio);
+		ShadowMapManager.SetupDirectionalShadow(*DirectionalShadow, LightDirection, CameraPosition, CameraForward, FovDegrees, AspectRatio, bVisualizeCascades);
 	}
 
 	// Local Light들 준비

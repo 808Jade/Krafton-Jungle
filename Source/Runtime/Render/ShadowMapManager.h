@@ -42,7 +42,7 @@ public:
 		FVector4 OutCascadeSpheres[4]);
 	void ComputeCascadeLightMatrices(
 		const FVector& LightDirection,
-		const FVector4 InCascadeSpheres[4],
+		FVector4 InOutCascadeSpheres[4],
 		uint32 CascadeResolution,
 		FMatrix OutCascadeMatrices[4]);
 	void SetupDirectionalShadow(
@@ -51,7 +51,8 @@ public:
 		const FVector& CameraPosition,
 		const FVector& CameraForward,
 		float FovDegrees,
-		float AspectRatio);
+		float AspectRatio,
+		bool bVisualizeCascades = false);
 	void BeginDirectionalCascadeRender(uint32 CascadeIndex);
 	void BeginDirectionalShadowRender();
 	void EndDirectionalShadowRender();

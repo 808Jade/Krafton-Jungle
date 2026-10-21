@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Math/Vector.h"
 
@@ -61,7 +61,8 @@ struct FDirectionalShadowConstants // b5
 	FVector4 CascadeBiases; // Cascade depth biases
 	int32 NumCascades = 4; 
 	float NormalBias = 2.0f;
-	int32 Padding[2] = {};
+	uint32 bVisualizeCascades = 0;
+	int32 Padding = 0;
 };
 
 static_assert(sizeof(FAmbientLightInfo) == 16);

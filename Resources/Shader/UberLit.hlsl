@@ -154,7 +154,8 @@ cbuffer DirectionalShadowConstants : register(b5)
     float4 CascadeBiases;
     int NumCascades;
     float NormalBias;
-    float2 CSMPadding;
+    uint bVisualizeCascades;
+    float CSMPadding;
 };
 
 StructuredBuffer<FPointLightInfo> StructuredPointLights : register(t8);
@@ -273,6 +274,22 @@ float ComputeShadowFactor(int ShadowIndex, float3 WorldPosition)
     return (Ndc.z - Info.Bias) > StoredDepth ? 0.0f : 1.0f;
 }
 
+int GetCascadeIndex(float3 WorldPosition)
+{
+    [unroll]
+    for (int i = 0; i < 4; ++i)
+    {
+        float3 ToCenter = WorldPosition - CascadeSplitSpheres[i].xyz;
+        float DistSq = dot(ToCenter, ToCenter);
+        float RadiusSq = CascadeSplitSpheres[i].w * CascadeSplitSpheres[i].w;
+        if (DistSq < RadiusSq)
+        {
+            return i;
+        }
+    }
+    return 4; // Bounding Sphere를 벗어남 (그림자 최대 거리 초과)
+}
+
 // Directional Light 전용 그림자 판정 (CSM 아틀라스 텍스처 t3 및 DirectionalShadowConstants b5 사용)
 float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
 {
@@ -280,19 +297,9 @@ float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
         return 1.0f;
 
     // 1. 최소 외접구(Bounding Sphere) 중심과의 거리를 비교하여 0번(초근거리)부터 캐스케이드 선택
-    int CascadeIndex = NumCascades - 1;
-    [unroll]
-    for (int i = 0; i < 3; ++i)
-    {
-        float3 ToCenter = WorldPosition - CascadeSplitSpheres[i].xyz;
-        float DistSq = dot(ToCenter, ToCenter);
-        float RadiusSq = CascadeSplitSpheres[i].w * CascadeSplitSpheres[i].w;
-        if (DistSq < RadiusSq)
-        {
-            CascadeIndex = i;
-            break;
-        }
-    }
+    int CascadeIndex = GetCascadeIndex(WorldPosition);
+    if (CascadeIndex >= NumCascades)
+        return 1.0f;
 
     float3 L = -DirectionalLight.Direction;
 
@@ -503,6 +510,27 @@ float4 mainPS(FPSInput Input) : SV_TARGET
             Color *= 0.2f;
         }
 
+        return float4(Color, 1.0f);
+    }
+    
+    if (bVisualizeCascades != 0u)
+    {
+        // Cascade 0: Red, Cascade 1: Green, Cascade 2: Blue, Cascade 3: Yellow, Beyond: Gray
+        float3 CascadeColors[5] = {
+            float3(1.0f, 0.25f, 0.25f), // 0: Red
+            float3(0.25f, 1.0f, 0.25f), // 1: Green
+            float3(0.25f, 0.45f, 1.0f), // 2: Blue
+            float3(1.0f, 1.0f, 0.25f),  // 3: Yellow
+            float3(0.35f, 0.35f, 0.35f) // 4: Beyond
+        };
+        int CascadeIdx = GetCascadeIndex(Input.WorldPosition);
+#if USE_NORMAL_MAP
+        float3 ShadowNormal = Normal;
+#else
+        float3 ShadowNormal = WorldNormal;
+#endif
+        float Shadow = ComputeDirectionalShadowFactor(Input.WorldPosition, ShadowNormal);
+        float3 Color = CascadeColors[min(CascadeIdx, 4)] * (0.35f + 0.65f * Shadow);
         return float4(Color, 1.0f);
     }
     
