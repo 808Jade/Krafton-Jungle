@@ -26,5 +26,5 @@ public:
 
 protected:
 	float AttenuationRadius = 10.0f;
-	float LightSourceRadius = 0.05f;
+	float LightSourceRadius = 0.03f;
 };

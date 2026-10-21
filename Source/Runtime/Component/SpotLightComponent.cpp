@@ -78,6 +78,7 @@ FShadowInfo USpotLightComponent::GetShadowInfo() const
 	ShadowInfo.Near = NearClipPlane;
 	ShadowInfo.Far = AttenuationRadius;
 	ShadowInfo.LightSize = LightSourceRadius;
+	ShadowInfo.ProjScale = 1.f / (2.f * std::tan(FMath::DegreesToRadians(FOV) * 0.5f));
 	return ShadowInfo;
 }
 

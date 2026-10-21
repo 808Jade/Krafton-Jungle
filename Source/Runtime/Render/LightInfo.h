@@ -59,7 +59,8 @@ struct FShadowInfo
 	float Far = 1.f;
 		
 	float LightSize;
-	float Padding[3] = {};
+	float ProjScale;
+	float Padding[2] = {};
 };
 
 

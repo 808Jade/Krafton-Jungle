@@ -289,9 +289,9 @@ void FRenderDevice::CreateStates()
 
 		Desc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
 		// 주소 밖 영역은 그림자가 지지 않도록 보통 흰색(Border)이나 Clamp 처리
-		Desc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
-		Desc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
-		Desc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+		Desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		Desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		Desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 		Desc.BorderColor[0] = 1.0f; // R (깊이 최댓값)
 		Desc.BorderColor[1] = 1.0f; // G
 		Desc.BorderColor[2] = 1.0f; // B
