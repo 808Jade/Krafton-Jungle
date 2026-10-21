@@ -1012,7 +1012,8 @@ void FDetailsPanel::OnRender()
 				ImGui::SeparatorText("Shadow Map");
 				//ShadowMap preview 하도록 요청
 				Light->SetPreviewShadowMapFlag(true);
-				const char* PointShadowMapName[] = { "Forward", "Back", "Right", "Left", "Up", "Down"};
+
+				const char* PointShadowMapName[] = { "Forward", "Back", "Right", "Left", "Up", "Down" };
 				int32 ShadowInfoNum = Light->GetShadowInfoNum();
 
 				for (int32 i = 0; i < ShadowInfoNum; i++)
@@ -1022,8 +1023,10 @@ void FDetailsPanel::OnRender()
 					{
 						ImGui::TextUnformatted(PointShadowMapName[i]);
 					}
+
 					if (ID3D11ShaderResourceView* ShadowSRV = Light->GetShadowPreviewSRV(i))
 					{
+						const FShadowPreview& Preview = Light->GetSceneProxy()->GetShadowPreview()[i];
 						if (FLightSceneProxy* Proxy = Light->GetSceneProxy())
 						{
 							const uint32 Res = Proxy->GetShadowPreview()[i].Resolution;
@@ -1032,10 +1035,12 @@ void FDetailsPanel::OnRender()
 								ImGui::Text("Resolution: %u x %u", Res, Res);
 							}
 						}
-						ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f });
+						const FPreviewUV& UV = Preview.PreviewUV;
+						ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f }, { UV.StartUV.X, UV.StartUV.Y }, { UV.EndUV.X, UV.EndUV.Y });
 					}
 					else
 						ImGui::TextDisabled("No shadow map");
+
 				}
 			}
 			ImGui::PopID();

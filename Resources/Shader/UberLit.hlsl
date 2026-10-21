@@ -73,6 +73,11 @@ struct FSpotLightInfo
 struct FShadowInfo
 {
     matrix LightViewProjection;
+    uint AtlasIndex;
+    uint AtlasStartX;
+    uint AtlasStartY;
+    uint AtlasSize;
+    
     float Bias;
     float NormalBias;
     float Near;
@@ -470,8 +475,12 @@ float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition)
     //들어온 UV 중 u와 v중 하나라도 0.0보다 작다면으로 해석됨
     if (any(UV < 0.0f) || any(UV > 1.0f) || Ndc.z < 0.0f || Ndc.z > 1.0f)
         return 1.0f;
-
-    // 저장된 최소 깊이. z = 층 번호 (지금은 ShadowIndex == 층)
+    
+    // 아틀라스 UV 구하는 로직
+    float AtlasWidth, AtlasHeight, NumPages;
+    ShadowTextureArray.GetDimensions(AtlasWidth, AtlasHeight, NumPages);
+    
+    float2 AtlasUV = (float2(Info.AtlasStartX, Info.AtlasStartY) + UV * Info.AtlasSize) / float2(AtlasWidth, AtlasHeight);
     
     //Point Sampler
 
@@ -499,12 +508,31 @@ float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition)
     
     
     //Comparison Linear + 3x3 Software PCF
+    
     ////해상도 하드코딩
     //float2 TexelSize = 1.0 / 1024.0;
     //return PCF_CmpLinear_Software3x3(TexelSize, UV, ShadowIndex, Ndc.z - Info.Bias);
     
-    return PCSS(1.0 / 1024.0, UV, ShadowIndex, Ndc.z, Info);
-
+    //return PCSS(1.0 / 1024.0, UV, ShadowIndex, Ndc.z, Info);
+    
+    //해상도 하드코딩
+    float2 TexelSize = 1.0 / 1024.0;
+    
+    float2 TileMin = (float2(Info.AtlasStartX, Info.AtlasStartY) + 0.5f) * TexelSize;
+    float2 TileMax = (float2(Info.AtlasStartX, Info.AtlasStartY) + Info.AtlasSize - 0.5f) * TexelSize;
+        
+    float Lit = 0;
+    for (int y = -1; y <= 1; ++y)
+    {
+        for (int x = -1; x < 1; ++x)
+        {
+            float2 SampleUV = clamp(AtlasUV + float2(x, y) * TexelSize, TileMin, TileMax);
+            float Stored = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(AtlasUV, Info.AtlasIndex), Ndc.z - Info.Bias);
+            Lit += Stored;
+        }
+    }
+    Lit /= 9.0;
+    return Lit;
 }
 
 // Directional Light 전용 그림자 판정 (CSM 아틀라스 텍스처 t3 및 DirectionalShadowConstants b5 사용)
