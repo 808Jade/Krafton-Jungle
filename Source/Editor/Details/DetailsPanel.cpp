@@ -1070,6 +1070,10 @@ void FDetailsPanel::OnRender()
 						ImGui::TextDisabled("No shadow map");
 
 				}
+				ImGui::TextUnformatted("Atlas");
+
+				ID3D11ShaderResourceView* ShadowSRV = Light->GetShadowPreviewSRV(0);
+				ImGui::Image((ImTextureID)ShadowSRV, { 256.0f, 256.0f });
 			}
 			ImGui::PopID();
 
