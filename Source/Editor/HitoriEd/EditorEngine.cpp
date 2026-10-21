@@ -162,6 +162,7 @@ bool UEditorEngine::Init()
 	FireBallRenderer->Init(Renderer);
 
 	SettingsPanel = EditorUI->AddEditorPanel<FSettingsPanel>();
+	OutputLogPanel->SetEditorSettings(&SettingsPanel->GetMutableSettings());
 
 
 

@@ -147,7 +147,7 @@ void FSceneRenderer::InitViews(FRenderer* Renderer, const FSceneRenderOptions& O
 	RenderData.PointLightShadowMapSize = Options.PointShadowMapSize;
 	RenderData.SpotLightShadowMapSize = Options.SpotShadowMapSize;
 
-	RenderData.Commit(View.FrustumCorners, View.NearClip, View.FarClip, GetCascadeCount(), GetCascadeLogRatio(),
+	RenderData.Commit(View.FrustumCorners, View.Frustum, View.NearClip, View.FarClip, GetCascadeCount(), GetCascadeLogRatio(),
 		Options.bCacheShadows, Scene.GetShadowInvalidations(), bLightUploadSucceeded);
 }
 
@@ -729,8 +729,18 @@ void FSceneRenderer::GatherRenderPackets(FScene& Scene, FSceneRenderData& Data,
 	Data.ResetFrame();
 	for (FPrimitiveSceneProxy* Proxy : Scene.PrimitiveSceneProxies)
 	{
+		constexpr float MinShadowCasterScreenSize = 0.01f;   // 반지름 / 거리. 대략 화면 높이의 1% 미만이면 제외
+
 		if (Proxy->IsShown(View.bGameView) && Proxy->bCastsShadow && Proxy->GetRenderState() && Proxy->GetMesh())
-			Data.ShadowCasterProxies.Add(Proxy);
+		{
+			const FAABB& Bounds = Proxy->GetBounds();
+			const float Distance = (Bounds.Center - View.CameraPosition).Length();
+			const float ScreenSize = Bounds.Extent.Length() / std::max(Distance, 1.0e-3f);
+			if (ScreenSize >= MinShadowCasterScreenSize)
+				Data.ShadowCasterProxies.Add(Proxy);
+			else
+				++Data.RenderStats.ShadowCastersSkippedSmall;
+		}
 	}
 	FRenderQueue& RenderQueue = Data.RenderQueue;
 	FRenderStats& RenderStats = Data.RenderStats;

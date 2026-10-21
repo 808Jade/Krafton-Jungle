@@ -118,6 +118,8 @@ bool FViewportsPanel::ConsumeLayoutRequest(ELayoutMode &OutMode,
 	return true;
 }
 
+
+
 // View Texture와 Splitter·Layout·Preset UI를 그리고 요청을 기록한다.
 void FViewportsPanel::OnRender() {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0.0f, 0.0f});
@@ -313,8 +315,7 @@ void FViewportsPanel::OnRender() {
 		FEditorViewportClient *Client = ViewportClients[ViewIndex].get();
 		if (!Client || !Client->IsActive() || Client->IsLightCulling())
 			continue;
-		DrawStatOverlay(DrawList, {ContentOrigin.x + Client->GetRect().X,
-			ContentOrigin.y + Client->GetRect().Y});
+		DrawStatOverlay(DrawList, { ContentOrigin.x + Client->GetRect().X, ContentOrigin.y + Client->GetRect().Y }, Client);
 	}
 
 	ImGui::End();
@@ -322,7 +323,7 @@ void FViewportsPanel::OnRender() {
 }
 
 // 항목별 줄을 모아 한 번에 배경과 텍스트를 그린다.
-void FViewportsPanel::DrawStatOverlay(ImDrawList *DrawList, const ImVec2 &ViewMin) const 
+void FViewportsPanel::DrawStatOverlay(ImDrawList* DrawList, const ImVec2& ViewMin, FEditorViewportClient* Client) const
 {
 	if (!DrawList || !FStatOverlay::IsAnyEnabled())
 		return;
@@ -390,7 +391,8 @@ void FViewportsPanel::DrawStatOverlay(ImDrawList *DrawList, const ImVec2 &ViewMi
 		ProfileLines.Add(Line);
 	}
 
-	FRenderStats Stats = ViewportClients[0].get()->GetRenderData().RenderStats;
+FSceneRenderData& RenderData = Client->GetRenderData();
+const FRenderStats& Stats = RenderData.RenderStats;
 	if (FStatOverlay::IsEnabled(EStatFlags::Light)) {
 		Lines.Add({ "Light", TitleColor });
 		Lines.Add({ std::format("  Total Lights {} ", Stats.DirectionalCount + Stats.PointCount + Stats.SpotCount), ValueColor });
@@ -414,6 +416,46 @@ void FViewportsPanel::DrawStatOverlay(ImDrawList *DrawList, const ImVec2 &ViewMi
 		Lines.Add({ std::format("  Shadow Views  Redrawn {} / Cached {}",
 			Stats.ShadowViewsRedrawn, Stats.ShadowViewsCached),
 			ValueColor });
+		Lines.Add({ std::format("  ShadowLightsSkippedOutsideView {}",
+			Stats.ShadowLightsSkippedOutsideView),
+			ValueColor });
+		Lines.Add({ std::format("  ShadowLightsSkippedNoReceiver {}",
+			Stats.ShadowLightsSkippedNoReceiver),
+			ValueColor });
+		Lines.Add({ std::format("  ShadowLightsSkippedNoCaster {}",
+			Stats.ShadowLightsSkippedNoCaster),
+			ValueColor });
+		Lines.Add({ std::format("  ShadowCastersSkippedSmall {}",
+			Stats.ShadowCastersSkippedSmall),
+			ValueColor });
+
+		if (RenderData.CascadeShadowCount > 0)
+		{
+			Lines.Add({ "Cascaded Shadow Map", TitleColor });
+			Lines.Add({ std::format("  Cascades {}", RenderData.CascadeShadowCount), ValueColor });
+
+			// 첫 번째 Directional의 그림자 뷰들 = 캐스케이드들
+			const uint32 DirOffset = RenderData.GetDirectionalLightOffset();
+			const bool bHasDirShadow = RenderData.GetDirectionalLightCount() > 0 &&
+				RenderData.VisibleLights[DirOffset].ShadowIndex != FLightRenderParameters::InvalidShadowIndex;
+
+			float PrevDistance = 0.0f;
+			for (uint32 c = 0; c < RenderData.CascadeShadowCount; ++c)
+			{
+				const float Far = RenderData.CascadeShadowDistances[c];
+				FString Texel = "-";
+				if (bHasDirShadow)
+				{
+					const uint32 ShadowIdx = RenderData.VisibleLights[DirOffset].ShadowIndex + c;
+					if (ShadowIdx < uint32(RenderData.LightShadows.Num()))
+						Texel = std::format("{:.3f}", RenderData.LightShadows[ShadowIdx].WorldUnitsPerTexel);
+				}
+				Lines.Add({ std::format("  C{}  {:.1f} ~ {:.1f}   texel {}", c, PrevDistance, Far, Texel), ValueColor });
+				PrevDistance = Far;
+			}
+			Lines.Add({ std::format("  Cascade Views  Redrawn {} / Cached {}",
+				Stats.CascadeViewsRedrawn, Stats.CascadeViewsCached), ValueColor });
+		}
 	}
 
 	if (Lines.Num() == 0 && ProfileLines.Num() == 0)

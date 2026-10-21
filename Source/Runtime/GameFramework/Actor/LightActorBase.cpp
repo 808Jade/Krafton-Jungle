@@ -15,6 +15,8 @@ void ALightActorBase::SetupLightRoot(ULightComponent* LightComponent, const FStr
     BillboardComponent->SetIconSize(2.0f);
     BillboardComponent->SetupAttachment(LightComponent);
     BillboardComponent->SetTintSource(LightComponent);
+    BillboardComponent->bCastShadow = false;
+    BillboardComponent->bReceiveShadow = false;
 
     UMaterial* Base = UAssetManager::GetAssetByPath<UMaterial>("BillboardMaterial");
     UTexture2D* Icon = UAssetManager::Get().LoadTexture(IconPath);
