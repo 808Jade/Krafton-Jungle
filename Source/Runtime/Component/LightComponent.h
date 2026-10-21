@@ -50,7 +50,7 @@ protected:
     FMatrix GetProjectionMatrix(bool bIsOrthogonal, float FarClipPlane, float FieldOfView, float AspectRatio) const;
 
 
-private:
+protected:
 	//float FieldOfView = 60.0f;
 	//float AspectRatio = 1.f;
 	float NearClipPlane = 0.1f;
