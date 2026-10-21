@@ -48,6 +48,7 @@
                                 "LightSourceRadius": 0.019999999552965164,
                                 "OuterConeAngle": 44.0,
                                 "ShadowBias": 0.0010000000474974513,
+                                "ShadowResolution": 1024,
                                 "Transform": {
                                     "Location": {
                                         "X": -1.9463319778442383,
@@ -65,6 +66,7 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadows": true,
                                 "bVisible": true
                             }
                         },
@@ -119,6 +121,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -176,6 +180,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -233,6 +239,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -290,6 +298,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -347,6 +357,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -404,6 +416,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -452,6 +466,7 @@
                                 },
                                 "LightSourceRadius": 0.019999999552965164,
                                 "ShadowBias": 0.0010000000474974513,
+                                "ShadowResolution": 1024,
                                 "Transform": {
                                     "Location": {
                                         "X": -7.149837493896484,
@@ -469,6 +484,7 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadows": true,
                                 "bVisible": true
                             }
                         },
@@ -523,6 +539,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -580,6 +598,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -642,6 +662,7 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadows": true,
                                 "bVisible": true
                             }
                         },
@@ -696,6 +717,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -753,6 +776,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -810,6 +835,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -858,6 +885,7 @@
                                 },
                                 "LightSourceRadius": 0.05000000074505806,
                                 "ShadowBias": 0.0010000000474974513,
+                                "ShadowResolution": 1024,
                                 "Transform": {
                                     "Location": {
                                         "X": -26.968355178833008,
@@ -875,6 +903,7 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadows": true,
                                 "bVisible": true
                             }
                         },
@@ -929,6 +958,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -986,6 +1017,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -1043,6 +1076,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -1094,6 +1129,7 @@
                                 "LightSourceRadius": 0.10000000149011612,
                                 "OuterConeAngle": 25.799999237060547,
                                 "ShadowBias": 0.0010000000474974513,
+                                "ShadowResolution": 1024,
                                 "Transform": {
                                     "Location": {
                                         "X": -36.18227767944336,
@@ -1111,6 +1147,7 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadows": true,
                                 "bVisible": true
                             }
                         },
@@ -1165,6 +1202,8 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
@@ -1222,6 +1261,131 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
+                        }
+                    ],
+                    "Properties": {}
+                },
+                {
+                    "Class": "ADirectionalLightActor",
+                    "Components": [
+                        {
+                            "Class": "USceneComponent",
+                            "Name": "DefaultSceneRoot",
+                            "Parent": "",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "Class": "UDirectionalLightComponent",
+                            "Name": "UDirectionalLightComponent",
+                            "Parent": "",
+                            "Properties": {
+                                "Intensity": 1.0,
+                                "LightColor": {
+                                    "A": 255,
+                                    "B": 255,
+                                    "G": 255,
+                                    "R": 255
+                                },
+                                "OrthoWidth": 2000.0,
+                                "ShadowBias": 0.0010000000474974513,
+                                "ShadowNormalBias": 2.0,
+                                "ShadowResolution": 2048,
+                                "Transform": {
+                                    "Location": {
+                                        "X": -23.752437591552734,
+                                        "Y": 1.9827340841293335,
+                                        "Z": -0.8228976726531982
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 35.01435852050781,
+                                        "Roll": -25.50762939453125,
+                                        "Yaw": -40.060096740722656
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bCastShadows": true,
+                                "bVisible": true
+                            }
+                        },
+                        {
+                            "Class": "UBillboardComponent",
+                            "Material": {
+                                "Base": "BillboardMaterial",
+                                "Instance": {
+                                    "BaseColor": {
+                                        "A": 1.0,
+                                        "B": 1.0,
+                                        "G": 1.0,
+                                        "R": 1.0
+                                    },
+                                    "BlendState": "AlphaBlend",
+                                    "Properties": {},
+                                    "SamplerState": "LinearClamp",
+                                    "Shininess": 32.0,
+                                    "SpecularColor": {
+                                        "A": 1.0,
+                                        "B": 0.5,
+                                        "G": 0.5,
+                                        "R": 0.5
+                                    },
+                                    "Textures": [
+                                        "Resources/Icons/S_LightDirectional.png"
+                                    ],
+                                    "UVScrollSpeed": [
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "bFlipNormalGreen": false
+                                }
+                            },
+                            "Name": "UBillboardComponent",
+                            "Parent": "UDirectionalLightComponent",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bCastShadow": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
