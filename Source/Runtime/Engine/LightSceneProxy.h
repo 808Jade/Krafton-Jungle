@@ -41,7 +41,13 @@ public:
 	ULightComponentBase* GetComponent() const { return Component; }
 	ELightType GetLightType() const { return Type; }
 	FScene* GetScene() const { return Scene; }
+	virtual float GetLightBrightness() const = 0;
 	bool IsVisible() const { return bVisible; }
+	bool IsCastShadows() const { return bCastShadows; }
+	virtual bool ShouldCastShadow() const {
+		if (!bVisible || !bCastShadows || GetLightBrightness() < 1e-5) return false;
+		return true;
+	}
 
 	int32 GetShadowIndex() const { return ShadowIndex; }
 
@@ -66,6 +72,7 @@ public:
 protected:
 	ULightComponentBase* Component = nullptr;
 	bool bVisible = true;
+	bool bCastShadows = true;
 
 private:
 	friend class FScene;
@@ -92,9 +99,11 @@ public:
 		const UAmbientLightComponent* Light = static_cast<const UAmbientLightComponent*>(Component);
 		Info = Light->GetAmbientLightInfo();
 		bVisible = Light->IsLightVisible();
+		bCastShadows = Light->IsCastShadows();
 	}
 
 	const FAmbientLightInfo& GetInfo() const { return Info; }
+	float GetLightBrightness() const override { return Info.Color.Length(); }
 
 private:
 	FAmbientLightInfo Info;
@@ -110,12 +119,14 @@ public:
 		const UDirectionalLightComponent* Light = static_cast<const UDirectionalLightComponent*>(Component);
 		Info = Light->GetDirectionalLightInfo();
 		bVisible = Light->IsLightVisible();
+		bCastShadows = Light->IsCastShadows();
 
 		ShadowInfo = Light->GetShadowInfo();
 	}
 
 	const FDirectionalLightInfo& GetInfo() const { return Info; }
 	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
+	float GetLightBrightness() const override { return Info.Color.Length(); }
 	virtual int32 GetShadowInfoNum()const override { return 1; }
 
 private:
@@ -133,11 +144,22 @@ public:
 		const UPointLightComponent* Light = static_cast<const UPointLightComponent*>(Component);
 		Info = Light->GetPointLightInfo();
 		bVisible = Light->IsLightVisible();
-				
+		bCastShadows = Light->IsCastShadows();
+
 		Light->GetShadowInfo(ShadowInfos);
 	}
 
+	bool ShouldCastShadow() const override {
+		if (!FLightSceneProxy::ShouldCastShadow()) return false;
+		if (Info.AttenuationRadius < 1e-05) return false;
+
+		return true;
+	}
+
 	const FPointLightInfo& GetInfo() const { return Info; }
+	float GetLightBrightness() const override {
+		return Info.Color.Length();
+	}
 	const TArray<FShadowInfo>& GetShadowInfos() const { return ShadowInfos; }
 	virtual int32 GetShadowInfoNum()const override { return ShadowInfos.Num(); }
 
@@ -156,11 +178,23 @@ public:
 		const USpotLightComponent* Light = static_cast<const USpotLightComponent*>(Component);
 		Info = Light->GetSpotLightInfo();
 		bVisible = Light->IsLightVisible();
+		bCastShadows = Light->IsCastShadows();
+
 		ShadowInfo = Light->GetShadowInfo();
+	}
+
+	bool ShouldCastShadow() const override {
+		if (!FLightSceneProxy::ShouldCastShadow()) return false;
+		if (Info.AttenuationRadius < 1e-05) return false;
+
+		return true;
 	}
 
 	const FSpotLightInfo& GetInfo() const { return Info; }
 	const FShadowInfo& GetShadowInfo() const { return ShadowInfo; }
+	float GetLightBrightness() const override {
+		return Info.Color.Length();
+	}
 	virtual int32 GetShadowInfoNum()const override { return 1; }
 
 private:

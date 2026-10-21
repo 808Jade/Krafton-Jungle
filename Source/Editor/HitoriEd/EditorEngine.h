@@ -164,6 +164,7 @@ private:
 	UWorld* PlayWorld = nullptr;
 	// PIE 시작 시점의 편집 View. 별도 창이면 Adapter의 ExternalViewIndex다. PIE가 아니면 InvalidViewIndex다.
 	int32 PIEViewIndex = InvalidViewIndex;
+	int32 PrevShadowCount[5] = { -1, -1, -1, -1, -1 };
 
 	// Play 버튼이 다음 세션을 띄울 위치
 	EPlayModeType PlayMode = EPlayModeType::InViewport;

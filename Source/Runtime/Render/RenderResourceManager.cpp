@@ -91,7 +91,7 @@ namespace
 	const char* const Digits[] = { "0", "1", "2", "3"};
 }
 
-FString FRenderResourceManager::GetUberLitSuffix(const FViewRenderMode& Mode, bool bHasNormalMap )
+FString FRenderResourceManager::GetUberLitSuffix(const FViewRenderMode& Mode, bool bHasNormalMap, bool bReceiveShadow)
 {
 	switch (Mode.ViewMode)
 	{
@@ -108,12 +108,13 @@ FString FRenderResourceManager::GetUberLitSuffix(const FViewRenderMode& Mode, bo
 
 	return FString("_LM") + Digits[static_cast<int32>(Mode.LightingModel)]
 		+ "_SM" + Digits[static_cast<int32>(Mode.ShadingModel)] 
-		+ "_NM" + Digits[static_cast<int32>(bUseNormalMap)];
+		+ "_NM" + Digits[static_cast<int32>(bUseNormalMap)]
+		+ "_RS" + Digits[static_cast<int32>(bReceiveShadow)];
 }
 
-FShaderProgram* FRenderResourceManager::GetUberLitProgram(const FViewRenderMode& Mode, bool bHasNormalMap	)
+FShaderProgram* FRenderResourceManager::GetUberLitProgram(const FViewRenderMode& Mode, bool bHasNormalMap, bool bReceiveShadow)
 {
-	return GetShaderProgram(UberLitPath + GetUberLitSuffix(Mode, bHasNormalMap));
+	return GetShaderProgram(UberLitPath + GetUberLitSuffix(Mode, bHasNormalMap, bReceiveShadow));
 }
 
 void FRenderResourceManager::LoadUberLitPermutations()
@@ -140,16 +141,19 @@ void FRenderResourceManager::LoadUberLitPermutations()
 		{
 			for (int32 NM = 0; NM < 2; ++NM)
 			{
-				if (SM == 0 && NM == 1) continue; // Gouraud shading + Normal Map 스킵
-				const D3D_SHADER_MACRO Defines[] = {
-					{ "VIEWMODE",       Digits[static_cast<int32>(EViewMode::Lit)] },
-					{ "LIGHTING_MODEL", Digits[LM] },
-					{ "SHADING_MODEL",  Digits[SM] },
-					{ "HAS_NORMAL_MAP", Digits[NM]},
-					{ nullptr, nullptr }
-				};
-				const FViewRenderMode Mode{ EViewMode::Lit, static_cast<ELightingModel>(LM), static_cast<EShadingModel>(SM) };
-				LoadOrCompileShader(UberLitPath, GetUberLitSuffix(Mode, NM), Defines);
+				for (int32 RS = 0; RS < 2; ++RS) {
+					if (SM == 0 && NM == 1) continue; // Gouraud shading + Normal Map 스킵
+					const D3D_SHADER_MACRO Defines[] = {
+						{ "VIEWMODE",       Digits[static_cast<int32>(EViewMode::Lit)] },
+						{ "LIGHTING_MODEL", Digits[LM] },
+						{ "SHADING_MODEL",  Digits[SM] },
+						{ "HAS_NORMAL_MAP", Digits[NM] },
+						{ "RECEIVE_SHADOW", Digits[RS] },
+						{ nullptr, nullptr }
+					};
+					const FViewRenderMode Mode{ EViewMode::Lit, static_cast<ELightingModel>(LM), static_cast<EShadingModel>(SM) };
+					LoadOrCompileShader(UberLitPath, GetUberLitSuffix(Mode, NM, RS), Defines);
+				}
 			}
 		}
 	}

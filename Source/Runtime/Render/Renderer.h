@@ -119,7 +119,8 @@ public:
 		const TArray<FPrimitiveSceneProxy*>& Casters,
 		FLightSceneProxy* PreviewShadowMapProxy,
 		FShadowStats& ShadowStats,
-		bool bVisualizeCascades = false);
+		bool bVisualizeCascades = false,
+		bool bCacheHit = false);
 
 	//ImGui용 PreviewSRV 반환
 	//ID3D11ShaderResourceView* GetShadowPreviewSRV() const { return ShadowMapManager.GetPreviewSRV(); }
@@ -142,8 +143,7 @@ private:
 	UMaterial* LastMaterial;
 	UStaticMesh* LastMesh;
 
-	FShaderProgram* ViewModeShader = nullptr;
-	FShaderProgram* ViewModeNormalShader = nullptr;
+	FShaderProgram* ViewModeShaders[2][2] = {};
 
 	// MeasureOpaqueOcclusion 전용. 처음 측정할 때 만들고 이후 재사용한다.
 	TArray<ComPtr<ID3D11Query>> OcclusionQueries;
@@ -159,7 +159,7 @@ private:
 
 	// 이번 프레임 스태틱 메시 묶음 (정렬 키 순). 비어 있지 않은 것만 담는다.
 	std::vector<const FStaticDrawGroup*> StaticGroups;
-	void BindMaterial(UMaterial* material);
+	void BindMaterial(UMaterial* material, bool bReceiveShadow);
 	void UpdateMaterialParams(const FRenderPacket& RenderPacket);
 	void UpdatePerObjectConstants(const FRenderPacket& RenderPacket, const FMatrix& ViewProjection);
 	void EnsurePerObjectSlotCapacity(uint32 SlotCount);

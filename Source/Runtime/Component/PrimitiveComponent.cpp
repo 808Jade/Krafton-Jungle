@@ -83,6 +83,13 @@ bool UPrimitiveComponent::LineTraceComponentLocal(const FRay& LocalRay, float& O
 	return Mesh && TraceMeshLocal(LocalRay, *Mesh, OutT);
 }
 
+void UPrimitiveComponent::PostEditChangeProperty(const FProperty& Property)
+{
+	Super::PostEditChangeProperty(Property);
+	MarkRenderStateDirty();
+}
+
+
 void UPrimitiveComponent::OnTransformDirty()
 {
 	if (SceneProxy)
