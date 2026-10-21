@@ -42,7 +42,7 @@ FShadowInfo UDirectionalLightComponent::GetShadowInfo() const
     ShadowInfo.NormalBias = ShadowNormalBias;
     ShadowInfo.Near = NearClip;
     ShadowInfo.Far = FarClip;
-
+    ShadowInfo.AtlasSize = ShadowResolution;
     return ShadowInfo;
 }
 
