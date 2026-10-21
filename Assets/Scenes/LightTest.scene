@@ -102,6 +102,7 @@
                                     "G": 255,
                                     "R": 255
                                 },
+                                "LightSourceRadius": 0.05000000074505806,
                                 "OuterConeAngle": 44.0,
                                 "ShadowBias": 0.0010000000474974513,
                                 "Transform": {
@@ -337,6 +338,7 @@
                                     "G": 255,
                                     "R": 255
                                 },
+                                "LightSourceRadius": 0.05000000074505806,
                                 "OuterConeAngle": 44.0,
                                 "ShadowBias": 0.0010000000474974513,
                                 "Transform": {
@@ -515,6 +517,7 @@
                                     "G": 255,
                                     "R": 255
                                 },
+                                "LightSourceRadius": 0.05000000074505806,
                                 "OuterConeAngle": 44.0,
                                 "ShadowBias": 0.0010000000474974513,
                                 "Transform": {
@@ -968,7 +971,7 @@
                             "Name": "UPointLightComponent",
                             "Parent": "",
                             "Properties": {
-                                "AttenuationRadius": 27.0,
+                                "AttenuationRadius": 13.199999809265137,
                                 "Intensity": 1.0,
                                 "LightColor": {
                                     "A": 255,
@@ -976,12 +979,13 @@
                                     "G": 255,
                                     "R": 255
                                 },
+                                "LightSourceRadius": 0.05000000074505806,
                                 "ShadowBias": 0.0010000000474974513,
                                 "Transform": {
                                     "Location": {
                                         "X": -7.149837493896484,
                                         "Y": 0.22675442695617676,
-                                        "Z": 0.21438515186309814
+                                        "Z": 0.2136162519454956
                                     },
                                     "Rotation": {
                                         "Pitch": 0.0,
@@ -1294,7 +1298,7 @@
                             "Properties": {
                                 "Transform": {
                                     "Location": {
-                                        "X": -17.866849899291992,
+                                        "X": -11.338027954101563,
                                         "Y": 0.0,
                                         "Z": 0.0
                                     },
@@ -1305,8 +1309,8 @@
                                     },
                                     "Scale": {
                                         "X": 1.0,
-                                        "Y": 32.2668571472168,
-                                        "Z": 23.727815628051758
+                                        "Y": 10.873435020446777,
+                                        "Z": 8.523902893066406
                                     }
                                 }
                             }
@@ -1436,6 +1440,182 @@
                             },
                             "Name": "UBillboardComponent",
                             "Parent": "UDirectionalLightComponent",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bVisible": true
+                            }
+                        }
+                    ],
+                    "Properties": {}
+                },
+                {
+                    "Class": "AStaticMeshActor",
+                    "Components": [
+                        {
+                            "Class": "USceneComponent",
+                            "Name": "DefaultSceneRoot",
+                            "Parent": "",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": -15.668343544006348,
+                                        "Y": 0.47046518325805664,
+                                        "Z": -1.8127517700195313
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 6.22337532043457
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "Class": "UStaticMeshComponent",
+                            "Name": "UStaticMeshComponent",
+                            "OverrideMaterials": [],
+                            "Parent": "DefaultSceneRoot",
+                            "Properties": {
+                                "StaticMesh": "Cube",
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bVisible": true
+                            }
+                        }
+                    ],
+                    "Properties": {}
+                },
+                {
+                    "Class": "APointLightActor",
+                    "Components": [
+                        {
+                            "Class": "USceneComponent",
+                            "Name": "DefaultSceneRoot",
+                            "Parent": "",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "Class": "UPointLightComponent",
+                            "Name": "UPointLightComponent",
+                            "Parent": "",
+                            "Properties": {
+                                "AttenuationRadius": 35.79999923706055,
+                                "Intensity": 1.0,
+                                "LightColor": {
+                                    "A": 255,
+                                    "B": 255,
+                                    "G": 255,
+                                    "R": 255
+                                },
+                                "LightSourceRadius": 0.05000000074505806,
+                                "ShadowBias": 0.0010000000474974513,
+                                "Transform": {
+                                    "Location": {
+                                        "X": -14.570135116577148,
+                                        "Y": -1.024224042892456,
+                                        "Z": 3.3499999046325684
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bVisible": true
+                            }
+                        },
+                        {
+                            "Class": "UBillboardComponent",
+                            "Material": {
+                                "Base": "BillboardMaterial",
+                                "Instance": {
+                                    "BaseColor": {
+                                        "A": 1.0,
+                                        "B": 1.0,
+                                        "G": 1.0,
+                                        "R": 1.0
+                                    },
+                                    "BlendState": "AlphaBlend",
+                                    "Properties": {},
+                                    "SamplerState": "LinearClamp",
+                                    "Shininess": 32.0,
+                                    "SpecularColor": {
+                                        "A": 1.0,
+                                        "B": 0.5,
+                                        "G": 0.5,
+                                        "R": 0.5
+                                    },
+                                    "Textures": [
+                                        "Resources/Icons/PointLight_64x.png"
+                                    ],
+                                    "UVScrollSpeed": [
+                                        0.0,
+                                        0.0
+                                    ],
+                                    "bFlipNormalGreen": false
+                                }
+                            },
+                            "Name": "UBillboardComponent",
+                            "Parent": "UPointLightComponent",
                             "Properties": {
                                 "Transform": {
                                     "Location": {

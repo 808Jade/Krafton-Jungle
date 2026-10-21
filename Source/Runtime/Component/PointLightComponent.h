@@ -9,6 +9,7 @@ class UPointLightComponent : public ULightComponent
 	DECLARE_CLASS(UPointLightComponent, ULightComponent)
 	REFLECT_START(UPointLightComponent)
 		PROPERTY(AttenuationRadius)
+		PROPERTY(LightSourceRadius)
 	REFLECT_END()
 
 public:
@@ -25,4 +26,5 @@ public:
 
 protected:
 	float AttenuationRadius = 10.0f;
+	float LightSourceRadius = 0.05f;
 };

@@ -81,6 +81,9 @@ FShadowInfo USpotLightComponent::GetShadowInfo() const
 	float FOV = FMath::Clamp<float>(OuterConeAngle * 2.f, 2.f, 160.f);
 	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(false, AttenuationRadius, FOV, 1.f);
 	ShadowInfo.Bias = GetShadowBias();
+	ShadowInfo.Near = NearClipPlane;
+	ShadowInfo.Far = AttenuationRadius;
+	ShadowInfo.LightSize = LightSourceRadius;
 	return ShadowInfo;
 }
 
