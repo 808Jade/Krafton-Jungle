@@ -34,6 +34,12 @@
 
 #define GOURAUD (VIEWMODE == VIEWMODE_LIT && SHADING_MODEL == SHADING_MODEL_GOURAUD)
 
+// EShadowFilterMode(ShadowFilterSettings.h)와 순서가 같아야 한다.
+#define SHADOW_FILTER_HARD   0
+#define SHADOW_FILTER_HW_PCF 1
+#define SHADOW_FILTER_PCF    2
+#define SHADOW_FILTER_PCSS   3
+
 struct FAmbientLightInfo
 {
     float3 Color;
@@ -167,12 +173,6 @@ cbuffer DirectionalShadowConstants : register(b5)
     float NormalBias;
     float2 CSMPadding;
 };
-
-// EShadowFilterMode(ShadowFilterSettings.h)와 순서가 같아야 한다.
-#define SHADOW_FILTER_HARD   0
-#define SHADOW_FILTER_HW_PCF 1
-#define SHADOW_FILTER_PCF    2
-#define SHADOW_FILTER_PCSS   3
 
 // Settings 창의 그림자 필터 옵션 (FShadowFilterConstants와 같은 레이아웃)
 cbuffer ShadowFilterConstants : register(b6)
@@ -394,10 +394,8 @@ float PCF_CmpLinear_Software3x3(float2 TexelSize, float2 UV, float TextureIndex,
     return Lit;
 }
 
-// ---------------------------------------------------------------------------
 // 다중 탭 필터 공용 함수 (PCF, PCSS)
 // 탭 위치는 반지름 1 기준이고, 호출하는 쪽에서 반경(아틀라스 UV)을 곱한다.
-// ---------------------------------------------------------------------------
 
 // 탭 수: Poisson 16, 격자 5x5 = 25
 uint GetShadowTapCount()
@@ -514,7 +512,7 @@ float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition, float2 PixelP
     //Receiver의 NDC 좌표 = Light 기준의 Depth를 구할 수 있다.
     float3 Ndc = LightClip.xyz / LightClip.w;
 
-    //NDC → UV. D3D 텍스처는 v가 아래로 증가하므로 y를 뒤집는다
+    //NDC -> UV. D3D 텍스처는 v가 아래로 증가하므로 y를 뒤집는다
     float2 UV = float2(Ndc.x * 0.5f + 0.5f, 1.0f - (Ndc.y * 0.5f + 0.5f));
 
     //범위 검사: 섀도맵 밖이거나 Far 너머면 그림자 판정 불가 : 빛 받음
