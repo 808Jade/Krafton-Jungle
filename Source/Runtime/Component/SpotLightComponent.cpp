@@ -78,6 +78,7 @@ FShadowInfo USpotLightComponent::GetShadowInfo() const
 	ShadowInfo.Near = NearClipPlane;
 	ShadowInfo.Far = AttenuationRadius;
 	ShadowInfo.LightSize = LightSourceRadius;
+	ShadowInfo.AtlasSize = ShadowResolution;
 	return ShadowInfo;
 }
 
