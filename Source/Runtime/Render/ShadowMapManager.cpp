@@ -334,8 +334,7 @@ void FShadowMapManager::ComputeCascadeLightMatrices(
         const FVector Center(InOutCascadeSpheres[i].X, InOutCascadeSpheres[i].Y, InOutCascadeSpheres[i].Z);
         const float Radius = InOutCascadeSpheres[i].W;
 
-        // 3. 텍셀 스내핑 (Texel Snapping - 섀도우 지터링 방지)
-        // 월드 원점 (0,0,0) 기준 라이트 기저 공간에서의 구체 중심 좌표(Center·Right, Center·Up)를 텍셀 단위로 스냅
+        // 3. 텍셀 스내핑 (섀도우 지터링 방지)
         FVector SnappedCenter = Center;
         if (CascadeResolution > 0)
         {
@@ -361,11 +360,10 @@ void FShadowMapManager::ComputeCascadeLightMatrices(
         const float BackDistance = Radius * 2.0f;
         const FVector Eye = SnappedCenter - Forward * BackDistance;
 
-        // Light View 행렬: Translation(-Eye) * Rotation
+        // Light View 행렬
         const FMatrix View = FMatrix::MakeTranslation(Eye * -1.0f) * Rotation;
 
         // 4. 직교 투영 (Orthographic Projection) 행렬
-        // View 공간: X = Depth [0.1f, Radius * 4.0f], Y = Width [-Radius, +Radius], Z = Height [-Radius, +Radius]
         const float Width = 2.0f * Radius;
         const float Height = Width;
         const float NearClip = 0.1f;
