@@ -24,6 +24,8 @@ void FScene::AddPrimitive(UPrimitiveComponent* Component)
 
 void FScene::RemovePrimitive(UPrimitiveComponent* Component)
 {
+	MarkShadowDirty();
+
 	if (!Component || !Component->SceneProxy) return;
 
 	FPrimitiveSceneProxy* Proxy = Component->SceneProxy;
@@ -133,6 +135,7 @@ void FScene::AddLight(ULightComponentBase* Component)
 
 void FScene::RemoveLight(ULightComponentBase* Component)
 {
+	MarkShadowDirty();
 	if (!Component || !Component->SceneProxy) return;
 
 	FLightSceneProxy* Proxy = Component->SceneProxy;
@@ -164,6 +167,7 @@ void FScene::RemoveAllLights()
 
 void FScene::MarkLightDirty(FLightSceneProxy* Proxy)
 {
+	MarkShadowDirty();
 	if (Proxy->bQueuedForUpdate) return;
 	Proxy->bQueuedForUpdate = true;
 	DirtyLights.Add(Proxy);
@@ -284,6 +288,7 @@ void FScene::BuildBVH()
 
 void FScene::MarkDirty(FPrimitiveSceneProxy* Proxy)
 {
+	MarkShadowDirty();
 	if (Proxy->bQueuedForUpdate) return;            // 중복 추가 방지
 	Proxy->bQueuedForUpdate = true;
 	DirtyProxies.Add(Proxy);
@@ -291,6 +296,7 @@ void FScene::MarkDirty(FPrimitiveSceneProxy* Proxy)
 
 void FScene::MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy)
 {
+	MarkShadowDirty();
 	if (!Proxy || Proxy->bRenderStateQueued) return;
 	Proxy->bRenderStateQueued = true;
 	RenderStateDirtyProxies.Add(Proxy);

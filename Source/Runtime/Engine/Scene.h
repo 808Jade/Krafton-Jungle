@@ -55,6 +55,10 @@ public:
 
 	bool IsDrawSize(const FLightSceneProxy* Proxy, const FVector& cameraPos) const;
 
+	void MarkShadowDirty() { bShadowDirty = true; }
+	bool IsShadowDirty() const { return bShadowDirty; }
+	void ClearShadowDirty() { bShadowDirty = false; }
+
 	// TODO : 인자를 줄입시다.......................... 
 	void BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, 
 		TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, 
@@ -83,4 +87,5 @@ public:
 		}
 	};
 	bool bElementListChanged = false;
+	bool bShadowDirty = true;
 };

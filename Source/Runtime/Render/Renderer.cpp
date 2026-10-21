@@ -636,7 +636,8 @@ void FRenderer::RenderShadowPass(
 	const TArray<FPrimitiveSceneProxy*>& Casters,
 	FLightSceneProxy* PreviewShadowMapProxy,
 	FShadowStats& ShadowStats,
-	bool bVisualizeCascades)
+	bool bVisualizeCascades,
+	bool bCacheHit)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Shadow);
 
@@ -675,9 +676,6 @@ void FRenderer::RenderShadowPass(
 	RenderCommand::BindConstantBuffer(0, ShadowViewCB.get(), EShaderBindFlagBits::Vertex);
 	RenderCommand::BindConstantBuffer(2, PerObjectCB.get(), EShaderBindFlagBits::Vertex);
 
-
-	ShadowMapManager.ClearAtlas();
-
 	// 아틀라스
 	// 캐스터 메쉬들을 그리는 공통 람다
 	auto DrawCasters = [&]()
@@ -703,7 +701,6 @@ void FRenderer::RenderShadowPass(
 				}
 			}
 		};
-
 	if (DirectionalShadow != nullptr)
 	{
 		// 4개의 캐스케이드를 4096 Atlas의 2x2 분할 영역에 각각 렌더
@@ -717,23 +714,28 @@ void FRenderer::RenderShadowPass(
 		ShadowMapManager.EndDirectionalShadowRender();
 	}
 
-	//층(라이트)마다
-	for (int32 Slice = 0; Slice < ShadowInfos.Num(); ++Slice)
+	if (!bCacheHit)
 	{
-		//렌더 전 개별 바인딩
-		ShadowMapManager.BeginShadowRenderWithAtlas(ShadowInfos[Slice]);
+		ShadowMapManager.ClearAtlas();
+
+		//층(라이트)마다
+		for (int32 Slice = 0; Slice < ShadowInfos.Num(); ++Slice)
+		{
+			//렌더 전 개별 바인딩
+			ShadowMapManager.BeginShadowRenderWithAtlas(ShadowInfos[Slice]);
 
 
-		//라이트마다의 VP 행렬 Map Unmap
-		RenderCommand::UpdateBufferData(ShadowViewCB.get(), &ShadowInfos[Slice].LightViewProjection, sizeof(FMatrix));
+			//라이트마다의 VP 행렬 Map Unmap
+			RenderCommand::UpdateBufferData(ShadowViewCB.get(), &ShadowInfos[Slice].LightViewProjection, sizeof(FMatrix));
 
-		DrawCasters();
-	}
+			DrawCasters();
+		}
 
-	//DSV 해제
-	if (ShadowInfos.Num() > 0)
-	{
-		ShadowMapManager.EndShadowPass();
+		//DSV 해제
+		if (ShadowInfos.Num() > 0)
+		{
+			ShadowMapManager.EndShadowPass();
+		}
 	}
 
 	// TODO : 아틀라스 프리뷰
