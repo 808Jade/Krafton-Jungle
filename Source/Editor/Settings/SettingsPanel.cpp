@@ -83,6 +83,35 @@ void FSettingsPanel::OnRender()
 	//////////////////////////////////////////////////////////
 
 	ImGui::Dummy(ImVec2(0.0f, SectionGap));
+	ImGui::SeparatorText("Shadow Filter");
+
+	ImGui::BeginDisabled(!Settings.bDrawShadows);
+	ImGui::Combo("Filter Mode", &Settings.ShadowFilterMode, ShadowFilterModeNames, static_cast<int>(EShadowFilterMode::Count));
+	ImGui::SetItemTooltip("Hard: Point 1 tap / HardwarePCF: Comparison 1 tap / PCF: fixed radius / PCSS: variable radius");
+
+	// 1탭 방식(Hard, HardwarePCF)에는 탭 배치·가중치·회전이 의미가 없다
+	const bool bMultiTap = Settings.ShadowFilterMode >= static_cast<int32>(EShadowFilterMode::PCF);
+	ImGui::BeginDisabled(!bMultiTap);
+	ImGui::Checkbox("Poisson", &Settings.bShadowPoisson);
+	ImGui::SetItemTooltip("Off: 5x5 grid taps");
+	ImGui::Checkbox("Gaussian", &Settings.bShadowGaussian);
+	ImGui::BeginDisabled(!Settings.bShadowPoisson);
+	ImGui::Checkbox("Pixel Rotation", &Settings.bShadowRotate);
+	ImGui::EndDisabled();
+	if (Settings.ShadowFilterMode == static_cast<int32>(EShadowFilterMode::PCF))
+	{
+		ImGui::SliderFloat("PCF Radius (texels)", &Settings.ShadowPCFRadiusTexels, 0.5f, 8.0f, "%.1f");
+	}
+	else
+	{
+		ImGui::SliderFloat("Max Filter (texels)", &Settings.ShadowMaxFilterTexels, 1.0f, 64.0f, "%.0f");
+	}
+	ImGui::EndDisabled();
+	ImGui::EndDisabled();
+
+	//////////////////////////////////////////////////////////
+
+	ImGui::Dummy(ImVec2(0.0f, SectionGap));
 	ImGui::SeparatorText("Grid");
 
 	ImGui::BeginDisabled(!Settings.bDrawGrid);
@@ -157,6 +186,15 @@ bool FSettingsPanel::SaveSettings() const
 	File << "LinearWorkflow=" << Settings.bLinearWorkflow << "\n";
 	File << "ToneMapping=" << Settings.bToneMapping << "\n";
 	File << "ExposureEV=" << Settings.ExposureEV << "\n";
+	File << "\n";
+
+	File << "[ShadowFilter]\n";
+	File << "ShadowFilterMode=" << ShadowFilterModeNames[FMath::Clamp(Settings.ShadowFilterMode, 0, static_cast<int32>(EShadowFilterMode::Count) - 1)] << "\n";
+	File << "ShadowPoisson=" << Settings.bShadowPoisson << "\n";
+	File << "ShadowGaussian=" << Settings.bShadowGaussian << "\n";
+	File << "ShadowRotate=" << Settings.bShadowRotate << "\n";
+	File << "ShadowPCFRadiusTexels=" << Settings.ShadowPCFRadiusTexels << "\n";
+	File << "ShadowMaxFilterTexels=" << Settings.ShadowMaxFilterTexels << "\n";
 	File << "\n";
 
 	File << "[Grid]\n";
@@ -301,6 +339,19 @@ bool FSettingsPanel::LoadSettings()
 				else if (Key == "LinearWorkflow") Settings.bLinearWorkflow = std::stoi(ValueStr);
 				else if (Key == "ToneMapping") Settings.bToneMapping = std::stoi(ValueStr);
 				else if (Key == "ExposureEV") Settings.ExposureEV = std::stof(ValueStr);
+
+				else if (Key == "ShadowFilterMode")
+				{
+					// 이름으로 저장한다. 모르는 이름이면 기본값(PCSS)을 유지한다.
+					EShadowFilterMode Mode = static_cast<EShadowFilterMode>(Settings.ShadowFilterMode);
+					if (TryParseModeName(ValueStr, ShadowFilterModeNames, Mode))
+						Settings.ShadowFilterMode = static_cast<int32>(Mode);
+				}
+				else if (Key == "ShadowPoisson") Settings.bShadowPoisson = std::stoi(ValueStr);
+				else if (Key == "ShadowGaussian") Settings.bShadowGaussian = std::stoi(ValueStr);
+				else if (Key == "ShadowRotate") Settings.bShadowRotate = std::stoi(ValueStr);
+				else if (Key == "ShadowPCFRadiusTexels") Settings.ShadowPCFRadiusTexels = FMath::Clamp(std::stof(ValueStr), 0.5f, 8.0f);
+				else if (Key == "ShadowMaxFilterTexels") Settings.ShadowMaxFilterTexels = FMath::Clamp(std::stof(ValueStr), 1.0f, 64.0f);
 
 				else if (Key == "GridSpacing") Settings.GridSpacing = std::stoi(ValueStr);
 

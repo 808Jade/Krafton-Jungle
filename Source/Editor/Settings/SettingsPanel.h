@@ -5,6 +5,7 @@
 #include "Math/Quat.h"
 #include "Math/Vector.h"
 #include "Render/ViewMode.h"
+#include "Render/ShadowFilterSettings.h"
 class FMultipleViewportsAdapter;
 
 class UWorld;
@@ -31,6 +32,14 @@ struct FEditorSettings
 	bool bToneMapping = true;
 	// ACES fitted는 중간 회색(0.18)을 어둡게 내리므로, +0.6EV에서 톤매핑 전과 비슷한 밝기가 된다
 	float ExposureEV = 0.6f;
+
+	// Shadow Filter: 방식은 하나만, Poisson, Gaussian, Rotation은 다중 탭 방식(PCF, PCSS)에 추가되는 옵션
+	int32 ShadowFilterMode = static_cast<int32>(EShadowFilterMode::PCSS);
+	bool bShadowPoisson = true;
+	bool bShadowGaussian = false;
+	bool bShadowRotate = true;
+	float ShadowPCFRadiusTexels = 1.5f;
+	float ShadowMaxFilterTexels = 32.0f;
 
 	// Grid
 	int32 GridSpacing = 1;

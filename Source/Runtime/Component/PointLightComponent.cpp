@@ -31,42 +31,45 @@ void UPointLightComponent::GetShadowInfo(TArray<FShadowInfo>& OutShadowInfo) con
 	//ViewProjection이 달라서 월드 축 6방향으로 찍는다.
 	OutShadowInfo.Reset();
 
+	float FOV = 93.6f;
+
 	FShadowInfo ShadowInfo;
 	ShadowInfo.Bias = GetShadowBias();
 	ShadowInfo.Near = NearClipPlane;
 	ShadowInfo.Far = AttenuationRadius;
 	ShadowInfo.LightSize = LightSourceRadius;
+	ShadowInfo.ProjScale = 1.f / (2.f * std::tan(FMath::DegreesToRadians(FOV) * 0.5f));
 	ShadowInfo.AtlasSize = ShadowResolution;
 
 	//FRotator Pitch Yaw Roll 순서
 	//Forward 0.f, 0.f, 0.f
 	FRotator Rotator = FRotator(0.f, 0.f, 0.f);
-	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, 90.f, 1.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, FOV, 1.f);
 	OutShadowInfo.Add(ShadowInfo);
 
 	//Back 0.f, 180.f, 0.f
 	Rotator = FRotator(0.f, 180.f, 0.f);
-	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, 90.f, 1.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, FOV, 1.f);
 	OutShadowInfo.Add(ShadowInfo);
 
 	//Right 0.f, 90.f, 0.f
 	Rotator = FRotator(0.f, 90.f, 0.f);
-	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, 90.f, 1.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, FOV, 1.f);
 	OutShadowInfo.Add(ShadowInfo);
 
 	//Left 0.f, -90.f, 0.f
 	Rotator = FRotator(0.f, -90.f, 0.f);
-	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, 90.f, 1.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, FOV, 1.f);
 	OutShadowInfo.Add(ShadowInfo);
 
 	//Up -90.f, 0.f, 0.f
 	Rotator = FRotator(-90.f, 0.f, 0.f);
-	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, 90.f, 1.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, FOV, 1.f);
 	OutShadowInfo.Add(ShadowInfo);
 
 	//Down 90.f, 0.f, 0.f
 	Rotator = FRotator(90.f, 0.f, 0.f);
-	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, 90.f, 1.f);
+	ShadowInfo.LightViewProjection = GetViewProjectionMatrix(Rotator, false, AttenuationRadius, FOV, 1.f);
 	OutShadowInfo.Add(ShadowInfo);
 }
 

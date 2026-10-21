@@ -108,6 +108,11 @@ public:
 
 	void EnsureTileLightCapacity(const FMatrix& ViewProjection, uint32 Width, uint32 Height, bool bVisualizeLightCount);
 
+	//void RenderShadowPass(const FShadowInfo* DirectionalShadow, TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy, FShadowStats& ShadowStats);
+
+	// Settings의 그림자 필터 옵션. BindForShading에서 b6으로 바인딩된다.
+	void SetShadowFilterSettings(const FShadowFilterSettings& Settings) { ShadowMapManager.SetFilterSettings(Settings); }
+
 	void RenderShadowPass(
 		const FShadowInfo* DirectionalShadow,
 		const FVector& LightDirection,
