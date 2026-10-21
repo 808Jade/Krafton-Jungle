@@ -31,7 +31,7 @@ struct FLightRenderParameters
     float BarnDoorSin;
     float BarnDoorLength;
     uint ShadowIndex;       // LightShadows에서 첫 그림자 뷰 위치, 없으면 INVALID_SHADOW_INDEX
-    float ShadowAngularRadius;
+    float SourceSize;       // Directional: tan(angular radius), Point/Spot: world radius
 };
 
 struct FLightShadowRenderData

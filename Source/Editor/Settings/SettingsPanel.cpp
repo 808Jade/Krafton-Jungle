@@ -553,7 +553,7 @@ void FSettingsPanel::DrawShadowMapSettings()
 		Settings.SpotShadowMapSizeLevel = FMath::Clamp(Settings.SpotShadowMapSizeLevel, 0, IM_ARRAYSIZE(QualityLevelStr) - 1);
 	}
 
-	const char* PcfModes[] = { "Off", "On (3x3)", "4x4", "5x5", "PCSS" };
+	const char* PcfModes[] = { "Off", "8 (Samples)", "16 (Samples)", "32 (Samples)", "PCSS" };
 	int PcfModeIndex = static_cast<int>(Settings.PcfMode);
 	ImGui::SetNextItemWidth(200.0f);
 	if (ImGui::Combo("Shadow Filter", &PcfModeIndex, PcfModes, IM_ARRAYSIZE(PcfModes)))

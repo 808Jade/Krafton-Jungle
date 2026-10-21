@@ -20,7 +20,7 @@ struct FEditorSettings
 	bool bDrawPrimitives = true;
 	bool bShowShadow = true;
 	bool bCacheShadows = true; // r.Shadow.CacheWholeSceneShadows
-	EPcfMode PcfMode = EPcfMode::On;
+	EPcfMode PcfMode = EPcfMode::Sample8;
 	bool bDrawBoundingBox = false;
 	bool bShowUUID = false;
 	bool bDrawBatchLine = true;

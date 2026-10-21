@@ -26,11 +26,11 @@ struct FLightRenderParameters
 	float BarnDoorLength;
 	// LightShadows에서 이 광원의 첫 그림자 뷰 위치. 그림자가 없으면 InvalidShadowIndex.
 	uint32 ShadowIndex;
-	float ShadowAngularRadius;
+	float SourceSize; // Directional: tan(angular radius), Point/Spot: world radius
 
 	static constexpr uint32 InvalidShadowIndex = 0xFFFFFFFFu;
 };
 
 static_assert(sizeof(FLightRenderParameters) == 100, "sizeof(LightData.hlsli FLightRenderParameters) == sizeof(FLightRenderParameters)");
 static_assert(offsetof(FLightRenderParameters, ShadowIndex) == 92);
-static_assert(offsetof(FLightRenderParameters, ShadowAngularRadius) == 96);
+static_assert(offsetof(FLightRenderParameters, SourceSize) == 96);

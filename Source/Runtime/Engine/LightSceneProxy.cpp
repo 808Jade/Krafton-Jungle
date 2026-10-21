@@ -21,7 +21,7 @@ void FDirectionalLightSceneProxy::GetLightShaderParameters(FLightRenderParameter
 	Out.Direction = Transform.GetForward();
 	Out.Color = FVector(Color.R, Color.G, Color.B);
 	Out.Intensity = Dir->GetIntensity();
-	Out.ShadowAngularRadius = FMath::DegreesToRadians(FMath::Clamp(Dir->GetAngularRadiusDegrees(), 0.0f, 10.0f));
+	Out.SourceSize = std::tan(FMath::DegreesToRadians(FMath::Clamp(Dir->GetAngularRadiusDegrees(), 0.0f, 10.0f)));
 }
 
 void FPointLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out) const
@@ -36,6 +36,7 @@ void FPointLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out
 	Out.Color = FVector(Color.R, Color.G, Color.B);
 	Out.Intensity = PointLightComponent->GetIntensity();
 	Out.FalloffExponent = PointLightComponent->GetFalloff();
+	Out.SourceSize = PointLightComponent->GetSourceRadius();
 }
 
 void FSpotLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out) const
@@ -60,6 +61,7 @@ void FSpotLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out)
 	Out.Direction = Transform.GetForward();
 	Out.InnerConeCos = std::cos(FMath::DegreesToRadians(Inner));
 	Out.OuterConeCos = std::cos(FMath::DegreesToRadians(Outer));
+	Out.SourceSize = SpotLightComponent->GetSourceRadius();
 }
 
 void FRectLightSceneProxy::GetLightShaderParameters(FLightRenderParameters& Out) const
