@@ -6,6 +6,8 @@
 
 class FLightSceneProxy;
 
+
+
 class FShadowMapManager
 {
 public:
@@ -24,6 +26,9 @@ public:
 		
 	//그리기 전 바인딩
 	void BeginShadowRender(uint32 Slice);
+
+	void ClearAtlas();
+
 	//그리고 나서 해제
 	void EndShadowPass();
 
@@ -60,13 +65,25 @@ public:
 	const FMatrix& GetCascadeMatrix(uint32 CascadeIndex) const { return CachedCascadeMatrices[CascadeIndex]; }
 
 	//Imgui
-	void UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy);
+	void UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy, const TArray<FShadowInfo>& ShadowInfos);
+
+	// Atlas
+	void BuildAtlas(TArray<FShadowInfo>& ShadowInfos);
+
+	void BeginShadowRenderWithAtlas(const FShadowInfo& ShadowInfo);
+
+	uint32 GetAtlasResolution() { return AtlasResolution; }
+	uint32 GetNumAtlas() { return NumAtlas; }
 
 private:
 	// 해상도, 층 수가 바뀔 때만 리소스와 뷰를 다시 만든다
 	bool EnsureShadowMaps(uint32 InResolution, uint32 InNumSlices);
+	
 	bool EnsureShadowInfoCapacity(uint32 RequiredCount);	
 	bool EnsureDirectionalShadowMap(uint32 InResolution);
+
+	// 아틀라스 섀도우 맵 만들기
+	bool EnsureShadowMapAtlas(uint32 InResolution, uint32 InNumSlices);
 
 	ComPtr<ID3D11Buffer> ShadowInfoBuffer;
 	ComPtr<ID3D11ShaderResourceView> ShadowInfoSRV;
@@ -74,6 +91,10 @@ private:
 	ComPtr<ID3D11Texture2D> ShadowMapArrayBuffer;
 	ComPtr<ID3D11ShaderResourceView> ShadowMapArraySRV;
 	TArray<ComPtr<ID3D11DepthStencilView>> ShadowDepthView;
+
+	ComPtr<ID3D11Texture2D> ShadowMapAtlasBuffer;
+	ComPtr<ID3D11ShaderResourceView> ShadowMapAtlasArraySRV;
+	TArray<ComPtr<ID3D11DepthStencilView>> ShadowAtlasDepthView;
 	
 	ComPtr<ID3D11Texture2D> DirectionalShadowTexture;
 	ComPtr<ID3D11ShaderResourceView> DirectionalShadowSRV;
@@ -88,6 +109,14 @@ private:
 	uint32 ShadowMapCapacity = 0;
 	uint32 NumShadowMaps = 0;
 
-	uint32 Resolution = 0;
+	uint32 Resolution = 1024;
 	uint32 NumSlices = 0;
+
+	uint32 AtlasResolution = 4096;
+	uint32 NumAtlas = 1;
+
+	// 프리뷰는 섀도우 매니저가 들고 있는다.
+	TArray<ComPtr<ID3D11Texture2D>> PreviewShadowTextures;
+	TArray<ComPtr<ID3D11ShaderResourceView>> PreviewShadowSRVs;
+	// Point Light 는 섀도우 맵이 6개임. 아틀라스 여러개에 걸쳐있을 수 있기 때문에 Array로 관리.
 };

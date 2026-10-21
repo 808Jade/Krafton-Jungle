@@ -115,7 +115,7 @@ public:
 		const FVector& CameraForward,
 		float FovDegrees,
 		float AspectRatio,
-		const TArray<FShadowInfo>& ShadowInfos,
+		TArray<FShadowInfo>& ShadowInfos,
 		const TArray<FPrimitiveSceneProxy*>& Casters,
 		FLightSceneProxy* PreviewShadowMapProxy,
 		FShadowStats& ShadowStats,

@@ -306,9 +306,6 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 	{
 		// 안 보이거나 그림자가 없으면 -1로 남는다
 		Proxy->ShadowIndex = -1;
-		//ShadowPreview 초기화
-		//매프레임 Preview 요청이 있는 것만 복사하게 된다.
-		//Proxy->GetShadowPreview().Reset();
 
 		if (!Proxy->IsVisible())
 		{
@@ -336,17 +333,20 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 		{
 			FPointLightSceneProxy* PointProxy = static_cast<FPointLightSceneProxy*>(Proxy);
 			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
-			FShadowInfo PointShadowInfo = PointProxy->GetShadowInfo();
+			const TArray<FShadowInfo>& PointShadowInfos = PointProxy->GetShadowInfos();
 
-			if (bShadow) {
-				PointLightInfo.ShadowIndex = OutShadowInfo.Add(PointShadowInfo);
+			//추가하기 전 개수가 시작 인덱스이다.
+			if (bShadow)
+			{
+				PointLightInfo.ShadowIndex = OutShadowInfo.Num();
 				Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
+				OutShadowInfo.Append(PointShadowInfos);
 			}
 
 			OutPointLight.Add(PointLightInfo);
 			ShadowStats.PointLightCount++;
 			break;
-		}			
+		}
 		case ELightType::Spot:
 		{
 			FSpotLightSceneProxy* SpotProxy = static_cast<FSpotLightSceneProxy*>(Proxy);

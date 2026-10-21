@@ -610,7 +610,7 @@ void FRenderer::RenderShadowPass(
 	const FVector& CameraForward,
 	float FovDegrees,
 	float AspectRatio,
-	const TArray<FShadowInfo>& ShadowInfos,
+	TArray<FShadowInfo>& ShadowInfos,
 	const TArray<FPrimitiveSceneProxy*>& Casters,
 	FLightSceneProxy* PreviewShadowMapProxy,
 	FShadowStats& ShadowStats,
@@ -620,6 +620,10 @@ void FRenderer::RenderShadowPass(
 
 	//이전 pass에서의 바인딩을 끊는다.
 	ShadowMapManager.UnbindForShading();
+	
+	// Shadow Atlas 를 계산한다.
+	ShadowMapManager.BuildAtlas(ShadowInfos);
+
 
 	// Directional 상수 버퍼 준비 (카메라 기준 4개 외접구 및 Light VP 행렬 계산 후 b5 업로드)
 	if (DirectionalShadow != nullptr)
@@ -649,6 +653,10 @@ void FRenderer::RenderShadowPass(
 	RenderCommand::BindConstantBuffer(0, ShadowViewCB.get(), EShaderBindFlagBits::Vertex);
 	RenderCommand::BindConstantBuffer(2, PerObjectCB.get(), EShaderBindFlagBits::Vertex);
 
+
+	ShadowMapManager.ClearAtlas();
+
+	// 아틀라스
 	// 캐스터 메쉬들을 그리는 공통 람다
 	auto DrawCasters = [&]()
 		{
@@ -687,27 +695,31 @@ void FRenderer::RenderShadowPass(
 	for (int32 Slice = 0; Slice < ShadowInfos.Num(); ++Slice)
 	{
 		//렌더 전 개별 바인딩
-		ShadowMapManager.BeginShadowRender(static_cast<uint32>(Slice));
+		ShadowMapManager.BeginShadowRenderWithAtlas(ShadowInfos[Slice]);
+
 
 		//라이트마다의 VP 행렬 Map Unmap
 		RenderCommand::UpdateBufferData(ShadowViewCB.get(), &ShadowInfos[Slice].LightViewProjection, sizeof(FMatrix));
 
 		DrawCasters();
 	}
+
 	//DSV 해제
 	if (ShadowInfos.Num() > 0)
 	{
 		ShadowMapManager.EndShadowPass();
 	}
 
+	// TODO : 아틀라스 프리뷰
 	//Preview 인덱스의 ShadowMap 서브 리소스를 복사한다.
 	if (PreviewShadowMapProxy != nullptr)
 	{
-		ShadowMapManager.UpdatePreview(PreviewShadowMapProxy);
+		ShadowMapManager.UpdatePreview(PreviewShadowMapProxy, ShadowInfos);
 	}
 
 	//Opaque에서 읽도록 SRV 바인딩
 	ShadowMapManager.BindForShading();
+
 
 	int32 RenderedCount = ShadowInfos.Num();
 	if (DirectionalShadow != nullptr)
@@ -716,10 +728,11 @@ void FRenderer::RenderShadowPass(
 	}
 	ShadowStats.NumShadowMapsRendered = RenderedCount;
 
-	int64 TotalBytes = (int64)ShadowMapManager.GetResolution() * ShadowMapManager.GetResolution() * 4 * ShadowMapManager.GetNumSlices();
+	int64 TotalBytes = (int64)ShadowMapManager.GetAtlasResolution() * ShadowMapManager.GetAtlasResolution() * 4 * ShadowMapManager.GetNumAtlas();
 	if (DirectionalShadow != nullptr)
 	{
 		TotalBytes += (int64)ShadowMapManager.GetDirectionalResolution() * ShadowMapManager.GetDirectionalResolution() * 4;
 	}
 	ShadowStats.ShadowMapMemoryBytes = TotalBytes;
+
 }

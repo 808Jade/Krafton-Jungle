@@ -16,8 +16,9 @@ void FShadowMapManager::UploadShadowInfos(const TArray<FShadowInfo>& ShadowInfos
         return;
     }
 
-    // @todo 일단 해상도 512로 하드코딩
-    EnsureShadowMaps(512, NumShadowInfos);
+    // 일단 아틀라스 해상도 4096으로 하드코딩
+    EnsureShadowMapAtlas(4096, NumAtlas);
+
 
     ID3D11DeviceContext* Context = RenderCommand::GetContext();
     D3D11_MAPPED_SUBRESOURCE Mapped{};
@@ -92,6 +93,9 @@ bool FShadowMapManager::EnsureShadowMaps(uint32 InResolution, uint32 InNumSlices
         assert(false);
     }
 
+    
+
+
     // DSV: 층마다 하나씩 (그릴 때는 한 층만 대상)
     for (uint32 i = 0; i < NumSlices; ++i)
     {
@@ -125,6 +129,86 @@ bool FShadowMapManager::EnsureShadowMaps(uint32 InResolution, uint32 InNumSlices
     return true;
 }
 
+bool FShadowMapManager::EnsureShadowMapAtlas(uint32 InNewAtlasResolution, uint32 InNewNumAtlas)
+{
+    //개수가 바뀐다면, 해상도가 바뀐다면
+    if (ShadowMapAtlasBuffer && ShadowMapAtlasArraySRV &&
+        InNewNumAtlas == static_cast<uint32>(ShadowAtlasDepthView.Num()) && AtlasResolution == InNewAtlasResolution)
+    {
+        return true;
+    }
+
+    NumAtlas = InNewNumAtlas;
+    NumAtlas = std::max(NumAtlas, 1u);
+    AtlasResolution = InNewAtlasResolution;
+
+    ShadowMapAtlasBuffer.Reset();
+    for (uint32 i = 0; i < ShadowAtlasDepthView.Num(); i++)
+    {
+        ShadowAtlasDepthView[i].Reset();
+    }
+    ShadowAtlasDepthView.Empty();
+    ShadowAtlasDepthView.SetNum(NumAtlas);
+
+    ShadowMapAtlasArraySRV.Reset();
+
+
+    ID3D11Device* Device = RenderCommand::GetDevice();
+
+    D3D11_TEXTURE2D_DESC Desc{};
+    // 정사각형
+    Desc.Width = AtlasResolution;
+    Desc.Height = AtlasResolution;
+    Desc.MipLevels = 1;
+    // 층 수 (Spot 수 + Point 수 × 6 ...)
+    Desc.ArraySize = NumAtlas;   // TODO : 아틀라스 배열로 수정
+    Desc.Format = DXGI_FORMAT_R32_TYPELESS;
+    Desc.SampleDesc.Count = 1;
+    Desc.Usage = D3D11_USAGE_DEFAULT;
+    Desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+
+    HRESULT hr = Device->CreateTexture2D(&Desc, nullptr, ShadowMapAtlasBuffer.GetAddressOf());
+    if (FAILED(hr))
+    {
+        assert(false);
+    }
+
+
+    // DSV: 층마다 하나씩 (그릴 때는 한 층만 대상)
+    for (uint32 i = 0; i < NumAtlas; ++i)
+    {
+        D3D11_DEPTH_STENCIL_VIEW_DESC Dsv{};
+        Dsv.Format = DXGI_FORMAT_D32_FLOAT;
+        Dsv.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+        Dsv.Texture2DArray.MipSlice = 0;
+        Dsv.Texture2DArray.FirstArraySlice = i;
+        Dsv.Texture2DArray.ArraySize = 1;
+        // TODO: RenderCommand 에 DSV 생성 함수 만들기
+        hr = Device->CreateDepthStencilView(ShadowMapAtlasBuffer.Get(), &Dsv, ShadowAtlasDepthView[i].GetAddressOf());
+        if (FAILED(hr))
+        {
+            assert(false);
+        }
+    }
+
+    // SRV: 전체 층을 한 번에 (셰이더는 이걸 Texture2DArray로 본다)
+    D3D11_SHADER_RESOURCE_VIEW_DESC Srv{};
+    Srv.Format = DXGI_FORMAT_R32_FLOAT;
+    Srv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+    Srv.Texture2DArray.MostDetailedMip = 0;
+    Srv.Texture2DArray.MipLevels = 1;
+    Srv.Texture2DArray.FirstArraySlice = 0;
+    Srv.Texture2DArray.ArraySize = NumAtlas;  // TODO : 아틀라스 배열로 수정
+    // TODO: RenderCommand 에 SRV 생성 함수 만들기
+    hr = Device->CreateShaderResourceView(ShadowMapAtlasBuffer.Get(), &Srv, ShadowMapAtlasArraySRV.GetAddressOf());
+    if (FAILED(hr))
+    {
+        assert(false);
+    }
+
+    return true;
+}
+
 void FShadowMapManager::BeginShadowRender(uint32 Slice)
 {
     //DSV, Viewport 바인딩
@@ -148,6 +232,32 @@ void FShadowMapManager::BeginShadowRender(uint32 Slice)
     RenderCommand::SetViewport(0, 0, Resolution, Resolution);
 }
 
+void FShadowMapManager::ClearAtlas()
+{
+    ID3D11DeviceContext* Context = RenderCommand::GetContext();
+    for (uint32 i = 0; i < NumAtlas; ++i)
+        Context->ClearDepthStencilView(ShadowAtlasDepthView[i].Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+}
+
+void FShadowMapManager::BeginShadowRenderWithAtlas(const FShadowInfo& ShadowInfo)
+{
+    //DSV, Viewport 바인딩
+    //Viewport는 나중에 다른 해상도로 바뀔 것이다.
+
+    ID3D11DeviceContext* Context = RenderCommand::GetContext();
+
+    //해당하는 DSV 있다면 초기화
+    ID3D11DepthStencilView* DSV = ShadowAtlasDepthView[ShadowInfo.AtlasIndex].Get();
+
+    // RTV 없이 DSV만 : Depth-only
+    Context->OMSetRenderTargets(0, nullptr, DSV);
+
+    // 섀도맵 해상도로 Viewport (뷰포트 크기와 무관)
+    //나중에 맵마다 해상도를 다르게 한다면 좀 더 구조적으로 잡혀야한다.
+    //지금은 모든 텍스처가 같다.
+    RenderCommand::SetViewport(ShadowInfo.AtlasStartX, ShadowInfo.AtlasStartY, ShadowInfo.AtlasSize, ShadowInfo.AtlasSize);
+}
+
 void FShadowMapManager::EndShadowPass()
 {
     // DSV를 풀어야 같은 리소스를 SRV로 읽을 수 있다
@@ -157,10 +267,13 @@ void FShadowMapManager::EndShadowPass()
 void FShadowMapManager::BindForShading()
 {
     ID3D11DeviceContext* Context = RenderCommand::GetContext();
-    // Texture2DArray: Local Lights (Point, Spot)
-    Context->PSSetShaderResources(2, 1, ShadowMapArraySRV.GetAddressOf());   
+
+    // Texture2DArray
+    Context->PSSetShaderResources(2, 1, ShadowMapAtlasArraySRV.GetAddressOf());
+
     // Texture2D: Directional Light Shadow Atlas
     Context->PSSetShaderResources(3, 1, DirectionalShadowSRV.GetAddressOf());
+
     // StructuredBuffer
     Context->PSSetShaderResources(12, 1, ShadowInfoSRV.GetAddressOf());       
     // Directional Shadow Constants (b5)
@@ -168,9 +281,12 @@ void FShadowMapManager::BindForShading()
     {
         RenderCommand::BindConstantBuffer(5, DirectionalShadowCB.get(), EShaderBindFlagBits::Pixel);
     }
+
     // s0은 BindMaterial이 머티리얼마다 덮어쓰므로 섀도 샘플러는 s1
     RenderCommand::BindSamplerState(1, ESamplerState::Point, EShaderBindFlagBits::Pixel);
+    RenderCommand::BindSamplerState(2, ESamplerState::Comparison_Linear, EShaderBindFlagBits::Pixel);
 }
+
 
 bool FShadowMapManager::EnsureDirectionalShadowMap(uint32 InResolution)
 {
@@ -474,91 +590,149 @@ void FShadowMapManager::EndDirectionalShadowRender()
     RenderCommand::GetContext()->OMSetRenderTargets(0, nullptr, nullptr);
 }
 
-void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy)
+void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy, const TArray<FShadowInfo>& ShadowInfos)
 {
     if (!PreviewShadowMapProxy)
         return;
 
+    TArray<FShadowPreview>& Previews = PreviewShadowMapProxy->GetShadowPreview();
+
     // Directional Light의 경우 이미 단일 Texture2D 형태이므로 SRV를 직접 전달
     if (PreviewShadowMapProxy->GetLightType() == ELightType::Directional)
     {
-        PreviewShadowMapProxy->GetShadowPreview().ShadowSRV = DirectionalShadowSRV;
-        PreviewShadowMapProxy->GetShadowPreview().Resolution = DirectionalResolution;
+        if (Previews.IsValidIndex(0) == false)
+        {
+            Previews.Add(FShadowPreview());
+        }
+        Previews[0].ShadowSRV = DirectionalShadowSRV.Get();
+        Previews[0].Resolution = DirectionalResolution;
+        Previews[0].PreviewUV = { {0.0f, 0.0f}, {1.0f, 1.0f} };
+
         return;
     }
 
-    //Imgui쪽에 보여줘야하는 건 Texture2D
-    //Shadow Map은 Texture2DArray
-    //SRV도 Texture3DArray
-    //다른 차원의 SRV를 넘기면 안된다.
-    //배열 리소스에서 Texture2D 차원 SRV를 만들 수 없어서 보고 싶은 층 하나를 그냥 Texture2D로 복사해서 보내야한다.
-
-    //if (!PreviewTexture || Slice >= NumSlices)
-    if (PreviewShadowMapProxy->GetShadowIndex() < 0 || 
-        static_cast<uint32>(PreviewShadowMapProxy->GetShadowIndex()) >= NumSlices)
+    const int32 BaseIndex = PreviewShadowMapProxy->GetShadowIndex();
+    const int32 ShadowInfoNum = PreviewShadowMapProxy->GetShadowInfoNum();
+    if (BaseIndex < 0 || ShadowInfoNum <= 0 || BaseIndex + ShadowInfoNum > ShadowInfos.Num())
         return;
 
-    //텍스처가 없거나 해상도가 바꼈다면
-    if (PreviewShadowMapProxy->GetShadowPreview().ShadowTexture == nullptr || PreviewShadowMapProxy->GetShadowPreview().Resolution != Resolution)
+    // Point Light 6장이어도 왜 아틀라스 개수만큼 Num을 set하는가??
+    // 0번 1번 아틀라스에 저장되면 상관 없음
+    // 3번 4번 아틀라스에 저장되면 ShadowInfo 가 갖고있는 인덱스는 3혹은 4인데 
+    // PrevicewShadowTextures 배열에 접근할 때는 추가적인 인덱스 계산이 필요함.
+    // 그래서 번호 유지를 위해서 실제로 사용하는 인덱스에만 저장.
+    if (PreviewShadowTextures.Num() < NumAtlas)
     {
-        ID3D11Device* Device = RenderCommand::GetDevice();
-
-        //초기화되어 있을 버퍼를 생성해준다.
-
-        // 미리보기 텍스처: 배열과 같은 TYPELESS 포맷이어야 CopySubresourceRegion이 된다
-        D3D11_TEXTURE2D_DESC PreviewDesc{};
-        // 정사각형
-        PreviewDesc.Width = Resolution;
-        PreviewDesc.Height = Resolution;
-        PreviewDesc.MipLevels = 1;
-        // 층 수 (Spot 수 + Point 수 × 6 ...)
-        PreviewDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-        PreviewDesc.SampleDesc.Count = 1;
-        PreviewDesc.Usage = D3D11_USAGE_DEFAULT;
-        PreviewDesc.ArraySize = 1;
-        PreviewDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-        //HRESULT hr = Device->CreateTexture2D(&PreviewDesc, nullptr, PreviewShadowTexture.GetAddressOf());
-        HRESULT hr = Device->CreateTexture2D(&PreviewDesc, nullptr, PreviewShadowMapProxy->GetShadowPreview().ShadowTexture.ReleaseAndGetAddressOf());
-        if (FAILED(hr))
-        {
-            assert(false);
-        }
-
-        PreviewShadowMapProxy->GetShadowPreview().Resolution = Resolution;
-
-        D3D11_SHADER_RESOURCE_VIEW_DESC PreviewSrv{};
-        PreviewSrv.Format = DXGI_FORMAT_R32_FLOAT;
-        // ImGui 셰이더가 Texture2D라서
-        PreviewSrv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        PreviewSrv.Texture2D.MipLevels = 1;
-        //hr = Device->CreateShaderResourceView(PreviewTexture.Get(), &PreviewSrv, PreviewShadowSRV.GetAddressOf());
-        hr = Device->CreateShaderResourceView(PreviewShadowMapProxy->GetShadowPreview().ShadowTexture.Get(), &PreviewSrv, PreviewShadowMapProxy->GetShadowPreview().ShadowSRV.ReleaseAndGetAddressOf());
-        if (FAILED(hr))
-        {
-            assert(false);
-        }
+        PreviewShadowTextures.SetNum(NumAtlas);
+        PreviewShadowSRVs.SetNum(NumAtlas);
     }
+
+    TArray<uint32> CopiedPages;
+
+    const float InvAtlas = 1.0f / static_cast<float>(AtlasResolution);
+
+    // ShadowInfo 개수만큼 
+    for (int32 i = 0; i < ShadowInfoNum; ++i)
+    {
+        if (Previews.IsValidIndex(i) == false)
+        {
+            Previews.Add(FShadowPreview());
+        }
+
+        const FShadowInfo& Info = ShadowInfos[BaseIndex + i];
+        const uint32 Page = Info.AtlasIndex;
+
+        if (PreviewShadowTextures[Page] == nullptr)
+        {
+            ID3D11Device* Device = RenderCommand::GetDevice();
+
+            D3D11_TEXTURE2D_DESC PreviewDesc{};
+            // 정사각형
+            PreviewDesc.Width = AtlasResolution;
+            PreviewDesc.Height = AtlasResolution;
+            PreviewDesc.MipLevels = 1;
+            // 층 수 (Spot 수 + Point 수 × 6 ...)
+            PreviewDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+            PreviewDesc.SampleDesc.Count = 1;
+            PreviewDesc.Usage = D3D11_USAGE_DEFAULT;
+            PreviewDesc.ArraySize = 1;
+            PreviewDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+            HRESULT hr = Device->CreateTexture2D(&PreviewDesc, nullptr, PreviewShadowTextures[Page].ReleaseAndGetAddressOf());
+            if (FAILED(hr))
+            {
+                assert(false);
+                return;
+            }
+
+            PreviewShadowMapProxy->GetShadowPreview()[i].Resolution = Resolution;
+
+            D3D11_SHADER_RESOURCE_VIEW_DESC PreviewSrv{};
+            PreviewSrv.Format = DXGI_FORMAT_R32_FLOAT;
+            // ImGui 셰이더가 Texture2D라서
+            PreviewSrv.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+            PreviewSrv.Texture2D.MipLevels = 1;
+            hr = Device->CreateShaderResourceView(PreviewShadowTextures[Page].Get(), &PreviewSrv, PreviewShadowSRVs[Page].ReleaseAndGetAddressOf());
+            if (FAILED(hr))
+            {
+                assert(false);
+            }
+        }
+
+        if (CopiedPages.Find(Page) == -1)
+        {
+            const UINT SrcSubresource = D3D11CalcSubresource(0, Info.AtlasIndex, 1);
+
+            //해당 Subresource를 복사합니다.
+            //    ID3D11Resource * pDstResource, UINT DstSubresource,   // 어디로 (PreviewTexture, 0번)
+            //    UINT DstX, UINT DstY, UINT DstZ,                     // 대상 안의 시작 좌표 (0,0,0)
+            //    ID3D11Resource * pSrcResource, UINT SrcSubresource,   // 어디서 (ShadowMapArray, 층 k)
+            //    const D3D11_BOX * pSrcBox                            // 복사할 영역. nullptr = 서브리소스 전체
+
+            RenderCommand::GetContext()->CopySubresourceRegion(
+                PreviewShadowTextures[Page].Get(), 0, 0, 0, 0,
+                ShadowMapAtlasBuffer.Get(), SrcSubresource, nullptr);
+            CopiedPages.Add(Page);
+        }
+
+
+        Previews[i].ShadowSRV = PreviewShadowSRVs[Page].Get();
+        Previews[i].Resolution = Info.AtlasSize;
+        Previews[i].PreviewUV.StartUV = { Info.AtlasStartX * InvAtlas, Info.AtlasStartY * InvAtlas };
+        Previews[i].PreviewUV.EndUV = { (Info.AtlasStartX + Info.AtlasSize) * InvAtlas, (Info.AtlasStartY + Info.AtlasSize) * InvAtlas };      
+    }
+   
+}
+
+void FShadowMapManager::BuildAtlas(TArray<FShadowInfo>& ShadowInfos)
+{
+    uint32 CurrentAtlasIndex = 0;
+    uint32 CurrentX = 0;
+    uint32 CurrentY = 0;
     
+    for (FShadowInfo& Info : ShadowInfos)
+    {
+        // 아틀라스 계산
+        if (CurrentX + Resolution > AtlasResolution)
+        {
+            CurrentX = 0;
+            CurrentY += Resolution;
+        }
 
-    // 텍스처 하나는 (밉 레벨 × 배열 층) 개수만큼의 개별 이미지로 이루어지고, 이 각각을 서브리소스라고 부릅니다. 
-    // D3D 함수들은 서브리소스를 정수 번호 하나로 가리킵니다.
-    // MipSlice, ArraySlice, MipLevels 
-    /*번호 = MipSlice + ArraySlice × MipLevels
+        if (CurrentY + Resolution > AtlasResolution)
+        {   // 다음줄
+            CurrentX = CurrentY = 0;
+            ++CurrentAtlasIndex;
+        }
 
-        예 : MipLevels = 3, ArraySize = 2
-              Mip0  Mip1  Mip2
-        층 0 : 0     1     2
-        층 1 : 3     4     5*/
-    const UINT SrcSubresource = D3D11CalcSubresource(0, PreviewShadowMapProxy->GetShadowIndex(), 1);
+        Info.AtlasIndex = CurrentAtlasIndex;
+        // TODO: ShadowManager가 갖고있는 값이 아니라 컴포넌트가 들고있기 혹은 라이트 타입 별 전역옵션으로 수정필요
+        Info.AtlasSize = Resolution;    
+        Info.AtlasStartX = CurrentX;
+        Info.AtlasStartY = CurrentY;
 
-    //해당 Subresource를 복사합니다.
-    //    ID3D11Resource * pDstResource, UINT DstSubresource,   // 어디로 (PreviewTexture, 0번)
-    //    UINT DstX, UINT DstY, UINT DstZ,                     // 대상 안의 시작 좌표 (0,0,0)
-    //    ID3D11Resource * pSrcResource, UINT SrcSubresource,   // 어디서 (ShadowMapArray, 층 k)
-    //    const D3D11_BOX * pSrcBox                            // 복사할 영역. nullptr = 서브리소스 전체
-    RenderCommand::GetContext()->CopySubresourceRegion(
-        PreviewShadowMapProxy->GetShadowPreview().ShadowTexture.Get(), 0, 0, 0, 0,
-        ShadowMapArrayBuffer.Get(), SrcSubresource, nullptr);
+        CurrentX += Resolution;
+    }
+    NumAtlas = CurrentAtlasIndex + 1;
 }
 
 void FShadowMapManager::UnbindForShading()

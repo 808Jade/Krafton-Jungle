@@ -24,10 +24,13 @@ public:
 
     // 행 벡터 규약으로 View와 Projection을 곱한다.
     FMatrix GetViewProjectionMatrix(bool bIsOrthogonal, float FarClipPlane, float FieldOfView, float AspectRatio) const;
+    FMatrix GetViewProjectionMatrix(FRotator Rotation, bool bIsOrthogonal, float FarClipPlane, float FieldOfView, float AspectRatio) const;
 		   
 	virtual FShadowInfo GetShadowInfo() const;
+	virtual void GetShadowInfo(TArray<FShadowInfo>& OutShadowInfo) const {}
 
-	ID3D11ShaderResourceView* GetShadowPreviewSRV() const;
+	ID3D11ShaderResourceView* GetShadowPreviewSRV(int32 Index) const;
+	int32 GetShadowInfoNum() const;
 
 	//이번 프레임에서 ShadowMap을 Preview하도록한다.
 	void SetPreviewShadowMapFlag(bool InShow);
@@ -35,6 +38,7 @@ public:
 protected:
     // Transform의 역변환으로 View 행렬을 만든다.
     FMatrix GetViewMatrix() const;
+    FMatrix GetViewMatrix(FRotator Rotation) const;
 
     // 시야각·종횡비·클리핑 거리로 원근 행렬을 만든다.
     FMatrix GetPerspectiveMatrix(float FarClipPlane, float FieldOfView, float AspectRatio) const;
@@ -46,7 +50,7 @@ protected:
     FMatrix GetProjectionMatrix(bool bIsOrthogonal, float FarClipPlane, float FieldOfView, float AspectRatio) const;
 
 
-private:
+protected:
 	//float FieldOfView = 60.0f;
 	//float AspectRatio = 1.f;
 	float NearClipPlane = 0.1f;
