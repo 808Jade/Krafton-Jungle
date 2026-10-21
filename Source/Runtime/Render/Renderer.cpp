@@ -603,12 +603,17 @@ void FRenderer::EnsureTileLightCapacity(const FMatrix& ViewProjection, uint32 Wi
 
 }
 
-void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, const TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy, FShadowStats& ShadowStats)
+
+void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy, FShadowStats& ShadowStats)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Shadow);
 
 	//이전 pass에서의 바인딩을 끊는다.
 	ShadowMapManager.UnbindForShading();
+	
+	// Shadow Atlas 를 계산한다.
+	ShadowMapManager.BuildAtlas(ShadowInfos);
+
 
 	// Directional 상수 버퍼 준비
 	if (DirectionalShadow != nullptr)
@@ -638,6 +643,10 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, const TAr
 	RenderCommand::BindConstantBuffer(0, ShadowViewCB.get(), EShaderBindFlagBits::Vertex);
 	RenderCommand::BindConstantBuffer(2, PerObjectCB.get(), EShaderBindFlagBits::Vertex);
 
+
+	ShadowMapManager.ClearAtlas();
+
+	// 아틀라스
 	// 캐스터 메쉬들을 그리는 공통 람다
 	auto DrawCasters = [&]()
 		{
@@ -673,7 +682,8 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, const TAr
 	for (int32 Slice = 0; Slice < ShadowInfos.Num(); ++Slice)
 	{
 		//렌더 전 개별 바인딩
-		ShadowMapManager.BeginShadowRender(static_cast<uint32>(Slice));
+		ShadowMapManager.BeginShadowRenderWithAtlas(ShadowInfos[Slice]);
+
 
 		//라이트마다의 VP 행렬 Map Unmap
 		RenderCommand::UpdateBufferData(ShadowViewCB.get(), &ShadowInfos[Slice].LightViewProjection, sizeof(FMatrix));
@@ -687,14 +697,16 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, const TAr
 		ShadowMapManager.EndShadowPass();
 	}
 
+	// TODO : 아틀라스 프리뷰
 	//Preview 인덱스의 ShadowMap 서브 리소스를 복사한다.
 	if (PreviewShadowMapProxy != nullptr)
 	{
-		ShadowMapManager.UpdatePreview(PreviewShadowMapProxy);
+		ShadowMapManager.UpdatePreview(PreviewShadowMapProxy, ShadowInfos);
 	}
 
 	//Opaque에서 읽도록 SRV 바인딩
 	ShadowMapManager.BindForShading();
+
 
 	int32 RenderedCount = ShadowInfos.Num();
 	if (DirectionalShadow != nullptr)
@@ -703,10 +715,11 @@ void FRenderer::RenderShadowPass(const FShadowInfo* DirectionalShadow, const TAr
 	}
 	ShadowStats.NumShadowMapsRendered = RenderedCount;
 
-	int64 TotalBytes = (int64)ShadowMapManager.GetResolution() * ShadowMapManager.GetResolution() * 4 * ShadowMapManager.GetNumSlices();
+	int64 TotalBytes = (int64)ShadowMapManager.GetAtlasResolution() * ShadowMapManager.GetAtlasResolution() * 4 * ShadowMapManager.GetNumAtlas();
 	if (DirectionalShadow != nullptr)
 	{
 		TotalBytes += (int64)ShadowMapManager.GetDirectionalResolution() * ShadowMapManager.GetDirectionalResolution() * 4;
 	}
 	ShadowStats.ShadowMapMemoryBytes = TotalBytes;
+
 }

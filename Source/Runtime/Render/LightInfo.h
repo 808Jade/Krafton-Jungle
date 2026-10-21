@@ -47,8 +47,12 @@ struct FLightingConstants
 
 struct FShadowInfo
 {
-	FMatrix LightViewProjection;
-	float Bias = 0.001f;
+	FMatrix LightViewProjection;	// 64
+	float Bias = 0.001f;			// 4
+	uint32 AtlasIndex = 0;			// 4
+	uint32 AtlasStartX = 0;			// 4
+	uint32 AtlasStartY = 0;			// 4
+	uint32 AtlasSize{};				// 4
 	float NormalBias = 2.0f;
 	float Padding[2] = {};
 };
@@ -68,6 +72,6 @@ static_assert(sizeof(FAmbientLightInfo) == 16);
 static_assert(sizeof(FDirectionalLightInfo) == 32);
 static_assert(sizeof(FPointLightInfo) == 32);
 static_assert(sizeof(FSpotLightInfo) == 64);
+static_assert(sizeof(FShadowInfo) == 96);
 static_assert(sizeof(FLightingConstants) == 48);
-static_assert(sizeof(FShadowInfo) == 80);
 static_assert(sizeof(FDirectionalShadowConstants) == 368);
