@@ -118,7 +118,10 @@ float PCF(uint SampleCount, FShadowCoordinates Coordinates, float3 PixelPosition
             continue;
         }
 
-        Sum += Atlas.SampleCmpLevelZero(ShadowSampler, float3(UV, AtlasIndex), Coordinates.Depth - Bias).r;
+        // 탭 위치에서의 수신면 깊이로 비교한다. 중심 깊이로 비교하면 비스듬한 면이 자기 자신을 가린다고 판정되어,
+        // 필터 반경(PCF 옵션)이 커질수록 전체가 어두워진다.
+        float ReceiverDepthAtSample = Coordinates.Depth + dot(Coordinates.DepthSlope, Offset);
+        Sum += Atlas.SampleCmpLevelZero(ShadowSampler, float3(UV, AtlasIndex), ReceiverDepthAtSample - Bias).r;
         ValidSample++;
     }
 
@@ -236,8 +239,10 @@ bool FindAverageBlockerDepth(float3 PixelPosition, FShadowCoordinates Coordinate
             continue;
         }
 
+        // PCF와 같이 탭 위치의 수신면 깊이로 비교한다. 아니면 비스듬한 바닥 자체가 blocker로 잡혀 반그림자가 넓어진다.
+        float ReceiverDepthAtSample = Coordinates.Depth + dot(Coordinates.DepthSlope, Offset);
         float SampledDepth = Atlas.SampleLevel(PointSampler, float3(UV, Shadow.AtlasIndex), 0).r;
-        if (SampledDepth < Coordinates.Depth - DepthBias)
+        if (SampledDepth < ReceiverDepthAtSample - DepthBias)
         {
             BlockerDepthSum += bPerspective ? CalculateLinearDepth(SampledDepth, Shadow.Near, Shadow.Far) : SampledDepth;
             BlockerCount++;

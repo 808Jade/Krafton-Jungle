@@ -213,29 +213,30 @@ void FOutputLogPanel::ExecCommand(const FString& CommandLine)
 				}
 			}
 		}
-		if (EqualsIgnoreCase(Command, "r.shadow.CacheWholeSceneShadows"))
+	}
+
+	if (EqualsIgnoreCase(Command, "r.shadow.CacheWholeSceneShadows"))
+	{
+		if (!EditorSettings)
 		{
-			if (!EditorSettings)
-			{
-				FLog::Log(ELogVerbosity::Info, "Settings not available");
-			}
-			else
-			{
-				std::istringstream Args(CommandLine);
-				FString Name, ValueStr;
-				Args >> Name >> ValueStr;
-				if (ValueStr.empty())                 EditorSettings->bCacheShadows = !EditorSettings->bCacheShadows;
-				else if (ValueStr == "0" || ValueStr == "1") EditorSettings->bCacheShadows = (ValueStr == "1");
-				else FLog::Log(ELogVerbosity::Info, "Usage: r.shadow.CacheWholeSceneShadows [0|1]");
-				FLog::Log(ELogVerbosity::Info, "r.shadow.CacheWholeSceneShadows = {}", EditorSettings->bCacheShadows ? 1 : 0);
-			}
-			ScrollToBottom = true;
-			return;
+			FLog::Log(ELogVerbosity::Info, "Settings not available");
 		}
-		FLog::Log(ELogVerbosity::Info, "Usage: CSM Count <1-4> | CSM LogRatio <0.0-1.0>");
+		else
+		{
+			std::istringstream Args(CommandLine);
+			FString Name, ValueStr;
+			Args >> Name >> ValueStr;
+			if (ValueStr.empty())                 EditorSettings->bCacheShadows = !EditorSettings->bCacheShadows;
+			else if (ValueStr == "0" || ValueStr == "1") EditorSettings->bCacheShadows = (ValueStr == "1");
+			else FLog::Log(ELogVerbosity::Info, "Usage: r.shadow.CacheWholeSceneShadows [0|1]");
+			FLog::Log(ELogVerbosity::Info, "r.shadow.CacheWholeSceneShadows = {}", EditorSettings->bCacheShadows ? 1 : 0);
+		}
 		ScrollToBottom = true;
 		return;
 	}
+	FLog::Log(ELogVerbosity::Info, "Usage: CSM Count <1-4> | CSM LogRatio <0.0-1.0>");
+	ScrollToBottom = true;
+	return;
 
 	if (EqualsIgnoreCase(CommandLine, "CLEAR"))
 	{
@@ -249,6 +250,7 @@ void FOutputLogPanel::ExecCommand(const FString& CommandLine)
 		OnLog(ELogVerbosity::Info, "- STAT <fps|memory|all|none>");
 		OnLog(ELogVerbosity::Info, "- CSM Count <1-4>");
 		OnLog(ELogVerbosity::Info, "- CSM LogRatio <0.0-1.0>");
+		OnLog(ELogVerbosity::Info, "- r.shadow.CacheWholeSceneShadows");
 	}
 	else if (EqualsIgnoreCase(CommandLine, "HISTORY"))
 	{

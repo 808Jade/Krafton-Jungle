@@ -18,7 +18,6 @@ struct FEditorSettings
 	// Toggles
 	bool bWireframe = false;
 	bool bDrawPrimitives = true;
-	bool bShowShadow = true;
 	bool bCacheShadows = true; // r.Shadow.CacheWholeSceneShadows
 	EPcfMode PcfMode = EPcfMode::Sample8;
 	bool bDrawBoundingBox = false;
@@ -33,7 +32,6 @@ struct FEditorSettings
 
 	// Values
 	float SceneDepthMaxRange = 50.0f;
-	float ShadowDepthBias = 0.0001f;
 	float CameraSpeed = 1.0f;
 	float MouseSensitivity = 1.0f;
 	int32 GridSpacing = 1;

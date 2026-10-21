@@ -804,10 +804,8 @@ void UEditorEngine::BuildSceneRenderOptions(FGameViewportClient* ViewClient, FSc
 	}
 
 	Options.bEnableFXAA = SettingsPanel->GetSettings().bEnableFXAA;
-	Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
 	Options.bCacheShadows = SettingsPanel->GetSettings().bCacheShadows;
 	Options.PcfMode = SettingsPanel->GetSettings().PcfMode;
-	Options.ShadowDepthBias = SettingsPanel->GetSettings().ShadowDepthBias;
 	Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;
 	Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
 	Options.LightCullingMode = SettingsPanel->GetSettings().LightCullingMode;
@@ -824,10 +822,8 @@ void UEditorEngine::BuildSceneRenderOptions(FEditorViewportClient* ViewClient, b
 	}
 
 	Options.bEnableFXAA = SettingsPanel->GetSettings().bEnableFXAA;
-	Options.bShowShadow = SettingsPanel->GetSettings().bShowShadow;
 	Options.bCacheShadows = SettingsPanel->GetSettings().bCacheShadows;
 	Options.PcfMode = SettingsPanel->GetSettings().PcfMode;
-	Options.ShadowDepthBias = SettingsPanel->GetSettings().ShadowDepthBias;
 	Options.RenderingPath = SettingsPanel->GetSettings().RenderingPath;
 	Options.LightingModel = SettingsPanel->GetSettings().LightingModel;
 	Options.LightCullingMode = SettingsPanel->GetSettings().LightCullingMode;

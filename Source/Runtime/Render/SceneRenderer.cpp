@@ -444,7 +444,7 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 			LightingPass.ColorAttachments = {
 				{ LightingHDR, ERenderGraphLoadAction::Load }
 			};
-			if (!Graph.AddRasterPass(std::move(LightingPass), [this, Renderer, &Graph, BaseColor, Normal, Depth, Width, Height, PcfMode = Options.PcfMode, bShowShadow = Options.bShowShadow,
+			if (!Graph.AddRasterPass(std::move(LightingPass), [this, Renderer, &Graph, BaseColor, Normal, Depth, Width, Height, PcfMode = Options.PcfMode,
 				ShadowDepthBias = Options.ShadowDepthBias]
 				{
 					if (!bCorePassSucceeded) return;
