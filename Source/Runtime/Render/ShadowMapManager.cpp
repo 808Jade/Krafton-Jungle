@@ -514,6 +514,7 @@ void FShadowMapManager::BuildAtlas(TArray<FShadowInfo>& ShadowInfos)
     uint32 CurrentX = 0;
     uint32 CurrentY = 0;
     
+    // TODO: Resolution 값 라이트별로 다르게 되는 상황 해결필요
     for (FShadowInfo& Info : ShadowInfos)
     {
         // 아틀라스 계산

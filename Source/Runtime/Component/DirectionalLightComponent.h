@@ -13,7 +13,7 @@ class UDirectionalLightComponent : public ULightComponent
 	REFLECT_END()
 
 public:
-	UDirectionalLightComponent() = default;
+	UDirectionalLightComponent() { ShadowResolution = 2048; }
 	virtual ~UDirectionalLightComponent() override = default;
 
 	FDirectionalLightInfo GetDirectionalLightInfo() const;
