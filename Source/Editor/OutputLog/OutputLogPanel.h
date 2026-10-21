@@ -4,7 +4,7 @@
 #include "Editor/EditorUI/EditorPanel.h"
 #include "Core/EngineLog.h"
 
-
+struct FEditorSettings;
 
 struct FLogData
 {
@@ -31,7 +31,7 @@ public:
 	void ExecCommand(const FString& command_line);
 
 	int TextEditCallback(ImGuiInputTextCallbackData* data);
-
+	void SetEditorSettings(FEditorSettings* InSettings) { EditorSettings = InSettings; }
 private:
 	char                  InputBuf[256];
 	TArray<FLogData>       Items;
@@ -44,4 +44,6 @@ private:
 
 	// Inherited via ILogSink
 	void OnLog(ELogVerbosity, const FString& Message) override;
+
+	FEditorSettings* EditorSettings = nullptr;
 };

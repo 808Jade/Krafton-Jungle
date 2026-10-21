@@ -66,7 +66,7 @@ private:
 	bool bShowNoCamera = false;
 
 	// 통계 정보 출력
-	void DrawStatOverlay(ImDrawList *DrawList, const ImVec2 &ViewMin) const;
+	void DrawStatOverlay(ImDrawList* DrawList, const ImVec2& ViewMin, FEditorViewportClient* Client) const;
 
 	TUniquePtr<FEditorViewportClient> ViewportClients[4]{};
 	// PIE 월드 컨텍스트가 소유하며, 세션 종료 전에 비운다.

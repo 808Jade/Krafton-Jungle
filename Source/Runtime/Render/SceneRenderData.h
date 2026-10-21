@@ -30,6 +30,13 @@ struct FRenderStats
 	float ShadowTiles = 0.0f;
 	uint32 ShadowViewsRedrawn = 0; // 이번 프레임에 다시 그린 그림자 뷰(큐브 면, cascade) 수
 	uint32 ShadowViewsCached = 0;  // 캐시를 재사용해 건너뛴 그림자 뷰 수
+	uint32 ShadowLightsSkippedOutsideView = 0;
+	uint32 ShadowLightsSkippedNoReceiver = 0;
+	uint32 ShadowLightsSkippedNoCaster = 0;
+	uint32 ShadowCastersSkippedSmall = 0;
+
+	uint32 CascadeViewsRedrawn = 0;
+	uint32 CascadeViewsCached = 0;
 
 	void Reset() { *this = FRenderStats(); }
 };
@@ -41,7 +48,7 @@ struct FSceneRenderData
 	static constexpr int32 SpotLightSlotIndex = 1;
 	static constexpr int32 DirectionalLightSlotIndex = 2;
 	static constexpr int32 RectLightSlotIndex = 3;
-	
+
 	static constexpr uint32 ShadowMapSize = 4096;
 	static constexpr uint32 MaxCascadeShadowCount = 4;
 	static constexpr float MaxCascadeDistance = 1000.f;
@@ -215,6 +222,40 @@ struct FSceneRenderData
 		return DX * DX + DY * DY + DZ * DZ <= Influence.W * Influence.W;
 	}
 
+	enum class EShadowSkip : uint8 { None, OutsideView, NoReceiver, NoCaster };
+
+	EShadowSkip ShouldSkipLocalShadow(const FVector& Center, float Radius, const FFrustumPlanes& CameraFrustum) const
+	{
+		const FVector4 Influence(Center, Radius);
+
+		// ① 영향 구가 카메라 프러스텀 밖: 이 라이트가 비추는 곳이 화면에 없다
+		if (!IsAABBInFrustum(FAABB{ Center, FVector(Radius) }, CameraFrustum))
+			return EShadowSkip::OutsideView;
+
+		// ② 영향 구 안에 그림자를 받을 수 있는, 화면에 보이는 물체가 없다
+		//    VisibleProxies는 프러스텀 + 오클루전 컬링을 통과한 목록
+		bool bHasReceiver = false;
+		for (const FPrimitiveSceneProxy* Proxy : VisibleProxies)
+			if (Proxy->bReceiveShadow && IntersectsInfluence(Influence, Proxy->GetBounds())) { bHasReceiver = true; break; }
+		if (!bHasReceiver) return EShadowSkip::NoReceiver;
+
+		// ③ 영향 구 안에 그림자를 드리울 물체가 없다
+		for (const FPrimitiveSceneProxy* Proxy : ShadowCasterProxies)
+			if (IntersectsInfluence(Influence, Proxy->GetBounds())) return EShadowSkip::None;
+		return EShadowSkip::NoCaster;
+	}
+
+	void CountShadowSkip(EShadowSkip Skip)
+	{
+		switch (Skip)
+		{
+		case EShadowSkip::OutsideView: ++RenderStats.ShadowLightsSkippedOutsideView; break;
+		case EShadowSkip::NoReceiver:  ++RenderStats.ShadowLightsSkippedNoReceiver;  break;
+		case EShadowSkip::NoCaster:    ++RenderStats.ShadowLightsSkippedNoCaster;    break;
+		default: break;
+		}
+	}
+
 	void AddShadowView(const FLightShadowRenderData& Shadow, const FLightShadowSettings& Settings, uint32 Size, const FVector4& Influence)
 	{
 		LightShadows.Add(Shadow);
@@ -252,6 +293,11 @@ struct FSceneRenderData
 				}
 			}
 			ShadowNeedsRedraw[i] = bRedraw ? 1 : 0;
+			if (ShadowInfluences[i].W < 0.0f)
+			{
+				if (bRedraw) ++RenderStats.CascadeViewsRedrawn;
+				else ++RenderStats.CascadeViewsCached;
+			}
 			if (bRedraw) ++RenderStats.ShadowViewsRedrawn;
 			else ++RenderStats.ShadowViewsCached;
 		}
@@ -264,7 +310,7 @@ struct FSceneRenderData
 		CachedShadows = LightShadows;
 	}
 
-	void Commit(const FFrustumCorners& CameraFrustumCorners, float CameraNear, float CameraFar, uint32 ExpectCascadeCount, float LogRatio,
+	void Commit(const FFrustumCorners& CameraFrustumCorners, const FFrustumPlanes& CameraFrustum, float CameraNear, float CameraFar, uint32 ExpectCascadeCount, float LogRatio,
 		bool bCacheShadows, const FShadowInvalidationList& ShadowInvalidations, bool& bLightUpaloadSucceeded)
 	{
 		RenderQueue.Sort();
@@ -291,7 +337,7 @@ struct FSceneRenderData
 				const uint32 ASlot = TypeToSlot[VisibleLights[A].Type];
 				const uint32 BSlot = TypeToSlot[VisibleLights[B].Type];
 				return ASlot < BSlot;
-			});
+				});
 			TArray<FLightRenderParameters> SortedLights;
 			TArray<FLightShadowSettings> SortedShadowSettings;
 			int32 SortedPreviewIndex = INDEX_NONE;
@@ -350,6 +396,14 @@ struct FSceneRenderData
 				int32 LightIndex = GetPointLightOffset() + i;
 				const FLightShadowSettings& ShadowSettings = VisibleLightShadowSettings[LightIndex];
 				if (!ShadowSettings.bCastShadows) continue;
+				const FLightRenderParameters& Light = VisibleLights[LightIndex];
+				if (const EShadowSkip Skip = ShouldSkipLocalShadow(Light.Position, Light.Radius, CameraFrustum);
+					Skip != EShadowSkip::None)
+				{
+					CountShadowSkip(Skip);
+					continue;   // ShadowIndex가 Invalid로 남음 → 셰이더가 그림자 없음으로 처리
+				}
+
 				if (LightIndex == PreviewLightIndex) PreviewShadowRange = { uint32(LightShadows.Num()), 6 };
 
 				FLightRenderParameters& PointLight = VisibleLights[LightIndex];
@@ -386,6 +440,13 @@ struct FSceneRenderData
 				int32 LightIndex = GetSpotLightOffset() + i;
 				const FLightShadowSettings& ShadowSettings = VisibleLightShadowSettings[LightIndex];
 				if (!ShadowSettings.bCastShadows) continue;
+				const FLightRenderParameters& Light = VisibleLights[LightIndex];
+				if (const EShadowSkip Skip = ShouldSkipLocalShadow(Light.Position, Light.Radius, CameraFrustum);
+					Skip != EShadowSkip::None)
+				{
+					CountShadowSkip(Skip);
+					continue;   // ShadowIndex가 Invalid로 남음 → 셰이더가 그림자 없음으로 처리
+				}
 				if (LightIndex == PreviewLightIndex) PreviewShadowRange = { uint32(LightShadows.Num()), 1 };
 
 				FLightRenderParameters& SpotLight = VisibleLights[LightIndex];
@@ -417,7 +478,11 @@ struct FSceneRenderData
 			{
 				int32 LightIndex = GetDirectionalLightOffset() + i;
 				const FLightShadowSettings& ShadowSettings = VisibleLightShadowSettings[LightIndex];
-				if (!ShadowSettings.bCastShadows) continue;
+				if (!ShadowSettings.bCastShadows) continue;bool bHasReceiver = false;
+				for (const FPrimitiveSceneProxy* Proxy : VisibleProxies)
+					if (Proxy->bReceiveShadow) { bHasReceiver = true; break; }
+				if (!bHasReceiver) { CountShadowSkip(EShadowSkip::NoReceiver); continue; }
+				if (ShadowCasterProxies.IsEmpty()) { CountShadowSkip(EShadowSkip::NoCaster); continue; }
 				if (LightIndex == PreviewLightIndex) PreviewShadowRange = { uint32(LightShadows.Num()), CascadeShadowCount };
 
 				FLightRenderParameters& DirectionalLight = VisibleLights[LightIndex];
@@ -436,8 +501,6 @@ struct FSceneRenderData
 				FVector PrevBR = CameraFrustumCorners.NBR();
 
 				uint32 CascadeShadowMapSize = ScaleShadowMapSize(DirectionalLightShadowMapSize, ShadowSettings.ResolutionScale);
-
-				
 
 				auto CornersAt = [&](float Distance, FVector& TL, FVector& TR, FVector& BL, FVector& BR)
 					{
@@ -514,7 +577,7 @@ struct FSceneRenderData
 					}
 
 					FMatrix CascadeProjectionMatrix = Ortho(Extent, -Extent, Extent, -Extent, 0, MaxLightX - NearX);
-	
+
 					FLightShadowRenderData Shadow{};
 					FVector NearPlaneCenterInLight = FVector(NearX, CenterY, CenterZ);
 					FVector4 NearPlaneCenterWorld = FVector4(NearPlaneCenterInLight, 1.0) * ViewMatrix.Inverse();
@@ -530,7 +593,7 @@ struct FSceneRenderData
 					const uint32 Index = uint32(LightShadows.Num());
 					AddShadowView(Shadow, ShadowSettings, CascadeShadowMapSize, FVector4(0.0f, 0.0f, 0.0f, -1.0f));
 
-					AreaInfos.Add({ CascadeShadowMapSize, Index});
+					AreaInfos.Add({ CascadeShadowMapSize, Index });
 
 					PrevTL = LT;
 					PrevTR = RT;
@@ -572,7 +635,7 @@ struct FSceneRenderData
 				for (int32 i = 0; i < AreaInfos.Num(); ++i)
 				{
 					const FAreaInfo& AreaInfo = AreaInfos[i];
-					
+
 					uint32 PlacedAtlasIndex = 0;
 					FRect PlacedRect{};
 					bool bPlaced = false;
@@ -635,7 +698,7 @@ struct FSceneRenderData
 	inline bool HasDirectionalLight() { return LightParameterCounts[DirectionalLightSlotIndex]; }
 	inline uint32 GetDirectionalLightOffset() { return LightParameterOffsets[DirectionalLightSlotIndex]; }
 	inline uint32 GetDirectionalLightCount() { return LightParameterCounts[DirectionalLightSlotIndex]; }
-	
+
 	inline bool HasPointLights() { return LightParameterCounts[PointLightSlotIndex]; }
 	inline uint32 GetPointLightOffset() { return LightParameterOffsets[PointLightSlotIndex]; }
 	inline uint32 GetPointLightCount() { return LightParameterCounts[PointLightSlotIndex]; }

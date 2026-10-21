@@ -4,6 +4,8 @@
 #include "Core/StatOverlay.h"
 #include "Render/SceneRenderer.h"
 
+#include "Editor/Settings/SettingsPanel.h"
+
 #include <charconv>
 #include <sstream>
 
@@ -30,6 +32,7 @@ bool FOutputLogPanel::Init()
 	Commands.Add("CLEAR");
 	Commands.Add("STAT");
 	Commands.Add("CSM");
+	Commands.Add("r.shadow.CacheWholeSceneShadows");
 
 	HistoryPos = -1;
 	InputBuf[0] = '\0';
@@ -209,6 +212,25 @@ void FOutputLogPanel::ExecCommand(const FString& CommandLine)
 					return;
 				}
 			}
+		}
+		if (EqualsIgnoreCase(Command, "r.shadow.CacheWholeSceneShadows"))
+		{
+			if (!EditorSettings)
+			{
+				FLog::Log(ELogVerbosity::Info, "Settings not available");
+			}
+			else
+			{
+				std::istringstream Args(CommandLine);
+				FString Name, ValueStr;
+				Args >> Name >> ValueStr;
+				if (ValueStr.empty())                 EditorSettings->bCacheShadows = !EditorSettings->bCacheShadows;
+				else if (ValueStr == "0" || ValueStr == "1") EditorSettings->bCacheShadows = (ValueStr == "1");
+				else FLog::Log(ELogVerbosity::Info, "Usage: r.shadow.CacheWholeSceneShadows [0|1]");
+				FLog::Log(ELogVerbosity::Info, "r.shadow.CacheWholeSceneShadows = {}", EditorSettings->bCacheShadows ? 1 : 0);
+			}
+			ScrollToBottom = true;
+			return;
 		}
 		FLog::Log(ELogVerbosity::Info, "Usage: CSM Count <1-4> | CSM LogRatio <0.0-1.0>");
 		ScrollToBottom = true;
