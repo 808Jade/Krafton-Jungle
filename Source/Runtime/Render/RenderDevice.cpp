@@ -327,10 +327,17 @@ void FRenderDevice::CreateStates()
 		LightShadowDesc.CullMode = D3D11_CULL_BACK;
 		LightShadowDesc.FrontCounterClockwise = FALSE;
 		LightShadowDesc.DepthClipEnable = TRUE;
-		LightShadowDesc.DepthBias = 1000;
-		LightShadowDesc.SlopeScaledDepthBias = 2.0;
-		LightShadowDesc.DepthBiasClamp = 0.0;
+		// 깊이 비교 bias는 셰이더(CalculateShadowDepthBias)가 수신점 쪽에서 월드 거리·텍셀 크기·수신면 기울기로 준다.
+		// 깊이 패스에서 caster를 또 밀면 이중 보정이 되어, 해상도를 낮추거나(텍셀↑) 빛과 평행한 옆면에서
+		// 그림자가 물체에서 떨어진다(peter panning). 그래서 하드웨어 bias는 쓰지 않는다.
+		LightShadowDesc.DepthBias = 0;
+		LightShadowDesc.SlopeScaledDepthBias = 0.0f;
+		LightShadowDesc.DepthBiasClamp = 0.0f;
 		Device->CreateRasterizerState(&LightShadowDesc, RasterizerStates[(uint8)(ERasterizerState::LightShadow)].GetAddressOf());
+
+		// 방향광 cascade용. 지금은 같은 설정이지만, 정사영(선형 깊이)과 원근(비선형 깊이)을 따로 조정할 수 있게 상태를 나눠 둔다.
+		D3D11_RASTERIZER_DESC DirectionalShadowDesc = LightShadowDesc;
+		Device->CreateRasterizerState(&DirectionalShadowDesc, RasterizerStates[(uint8)(ERasterizerState::DirectionalLightShadow)].GetAddressOf());
 	}
 
 	// ---------- DepthStencil ----------

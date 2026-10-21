@@ -361,6 +361,17 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 			TArray<FMeshDrawBatch> Batched;
 			Processor.Build(RenderData.ShadowCasterProxies, EPSOType::StaticMesh_LightShadow, Batched);
 
+			// 방향광 cascade는 bias가 다른 래스터라이저 상태로 그린다. 영향 구 반지름이 음수면 방향광이다.
+			const bool bHasDirectionalShadow = std::any_of(RenderData.ShadowInfluences.begin(), RenderData.ShadowInfluences.end(),
+				[](const FVector4& Influence) { return Influence.W < 0.0f; });
+			TArray<FMeshDrawBatch> DirectionalBatched;
+			if (bHasDirectionalShadow)
+			{
+				DirectionalBatched = Batched;
+				for (FMeshDrawBatch& Batch : DirectionalBatched)
+					Batch.Pipeline.RasterizerState = ERasterizerState::DirectionalLightShadow;
+			}
+
 			FPipelineState* TileClear = FRenderResourceManager::GetPSO(EPSOType::ShadowTileClear);
 			const bool bCanClearTile = TileClear && TileClear->Shader && TileClear->Shader->VertexShader;
 
@@ -382,7 +393,8 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 					RenderCommand::Draw(3);
 				}
 				Renderer->UploadViewMatrix(LightShadow.ViewProjection);
-				Renderer->DrawMeshes(Batched);
+				const bool bDirectional = i < RenderData.ShadowInfluences.Num() && RenderData.ShadowInfluences[i].W < 0.0f;
+				Renderer->DrawMeshes(bDirectional ? DirectionalBatched : Batched);
 			}
 			// Commit이 정한 타일을 모두 그렸으므로 이제 캐시를 믿어도 된다. 여기까지 못 오면 다음 프레임에 전부 다시 그린다.
 			RenderData.bShadowCacheConfirmed = true;

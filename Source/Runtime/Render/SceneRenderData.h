@@ -576,7 +576,9 @@ struct FSceneRenderData
 						NearX = std::min(NearX, LightCenter.X - LightExtent.X);
 					}
 
-					FMatrix CascadeProjectionMatrix = Ortho(Extent, -Extent, Extent, -Extent, 0, MaxLightX - NearX);
+					// Ortho(Left, Right, Top, Bottom). Left > Right로 넘기면 X가 거울상이 되어 삼각형 감김 방향이 뒤집히고,
+					// 후면 컬링이 빛을 향한 앞면을 버려 물체의 뒷면이 깊이로 남는다(접촉부에서 그림자가 떨어지는 peter panning).
+					FMatrix CascadeProjectionMatrix = Ortho(-Extent, Extent, Extent, -Extent, 0, MaxLightX - NearX);
 
 					FLightShadowRenderData Shadow{};
 					FVector NearPlaneCenterInLight = FVector(NearX, CenterY, CenterZ);

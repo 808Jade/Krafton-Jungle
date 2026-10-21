@@ -19,6 +19,7 @@ struct FShadowCoordinates
     float2 DepthSlope;
     float2 MinUV;
     float2 MaxUV;
+    float TexelSlopeBias; // 수신면 기울기 × 텍셀 절반 (깊이 0~1 단위)
 };
 
 // Best-candidate Poisson samples within the unit disk.
@@ -179,8 +180,45 @@ bool CalculateShadowCoordinates(float3 P, float3 N, FLightShadowRenderData Shado
     Coordinates.DepthSlope = DepthSlope;
     Coordinates.MinUV = MinUV;
     Coordinates.MaxUV = MaxUV;
+    // 비교 샘플러는 텍셀 중심의 깊이와 비교하므로, 수신점이 텍셀 안에서 최대 반 칸 떨어진 만큼 깊이 오차가 생긴다.
+    Coordinates.TexelSlopeBias = 0.5f * dot(abs(DepthSlope), 1.0f / AtlasSize);
 
     return true;
+}
+
+// 그림자 뷰에서 수신점 위치의 텍셀 하나가 덮는 월드 크기.
+// 행렬 첫 열의 길이 = 정사영은 2/폭, 원근은 1/tan(반각). 원근은 거리에 비례해 텍셀이 커진다.
+float ShadowTexelWorldSize(FShadowCoordinates Coordinates, FLightShadowRenderData Shadow, bool bPerspective)
+{
+    const float XScale = length(float3(Shadow.ViewProjection[0][0], Shadow.ViewProjection[1][0], Shadow.ViewProjection[2][0]));
+    const float Distance = bPerspective ? CalculateLinearDepth(Coordinates.Depth, Shadow.Near, Shadow.Far) : 1.0f;
+    return 2.0f * Distance / max(XScale * Shadow.AtlasRect.z, 1.0e-6f);
+}
+
+// 월드 거리를 그림자 뷰 깊이(0~1) 차이로 바꾼다.
+// - 방향광(정사영): 깊이가 선형 → 깊이 1 = (Far - Near) 월드
+// - Spot/Point(원근): 깊이가 1/거리에 비례 → dDepth/d거리 = Near*Far / ((Far-Near) * 거리²)
+float ShadowWorldToDepth(float WorldDistance, FShadowCoordinates Coordinates, FLightShadowRenderData Shadow, bool bPerspective)
+{
+    if (!bPerspective)
+        return WorldDistance / max(Shadow.Far - Shadow.Near, 1.0e-4f);
+    const float Distance = CalculateLinearDepth(Coordinates.Depth, Shadow.Near, Shadow.Far);
+    return WorldDistance * Shadow.Near * Shadow.Far / max((Shadow.Far - Shadow.Near) * Distance * Distance, 1.0e-8f);
+}
+
+// 깊이 비교 bias (그림자 뷰 깊이 0~1 단위). 모든 라이트, 모든 필터가 이 값을 쓴다.
+// 정규화 깊이 고정값은 깊이 범위·원근 거리·해상도(Quality)에 따라 월드 크기가 크게 달라져
+// 낮은 해상도에서는 acne(줄무늬), 넓은 깊이 범위나 먼 거리에서는 peter panning이 생긴다.
+// 그래서 월드 거리와 텍셀 크기로 정하고 깊이로 환산한다.
+float CalculateShadowDepthBias(FShadowCoordinates Coordinates, FLightShadowRenderData Shadow, bool bPerspective)
+{
+    const float TexelWorld = ShadowTexelWorldSize(Coordinates, Shadow, bPerspective);
+    // 1) 상수 항: 최소 거리 + 텍셀의 1/4. 해상도를 낮추면 텍셀과 함께 커진다.
+    const float ConstantBias = ShadowWorldToDepth(0.01f + 0.25f * TexelWorld, Coordinates, Shadow, bPerspective);
+    // 2) 수신면 기울기 항: 텍셀 중심과 수신점 사이의 깊이 차이. 빛과 거의 평행한 면은 기울기가 끝없이 커지므로
+    //    텍셀 2칸 분량으로 제한한다(그런 면은 N·L이 0에 가까워 어차피 어둡다).
+    const float SlopeBias = min(Coordinates.TexelSlopeBias, ShadowWorldToDepth(2.0f * TexelWorld, Coordinates, Shadow, bPerspective));
+    return ConstantBias + SlopeBias;
 }
 
 bool FindAverageBlockerDepth(FShadowCoordinates Coordinates, float2 SearchRadiusUV, float DepthBias, FLightShadowRenderData Shadow, bool bPerspective, Texture2DArray Atlas, SamplerState PointSampler, out float AverageBlockerDepth)
@@ -235,9 +273,8 @@ float CalculateDirectionalShadowPCSS(float3 PixelPosition, float3 P, float3 N, F
         return 1.0f;
     }
 
-    // 월드 단위의 조정값
-    const float WorldDepthBias = 0.01f;
-    float DepthBias = WorldDepthBias / (Shadow.Far - Shadow.Near);
+    // 월드 거리·텍셀 크기 기준 bias (CalculateShadowDepthBias)
+    const float DepthBias = CalculateShadowDepthBias(Coordinates, Shadow, false);
 
     float2 AtlasSize = float2(AtlasWidth, AtlasHeight);
 
@@ -288,7 +325,7 @@ float CalculatePointShadowPCSS(float3 PixelPosition, float3 P, float3 N, FLightR
         return 1.0f;
     }
 
-    const float DepthBias = 0.001f;
+    const float DepthBias = CalculateShadowDepthBias(Coordinates, Shadow, true); // 원근 깊이로 환산한 월드 bias
 
     float2 AtlasSize = float2(AtlasWidth, AtlasHeight);
 
@@ -329,7 +366,7 @@ float CalculateSpotShadowPCSS(float3 PixelPosition, float3 P, float3 N, FLightRe
         return 1.0f;
     }
 
-    const float DepthBias = 0.001f;
+    const float DepthBias = CalculateShadowDepthBias(Coordinates, Shadow, true); // 원근 깊이로 환산한 월드 bias
 
     float2 AtlasSize = float2(AtlasWidth, AtlasHeight);
 
@@ -395,7 +432,8 @@ float CalculateShadow(float3 PixelPosition, float3 P, float3 N, FLightRenderPara
         return 1.0f;
     }
 
-    const float DepthBias = 0.001f;
+    // 정규화 깊이 고정값 대신 월드 거리 기준 bias (방향광은 선형, Spot/Point는 원근 깊이로 환산)
+    const float DepthBias = CalculateShadowDepthBias(Coordinates, Shadow, Light.Type != LIGHT_TYPE_DIRECTIONAL);
 
     uint SampleCount = 0;
     if (PcfMode == 0)
