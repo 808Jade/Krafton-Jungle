@@ -516,7 +516,8 @@ float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition)
     //return PCSS(1.0 / 1024.0, UV, ShadowIndex, Ndc.z, Info);
     
     //해상도 하드코딩
-    float2 TexelSize = 1.0 / 1024.0;
+    //float2 TexelSize = 1.0 / 1024.0;
+    float2 TexelSize = 1.0 / AtlasWidth;
     
     float2 TileMin = (float2(Info.AtlasStartX, Info.AtlasStartY) + 0.5f) * TexelSize;
     float2 TileMax = (float2(Info.AtlasStartX, Info.AtlasStartY) + Info.AtlasSize - 0.5f) * TexelSize;
@@ -527,7 +528,7 @@ float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition)
         for (int x = -1; x < 1; ++x)
         {
             float2 SampleUV = clamp(AtlasUV + float2(x, y) * TexelSize, TileMin, TileMax);
-            float Stored = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(AtlasUV, Info.AtlasIndex), Ndc.z - Info.Bias);
+            float Stored = ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(SampleUV, Info.AtlasIndex), Ndc.z - Info.Bias);
             Lit += Stored;
         }
     }
