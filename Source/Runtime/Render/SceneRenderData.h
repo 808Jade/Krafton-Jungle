@@ -46,6 +46,8 @@ struct FSceneRenderData
 	static constexpr uint32 MaxCascadeShadowCount = 4;
 	static constexpr float MaxCascadeDistance = 1000.f;
 
+	static constexpr float CascadeBlendRatio = 0.1f;
+
 	struct alignas(64) FGatherChunk
 	{
 		TArray<FRenderPacket> Packets;              // 스태틱 묶음에 못 들어가는 것 (반투명 섹션, Renderer 없는 호출)
@@ -435,18 +437,27 @@ struct FSceneRenderData
 				FVector PrevBR = CameraFrustumCorners.NBR();
 
 				uint32 CascadeShadowMapSize = ScaleShadowMapSize(DirectionalLightShadowMapSize, ShadowSettings.ResolutionScale);
+
+				
+
+				auto CornersAt = [&](float Distance, FVector& TL, FVector& TR, FVector& BL, FVector& BR)
+					{
+						const float T = (Distance - CameraNear) / (CameraFar - CameraNear);
+						TL = CameraFrustumCorners.NTL() + ToTL * T;
+						TR = CameraFrustumCorners.NTR() + ToTR * T;
+						BL = CameraFrustumCorners.NBL() + ToBL * T;
+						BR = CameraFrustumCorners.NBR() + ToBR * T;
+					};
+
+				float PrevSplit = CameraNear;
 				for (int32 j = 0; j < CascadeShadowCount; j++)
 				{
 					float Linear = CameraNear + (CascadeShadowFar - CameraNear) * ((j + 1) / (float)CascadeShadowCount);
 					float Log = CameraNear * std::pow(CascadeShadowFar / CameraNear, (j + 1) / (float)CascadeShadowCount);
 					float Dist = (1.f - LogRatio) * Linear + LogRatio * Log;
 
-					float T = (Dist - CameraNear) / (CameraFar - CameraNear);
-
-					FVector LT = CameraFrustumCorners.NTL() + ToTL * T;
-					FVector RT = CameraFrustumCorners.NTR() + ToTR * T;
-					FVector LB = CameraFrustumCorners.NBL() + ToBL * T;
-					FVector RB = CameraFrustumCorners.NBR() + ToBR * T;
+					FVector LT, RT, LB, RB;
+					CornersAt(Dist, LT, RT, LB, RB);
 
 					FVector* WorldCorners[] = {
 						&PrevTL,
@@ -527,6 +538,10 @@ struct FSceneRenderData
 					PrevBR = RB;
 
 					CascadeShadowDistances[j] = Dist;
+
+					// 다음 캐스케이드는 이 캐스케이드의 블렌드 시작점부터 덮는다.
+					const float BlendStart = Dist - (Dist - PrevSplit) * CascadeBlendRatio;
+					CornersAt(BlendStart, PrevTL, PrevTR, PrevBL, PrevBR);
 					//CascadeShadowMapSize /= 2;
 				}
 			}

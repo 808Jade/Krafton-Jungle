@@ -42,7 +42,8 @@ cbuffer Lighting : register(b1)
     uint ShadowAtlasHeight;
     uint PcfMode;
     float ShadowDepthBias;
-    float3 ShadowBiasPadding;
+    float CascadeBlendRatio;
+    float2 ShadowBiasPadding;
 };
 
 StructuredBuffer<FLightRenderParameters> SceneLights : register(t8);
@@ -102,6 +103,20 @@ struct FUberOutput
     float4 NormalRoughness : SV_Target1;
 #endif
 };
+
+float SampleDirectionalCascade(float3 P, float3 N, FLightRenderParameters Light, uint ShadowArrayIndex)
+{
+    FLightShadowRenderData LightShadow = LightShadows[ShadowArrayIndex];
+#if LIGHTING_MODEL_GOURAUD
+    return CalculateShadow(P, N, -Light.Direction, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight,
+        LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode, ShadowDepthBias);
+#else
+    return CalculateDirectionalShadowPCSS(P, N, -Light.Direction, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight,
+        LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode, ShadowDepthBias, Light.ShadowAngularRadius);
+#endif
+
+}
+
 
 float3 DecodeMapNormal(float3 Sample, float Encoding)
 {
@@ -270,25 +285,25 @@ FLightResult CalculateBaseLighting(float3 P, float ViewDepth, float3 N, float3 V
     {
         FLightRenderParameters Light = SceneLights[LightOffsets.z + DirectionalIndex];
         
-        int CascadeIndex = -1;
-        for (int i = 0; i < CascadeShadowCount; i++)
-        {
-            if (ViewDepth < CascadeShadowDistances[i])
-            {
-                CascadeIndex = i;
-                break;
-            }
-        }
-        
+        int CascadeIndex;
+        float BlendT;
+        SelectCascade(ViewDepth, CascadeShadowDistances, CascadeShadowCount, CascadeBlendRatio, CascadeIndex, BlendT);
+
         float Shadow = 1.0;
         if (CascadeIndex != -1 && Light.ShadowIndex != INVALID_SHADOW_INDEX)
         {
-            FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + (DirectionalIndex * CascadeShadowCount + CascadeIndex)];
-#if LIGHTING_MODEL_GOURAUD
-            Shadow = CalculateShadow(P, N, -Light.Direction, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode, ShadowDepthBias);
-#else
-            Shadow = CalculateDirectionalShadowPCSS(P, N, -Light.Direction, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, ShadowFlags.x, PcfMode, ShadowDepthBias, Light.ShadowAngularRadius);
-#endif
+            uint Base = LightShadowOffsets.z + DirectionalIndex * CascadeShadowCount;
+            Shadow = SampleDirectionalCascade(P, N, Light, Base + CascadeIndex);
+
+            [branch]
+            if (BlendT > 0.0f)
+            {
+                // 마지막 캐스케이드는 "그림자 없음"으로 페이드아웃
+                float NextShadow = (uint(CascadeIndex) + 1 < CascadeShadowCount)
+                    ? SampleDirectionalCascade(P, N, Light, Base + CascadeIndex + 1)
+                    : 1.0f;
+                Shadow = lerp(Shadow, NextShadow, BlendT);
+            }
         }
             
         FLightResult DirectionalResult = (FLightResult) 0;
@@ -461,6 +476,7 @@ FLightResult CalculateTiledLighting(float3 PixelPosition, float3 P, float ViewDe
 }
 
 #endif
+
 
 VS_OUT Uber_VS(VS_IN Input)
 {

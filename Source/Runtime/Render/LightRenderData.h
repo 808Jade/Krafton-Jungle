@@ -45,7 +45,8 @@ struct FForwardLightingConstants
 	uint32 ShadowAtlasHeight;
 	uint32 PcfMode;
 	float ShadowDepthBias;
-	float ShadowBiasPadding[3]{};
+	float CascadeBlendRatio;         
+	float ShadowBiasPadding[2]{};
 };
 
 // LightData.hlsli의 FLightShadowRenderData와 같은 배치다. 그림자 뷰 하나(큐브 면, cascade 하나)마다 하나씩 만든다.

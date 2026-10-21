@@ -218,4 +218,26 @@ float CalculateDirectionalShadowPCSS(float3 P, float3 N, float3 LightDirection, 
         PointSampler, ShadowSampler, bReceiveShadow, 3u, Bias, RadiusTexels);
 }
 
-#endif
+void SelectCascade(float ViewDepth, float4 Distances, uint Count, float BlendRatio,
+    out int Index, out float BlendT)
+{
+    Index = -1;
+    BlendT = 0.0f;
+    [loop]
+    for (uint i = 0; i < Count; ++i)
+    {
+        if (ViewDepth < Distances[i])
+        {
+            Index = i;
+            break;
+        }
+    }
+    if (Index < 0)
+        return;
+
+    float Begin = Index == 0 ? 0.0f : Distances[Index - 1];
+    float End = Distances[Index];
+    float BlendStart = End - (End - Begin) * BlendRatio;
+    BlendT = saturate((ViewDepth - BlendStart) / max(End - BlendStart, 1.0e-4f));
+}
+#endif 

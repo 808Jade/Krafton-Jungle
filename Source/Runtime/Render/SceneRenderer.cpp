@@ -229,6 +229,7 @@ bool FSceneRenderer::BindForwardLighting(FRenderer* Renderer, const FSceneRender
 	Constants.CascadeShadowCount = RenderData.CascadeShadowCount;
 	Constants.PcfMode = static_cast<uint32>(Options.PcfMode);
 	Constants.ShadowDepthBias = Options.ShadowDepthBias;
+	Constants.CascadeBlendRatio = FSceneRenderData::CascadeBlendRatio;
 	
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
 	std::memcpy(Constants.LightOffsets, RenderData.LightParameterOffsets, sizeof(RenderData.LightParameterOffsets)); // LightOffset은 각 조명별로 시작하는 위치
