@@ -51,7 +51,14 @@ public:
 	bool TryGetLightBounds(const FLightSceneProxy* Proxy, FAABB &OUT) const;
 
 	bool HasAnyShadowCaster(const FLightSceneProxy* Proxy) const;
-	void BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats& ShadowStats, bool bShadow, const FFrustumPlanes* FrustemPlanes) const;
+
+	bool IsDrawSize(const FLightSceneProxy* Proxy, const FVector& cameraPos) const;
+
+	// TODO : 인자를 줄입시다.......................... 
+	void BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, 
+		TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, 
+		FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats& ShadowStats, bool bShadow, 
+		const FFrustumPlanes* FrustemPlanes, const FVector &CameraPos) const;
 
 	TArray<FPrimitiveSceneProxy*> Proxies;
 	TArray<FPrimitiveSceneProxy*> DirtyProxies;
