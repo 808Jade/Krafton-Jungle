@@ -88,4 +88,5 @@ public:
 	};
 	bool bElementListChanged = false;
 	bool bShadowDirty = true;
+	inline static bool bCacheWholeSceneShadows = true;
 };

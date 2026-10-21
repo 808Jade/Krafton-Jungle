@@ -935,7 +935,7 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 	ViewWorld.GetScene().BuildStructuredLightAndShadowData(PointLights, SpotLights, DirectionalLights, ShadowInfos, PreviewShadowMapLightProxy, ShadowStats, bDrawShadows, &frustemPlanes, ViewCameraLocation);
 	
 	bool bCacheHit;
-	bCacheHit = !ViewWorld.GetScene().IsShadowDirty() && (ShadowInfos.Num() == PrevShadowCount[ViewIndex]);
+	bCacheHit = !ViewWorld.GetScene().IsShadowDirty() && (ShadowInfos.Num() == PrevShadowCount[ViewIndex]) && FScene::bCacheWholeSceneShadows;
 	PrevShadowCount[ViewIndex] = ShadowInfos.Num();
 
 	Renderer->SetLighting(Lighting, PointLights, SpotLights);
