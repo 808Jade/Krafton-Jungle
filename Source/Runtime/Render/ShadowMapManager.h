@@ -3,6 +3,7 @@
 #include "Render/LightInfo.h"
 #include "Containers/Array.h"
 #include "Buffer.h"
+#include "ShadowFilterSettings.h"
 
 class FLightSceneProxy;
 
@@ -36,6 +37,9 @@ public:
 	void UnbindForShading();
 	//그리고 나서 바인딩
 	void BindForShading();
+
+	// 그림자 필터 옵션(b6). 값이 바뀌었을 때만 다음 BindForShading에서 GPU에 올린다.
+	void SetFilterSettings(const FShadowFilterSettings& Settings);
 
 	void SetupDirectionalShadow(const FShadowInfo& DirectionalShadow);
 	void BeginDirectionalShadowRender();
@@ -77,6 +81,11 @@ private:
 	ComPtr<ID3D11ShaderResourceView> DirectionalShadowSRV;
 	ComPtr<ID3D11DepthStencilView> DirectionalShadowDSV;
 	TUniquePtr<FConstantBuffer> DirectionalShadowCB;
+
+	// 그림자 필터 옵션 (b6)
+	TUniquePtr<FConstantBuffer> FilterCB;
+	FShadowFilterConstants FilterConstants{};
+	bool bFilterDirty = true;
 	uint32 DirectionalResolution = 2048;
 
 	uint32 ShadowInfoCapacity = 0;

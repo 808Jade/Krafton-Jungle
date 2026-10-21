@@ -168,6 +168,25 @@ cbuffer DirectionalShadowConstants : register(b5)
     float2 CSMPadding;
 };
 
+// EShadowFilterMode(ShadowFilterSettings.h)와 순서가 같아야 한다.
+#define SHADOW_FILTER_HARD   0
+#define SHADOW_FILTER_HW_PCF 1
+#define SHADOW_FILTER_PCF    2
+#define SHADOW_FILTER_PCSS   3
+
+// Settings 창의 그림자 필터 옵션 (FShadowFilterConstants와 같은 레이아웃)
+cbuffer ShadowFilterConstants : register(b6)
+{
+    uint ShadowFilterMode;
+    uint bShadowPoisson;
+    uint bShadowGaussian;
+    uint bShadowRotate;
+    float ShadowPCFRadiusTexels;
+    float ShadowMaxFilterTexels;
+    float ShadowSearchScale;
+    float ShadowFilterPadding;
+};
+
 StructuredBuffer<FPointLightInfo> StructuredPointLights : register(t8);
 StructuredBuffer<FSpotLightInfo> StructuredSpotLights : register(t9);
 StructuredBuffer<uint> PointTileList : register(t10);
@@ -187,7 +206,7 @@ SamplerState AlbedoSampler : register(s0);
 SamplerState ShadowPointSampler : register(s1);
 SamplerComparisonState ShadowCmpSampler : register(s2);
 
-// 반지름 1 원 안의 Poisson Disk 16점
+// [-1, 1] 사각형 안의 Poisson Disk 16점 (최대 길이 1.2339). GetFilterTap에서 반지름 1 안으로 정규화한다.
 static const float2 Poisson16[16] =
 {
     float2(-0.94201624, -0.39906216), float2(0.94558609, -0.76890725),
@@ -200,11 +219,9 @@ static const float2 Poisson16[16] =
     float2(0.19984126, 0.78641367), float2(0.14383161, -0.14100790)
 };
 
-// 반지름 1 기준 탭 위치. 호출하는 쪽에서 RadiusUV를 곱한다.
-float2 GetTap(int Index)
-{
-    return Poisson16[Index];
-}
+static const float PoissonInvMaxLen = 1.0f / 1.2339f;
+// Gaussian 가중치 exp(-r^2 * K). 탭이 반지름 1 기준이라 K = 1 / (2σ²), σ = 0.5
+static const float ShadowGaussK = 2.0f;
 
 float3 DiffuseTerm(float3 Il, float3 N, float3 L)
 {
@@ -377,238 +394,109 @@ float PCF_CmpLinear_Software3x3(float2 TexelSize, float2 UV, float TextureIndex,
     return Lit;
 }
 
-float PCF_Poisson(float2 TexelSize, float2 UV, float TextureIndex, float Ref, float2 TileMin, float2 TileMax)
+// ---------------------------------------------------------------------------
+// 다중 탭 필터 공용 함수 (PCF, PCSS)
+// 탭 위치는 반지름 1 기준이고, 호출하는 쪽에서 반경(아틀라스 UV)을 곱한다.
+// ---------------------------------------------------------------------------
+
+// 탭 수: Poisson 16, 격자 5x5 = 25
+uint GetShadowTapCount()
 {
-    float Lit = 0.0f;
-    
-    for (int i = 0; i < 16; ++i)
-    {
-        float2 TapUV = clamp(UV + GetTap(i) * TexelSize, TileMin, TileMax); // 기존 면 clamp 유지
-        Lit += ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(TapUV, TextureIndex), Ref);
-    }
-    return Lit / 16.0f;
+    return bShadowPoisson != 0u ? 16u : 25u;
 }
 
-float PCSS(float2 TexelSize, float2 UV, float TextureIndex, float ReceiverNdcZ, FShadowInfo Info, float2 TileMin, float2 TileMax)
+// i번째 탭 위치. Poisson은 반지름 1 안으로 정규화 후 회전, 격자는 [-1, 1] 사각형의 5x5 (회전 없음)
+float2 GetFilterTap(uint Index, float2x2 Rot)
 {
-    const float Ref = ReceiverNdcZ - Info.Bias;
-    
-    //Receive Depth를 선형 보간    
-    float dR = LinearizeShadowDepth(ReceiverNdcZ, Info.Near, Info.Far);
-    
-    //주변 픽셀의 깊이 중 SampleDepth < Receiver Depth 인 깊이만 평균내어 dB를 구한다.
-    float dB = 0.0;
-    float BlockerCount = 0;
-    
-    //얼마나 주변 픽셀로 적용해야 하지?
-    //dB 평균 구하기.
-    //Near 위치에서의 절두체 길이
-    float SearchWorld = Info.LightSize * (dR - Info.Near) / dR;
-    //world 단위를 uv 단위로 바꾸기 위해
-    //float SearchUV = SearchWorld / (2.0 * Info.Near * tan(FOV / 2.0)) * Info.AtlasSize / (1 / TexelSize.x);
-    float SearchUV = SearchWorld * Info.ProjScale / Info.Near * Info.AtlasSize * TexelSize.x;
-    
-    //일단 32개 텍셀보다는 작도록 설정
-    SearchUV = min(SearchUV, TexelSize.x * 32.0);
-    float SearchStep = SearchUV / 2.0;
-    
-    //실제 SearchUV / TexelSize만큼 진행하면 너무 샘플링 수가 많아서 스텝을 늘리는 방식으로 찾기
-    for (int y = -2; y <= 2; ++y)
-    {
-        for (int x = -2; x <= 2; ++x)
-        {
-            //Blocker의 깊이를 가져와서 dB를 구해야 하기에 Point Sampler로 한다.
-            //비교 샘플러로 하면 깊이 값이 보간되니까 안된다.
-            float2 SampleUV = clamp(UV + float2(x, y) * SearchStep, TileMin, TileMax);
-            float BlockerDepth = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(SampleUV, TextureIndex), 0);
-        
-            //샘플링한 깊이가 더 작은 Blocker인 깊이만 합산한다.
-            if (BlockerDepth < Ref)
-            {
-                dB += LinearizeShadowDepth(BlockerDepth, Info.Near, Info.Far);
-                BlockerCount += 1.0;
-            }
-        }
-    }
-        
-    //주변 픽셀 중에 Blocker가 없다면 그림자 없음 처리
-    if (BlockerCount == 0)
-    {
-        return 1.0;
-    }
-    
-    //평균내기
-    dB /= BlockerCount;
-    
-    //P = W * (dR - dB) / dB
-    //W : 광원 크기
-    //dR : 광원부터 Receiver까지
-    //dB : 광원부터 Blocker까지
-    
-    //폭 반경
-    //월드 단위이다.
-    float P = Info.LightSize * (dR - dB) / dB;
-    
-    //반그림자 폭을 UV 반경으로 바꾼다.
-    //반그림자의 절반 폭 = 커널 반경이다.
-    //UV는 0 ~ 1이므로 dR 깊이 지점의 절두체 총 길이로 나눠서 Normalize하면 된다.
-    //FOV 90도로 하드코딩
-    //float FilterRadiusUV = P / (2 * dR * tan(FOV / 2.0)) * Info.AtlasSize / (1 / TexelSize.x);
-    float FilterRadiusUV = P * Info.ProjScale / dR * Info.AtlasSize * TexelSize.x;
-    //상한
-    FilterRadiusUV = min(FilterRadiusUV, TexelSize.x * 32);
-    
-    //반그림자 폭의 절반이 커널의 반경이다.
-    float Step = FilterRadiusUV / 2.0;
-    
-    // 너무 좁으면 같은 위치만 반복하므로 하한
-    Step = max(Step, TexelSize.x * 0.5f); 
-    //너무 멀리서 샘플링 하지 않도록 상한
-    Step = min(Step, 32.0);
-    
-    float Lit = 0.0f;
-    
-    //방법 1. 샘플링하는 횟수를 늘린다. : 폭이 넓어지면 너무 많아짐
-    //int SamplingLoop = Step / TexelSize;
-    //for (int y_2 = -SamplingLoop; y_2 <= SamplingLoop; ++y_2)
-    //{
-    //    for (int x_2 = -SamplingLoop; x_2 <= SamplingLoop; ++x_2)
-    //    {
-    //        float2 SampleUV = clamp(UV + float2(x_2, y_2) * Step, TileMin, TileMax);
-    //        //Lit += ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(UV + float2(x_2, y_2) * Step, TextureIndex), Ref);
-    //        Lit += ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(SampleUV, TextureIndex), Ref);
-    //    }
-        
-    //}
-    //return Lit / pow(1 + SamplingLoop + SamplingLoop, 2);
-    
-    //방법 2. 5x5로 크기는 고정. 샘플링하는 간격을 늘린다. : 품질이 1번보다는 안좋음.
-    //방법 2를 쓰도록 함.
-    for (int y_2 = -2; y_2 <= 2; ++y_2)
-    {
-        for (int x_2 = -2; x_2 <= 2; ++x_2)
-        {
-            float2 SampleUV = clamp(UV + float2(x_2, y_2) * Step, TileMin, TileMax);
-            Lit += ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(SampleUV, TextureIndex), Ref);
-        }
-        
-    }
-    
-    return Lit / 25.0f;
+    // 격자 경로(Index 최대 24)에서도 Poisson16 배열 밖을 읽지 않도록 % 16
+    float2 PoissonTap = mul(Rot, Poisson16[Index % 16u] * PoissonInvMaxLen);
+    float2 GridTap = float2((int)(Index % 5u) - 2, (int)(Index / 5u) - 2) * 0.5f;
+    return bShadowPoisson != 0u ? PoissonTap : GridTap;
 }
 
-bool GetPCSS_dR_dB_Step(float2 TexelSize, float2 UV, float TextureIndex, float ReceiverNdcZ, FShadowInfo Info, float2 TileMin, float2 TileMax, out float Step, out float Ref)
+// 픽셀별 회전 행렬. Poisson + Rotation일 때만 회전하고, 아니면 단위 행렬
+float2x2 GetShadowRotation(float2 PixelPos)
 {
-    Ref = ReceiverNdcZ - Info.Bias;
-    
-    //Receive Depth를 선형 보간    
-    float dR = LinearizeShadowDepth(ReceiverNdcZ, Info.Near, Info.Far);
-    
-    //주변 픽셀의 깊이 중 SampleDepth < Receiver Depth 인 깊이만 평균내어 dB를 구한다.
-    float dB = 0.0;
-    float BlockerCount = 0;
-    
-    //dB 평균 구하기.
-    float SearchWorld = Info.LightSize * (dR - Info.Near) / dR;
-    //float SearchUV = SearchWorld / (2.0 * Info.Near * tan(FOV / 2.0)) * Info.AtlasSize / (1 / TexelSize.x);
-    float SearchUV = SearchWorld * Info.ProjScale / Info.Near * Info.AtlasSize * TexelSize.x;
-    
-    //일단 32개 텍셀보다는 작도록 설정
-    SearchUV = min(SearchUV, TexelSize.x * 32.0);
-    float SearchStep = SearchUV / 2.0;
-    
-    //실제 SearchUV / TexelSize만큼 진행하면 너무 샘플링 수가 많아서 스텝을 늘리는 방식으로 찾기
-    for (int y = -2; y <= 2; ++y)
-    {
-        for (int x = -2; x <= 2; ++x)
-        {
-            //Blocker의 깊이를 가져와서 dB를 구해야 하기에 Point Sampler로 한다.
-            //비교 샘플러로 하면 깊이 값이 보간되니까 안된다.
-            float2 SampleUV = clamp(UV + float2(x, y) * SearchStep, TileMin, TileMax);
-            float BlockerDepth = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(SampleUV, TextureIndex), 0);
-        
-            //샘플링한 깊이가 더 작은 Blocker인 깊이만 합산한다.
-            if (BlockerDepth < Ref)
-            {
-                dB += LinearizeShadowDepth(BlockerDepth, Info.Near, Info.Far);
-                BlockerCount += 1.0;
-            }
-        }
-    }
-        
-    //주변 픽셀 중에 Blocker가 없다면 그림자 없음 처리
-    if (BlockerCount == 0)
-    {
-        return false;
-    }
-    
-    //평균내기
-    dB /= BlockerCount;
-    
-    float P = Info.LightSize * (dR - dB) / dB;
-    
-    //반그림자 폭을 UV 반경으로 바꾼다.
-    //FOV 90도로 하드코딩
-    //float FilterRadiusUV = P / (2 * dR * tan(FOV / 2.0)) * Info.AtlasSize / (1 / TexelSize.x);
-    float FilterRadiusUV = P * Info.ProjScale / dR * Info.AtlasSize * TexelSize.x;
-    //상한
-    FilterRadiusUV = min(FilterRadiusUV, TexelSize * 48);
-    
-    //PCSS처럼 5x5의 경우는 절반으로 해야하지만 Poisson은 그대로 반영해야한다
-    Step = FilterRadiusUV;
-    Step = max(Step, TexelSize.x * 0.5f);
-    Step = min(Step, 32.0);
-    
-    return true;
-}
-
-float PCSS_Poisson(float2 TexelSize, float2 UV, float TextureIndex, float ReceiverNdcZ, FShadowInfo Info, float2 TileMin, float2 TileMax)
-{    
-    float Step, Ref;
-    
-    if (GetPCSS_dR_dB_Step(TexelSize, UV, TextureIndex, ReceiverNdcZ, Info, TileMin, TileMax, Step, Ref) == false)
-    {
-        //주변 픽셀 중에 Blocker가 없다면 그림자 없음 처리
-        return 1.0;
-    }
-    
-     float Lit = 0.0f;
-    
-    for (int i = 0; i < 16; ++i)
-    {
-        float2 TapUV = clamp(UV + GetTap(i) * Step, TileMin, TileMax); // 기존 면 clamp 유지
-        Lit += ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(TapUV, TextureIndex), Ref);
-    }
-    return Lit / 16.0f;
-}
-
-float PCSS_Poisson_PixelRot(float2 TexelSize, float2 UV, float TextureIndex, float ReceiverNdcZ, FShadowInfo Info, float2 TileMin, float2 TileMax, float Angle)
-{
-    float Step, Ref;
-    
-    if (GetPCSS_dR_dB_Step(TexelSize, UV, TextureIndex, ReceiverNdcZ, Info, TileMin, TileMax, Step, Ref) == false)
-    {
-        //주변 픽셀 중에 Blocker가 없다면 그림자 없음 처리
-        return 1.0;
-    }
-    
-    float Lit = 0.0f;
-        
+    float Angle = (bShadowPoisson != 0u && bShadowRotate != 0u) ? IGN(PixelPos) * 6.2831853f : 0.0f;
     float s, c;
     sincos(Angle, s, c);
-    float2x2 Rot = float2x2(c, -s, s, c);
-    
-    for (int i = 0; i < 16; ++i)
-    {
-        float2 Tap = mul(Rot, GetTap(i));
-        float2 TapUV = clamp(UV + Tap * Step, TileMin, TileMax); // 기존 면 clamp 유지
-        Lit += ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(TapUV, TextureIndex), Ref);
-    }
-    return Lit / 16.0f;
+    return float2x2(c, -s, s, c);
 }
 
-// 반환값: 1 = 빛 받음, 0 = 그림자
-float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition, float Angle)
+// 반경(아틀라스 UV) 안에서 비교 샘플링한 평균. Gaussian이 켜지면 중심에 가까운 탭에 큰 가중치
+float FilterShadow(float2 UV, float TextureIndex, float Ref, float RadiusUV, float2 TileMin, float2 TileMax, float2x2 Rot)
+{
+    float Sum = 0.0f;
+    float WeightSum = 0.0f;
+    uint Count = GetShadowTapCount();
+
+    [loop]
+    for (uint i = 0; i < Count; ++i)
+    {
+        float2 Tap = GetFilterTap(i, Rot);
+        float Weight = bShadowGaussian != 0u ? exp(-dot(Tap, Tap) * ShadowGaussK) : 1.0f;
+        float2 TapUV = clamp(UV + Tap * RadiusUV, TileMin, TileMax); // 타일(면) 밖으로 나가지 않게
+        Sum += Weight * ShadowTextureArray.SampleCmpLevelZero(ShadowCmpSampler, float3(TapUV, TextureIndex), Ref);
+        WeightSum += Weight;
+    }
+    return Sum / max(WeightSum, 1e-5f);
+}
+
+// PCSS: Blocker Search → 반그림자 폭 → 가변 반경 필터
+float PCSS(float2 TexelSize, float2 UV, float TextureIndex, float ReceiverNdcZ, FShadowInfo Info, float2 TileMin, float2 TileMax, float2x2 Rot)
+{
+    const float Ref = ReceiverNdcZ - Info.Bias;
+
+    // 광원부터 Receiver까지의 선형 거리
+    float dR = LinearizeShadowDepth(ReceiverNdcZ, Info.Near, Info.Far);
+
+    // 타일 UV(타일 전체 = 1) 길이를 아틀라스 UV 길이로 바꾸는 비율
+    float TileToAtlas = Info.AtlasSize * TexelSize.x;
+    float MaxFilterUV = TexelSize.x * ShadowMaxFilterTexels;
+
+    // 1) Blocker Search
+    //    Near 평면 기준의 보수적인 탐색 반경. 상한은 필터 상한보다 넓게 잡아야
+    //    반그림자 바깥 끝 픽셀이 Blocker를 놓치고 1.0으로 끊기지 않는다.
+    float SearchWorld = Info.LightSize * (dR - Info.Near) / dR;
+    float SearchUV = SearchWorld * Info.ProjScale / Info.Near * TileToAtlas;
+    SearchUV = min(SearchUV, MaxFilterUV * ShadowSearchScale);
+
+    float dB = 0.0f;
+    float BlockerCount = 0.0f;
+    uint Count = GetShadowTapCount();
+
+    [loop]
+    for (uint i = 0; i < Count; ++i)
+    {
+        // Blocker의 깊이 값 자체가 필요하므로 Point 샘플러로 읽는다
+        float2 SampleUV = clamp(UV + GetFilterTap(i, Rot) * SearchUV, TileMin, TileMax);
+        float BlockerDepth = ShadowTextureArray.SampleLevel(ShadowPointSampler, float3(SampleUV, TextureIndex), 0);
+
+        // Receiver보다 가까운 텍셀(Blocker)만 선형화해서 평균에 넣는다
+        if (BlockerDepth < Ref)
+        {
+            dB += LinearizeShadowDepth(BlockerDepth, Info.Near, Info.Far);
+            BlockerCount += 1.0f;
+        }
+    }
+
+    // 주변에 Blocker가 없으면 빛을 받는다
+    if (BlockerCount == 0.0f)
+        return 1.0f;
+
+    dB /= BlockerCount;
+
+    // 2) 반그림자 반경 (월드): P = LightSize * (dR - dB) / dB  → 깊이 dR에서의 아틀라스 UV로
+    float P = Info.LightSize * (dR - dB) / dB;
+    float FilterUV = P * Info.ProjScale / dR * TileToAtlas;
+    FilterUV = clamp(FilterUV, TexelSize.x * 0.5f, MaxFilterUV);
+
+    // 3) 가변 반경 필터
+    return FilterShadow(UV, TextureIndex, Ref, FilterUV, TileMin, TileMax, Rot);
+}
+
+// 반환값: 1 = 빛 받음, 0 = 그림자. 필터 방식은 Settings의 ShadowFilterMode(b6)로 고른다.
+float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition, float2 PixelPos)
 {    
     //-1이면 그림자 없는 라이트
     if (ShadowIndex < 0)
@@ -630,8 +518,6 @@ float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition, float Angle)
     float2 UV = float2(Ndc.x * 0.5f + 0.5f, 1.0f - (Ndc.y * 0.5f + 0.5f));
 
     //범위 검사: 섀도맵 밖이거나 Far 너머면 그림자 판정 불가 : 빛 받음
-    //any 함수는 입력된 값 중 하나라도 0이 아닌 것(True)이 있으면 true를 반환
-    //들어온 UV 중 u와 v중 하나라도 0.0보다 작다면으로 해석됨
     if (any(UV < 0.0f) || any(UV > 1.0f) || Ndc.z < 0.0f || Ndc.z > 1.0f)
         return 1.0f;
     
@@ -644,37 +530,29 @@ float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition, float Angle)
     float2 TexelSize = 1.0 / AtlasWidth;
     float2 TileMin = (float2(Info.AtlasStartX, Info.AtlasStartY) + 0.5f) * TexelSize;
     float2 TileMax = (float2(Info.AtlasStartX, Info.AtlasStartY) + Info.AtlasSize - 0.5f) * TexelSize;
-    
-    //TODO 추후 PCF 옵션 설정으로 고르게 될 거 같다.
-    //  Point Sampler, ComparisonSampler, 3x3 Software, 5x5 Software, Comparision + 3x3, PCSS
-    
-    //Point Sampler
-    //return BasicShadow(AtlasUV, Info.AtlasIndex, Ndc.z - Info.Bias, TileMin, TileMax);
-        
-    //ComparisonLinearSampler
-    //return PCF_CmpLinear(AtlasUV, Info.AtlasIndex, Ndc.z - Info.Bias, TileMin, TileMax);
-    
-    //3x3 Software PCF
-    //return PCF_Software3x3(TexelSize, AtlasUV, Info.AtlasIndex, Ndc.z - Info.Bias, TileMin, TileMax);       
-    
-    //5x5 Software PCF
-    //return PCF_Software5x5(TexelSize, AtlasUV, Info.AtlasIndex, Ndc.z - Info.Bias, TileMin, TileMax);
-        
-    //Comparison Linear + 3x3 Software PCF
-    //return PCF_CmpLinear_Software3x3(TexelSize, AtlasUV, Info.AtlasIndex, Ndc.z - Info.Bias, TileMin, TileMax);
-    
-    //Poisson
-    //return PCF_Poisson(TexelSize, AtlasUV, Info.AtlasIndex, Ndc.z - Info.Bias, TileMin, TileMax);
-    
-    //PCSS
-    //return PCSS(TexelSize, AtlasUV, Info.AtlasIndex, Ndc.z, Info, TileMin, TileMax);
-    
-    //PCSS + Poisson
-    //return PCSS_Poisson(TexelSize, AtlasUV, Info.AtlasIndex, Ndc.z, Info, TileMin, TileMax);
 
-    //PCSS + Poisson + Pixel Rotation
-    return PCSS_Poisson_PixelRot(TexelSize, AtlasUV, Info.AtlasIndex, Ndc.z, Info, TileMin, TileMax, Angle);
-    
+    const float Ref = Ndc.z - Info.Bias;
+
+    [branch]
+    switch (ShadowFilterMode)
+    {
+    case SHADOW_FILTER_HARD:
+        // Point 샘플러 1탭
+        return BasicShadow(AtlasUV, Info.AtlasIndex, Ref, TileMin, TileMax);
+
+    case SHADOW_FILTER_HW_PCF:
+        // Comparison LINEAR 1탭 (하드웨어 2x2)
+        return PCF_CmpLinear(AtlasUV, Info.AtlasIndex, Ref, TileMin, TileMax);
+
+    case SHADOW_FILTER_PCF:
+        // 고정 반경. 격자/Poisson, Gaussian, 회전은 체크박스로
+        return FilterShadow(AtlasUV, Info.AtlasIndex, Ref, ShadowPCFRadiusTexels * TexelSize.x,
+                            TileMin, TileMax, GetShadowRotation(PixelPos));
+
+    default:
+        // PCSS
+        return PCSS(TexelSize, AtlasUV, Info.AtlasIndex, Ndc.z, Info, TileMin, TileMax, GetShadowRotation(PixelPos));
+    }
 }
 
 // Directional Light 전용 그림자 판정 (CSM 아틀라스 텍스처 t3 및 DirectionalShadowConstants b5 사용)
@@ -742,9 +620,7 @@ float3 WorldPosition, float3 V, float n, float2 PixelPosition, out float3 Diffus
     uint2 TileCoord = min(uint2(PixelPosition) / 16u, uint2(TileCountX - 1u, TileCountY - 1u));
     uint TileIndex = TileCoord.y * TileCountX + TileCoord.x;
     
-    // Poisson 회전을 위한 픽셀 단위 회전값
-    // 반환이 0 ~ 1 라디안이다. 각도로 쓰려면 2PI를 곱해준다.
-    float Angle = IGN(PixelPosition) * 6.2831853;
+    // Poisson 픽셀 회전은 ComputeShadowFactor 안에서 Settings(b6)에 따라 PixelPosition으로 계산한다.
 
     // Point Light
     uint PointListStart = TileIndex * PointTileStride;
@@ -778,7 +654,7 @@ float3 WorldPosition, float3 V, float n, float2 PixelPosition, out float3 Diffus
         //spot light는 ComputeShadowFactor()내부에서 검사로 충분하지만 PointLight는 PointShadowIndex를 더해버리면서
         //ShadowIndex -1이 양수가 될 수 있다. 그래서 여기서도 한번 검사해줌.
         float Shadow = Light.ShadowIndex < 0 ? 1.0 : 
-        ComputeShadowFactor(Light.ShadowIndex + PointShadowIndex, WorldPosition, Angle);
+        ComputeShadowFactor(Light.ShadowIndex + PointShadowIndex, WorldPosition, PixelPosition);
         
         float3 Il = Light.Color * DistanceAttenuation * GeoFactor * Shadow;
         AccumulateLight(Il, N, L, V, n, DiffuseLight, SpecularLight);
@@ -809,7 +685,7 @@ float3 WorldPosition, float3 V, float n, float2 PixelPosition, out float3 Diffus
         float GeoFactor = 1.0f;
 #endif
         //그림자 판단
-        float Shadow = ComputeShadowFactor(Light.ShadowIndex, WorldPosition, Angle);
+        float Shadow = ComputeShadowFactor(Light.ShadowIndex, WorldPosition, PixelPosition);
         
         float DistanceAttenuation = ComputeDistanceAttenuation(Distance, Radius);
         float CosAngle = dot(-L, normalize(Light.Direction));

@@ -264,6 +264,25 @@ void FShadowMapManager::EndShadowPass()
     RenderCommand::GetContext()->OMSetRenderTargets(0, nullptr, nullptr);
 }
 
+void FShadowMapManager::SetFilterSettings(const FShadowFilterSettings& Settings)
+{
+    FShadowFilterConstants Constants{};
+    Constants.Mode = static_cast<uint32>(Settings.Mode);
+    Constants.bPoisson = Settings.bPoisson ? 1u : 0u;
+    Constants.bGaussian = Settings.bGaussian ? 1u : 0u;
+    Constants.bRotate = Settings.bRotate ? 1u : 0u;
+    Constants.PCFRadiusTexels = Settings.PCFRadiusTexels;
+    Constants.MaxFilterTexels = Settings.MaxFilterTexels;
+    Constants.SearchScale = Settings.SearchScale;
+
+    // 뷰마다 호출되므로 값이 바뀌었을 때만 다시 올린다
+    if (std::memcmp(&Constants, &FilterConstants, sizeof(FShadowFilterConstants)) != 0)
+    {
+        FilterConstants = Constants;
+        bFilterDirty = true;
+    }
+}
+
 void FShadowMapManager::BindForShading()
 {
     ID3D11DeviceContext* Context = RenderCommand::GetContext();
@@ -281,6 +300,19 @@ void FShadowMapManager::BindForShading()
     {
         RenderCommand::BindConstantBuffer(5, DirectionalShadowCB.get(), EShaderBindFlagBits::Pixel);
     }
+
+    // Shadow Filter Constants (b6)
+    if (!FilterCB)
+    {
+        FilterCB = RenderCommand::CreateConstantBuffer(sizeof(FShadowFilterConstants));
+        bFilterDirty = true;
+    }
+    if (bFilterDirty)
+    {
+        RenderCommand::UpdateBufferData(FilterCB.get(), &FilterConstants, sizeof(FShadowFilterConstants));
+        bFilterDirty = false;
+    }
+    RenderCommand::BindConstantBuffer(6, FilterCB.get(), EShaderBindFlagBits::Pixel);
 
     // s0은 BindMaterial이 머티리얼마다 덮어쓰므로 섀도 샘플러는 s1
     RenderCommand::BindSamplerState(1, ESamplerState::Point, EShaderBindFlagBits::Pixel);

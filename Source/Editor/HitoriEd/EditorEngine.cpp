@@ -927,6 +927,20 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 
 	const FShadowInfo* DirectionalShadowInfo = bDrawShadows ? ViewWorld.GetScene().GetDirectionalShadowInfo() : nullptr;
 
+	// Settings 창의 그림자 필터 옵션을 Runtime 설정으로 옮긴다. 값이 바뀔 때만 GPU에 올라간다.
+	{
+		const FEditorSettings& Settings = SettingsPanel->GetSettings();
+		FShadowFilterSettings Filter;
+		//Filter.Mode = static_cast<EShadowFilterMode>(FMath::Clamp(Settings.ShadowFilterMode, 0, static_cast<int32>(EShadowFilterMode::Count) - 1));
+		Filter.Mode = static_cast<EShadowFilterMode>(Settings.ShadowFilterMode);
+		Filter.bPoisson = Settings.bShadowPoisson;
+		Filter.bGaussian = Settings.bShadowGaussian;
+		Filter.bRotate = Settings.bShadowRotate;
+		Filter.PCFRadiusTexels = Settings.ShadowPCFRadiusTexels;
+		Filter.MaxFilterTexels = Settings.ShadowMaxFilterTexels;
+		Renderer->SetShadowFilterSettings(Filter);
+	}
+
 	//Shadow Info StructuredBuffer, ShadowMap 만들기
 	if (DirectionalShadowInfo != nullptr || ShadowInfos.Num() > 0)
 	{

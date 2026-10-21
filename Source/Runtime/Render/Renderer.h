@@ -110,6 +110,9 @@ public:
 
 	void RenderShadowPass(const FShadowInfo* DirectionalShadow, TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy, FShadowStats& ShadowStats);
 
+	// Settings의 그림자 필터 옵션. BindForShading에서 b6으로 바인딩된다.
+	void SetShadowFilterSettings(const FShadowFilterSettings& Settings) { ShadowMapManager.SetFilterSettings(Settings); }
+
 
 	//ImGui용 PreviewSRV 반환
 	//ID3D11ShaderResourceView* GetShadowPreviewSRV() const { return ShadowMapManager.GetPreviewSRV(); }
