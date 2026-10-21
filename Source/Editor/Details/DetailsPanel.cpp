@@ -715,7 +715,35 @@ namespace
 			bChanged = ImGui::DragFloat(Label.c_str(), static_cast<float*>(ValuePtr), 0.1f);
 			break;
 		case EPropertyType::Int:
-			bChanged = ImGui::DragInt(Label.c_str(), static_cast<int*>(ValuePtr), 1.0f);
+			if (Property.HasAnyFlags(CPF_Pow2Combo))
+			{
+				static constexpr uint32 Options[] = { 256, 512, 1024, 2048, 4096 };
+				uint32* Value = static_cast<uint32*>(ValuePtr);
+
+				const FString Preview = std::to_string(*Value);
+				if (ImGui::BeginCombo(Label.c_str(), Preview.c_str()))
+				{
+					for (uint32 Option : Options)
+					{
+						const bool bSelected = (*Value == Option);
+						const FString Text = std::to_string(Option);
+						if (ImGui::Selectable(Text.c_str(), bSelected))
+						{
+							*Value = Option;
+							bChanged = true;
+						}
+						if (bSelected)
+						{
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+					ImGui::EndCombo();
+				}
+			}
+			else
+			{
+				bChanged = ImGui::DragInt(Label.c_str(), static_cast<int*>(ValuePtr), 1.0f);
+			}
 			break;
 		case EPropertyType::Bool:
 			bChanged = ImGui::Checkbox(Label.c_str(), static_cast<bool*>(ValuePtr));
