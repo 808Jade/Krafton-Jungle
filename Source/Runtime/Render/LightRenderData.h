@@ -56,6 +56,7 @@ struct FLightShadowRenderData
 	uint32 AtlasIndex;
 	float Near;
 	float Far;
+	float WorldUnitsPerTexel;
 	float Bias;      // 빛 방향 오프셋(월드)
 	float SlopeBias; // 법선 방향 오프셋(월드), 빛과의 각도에 비례
 	float Sharpen;   // 0~1, PCF 결과의 반그림자 폭을 좁힌다
@@ -91,7 +92,8 @@ struct FShadowInvalidationList
 };
 
 static_assert(sizeof(FVector4) == 16);
-static_assert(sizeof(FLightShadowRenderData) == 104);
+static_assert(sizeof(FLightShadowRenderData) == 108);
+static_assert(offsetof(FLightShadowRenderData, WorldUnitsPerTexel) == 92);
 static_assert(sizeof(FAmbientLightRenderData) == 16);
 static_assert(offsetof(FForwardLightingConstants, CameraPosition) == 16);
 static_assert(offsetof(FForwardLightingConstants, LightCounts) == 32);

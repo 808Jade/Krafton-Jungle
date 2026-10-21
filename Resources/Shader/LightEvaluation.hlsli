@@ -121,6 +121,7 @@ float CalculateShadowGrid(float3 P, float3 N, float3 LightDirection, Texture2DAr
         }
 
         if (SampleCount > 0)
+        {
             Result = Sum / (float) SampleCount;
             // 0.5를 기준으로 대비를 키워 반그림자 폭을 좁힌다. Sharpen 1이면 기울기 8배.
             Result = saturate((Result - 0.5) * (1.0 + Shadow.Sharpen * 7.0) + 0.5);

@@ -256,7 +256,7 @@ struct FSceneRenderData
 		CachedShadows = LightShadows;
 	}
 
-	void Commit(const FFrustumCorners& CameraFrustumCorners, float CameraNear, float CameraFar, uint32 ExpectCascadeCount,
+	void Commit(const FFrustumCorners& CameraFrustumCorners, float CameraNear, float CameraFar, uint32 ExpectCascadeCount, float LogRatio,
 		bool bCacheShadows, const FShadowInvalidationList& ShadowInvalidations, bool& bLightUpaloadSucceeded)
 	{
 		RenderQueue.Sort();
@@ -511,6 +511,7 @@ struct FSceneRenderData
 					Shadow.ViewProjection = ViewMatrix * CascadeProjectionMatrix;
 					Shadow.Near = NearX;
 					Shadow.Far = MaxLightX;
+					Shadow.WorldUnitsPerTexel = TexelSize;
 					ApplyShadowSettings(Shadow, ShadowSettings);
 
 					const uint32 Index = uint32(LightShadows.Num());

@@ -177,7 +177,7 @@ float4 mainPS(FPSInput Input) : SV_Target
         if (Light.ShadowIndex != INVALID_SHADOW_INDEX)
         {
             FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex + FaceIndex];
-            Shadow = CalculateShadow(WorldPosition, N, normalize(-ToPixel), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, 1.0f, PcfMode);
+            Shadow = CalculateShadow(WorldPosition, N, normalize(-ToPixel), LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, 1.0f, PcfMode, ShadowDepthBias);
         }
         
         float3 Radiance = Light.Color * max(Light.Intensity, 0.0f) * Attenuation * Shadow;
@@ -213,7 +213,7 @@ float4 mainPS(FPSInput Input) : SV_Target
         if (Light.ShadowIndex != INVALID_SHADOW_INDEX)
         {
             FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex];
-            Shadow = CalculateShadow(WorldPosition, N, L, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, 1.0f, PcfMode);
+            Shadow = CalculateShadow(WorldPosition, N, L, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, 1.0f, PcfMode, ShadowDepthBias);
         }
         
         float3 Radiance = Light.Color * max(Light.Intensity, 0.0f) * ConeFade * RadiusFade * Shadow;

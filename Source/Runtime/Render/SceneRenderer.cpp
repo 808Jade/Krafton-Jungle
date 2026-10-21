@@ -147,7 +147,7 @@ void FSceneRenderer::InitViews(FRenderer* Renderer, const FSceneRenderOptions& O
 	RenderData.PointLightShadowMapSize = Options.PointShadowMapSize;
 	RenderData.SpotLightShadowMapSize = Options.SpotShadowMapSize;
 
-	RenderData.Commit(View.FrustumCorners, View.NearClip, View.FarClip, 4,
+	RenderData.Commit(View.FrustumCorners, View.NearClip, View.FarClip, GetCascadeCount(), GetCascadeLogRatio(),
 		Options.bCacheShadows, Scene.GetShadowInvalidations(), bLightUploadSucceeded);
 }
 
