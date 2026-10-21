@@ -705,34 +705,69 @@ void FShadowMapManager::UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy, c
 
 void FShadowMapManager::BuildAtlas(TArray<FShadowInfo>& ShadowInfos)
 {
+    //constexpr uint32 Cellsize = 128;    // 가장 작은 섀도우 맵 크기
+    //const uint32 CellsPerside = AtlasResolution / Cellsize; // 아틀라스 한 변의 셀 개수
+    //const uint32 CellsPerPage = CellsPerside * CellsPerside;
+
+    // 해상도 크기 순 - 내림차순으로 정렬
+    TArray<uint32> Order;
+    Order.SetNum(ShadowInfos.Num());
+    std::iota(Order.begin(), Order.end(), 0);
+
+    std::stable_sort(Order.begin(), Order.end(), [&ShadowInfos](int32 a, int32 b)
+        {
+            return ShadowInfos[a].AtlasSize > ShadowInfos[b].AtlasSize;
+        });
+
     uint32 CurrentAtlasIndex = 0;
     uint32 CurrentX = 0;
     uint32 CurrentY = 0;
-    
-    for (FShadowInfo& Info : ShadowInfos)
-    {
-        // 아틀라스 계산
-        if (CurrentX + Resolution > AtlasResolution)
-        {
-            CurrentX = 0;
-            CurrentY += Resolution;
-        }
+    NumAtlas = 1;   // 아틀라스 빌드할 때마다 1장으로 초기화
 
-        if (CurrentY + Resolution > AtlasResolution)
-        {   // 다음줄
-            CurrentX = CurrentY = 0;
-            ++CurrentAtlasIndex;
-        }
+    for (int32 Index : Order)
+    {
+        FShadowInfo& Info = ShadowInfos[Index];
+        const uint32 Size = Info.AtlasSize;
 
         Info.AtlasIndex = CurrentAtlasIndex;
-        // TODO: ShadowManager가 갖고있는 값이 아니라 컴포넌트가 들고있기 혹은 라이트 타입 별 전역옵션으로 수정필요
-        Info.AtlasSize = Resolution;    
         Info.AtlasStartX = CurrentX;
         Info.AtlasStartY = CurrentY;
 
-        CurrentX += Resolution;
+        // 루프 안에서 설정해주어야 빈 맵이 안생김 (실제로 그릴때만 업데이트 하겠다)
+        NumAtlas = CurrentAtlasIndex + 1;
+
+        // 다음에 그릴 위치 계산
+        uint32 Step = Size;
+        while (Step < AtlasResolution)
+        {
+            const uint32 ParentSize = Step * 2;
+            const bool bRight = CurrentX % ParentSize >= Step;
+            const bool bBottom = CurrentY % ParentSize >= Step;
+
+            if (!bRight)
+            {
+                CurrentX += Step;
+                break;
+            }
+            if (!bBottom)
+            {
+                CurrentX -= Step;
+                CurrentY += Step;
+                break;
+            }
+
+            CurrentX -= Step;
+            CurrentY -= Step;
+            Step = ParentSize;
+        }
+
+        if (Step >= AtlasResolution)
+        {
+            ++CurrentAtlasIndex;
+            CurrentX = 0;
+            CurrentY = 0;
+        }
     }
-    NumAtlas = CurrentAtlasIndex + 1;
 }
 
 void FShadowMapManager::UnbindForShading()
