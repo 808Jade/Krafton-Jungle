@@ -387,9 +387,6 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 	{
 		// 안 보이거나 그림자가 없으면 -1로 남는다
 		Proxy->ShadowIndex = -1;
-		//ShadowPreview 초기화
-		//매프레임 Preview 요청이 있는 것만 복사하게 된다.
-		//Proxy->GetShadowPreview().Reset();
 
 		if (!Proxy->IsVisible())
 		{
@@ -435,15 +432,6 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			}
 
 			OutPointLight.Add(PointLightInfo);
-
-			//Preview가 켜져있다면 넣기
-			if (PointProxy->bPreviewShadowMap)
-			{
-				OutPreviewShadowMapLightProxy = PointProxy;
-				//한번만 복사하기 위해
-				//어차피 다음 프레임에서도 Detail Panel이 true로 요청할 것
-				PointProxy->bPreviewShadowMap = false;
-			}
 			ShadowStats.PointLightCount++;
 			break;
 		}
