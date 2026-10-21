@@ -142,8 +142,7 @@ private:
 	UMaterial* LastMaterial;
 	UStaticMesh* LastMesh;
 
-	FShaderProgram* ViewModeShader = nullptr;
-	FShaderProgram* ViewModeNormalShader = nullptr;
+	FShaderProgram* ViewModeShaders[2][2] = {};
 
 	// MeasureOpaqueOcclusion 전용. 처음 측정할 때 만들고 이후 재사용한다.
 	TArray<ComPtr<ID3D11Query>> OcclusionQueries;

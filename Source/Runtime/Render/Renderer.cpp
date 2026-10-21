@@ -475,8 +475,11 @@ void FRenderer::EndObjectConstants()
 
 void FRenderer::SetViewMode(const FViewRenderMode& Mode)
 {
-	ViewModeShader = FRenderResourceManager::GetUberLitProgram(Mode, false);
-	ViewModeNormalShader = FRenderResourceManager::GetUberLitProgram(Mode, true);
+	for (int32 NM = 0; NM < 2; NM++) {
+		for (int32 RS = 0; RS < 2; RS++) {
+			ViewModeShaders[NM][RS] = FRenderResourceManager::GetUberLitProgram(Mode, NM, RS);
+		}
+	}
 }
 
 void FRenderer::SetLighting(const FLightingConstants& GlobalLights,
@@ -495,17 +498,17 @@ void FRenderer::BindMaterial(UMaterial* material)
 	// 스태틱 메시 머티리얼만 조명 대상이다. 빌보드·파티클(ParticleSubUV)은 자기 셰이더를 그대로 쓴다.
 	if (material->ParamLayout == EMaterialParamLayout::StaticMesh)
 	{
-		if (!ViewModeShader)
+		if (!ViewModeShaders[0][1])
 			SetViewMode(FViewRenderMode{});
 
 		bool bUseNormalMap = material->Textures.size() > 1 && material->Textures[1] != nullptr;
 		if (bUseNormalMap)
 		{
-			RenderCommand::BindShaderProgram(ViewModeNormalShader);
+			RenderCommand::BindShaderProgram(ViewModeShaders[1][1]);
 		}
 		else
 		{
-			RenderCommand::BindShaderProgram(ViewModeShader);
+			RenderCommand::BindShaderProgram(ViewModeShaders[0][1]);
 		}
 	}
 	else
