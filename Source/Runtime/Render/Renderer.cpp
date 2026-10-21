@@ -181,20 +181,34 @@ void FRenderer::DrawStaticGroups()
 	RenderCommand::BindConstantBuffer(3, LightingCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
 	UMaterial* BoundMaterial = nullptr;
+	int8 LastReceiveShadow = -1;
+
 	for (const FStaticDrawGroup* Group : StaticGroups)
 	{
 		RenderCommand::BindMesh(Group->Mesh, Group->LODIndex);
-		if (Group->Material != BoundMaterial)
-		{
-			BoundMaterial = Group->Material;
-			BindMaterial(BoundMaterial);
-			FRenderPacket MaterialOnly;           // 머티리얼 파라미터 갱신은 패킷을 받으므로 머티리얼만 채워 넘긴다
-			MaterialOnly.Material = BoundMaterial;
-			UpdateMaterialParams(MaterialOnly);
-		}
 
+		// 한계: 같은 머티리얼인데 ReceiveShadow가 번갈아 다르면 셰이더를 매번 재바인딩하게 됨.
+		// 제대로 하려면 정렬 키에 플래그를 넣어 같은 값끼리 모아야 하는데, 이번 마감 범위 밖입니다.
 		for (const FStaticDrawItem& Item : Group->Items)
 		{
+			const bool bReceiveShadow = Item.Proxy ? Item.Proxy->IsReceiveShadow() : true;
+			const int8 CurrentRS = bReceiveShadow ? 1 : 0;
+			const bool bMaterialChanged = (Group->Material != BoundMaterial);
+			const bool bShadowChanged = (CurrentRS != LastReceiveShadow);
+
+			if (bMaterialChanged || bShadowChanged)
+			{
+				BoundMaterial = Group->Material;
+				LastReceiveShadow = CurrentRS;
+				BindMaterial(BoundMaterial, bReceiveShadow);
+				if (bMaterialChanged)
+				{
+					FRenderPacket MaterialOnly;           // 머티리얼 파라미터 갱신은 패킷을 받으므로 머티리얼만 채워 넘긴다
+					MaterialOnly.Material = BoundMaterial;
+					UpdateMaterialParams(MaterialOnly);
+				}
+			}
+
 			if (bUsePerObjectSlots && Item.Slot != InvalidObjectSlot)
 			{
 				RenderCommand::BindConstantBufferRange(2, PerObjectSlotCB.get(), Item.Slot * PerObjectSlotConstants, PerObjectSlotConstants, EShaderBindFlagBits::Vertex);
@@ -263,11 +277,13 @@ void FRenderer::DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProject
 	LastMesh = nullptr;
 	LastMaterial = nullptr;
 	uint8 LastLODIndex = 0;
+	int8 LastReceiveShadow = -1;
 
 	RenderCommand::BindConstantBuffer(0, ViewCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 	RenderCommand::BindConstantBuffer(3, LightingCB.get(), EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel);
 
-
+	// 한계: 같은 머티리얼인데 ReceiveShadow가 번갈아 다르면 셰이더를 매번 재바인딩하게 됨.
+	// 제대로 하려면 정렬 키에 플래그를 넣어 같은 값끼리 모아야 하는데, 이번 마감 범위 밖입니다.
 	for (uint32 k = Begin; k < End; ++k)          // k = 정렬된 위치
 	{
 		const uint32 PacketIndex = SortEntries[k].PacketIndex;
@@ -276,8 +292,10 @@ void FRenderer::DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProject
 		if (RenderPacket.Mesh != LastMesh || RenderPacket.LODIndex != LastLODIndex) {
 			RenderCommand::BindMesh(RenderPacket.Mesh, RenderPacket.LODIndex);
 		}
-		if (RenderPacket.Material != LastMaterial) {
-			BindMaterial(RenderPacket.Material);
+		const bool bReceiveShadow = RenderPacket.Proxy ? RenderPacket.Proxy->IsReceiveShadow() : true;
+		const int8 CurrentRS = bReceiveShadow ? 1 : 0;
+		if (RenderPacket.Material != LastMaterial || CurrentRS != LastReceiveShadow) {
+			BindMaterial(RenderPacket.Material, bReceiveShadow);
 		}
 		if (RenderPacket.Material != LastMaterial || RenderPacket.MaterialParamData)
 			UpdateMaterialParams(RenderPacket);
@@ -298,6 +316,7 @@ void FRenderer::DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProject
 		LastMaterial = RenderPacket.Material;
 		LastMesh = RenderPacket.Mesh;
 		LastLODIndex = RenderPacket.LODIndex;
+		LastReceiveShadow = CurrentRS;
 	}
 }
 
@@ -382,7 +401,7 @@ FOcclusionMeasureResult FRenderer::MeasureOpaqueOcclusion(const FMatrix& ViewPro
 			RenderCommand::BindMesh(Draw.Mesh, Draw.LODIndex);
 		if (Draw.Material != BoundMaterial)
 		{
-			BindMaterial(Draw.Material);
+			BindMaterial(Draw.Material, true);
 			// BindMaterial이 바꾼 상태를 측정용으로 덮어쓴다.
 			RenderCommand::SetBlendState(EBlendState::NoColorWrite);
 			Context->OMSetDepthStencilState(DepthLessEqualReadOnly.Get(), 0);
@@ -493,7 +512,7 @@ void FRenderer::SetLighting(const FLightingConstants& GlobalLights,
 }
 
 // Material마다 Shader/Texture/Sampler/State 꽂기
-void FRenderer::BindMaterial(UMaterial* material)
+void FRenderer::BindMaterial(UMaterial* material, bool bReceiveShadow)
 {
 	// 스태틱 메시 머티리얼만 조명 대상이다. 빌보드·파티클(ParticleSubUV)은 자기 셰이더를 그대로 쓴다.
 	if (material->ParamLayout == EMaterialParamLayout::StaticMesh)
@@ -504,11 +523,11 @@ void FRenderer::BindMaterial(UMaterial* material)
 		bool bUseNormalMap = material->Textures.size() > 1 && material->Textures[1] != nullptr;
 		if (bUseNormalMap)
 		{
-			RenderCommand::BindShaderProgram(ViewModeShaders[1][1]);
+			RenderCommand::BindShaderProgram(ViewModeShaders[1][bReceiveShadow ? 1 : 0]);
 		}
 		else
 		{
-			RenderCommand::BindShaderProgram(ViewModeShaders[0][1]);
+			RenderCommand::BindShaderProgram(ViewModeShaders[0][bReceiveShadow ? 1 : 0]);
 		}
 	}
 	else
