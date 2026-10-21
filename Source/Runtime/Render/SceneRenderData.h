@@ -542,6 +542,7 @@ struct FSceneRenderData
 					// 다음 캐스케이드는 이 캐스케이드의 블렌드 시작점부터 덮는다.
 					const float BlendStart = Dist - (Dist - PrevSplit) * CascadeBlendRatio;
 					CornersAt(BlendStart, PrevTL, PrevTR, PrevBL, PrevBR);
+					PrevSplit = Dist;
 					//CascadeShadowMapSize /= 2;
 				}
 			}
