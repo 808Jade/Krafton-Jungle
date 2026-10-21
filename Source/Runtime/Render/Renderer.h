@@ -108,8 +108,18 @@ public:
 
 	void EnsureTileLightCapacity(const FMatrix& ViewProjection, uint32 Width, uint32 Height, bool bVisualizeLightCount);
 
-	void RenderShadowPass(const FShadowInfo* DirectionalShadow, TArray<FShadowInfo>& ShadowInfos, const TArray<FPrimitiveSceneProxy*>& Casters, FLightSceneProxy* PreviewShadowMapProxy, FShadowStats& ShadowStats);
-
+	void RenderShadowPass(
+		const FShadowInfo* DirectionalShadow,
+		const FVector& LightDirection,
+		const FVector& CameraPosition,
+		const FVector& CameraForward,
+		float FovDegrees,
+		float AspectRatio,
+		TArray<FShadowInfo>& ShadowInfos,
+		const TArray<FPrimitiveSceneProxy*>& Casters,
+		FLightSceneProxy* PreviewShadowMapProxy,
+		FShadowStats& ShadowStats,
+		bool bVisualizeCascades = false);
 
 	//ImGui용 PreviewSRV 반환
 	//ID3D11ShaderResourceView* GetShadowPreviewSRV() const { return ShadowMapManager.GetPreviewSRV(); }

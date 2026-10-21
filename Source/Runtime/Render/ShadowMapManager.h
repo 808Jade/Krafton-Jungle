@@ -37,9 +37,32 @@ public:
 	//그리고 나서 바인딩
 	void BindForShading();
 
-	void SetupDirectionalShadow(const FShadowInfo& DirectionalShadow);
+	void ComputeCascadeSpheres(
+		const FVector& CameraPosition,
+		const FVector& CameraForward,
+		float FovDegrees,
+		float AspectRatio,
+		float NearClip,
+		float ShadowMaxDist,
+		FVector4 OutCascadeSpheres[4]);
+	void ComputeCascadeLightMatrices(
+		const FVector& LightDirection,
+		FVector4 InOutCascadeSpheres[4],
+		uint32 CascadeResolution,
+		FMatrix OutCascadeMatrices[4]);
+	void SetupDirectionalShadow(
+		const FShadowInfo& DirectionalShadow,
+		const FVector& LightDirection,
+		const FVector& CameraPosition,
+		const FVector& CameraForward,
+		float FovDegrees,
+		float AspectRatio,
+		bool bVisualizeCascades = false);
+	void BeginDirectionalCascadeRender(uint32 CascadeIndex);
 	void BeginDirectionalShadowRender();
 	void EndDirectionalShadowRender();
+
+	const FMatrix& GetCascadeMatrix(uint32 CascadeIndex) const { return CachedCascadeMatrices[CascadeIndex]; }
 
 	//Imgui
 	void UpdatePreview(FLightSceneProxy* PreviewShadowMapProxy, const TArray<FShadowInfo>& ShadowInfos);
@@ -77,7 +100,8 @@ private:
 	ComPtr<ID3D11ShaderResourceView> DirectionalShadowSRV;
 	ComPtr<ID3D11DepthStencilView> DirectionalShadowDSV;
 	TUniquePtr<FConstantBuffer> DirectionalShadowCB;
-	uint32 DirectionalResolution = 2048;
+	FMatrix CachedCascadeMatrices[4] = {};
+	uint32 DirectionalResolution = 4096;
 
 	uint32 ShadowInfoCapacity = 0;
 	uint32 NumShadowInfos = 0;	
