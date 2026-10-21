@@ -32,6 +32,10 @@
 #endif
 #define USE_NORMAL_MAP (SHADING_MODEL == SHADING_MODEL_PHONG && HAS_NORMAL_MAP)
 
+#ifndef RECEIVE_SHADOW
+#define RECEIVE_SHADOW 1
+#endif 
+
 #define GOURAUD (VIEWMODE == VIEWMODE_LIT && SHADING_MODEL == SHADING_MODEL_GOURAUD)
 
 struct FAmbientLightInfo
@@ -456,7 +460,10 @@ float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition)
     //-1이면 그림자 없는 라이트
     if (ShadowIndex < 0)
         return 1.0f;
-
+    
+#if (RECEIVE_SHADOW == 0)
+        return 1.0f;
+#endif
     FShadowInfo Info = StructuredShadowData[ShadowIndex];
 
     // light Clip Space 클립 공간
@@ -616,25 +623,28 @@ float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
 {
     if (NumCascades <= 0)
         return 1.0f;
-
-    int CascadeIndex;
-    int NextCascadeIndex;
-    float BlendFactor;
-    GetCascadeBlendInfo(WorldPosition, CascadeIndex, NextCascadeIndex, BlendFactor);
-
-    if (CascadeIndex >= NumCascades)
+    
+    #if (RECEIVE_SHADOW == 0)
         return 1.0f;
+    #endif
+        int CascadeIndex;
+        int NextCascadeIndex;
+        float BlendFactor;
+        GetCascadeBlendInfo(WorldPosition, CascadeIndex, NextCascadeIndex, BlendFactor);
 
-    float Shadow = SampleSingleCascadeShadow(WorldPosition, Normal, CascadeIndex);
+        if (CascadeIndex >= NumCascades)
+            return 1.0f;
 
-    // 블렌딩 영역에 걸쳐 있다면 다음 캐스케이드와 lerp
-    if (BlendFactor > 0.0f && NextCascadeIndex < NumCascades)
-    {
-        float NextShadow = SampleSingleCascadeShadow(WorldPosition, Normal, NextCascadeIndex);
-        Shadow = lerp(Shadow, NextShadow, BlendFactor);
-    }
+        float Shadow = SampleSingleCascadeShadow(WorldPosition, Normal, CascadeIndex);
 
-    return Shadow;
+        // 블렌딩 영역에 걸쳐 있다면 다음 캐스케이드와 lerp
+        if (BlendFactor > 0.0f && NextCascadeIndex < NumCascades)
+        {
+            float NextShadow = SampleSingleCascadeShadow(WorldPosition, Normal, NextCascadeIndex);
+            Shadow = lerp(Shadow, NextShadow, BlendFactor);
+        }
+
+        return Shadow;
 }
 
 void ComputeTiledLighting(float3 N,

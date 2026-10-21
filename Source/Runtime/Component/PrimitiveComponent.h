@@ -29,6 +29,7 @@ class UPrimitiveComponent :public USceneComponent
 	REFLECT_START(ClassName)
 		PROPERTY(bVisible)
 		PROPERTY(bCastShadow)
+		PROPERTY(bReceiveShadow)
 	REFLECT_END()
 public:
 	UPrimitiveComponent();
@@ -67,6 +68,12 @@ public:
 		bCastShadow = bInCastShadow;
 		MarkRenderStateDirty();
 	}
+	bool IsReceiveShadow() const { return bReceiveShadow; }
+	void SetReceiveShadow(bool bInReceiveShadow)
+	{
+		bReceiveShadow = bInReceiveShadow;
+		MarkRenderStateDirty();
+	}
 
 	virtual bool LineTraceComponent(const FRay& WorldRay, FHitResult& OutHit);
 	virtual bool LineTraceComponentLocal(const FRay& LocalRay, float& OutT);
@@ -89,6 +96,7 @@ protected:
 	bool TraceMeshLocal(const FRay& LocalRay, const FStaticMeshData& Mesh, float& OutT);
 	bool bVisible = true;
 	bool bCastShadow = true;
+	bool bReceiveShadow = true;
 
 private:
 	friend class FScene;
