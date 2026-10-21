@@ -176,13 +176,13 @@ void FOutputLogPanel::ExecCommand(const FString& CommandLine)
 		return;
 	}
 
-	if (EqualsIgnoreCase(CommandLine, "r.shadow.CacheWholeSceneShadows 1"))
+	if (EqualsIgnoreCase(CommandLine, "r.shadow.CacheWholeSceneShadows 1") || EqualsIgnoreCase(CommandLine, "r.shadow.CWSS 1"))
 	{
 		FLog::Log(ELogVerbosity::Info, "r.shadow.CacheWholeSceneShadows: 1 (caching enabled)");
 		FScene::bCacheWholeSceneShadows = true;
 		return;
 	}
-	else if (EqualsIgnoreCase(CommandLine, "r.shadow.CacheWholeSceneShadows 0")) {
+	else if (EqualsIgnoreCase(CommandLine, "r.shadow.CacheWholeSceneShadows 0") || EqualsIgnoreCase(CommandLine, "r.shadow.CWSS 0")) {
 		FLog::Log(ELogVerbosity::Info, "r.shadow.CacheWholeSceneShadows: 0 (caching disabled)");
 		FScene::bCacheWholeSceneShadows = false;
 		return;
