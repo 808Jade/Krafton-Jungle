@@ -644,6 +644,12 @@ bool FSceneRenderer::AddViewportPasses(FRenderGraphBuilder& Graph, FRenderer* Re
 	}
 
 	const FSceneOverlayCallbacks& Overlay = Callbacks.Overlays;
+	if (Options.bShowCascade && Callbacks.CascadeVisualization)
+	{
+		FRenderGraphRasterPassDesc Pass = MakeViewportPass("CascadeFloorVisualization", FinalColor);
+		Pass.ReadTextures = { Depth };
+		if (!Graph.AddRasterPass(std::move(Pass), Callbacks.CascadeVisualization)) return false;
+	}
 	if (!AddOverlayPass(Graph, "EditorLines", FinalColor, Depth, Overlay.EditorLines) ||
 		!AddOverlayPass(Graph, "EditorGrid", FinalColor, Depth, Overlay.EditorGrid) ||
 		!AddOverlayPass(Graph, "EditorOutline", FinalColor, Depth, Overlay.EditorOutline) ||

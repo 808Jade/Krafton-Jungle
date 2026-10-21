@@ -13,6 +13,7 @@
 #include "Editor/Gizmo/GizmoRenderer.h"
 #include "Render/LineBatcher.h"
 #include "Editor/Rendering/SceneDepthRenderer.h"
+#include "Editor/Rendering/CascadeFloorRenderer.h"
 #include "Editor/Rendering/HeightFogRenderer.h"
 #include "Editor/Rendering/FXAARenderer.h"
 #include "Editor/Rendering/FireBallRenderer.h"
@@ -152,6 +153,7 @@ private:
 	TUniquePtr<FOutline> Outline;
 	TUniquePtr<FOutlineRenderer> OutlineRenderer;
 	TUniquePtr<FSceneDepthRenderer> SceneDepthRenderer;
+	TUniquePtr<FCascadeFloorRenderer> CascadeFloorRenderer;
 	TUniquePtr<FSkyboxRenderer> SkyboxRenderer;
 	TUniquePtr<FHeightFogRenderer> HeightFogRenderer;
 	TUniquePtr<FFXAARenderer> FXAARenderer;

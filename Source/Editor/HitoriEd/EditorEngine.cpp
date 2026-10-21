@@ -149,6 +149,8 @@ bool UEditorEngine::Init()
 
 	SceneDepthRenderer = MakeUnique<FSceneDepthRenderer>();
 	SceneDepthRenderer->Init(Renderer);
+	CascadeFloorRenderer = MakeUnique<FCascadeFloorRenderer>();
+	CascadeFloorRenderer->Init();
 
 	HeightFogRenderer = MakeUnique<FHeightFogRenderer>();
 	HeightFogRenderer->Init(Renderer);
@@ -833,6 +835,7 @@ void UEditorEngine::BuildSceneRenderOptions(FEditorViewportClient* ViewClient, b
 	Options.bDrawPrimitives = IsPIE || SettingsPanel->GetSettings().bDrawPrimitives;
 	Options.bEnableFog = ViewClient->GetViewportMode() == EViewportMode::Solid;
 	Options.bShowSceneDepth = !IsPIE && ViewClient->IsSceneDepth();
+	Options.bShowCascade = !IsPIE && ViewClient->IsCascade();
 	Options.bShowWorldNormal = !IsPIE && ViewClient->IsWorldNormal();
 	Options.bShowLightCulling = !IsPIE && ViewClient->IsLightCulling();
 	Options.SceneDepthRange = ViewClient->GetMaxRange();
@@ -896,6 +899,11 @@ bool UEditorEngine::RenderScene(FSceneViewTargets& Targets, const FSceneView& Sc
 		Callbacks.DepthVisualization = [this, &SceneView, DepthTarget, ColorTarget, Range = Options.SceneDepthRange]
 		{
 			SceneDepthRenderer->OnRender(SceneView, DepthTarget, ColorTarget, Range);
+		};
+	if (Options.bShowCascade && CascadeFloorRenderer)
+		Callbacks.CascadeVisualization = [this, &SceneView, &SceneRenderer, DepthTarget, ColorTarget]
+		{
+			CascadeFloorRenderer->OnRender(SceneView, SceneRenderer.GetRenderData(), DepthTarget, ColorTarget);
 		};
 
 	const bool bUseFXAA = Options.bEnableFXAA && !Options.bShowSceneDepth &&

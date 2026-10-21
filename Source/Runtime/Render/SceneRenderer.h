@@ -36,6 +36,7 @@ struct FScenePassCallbacks // 기본 도형 다 그려진 후 그려져야 될 �
 	std::function<FConstantBuffer*(bool)> TranslucentFogConstants;
 	std::function<void()> SceneText;
 	std::function<void()> DepthVisualization;
+	std::function<void()> CascadeVisualization;
 	std::function<bool()> FXAA;
 	FTexture2D* FXAAOutput = nullptr;
 	FSceneOverlayCallbacks Overlays;
@@ -79,6 +80,7 @@ public:
 
 	// 뷰 정보 조회
 	const FSceneView& GetView() const { return View; }
+	const FSceneRenderData& GetRenderData() const { return RenderData; }
 	
 private:
 	bool AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Renderer, FSceneViewTargets& Targets,

@@ -13,6 +13,7 @@ struct FSceneRenderOptions
 	bool bEnableFXAA = false;
 	ELightCullingMode LightCullingMode = ELightCullingMode::Tiled;
 	bool bShowSceneDepth = false;
+	bool bShowCascade = false;
 	bool bShowWorldNormal = false;
 	bool bShowLightCulling = false;
 	float SceneDepthRange = 1.0f;

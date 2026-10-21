@@ -34,6 +34,7 @@ enum class EViewportMode
 	SceneDepth,
 	WorldNormal,
 	LightCulling,
+	Cascade,
 };
 
 // 에디터 뷰포트 클라이언트
@@ -129,6 +130,7 @@ public:
   bool IsSceneDepth() const { return ViewportMode == EViewportMode::SceneDepth; }
   bool IsWorldNormal() const { return ViewportMode == EViewportMode::WorldNormal; }
   bool IsLightCulling() const { return ViewportMode == EViewportMode::LightCulling; }
+  bool IsCascade() const { return ViewportMode == EViewportMode::Cascade; }
   EViewportMode GetViewportMode() const { return ViewportMode; }
   void SetViewportMode(const EViewportMode InViewportMode) { ViewportMode = InViewportMode; }
   float GetMaxRange() const { return MaxRange; }
