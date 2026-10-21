@@ -47,17 +47,11 @@ public:
 	void MarkDirty(FPrimitiveSceneProxy* Proxy);
 	void MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy);
 
-	bool HasAnyShadowCaster() const {
-		for (auto* Proxy : Proxies) {
-			if (Proxy && Proxy->IsVisible() && Proxy->GetMesh() && Proxy->GetRenderState() && Proxy->IsCastShadow()) {
-				return true;
-			}
-		}
+	bool IsFrustemCulling(const FLightSceneProxy* Proxy, const FFrustumPlanes* FrustemPlanes) const;
 
-		return false;
-	}
-	void BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats& ShadowStats, bool bShadow) const;
-	
+	bool HasAnyShadowCaster() const;
+	void BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats& ShadowStats, bool bShadow, const FFrustumPlanes* FrustemPlanes) const;
+
 	TArray<FPrimitiveSceneProxy*> Proxies;
 	TArray<FPrimitiveSceneProxy*> DirtyProxies;
 	TArray<FPrimitiveSceneProxy*> RenderStateDirtyProxies;

@@ -922,7 +922,10 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 
 	ViewWorld.GetScene().BuildLightingConstants(Lighting);
 	const bool bDrawShadows = SettingsPanel->GetSettings().bDrawShadows;
-	ViewWorld.GetScene().BuildStructuredLightAndShadowData(PointLights, SpotLights, DirectionalLights, ShadowInfos, PreviewShadowMapLightProxy, ShadowStats, bDrawShadows);
+
+	FFrustumPlanes frustemPlanes = ExtractFrustumPlanes(ViewProjection);
+
+	ViewWorld.GetScene().BuildStructuredLightAndShadowData(PointLights, SpotLights, DirectionalLights, ShadowInfos, PreviewShadowMapLightProxy, ShadowStats, bDrawShadows, &frustemPlanes);
 	Renderer->SetLighting(Lighting, PointLights, SpotLights);
 
 	const FShadowInfo* DirectionalShadowInfo = bDrawShadows ? ViewWorld.GetScene().GetDirectionalShadowInfo() : nullptr;

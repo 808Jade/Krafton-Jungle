@@ -300,7 +300,52 @@ void FScene::MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy)
 	RenderStateDirtyProxies.Add(Proxy);
 }
 
-void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats & ShadowStats, bool bShadow) const
+bool FScene::IsFrustemCulling(const FLightSceneProxy* Proxy, const FFrustumPlanes* FrustemPlanes) const
+{
+	if (FrustemPlanes == nullptr) return true;
+	
+	switch (Proxy->GetLightType())
+	{
+		case ELightType::Ambient:
+		case ELightType::Directional:
+			return true;
+		case ELightType::Point:
+		{
+			const FPointLightSceneProxy* PointProxy = static_cast<const FPointLightSceneProxy*>(Proxy);
+			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
+			FVector Extent = FVector{ PointLightInfo.AttenuationRadius, PointLightInfo.AttenuationRadius, PointLightInfo.AttenuationRadius };
+			FAABB aabb = { PointLightInfo.Position, Extent };
+			return IsAABBInFrustum(aabb, *FrustemPlanes);
+		}
+		case ELightType::Spot:
+		{
+			const FSpotLightSceneProxy* SpotProxy = static_cast<const FSpotLightSceneProxy*>(Proxy);
+			FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
+			FVector Extent = FVector{ SpotLightInfo.AttenuationRadius, SpotLightInfo.AttenuationRadius, SpotLightInfo.AttenuationRadius };
+			FAABB aabb = { SpotLightInfo.Position, Extent };
+			return IsAABBInFrustum(aabb, *FrustemPlanes);
+		}
+		default:
+			return true;
+	}
+
+	return false;
+}
+
+bool FScene::HasAnyShadowCaster() const
+{
+	for (auto* Proxy : Proxies) {
+		if (Proxy && Proxy->IsVisible() && Proxy->GetMesh() && Proxy->GetRenderState() && Proxy->IsCastShadow()) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight,
+	TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, 
+	FShadowStats & ShadowStats, bool bShadow, const FFrustumPlanes* FrustemPlanes) const
 {
 	OutPointLight.Reset();
 	OutSpotLight.Reset();
@@ -337,7 +382,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FDirectionalLightInfo DirectionalLightInfo = DirectionalProxy->GetInfo();
 			FShadowInfo DirectionalShadowInfo = DirectionalProxy->GetShadowInfo();
 
-			if (!(bShadow && bHasAnycaster && DirectionalProxy->ShouldCastShadow())) {
+			if (!(bShadow && bHasAnycaster && DirectionalProxy->ShouldCastShadow() && IsFrustemCulling(DirectionalProxy, FrustemPlanes))) {
 				ShadowStats.NumSkippedLights++;
 			}
 
@@ -351,7 +396,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
 			const TArray<FShadowInfo>& PointShadowInfos = PointProxy->GetShadowInfos();
 
-			if (bShadow && bHasAnycaster && PointProxy->ShouldCastShadow()) {
+			if (bShadow && bHasAnycaster && PointProxy->ShouldCastShadow() && IsFrustemCulling(PointProxy, FrustemPlanes)) {
 				PointLightInfo.ShadowIndex = OutShadowInfo.Num();
 				Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
 				OutShadowInfo.Append(PointShadowInfos);
@@ -377,7 +422,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 		{
 			FSpotLightSceneProxy* SpotProxy = static_cast<FSpotLightSceneProxy*>(Proxy);
 			FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
-			if (bShadow && bHasAnycaster && SpotProxy->ShouldCastShadow()) {
+			if (bShadow && bHasAnycaster && SpotProxy->ShouldCastShadow() && IsFrustemCulling(SpotProxy, FrustemPlanes)) {
 				FShadowInfo SpotShadowInfo = SpotProxy->GetShadowInfo();
 				SpotLightInfo.ShadowIndex = OutShadowInfo.Add(SpotShadowInfo);
 				Proxy->ShadowIndex = SpotLightInfo.ShadowIndex;
