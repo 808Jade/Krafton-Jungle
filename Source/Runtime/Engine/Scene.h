@@ -48,8 +48,9 @@ public:
 	void MarkRenderStateDirty(FPrimitiveSceneProxy* Proxy);
 
 	bool IsFrustemCulling(const FLightSceneProxy* Proxy, const FFrustumPlanes* FrustemPlanes) const;
+	bool TryGetLightBounds(const FLightSceneProxy* Proxy, FAABB &OUT) const;
 
-	bool HasAnyShadowCaster() const;
+	bool HasAnyShadowCaster(const FLightSceneProxy* Proxy) const;
 	void BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPointLight, TArray<FSpotLightInfo>& OutSpotLight, TArray<FDirectionalLightInfo>& OutDirectionalLight, TArray<FShadowInfo>& OutShadowInfo, FLightSceneProxy*& OutPreviewShadowMapLightProxy, FShadowStats& ShadowStats, bool bShadow, const FFrustumPlanes* FrustemPlanes) const;
 
 	TArray<FPrimitiveSceneProxy*> Proxies;

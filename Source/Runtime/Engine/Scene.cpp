@@ -193,14 +193,10 @@ void FScene::BuildLightingConstants(FLightingConstants& Out) const
 
 const FShadowInfo* FScene::GetDirectionalShadowInfo() const
 {
-	bool bHasAnycaster = false;
-	bHasAnycaster = HasAnyShadowCaster();
-	if (bHasAnycaster == false) return nullptr;
-
 	const FShadowInfo* Result = nullptr;
 	for (const FLightSceneProxy* Proxy : Lights)
 	{
-		if (Proxy->GetLightType() == ELightType::Directional && Proxy->ShouldCastShadow())
+		if (Proxy->GetLightType() == ELightType::Directional && Proxy->ShouldCastShadow() && HasAnyShadowCaster(Proxy))
 		{
 			Result = &static_cast<const FDirectionalLightSceneProxy*>(Proxy)->GetShadowInfo();
 		}
@@ -310,20 +306,11 @@ bool FScene::IsFrustemCulling(const FLightSceneProxy* Proxy, const FFrustumPlane
 		case ELightType::Directional:
 			return true;
 		case ELightType::Point:
-		{
-			const FPointLightSceneProxy* PointProxy = static_cast<const FPointLightSceneProxy*>(Proxy);
-			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
-			FVector Extent = FVector{ PointLightInfo.AttenuationRadius, PointLightInfo.AttenuationRadius, PointLightInfo.AttenuationRadius };
-			FAABB aabb = { PointLightInfo.Position, Extent };
-			return IsAABBInFrustum(aabb, *FrustemPlanes);
-		}
 		case ELightType::Spot:
 		{
-			const FSpotLightSceneProxy* SpotProxy = static_cast<const FSpotLightSceneProxy*>(Proxy);
-			FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
-			FVector Extent = FVector{ SpotLightInfo.AttenuationRadius, SpotLightInfo.AttenuationRadius, SpotLightInfo.AttenuationRadius };
-			FAABB aabb = { SpotLightInfo.Position, Extent };
-			return IsAABBInFrustum(aabb, *FrustemPlanes);
+			FAABB Bounds;
+			if (!TryGetLightBounds(Proxy, Bounds)) return true;
+			return IsAABBInFrustum(Bounds, *FrustemPlanes);
 		}
 		default:
 			return true;
@@ -332,13 +319,58 @@ bool FScene::IsFrustemCulling(const FLightSceneProxy* Proxy, const FFrustumPlane
 	return false;
 }
 
-bool FScene::HasAnyShadowCaster() const
+bool FScene::TryGetLightBounds(const FLightSceneProxy* Proxy, FAABB& OutBounds) const
 {
-	for (auto* Proxy : Proxies) {
-		if (Proxy && Proxy->IsVisible() && Proxy->GetMesh() && Proxy->GetRenderState() && Proxy->IsCastShadow()) {
+	switch (Proxy->GetLightType())
+	{
+	case ELightType::Point:
+	{
+		const FPointLightSceneProxy* PointProxy = static_cast<const FPointLightSceneProxy*>(Proxy);
+		FPointLightInfo PointLightInfo = PointProxy->GetInfo();
+		FVector Extent = FVector{ PointLightInfo.AttenuationRadius, PointLightInfo.AttenuationRadius, PointLightInfo.AttenuationRadius };
+		OutBounds = { PointLightInfo.Position, Extent };
+		return true;
+	}
+	case ELightType::Spot:
+	{
+		const FSpotLightSceneProxy* SpotProxy = static_cast<const FSpotLightSceneProxy*>(Proxy);
+		FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
+		FVector Extent = FVector{ SpotLightInfo.AttenuationRadius, SpotLightInfo.AttenuationRadius, SpotLightInfo.AttenuationRadius };
+		OutBounds = { SpotLightInfo.Position, Extent };
+		return true;
+	}
+	default:
+		return false;
+	}
+}
+
+
+bool FScene::HasAnyShadowCaster(const FLightSceneProxy* LightProxy) const
+{
+	FAABB Bounds;
+	if (TryGetLightBounds(LightProxy, Bounds)) {
+		// (Proxies(Object) 와 LightProxy(Light) AABB 에 겹치는 Caster가 있는 경우에만 true
+		for (auto CasterProxy : Proxies) {
+			if (!CasterProxy || !CasterProxy->IsVisible() || !CasterProxy->GetMesh() || !CasterProxy->GetRenderState() || !CasterProxy->IsCastShadow()) {
+				continue;
+			}
+
+			FAABB CasterBounds = CasterProxy->GetBounds();
+			if (abs(Bounds.Center.X - CasterBounds.Center.X) <= Bounds.Extent.X + CasterBounds.Extent.X
+				&& abs(Bounds.Center.Y - CasterBounds.Center.Y) <= Bounds.Extent.Y + CasterBounds.Extent.Y
+				&& abs(Bounds.Center.Z - CasterBounds.Center.Z) <= Bounds.Extent.Z + CasterBounds.Extent.Z) return true;
+		}
+
+		return false;
+	}
+	
+	// directional light : 범위 무한이므로 씬 전체 검사 필요
+	for (auto CasterProxy : Proxies) {
+		if (CasterProxy && CasterProxy->IsVisible() && CasterProxy->GetMesh() && CasterProxy->GetRenderState() && CasterProxy->IsCastShadow()) {
 			return true;
 		}
 	}
+
 
 	return false;
 }
@@ -350,9 +382,6 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 	OutPointLight.Reset();
 	OutSpotLight.Reset();
 	OutShadowInfo.Reset();
-
-	bool bHasAnycaster = false;
-	bHasAnycaster = HasAnyShadowCaster();
 
 	for (FLightSceneProxy* Proxy : Lights)
 	{
@@ -382,7 +411,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FDirectionalLightInfo DirectionalLightInfo = DirectionalProxy->GetInfo();
 			FShadowInfo DirectionalShadowInfo = DirectionalProxy->GetShadowInfo();
 
-			if (!(bShadow && bHasAnycaster && DirectionalProxy->ShouldCastShadow() && IsFrustemCulling(DirectionalProxy, FrustemPlanes))) {
+			if (!(bShadow  && DirectionalProxy->ShouldCastShadow() && IsFrustemCulling(DirectionalProxy, FrustemPlanes) && HasAnyShadowCaster(Proxy))) {
 				ShadowStats.NumSkippedLights++;
 			}
 
@@ -396,7 +425,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 			FPointLightInfo PointLightInfo = PointProxy->GetInfo();
 			const TArray<FShadowInfo>& PointShadowInfos = PointProxy->GetShadowInfos();
 
-			if (bShadow && bHasAnycaster && PointProxy->ShouldCastShadow() && IsFrustemCulling(PointProxy, FrustemPlanes)) {
+			if (bShadow && PointProxy->ShouldCastShadow() && IsFrustemCulling(PointProxy, FrustemPlanes) && HasAnyShadowCaster(Proxy)) {
 				PointLightInfo.ShadowIndex = OutShadowInfo.Num();
 				Proxy->ShadowIndex = PointLightInfo.ShadowIndex;
 				OutShadowInfo.Append(PointShadowInfos);
@@ -422,7 +451,7 @@ void FScene::BuildStructuredLightAndShadowData(TArray<FPointLightInfo>& OutPoint
 		{
 			FSpotLightSceneProxy* SpotProxy = static_cast<FSpotLightSceneProxy*>(Proxy);
 			FSpotLightInfo SpotLightInfo = SpotProxy->GetInfo();
-			if (bShadow && bHasAnycaster && SpotProxy->ShouldCastShadow() && IsFrustemCulling(SpotProxy, FrustemPlanes)) {
+			if (bShadow && SpotProxy->ShouldCastShadow() && IsFrustemCulling(SpotProxy, FrustemPlanes) && HasAnyShadowCaster(Proxy)) {
 				FShadowInfo SpotShadowInfo = SpotProxy->GetShadowInfo();
 				SpotLightInfo.ShadowIndex = OutShadowInfo.Add(SpotShadowInfo);
 				Proxy->ShadowIndex = SpotLightInfo.ShadowIndex;
