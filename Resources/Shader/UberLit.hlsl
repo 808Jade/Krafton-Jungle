@@ -159,12 +159,13 @@ cbuffer TileLightConstants : register(b4)
 cbuffer DirectionalShadowConstants : register(b5)
 {
     matrix CascadeViewProjection[4];
-    float4 CascadeSplits;
+    float4 CascadeSplitSpheres[4];
     float4 CascadeOffsets[4];
     float4 CascadeBiases;
     int NumCascades;
     float NormalBias;
-    float2 CSMPadding;
+    uint bVisualizeCascades;
+    float CSMPadding;
 };
 
 StructuredBuffer<FPointLightInfo> StructuredPointLights : register(t8);
@@ -536,13 +537,25 @@ float ComputeShadowFactor(float ShadowIndex, float3 WorldPosition)
     return Lit;
 }
 
-// Directional Light 전용 그림자 판정 (CSM 아틀라스 텍스처 t3 및 DirectionalShadowConstants b5 사용)
-float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
+int GetCascadeIndex(float3 WorldPosition)
 {
-    if (NumCascades <= 0)
-        return 1.0f;
+    [unroll]
+    for (int i = 0; i < 4; ++i)
+    {
+        float3 ToCenter = WorldPosition - CascadeSplitSpheres[i].xyz;
+        float DistSq = dot(ToCenter, ToCenter);
+        float RadiusSq = CascadeSplitSpheres[i].w * CascadeSplitSpheres[i].w;
+        if (DistSq < RadiusSq)
+        {
+            return i;
+        }
+    }
+    return 4; // Bounding Sphere를 벗어남 (그림자 최대 거리 초과)
+}
 
-    int CascadeIndex = 0;
+// 단일 캐스케이드의 그림자 판정 (0.0: 그림자, 1.0: 밝음)
+float SampleSingleCascadeShadow(float3 WorldPosition, float3 Normal, int CascadeIndex)
+{
     float3 L = -DirectionalLight.Direction;
 
     // 1. 빛과 표면 사이의 각도 계산 (비스듬할수록 오프셋을 더 많이 줌)
@@ -552,7 +565,7 @@ float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
     // 2. 표면 노멀 방향으로 월드 좌표를 이동 (NormalBias: 상수 버퍼 b5에서 전달)
     float3 ShadowWorldPos = WorldPosition + Normal * (NormalBias * NormalOffsetScale);
 
-    // 3. 이동된 좌표로 Light Clip Space 계산
+    // 3. 선택된 캐스케이드의 VP 행렬로 Light Clip Space 계산
     float4 LightClip = mul(float4(ShadowWorldPos, 1.0f), CascadeViewProjection[CascadeIndex]);
     if (LightClip.w <= 0.0f)
         return 1.0f;
@@ -563,14 +576,65 @@ float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
     if (any(BaseUV < 0.0f) || any(BaseUV > 1.0f) || Ndc.z < 0.0f || Ndc.z > 1.0f)
         return 1.0f;
 
+    // 4. 4096 Atlas의 2x2 쿼드런트 오프셋 적용
     float4 Offset = CascadeOffsets[CascadeIndex];
     float2 AtlasUV = BaseUV * Offset.xy + Offset.zw;
 
     float StoredDepth = DirectionalLightShadowmapAtlas.SampleLevel(ShadowPointSampler, AtlasUV, 0);
 
-    // 4. 깊이 비교 (Normal Offset이 Acne를 제거하므로 작은 Depth Bias 적용)
+    // 5. 깊이 비교
     float DepthBias = CascadeBiases[CascadeIndex];
     return (Ndc.z - DepthBias) > StoredDepth ? 0.0f : 1.0f;
+}
+
+// 캐스케이드 인덱스 및 경계면 블렌딩 정보 계산
+void GetCascadeBlendInfo(float3 WorldPosition, out int CascadeIndex, out int NextCascadeIndex, out float BlendFactor)
+{
+    CascadeIndex = GetCascadeIndex(WorldPosition);
+    NextCascadeIndex = min(CascadeIndex + 1, NumCascades);
+    BlendFactor = 0.0f;
+
+    // 마지막 캐스케이드가 아닌 경우 경계면 15% 구간에서 다음 캐스케이드와 블렌딩 계수 계산
+    if (CascadeIndex < NumCascades - 1)
+    {
+        float3 ToCenter = WorldPosition - CascadeSplitSpheres[CascadeIndex].xyz;
+        float Dist = length(ToCenter);
+        float Radius = CascadeSplitSpheres[CascadeIndex].w;
+
+        const float BlendRange = 0.15f; // 외곽 15% 영역을 블렌딩 구간으로 설정
+        float BlendStart = Radius * (1.0f - BlendRange);
+
+        if (Dist > BlendStart)
+        {
+            BlendFactor = saturate((Dist - BlendStart) / (Radius - BlendStart));
+        }
+    }
+}
+
+// Directional Light 전용 그림자 판정
+float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
+{
+    if (NumCascades <= 0)
+        return 1.0f;
+
+    int CascadeIndex;
+    int NextCascadeIndex;
+    float BlendFactor;
+    GetCascadeBlendInfo(WorldPosition, CascadeIndex, NextCascadeIndex, BlendFactor);
+
+    if (CascadeIndex >= NumCascades)
+        return 1.0f;
+
+    float Shadow = SampleSingleCascadeShadow(WorldPosition, Normal, CascadeIndex);
+
+    // 블렌딩 영역에 걸쳐 있다면 다음 캐스케이드와 lerp
+    if (BlendFactor > 0.0f && NextCascadeIndex < NumCascades)
+    {
+        float NextShadow = SampleSingleCascadeShadow(WorldPosition, Normal, NextCascadeIndex);
+        Shadow = lerp(Shadow, NextShadow, BlendFactor);
+    }
+
+    return Shadow;
 }
 
 void ComputeTiledLighting(float3 N,
@@ -758,6 +822,40 @@ float4 mainPS(FPSInput Input) : SV_TARGET
             Color *= 0.2f;
         }
 
+        return float4(Color, 1.0f);
+    }
+    
+    if (bVisualizeCascades != 0u)
+    {
+        // Cascade 0: Red, Cascade 1: Green, Cascade 2: Blue, Cascade 3: Yellow, Beyond: Gray
+        float3 CascadeColors[5] = {
+            float3(1.0f, 0.25f, 0.25f), // 0: Red
+            float3(0.25f, 1.0f, 0.25f), // 1: Green
+            float3(0.25f, 0.45f, 1.0f), // 2: Blue
+            float3(1.0f, 1.0f, 0.25f),  // 3: Yellow
+            float3(0.35f, 0.35f, 0.35f) // 4: Beyond
+        };
+
+        int CascadeIdx;
+        int NextCascadeIdx;
+        float BlendFactor;
+        GetCascadeBlendInfo(Input.WorldPosition, CascadeIdx, NextCascadeIdx, BlendFactor);
+
+#if USE_NORMAL_MAP
+        float3 ShadowNormal = Normal;
+#else
+        float3 ShadowNormal = WorldNormal;
+#endif
+        float Shadow = ComputeDirectionalShadowFactor(Input.WorldPosition, ShadowNormal);
+
+        float3 BaseColor = CascadeColors[min(CascadeIdx, 4)];
+        if (BlendFactor > 0.0f && CascadeIdx < NumCascades - 1)
+        {
+            float3 NextColor = CascadeColors[min(NextCascadeIdx, 4)];
+            BaseColor = lerp(BaseColor, NextColor, BlendFactor);
+        }
+
+        float3 Color = BaseColor * (0.35f + 0.65f * Shadow);
         return float4(Color, 1.0f);
     }
     
