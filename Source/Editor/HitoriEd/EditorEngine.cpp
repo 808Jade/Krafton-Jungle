@@ -1076,12 +1076,15 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 							FVector4(0.2f, 0.6f, 1.f, 1.f)
 						};
 						const FBox ClipBox{ FVector(-1.f, -1.f, 0.f), FVector(1.f, 1.f, 1.f) };
-						const uint32 Start = Data.LightShadowOffsets[FSceneRenderData::DirectionalLightSlotIndex];
+						// 셰이더와 같이 광원의 ShadowIndex로 찾는다. 그림자를 끈 방향광은 cascade가 없으므로 건너뛴다.
+						const uint32 DirectionalOffset = Data.GetDirectionalLightOffset();
 						for (uint32 LightIndex = 0; LightIndex < Data.GetDirectionalLightCount(); ++LightIndex)
 						{
+							const uint32 FirstCascade = Data.VisibleLights[DirectionalOffset + LightIndex].ShadowIndex;
+							if (FirstCascade == FLightRenderParameters::InvalidShadowIndex) continue;
 							for (uint32 CascadeIndex = 0; CascadeIndex < Data.CascadeShadowCount; ++CascadeIndex)
 							{
-								const uint32 ShadowIndex = Start + LightIndex * Data.CascadeShadowCount + CascadeIndex;
+								const uint32 ShadowIndex = FirstCascade + CascadeIndex;
 								if (ShadowIndex >= static_cast<uint32>(Data.LightShadows.Num())) break;
 								LineBatcher->AddOrientedBox(ClipBox, Data.LightShadows[ShadowIndex].ViewProjection.Inverse(), Colors[CascadeIndex]);
 							}

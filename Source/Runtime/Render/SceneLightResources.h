@@ -15,7 +15,6 @@ struct FDeferredLightConstants
 	FAmbientLightRenderData Ambient;
 	uint32 LightCounts[4];
 	uint32 LightOffsets[4];
-	uint32 LightShadowOffsets[4];
 	FVector4 SkyColorIntensity;
 	uint32 ShadowAtlasWidth;
 	uint32 ShadowAtlasHeight;

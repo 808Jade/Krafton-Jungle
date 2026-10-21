@@ -182,7 +182,6 @@ bool FSceneRenderer::BindDeferredLighting(FRenderer* Renderer, uint32 Width, uin
 
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
 	std::memcpy(Constants.LightOffsets, RenderData.LightParameterOffsets, sizeof(RenderData.LightParameterOffsets)); // LightOffset은 각 조명별로 시작하는 위치
-	std::memcpy(Constants.LightShadowOffsets, RenderData.LightShadowOffsets, sizeof(RenderData.LightShadowOffsets));
 
 	Constants.ViewportSize = FVector4(static_cast<float>(Width), static_cast<float>(Height), 0.0f, 0.0f);
 	Renderer->UpdateConstant(DefferedConstants, &Constants, sizeof(Constants));
@@ -233,7 +232,6 @@ bool FSceneRenderer::BindForwardLighting(FRenderer* Renderer, const FSceneRender
 	
 	std::memcpy(Constants.LightCounts, RenderData.LightParameterCounts, sizeof(RenderData.LightParameterCounts));
 	std::memcpy(Constants.LightOffsets, RenderData.LightParameterOffsets, sizeof(RenderData.LightParameterOffsets)); // LightOffset은 각 조명별로 시작하는 위치
-	std::memcpy(Constants.LightShadowOffsets, RenderData.LightShadowOffsets, sizeof(RenderData.LightShadowOffsets));
 	std::memcpy(Constants.CascadeShadowDistances, RenderData.CascadeShadowDistances, sizeof(RenderData.CascadeShadowDistances));
 
 	Renderer->UpdateConstant(ForwardConstants, &Constants, sizeof(Constants));
@@ -386,6 +384,8 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 				Renderer->UploadViewMatrix(LightShadow.ViewProjection);
 				Renderer->DrawMeshes(Batched);
 			}
+			// Commit이 정한 타일을 모두 그렸으므로 이제 캐시를 믿어도 된다. 여기까지 못 오면 다음 프레임에 전부 다시 그린다.
+			RenderData.bShadowCacheConfirmed = true;
 		};
 
 		if (!Graph.AddRasterPass(std::move(Shadows), ShadowMapPassHandler))

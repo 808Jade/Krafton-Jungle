@@ -16,7 +16,7 @@ cbuffer DeferredLightConstants : register(b0)
     float4 AmbientColorIntensity;
     uint4 LightCounts; // x: 포인트 개수, y: 스포트 개수, z: 방향광 개수, w: 렉트 개수
     uint4 LightOffsets; // SceneLights에서 각 종류가 시작되는 위치, 순서는 위와 같음
-    uint4 LightShadowOffsets; // LightShadows에서 각 종류가 시작되는 위치, 순서는 위와 같음
+    // 그림자는 광원마다 Light.ShadowIndex로 찾는다 (LightShadows).
     float4 SkyColorIntensity;
     uint ShadowAtlasWidth;
     uint ShadowAtlasHeight;
@@ -117,7 +117,7 @@ float4 mainPS(FPSInput Input) : SV_Target
         float Shadow = 1.0f;
         if (CascadeIndex != -1 && Light.ShadowIndex != INVALID_SHADOW_INDEX)
         {
-            FLightShadowRenderData LightShadow = LightShadows[LightShadowOffsets.z + DirectionalIndex * CascadeShadowCount + CascadeIndex];
+            FLightShadowRenderData LightShadow = LightShadows[Light.ShadowIndex + CascadeIndex];
             Shadow = CalculateDirectionalShadowPCSS(WorldPosition, N, -Light.Direction, LightShadowAtlas, ShadowAtlasWidth, ShadowAtlasHeight, LightShadow, PointSampler, ShadowSampler, 1.0f, PcfMode, ShadowDepthBias, Light.ShadowAngularRadius);
         }
 

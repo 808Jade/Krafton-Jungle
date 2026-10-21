@@ -84,7 +84,6 @@ struct FSceneRenderData
 	uint32 SpotLightShadowMapSize = 512;
 
 	TArray<FLightShadowRenderData> LightShadows;
-	uint32 LightShadowOffsets[4]; // 라이트 그림자 리스트 내 구간의 offset
 
 	// ---------- 그림자 캐시 (r.Shadow.CacheWholeSceneShadows) ----------
 	// 그림자 뷰 하나(큐브 면, cascade)를 프레임 사이에 같은 것으로 보는 키. 순서까지 같으면 아틀라스 배치를 그대로 재사용한다.
@@ -106,6 +105,9 @@ struct FSceneRenderData
 	const FTexture2DArray* CachedShadowAtlas = nullptr;
 	uint64 ShadowInvalidationVersion = 0; // FScene 무효화 기록을 어디까지 처리했는지
 	bool bHasShadowInvalidationVersion = false;
+	// 지난 Commit이 정한 다시 그리기를 섀도우 패스가 실제로 끝냈는지. 판정(Commit)과 실행(섀도우 패스)은
+	// 시점이 달라서, 그 사이에 렌더가 중단되면(World Normal 보기, 타깃 없음, 그래프 실패) 캐시만 최신으로 표시된다.
+	bool bShadowCacheConfirmed = false;
 
 	float CascadeShadowDistances[MaxCascadeShadowCount]{};
 	uint32 CascadeShadowCount = 0;
@@ -228,7 +230,9 @@ struct FSceneRenderData
 
 		// 무효화 기록을 놓쳤거나(처음, 너무 오래 안 그림) 캐시가 꺼져 있으면 전부 다시 그린다.
 		const bool bMissedInvalidations = !bHasShadowInvalidationVersion || ShadowInvalidationVersion < Invalidations.OldestVersion;
-		const bool bRedrawAll = !bCacheShadows || !bReuseLayout || bMissedInvalidations;
+		// 지난 프레임에 그리기로 한 타일을 못 그렸으면 아틀라스 내용을 믿을 수 없다.
+		const bool bLastDrawUnfinished = !bShadowCacheConfirmed;
+		const bool bRedrawAll = !bCacheShadows || !bReuseLayout || bMissedInvalidations || bLastDrawUnfinished;
 		// 전부 다시 그릴 때는 타일마다 지우는 것보다 패스 시작 시 한 번에 Clear하는 편이 싸다.
 		bClearWholeShadowAtlas = bRedrawAll;
 
@@ -254,6 +258,8 @@ struct FSceneRenderData
 
 		ShadowInvalidationVersion = Invalidations.CurrentVersion;
 		bHasShadowInvalidationVersion = true;
+		// 다시 그릴 타일이 있으면 섀도우 패스가 끝까지 그린 뒤에 확정한다(SceneRenderer의 섀도우 패스).
+		bShadowCacheConfirmed = std::find(ShadowNeedsRedraw.begin(), ShadowNeedsRedraw.end(), uint8(1)) == ShadowNeedsRedraw.end();
 		CachedShadowLayout = ShadowLayout;
 		CachedShadows = LightShadows;
 	}
@@ -339,9 +345,6 @@ struct FSceneRenderData
 
 			TArray<FAreaInfo> AreaInfos;
 
-			uint32 ShadowOffset = 0;
-
-			LightShadowOffsets[FSceneRenderData::PointLightSlotIndex] = ShadowOffset;
 			for (int32 i = 0; i < GetPointLightCount(); i++)
 			{
 				int32 LightIndex = GetPointLightOffset() + i;
@@ -375,11 +378,9 @@ struct FSceneRenderData
 
 					AreaInfos.Add({ PointShadowMapSize, Index });
 
-					ShadowOffset++;
 				}
 			}
 
-			LightShadowOffsets[FSceneRenderData::SpotLightSlotIndex] = ShadowOffset;
 			for (int32 i = 0; i < GetSpotLightCount(); i++)
 			{
 				int32 LightIndex = GetSpotLightOffset() + i;
@@ -406,14 +407,12 @@ struct FSceneRenderData
 
 				AreaInfos.Add({ SpotShadowMapSize, Index });
 
-				ShadowOffset++;
 			}
 
 			float CascadeShadowFar = FMath::Min(CameraFar, MaxCascadeDistance);
 
 			CascadeShadowCount = FMath::Clamp(ExpectCascadeCount, 1u, MaxCascadeShadowCount);
 
-			LightShadowOffsets[FSceneRenderData::DirectionalLightSlotIndex] = ShadowOffset;
 			for (int32 i = 0; i < GetDirectionalLightCount(); i++)
 			{
 				int32 LightIndex = GetDirectionalLightOffset() + i;
@@ -423,8 +422,8 @@ struct FSceneRenderData
 
 				FLightRenderParameters& DirectionalLight = VisibleLights[LightIndex];
 				DirectionalLight.ShadowIndex = uint32(LightShadows.Num());
-				FMatrix ViewMatrix = LookAt(FVector(0.f), DirectionalLight.Direction, UpVector);
-
+				// 텍셀 스냅은 카메라와 무관하게 고정된 라이트 공간(원점 기준)에서 해야 그림자 격자가 월드에 고정된다.
+				const FMatrix ViewMatrix = LookAt(FVector(0.f), DirectionalLight.Direction, UpVector);
 
 				FVector ToTL = CameraFrustumCorners.FTL() - CameraFrustumCorners.NTL();
 				FVector ToTR = CameraFrustumCorners.FTR() - CameraFrustumCorners.NTR();
@@ -452,8 +451,6 @@ struct FSceneRenderData
 				float PrevSplit = CameraNear;
 				for (int32 j = 0; j < CascadeShadowCount; j++)
 				{
-					//FMatrix ViewMatrix = LookAt(FVector(0.f), DirectionalLight.Direction, UpVector);
-
 					float Linear = CameraNear + (CascadeShadowFar - CameraNear) * ((j + 1) / (float)CascadeShadowCount);
 					float Log = CameraNear * std::pow(CascadeShadowFar / CameraNear, (j + 1) / (float)CascadeShadowCount);
 					float Dist = (1.f - LogRatio) * Linear + LogRatio * Log;
@@ -476,8 +473,6 @@ struct FSceneRenderData
 					for (int32 k = 0; k < 8; k++)
 						CascadeCenter += *WorldCorners[k];
 					CascadeCenter *= 1.f / 8.f;
-					const FVector LightCameraPosition = CascadeCenter - DirectionalLight.Direction.Normalized() * 100.f;
-					FMatrix ViewMatrix = LookAt(LightCameraPosition, CascadeCenter, UpVector);
 
 					float RadiusSquared = 0.f;
 					float MinLightX = FLT_MAX;
@@ -497,7 +492,6 @@ struct FSceneRenderData
 
 					FVector4 CenterInLight = FVector4(CascadeCenter, 1.f) * ViewMatrix;
 
-					const float CenterX = std::round(CenterInLight.X / TexelSize) * TexelSize; // 중심을 가까운 격자점에 스냅함
 					const float CenterY = std::round(CenterInLight.Y / TexelSize) * TexelSize; // 중심을 가까운 격자점에 스냅함
 					const float CenterZ = std::round(CenterInLight.Z / TexelSize) * TexelSize;
 					float NearX = MinLightX;
@@ -524,8 +518,10 @@ struct FSceneRenderData
 					FLightShadowRenderData Shadow{};
 					FVector NearPlaneCenterInLight = FVector(NearX, CenterY, CenterZ);
 					FVector4 NearPlaneCenterWorld = FVector4(NearPlaneCenterInLight, 1.0) * ViewMatrix.Inverse();
-					ViewMatrix = LookAt(FVector(NearPlaneCenterWorld.X, NearPlaneCenterWorld.Y, NearPlaneCenterWorld.Z), FVector(NearPlaneCenterWorld.X, NearPlaneCenterWorld.Y, NearPlaneCenterWorld.Z) + DirectionalLight.Direction, UpVector);
-					Shadow.ViewProjection = ViewMatrix * CascadeProjectionMatrix;
+					const FVector CascadeEye(NearPlaneCenterWorld.X, NearPlaneCenterWorld.Y, NearPlaneCenterWorld.Z);
+					// 회전은 ViewMatrix와 같고, 원점만 스냅된 near 평면 중심으로 옮긴다.
+					const FMatrix CascadeViewMatrix = LookAt(CascadeEye, CascadeEye + DirectionalLight.Direction, UpVector);
+					Shadow.ViewProjection = CascadeViewMatrix * CascadeProjectionMatrix;
 					Shadow.Near = NearX;
 					Shadow.Far = MaxLightX;
 					Shadow.WorldUnitsPerTexel = TexelSize;
@@ -535,8 +531,6 @@ struct FSceneRenderData
 					AddShadowView(Shadow, ShadowSettings, CascadeShadowMapSize, FVector4(0.0f, 0.0f, 0.0f, -1.0f));
 
 					AreaInfos.Add({ CascadeShadowMapSize, Index});
-
-					ShadowOffset++;
 
 					PrevTL = LT;
 					PrevTR = RT;
@@ -641,17 +635,14 @@ struct FSceneRenderData
 	inline bool HasDirectionalLight() { return LightParameterCounts[DirectionalLightSlotIndex]; }
 	inline uint32 GetDirectionalLightOffset() { return LightParameterOffsets[DirectionalLightSlotIndex]; }
 	inline uint32 GetDirectionalLightCount() { return LightParameterCounts[DirectionalLightSlotIndex]; }
-	inline uint32 GetDirectionalLightInfoOffset() { return LightShadowOffsets[DirectionalLightSlotIndex]; }
 	
 	inline bool HasPointLights() { return LightParameterCounts[PointLightSlotIndex]; }
 	inline uint32 GetPointLightOffset() { return LightParameterOffsets[PointLightSlotIndex]; }
 	inline uint32 GetPointLightCount() { return LightParameterCounts[PointLightSlotIndex]; }
-	inline uint32 GetPointLightShadowOffset() { return LightShadowOffsets[PointLightSlotIndex]; }
 
 	inline bool HasSpotLights() { return LightParameterCounts[SpotLightSlotIndex]; }
 	inline uint32 GetSpotLightOffset() { return LightParameterOffsets[SpotLightSlotIndex]; }
 	inline uint32 GetSpotLightCount() { return LightParameterCounts[SpotLightSlotIndex]; }
-	inline uint32 GetSpotLightInfoOffset() { return LightShadowOffsets[SpotLightSlotIndex]; }
 
 	inline bool HasRectLights() { return LightParameterCounts[RectLightSlotIndex]; }
 	inline bool HasLights() { return HasDirectionalLight() || HasPointLights() || HasSpotLights() || HasRectLights(); }
