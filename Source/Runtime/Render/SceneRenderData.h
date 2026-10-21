@@ -352,7 +352,6 @@ struct FSceneRenderData
 				FLightRenderParameters& PointLight = VisibleLights[LightIndex];
 				PointLight.ShadowIndex = uint32(LightShadows.Num());
 				const uint32 PointShadowMapSize = ScaleShadowMapSize(PointLightShadowMapSize, ShadowSettings.ResolutionScale);
-
 				FMatrix PerspectiveMatrix = Perspective(FMath::DegreesToRadians(90.f), 1.0, 0.1f, PointLight.Radius);
 				FMatrix Views[] = {
 					LookAt(PointLight.Position, PointLight.Position + ForwardVector, UpVector),
@@ -426,6 +425,7 @@ struct FSceneRenderData
 				DirectionalLight.ShadowIndex = uint32(LightShadows.Num());
 				FMatrix ViewMatrix = LookAt(FVector(0.f), DirectionalLight.Direction, UpVector);
 
+
 				FVector ToTL = CameraFrustumCorners.FTL() - CameraFrustumCorners.NTL();
 				FVector ToTR = CameraFrustumCorners.FTR() - CameraFrustumCorners.NTR();
 				FVector ToBL = CameraFrustumCorners.FBL() - CameraFrustumCorners.NBL();
@@ -452,6 +452,8 @@ struct FSceneRenderData
 				float PrevSplit = CameraNear;
 				for (int32 j = 0; j < CascadeShadowCount; j++)
 				{
+					//FMatrix ViewMatrix = LookAt(FVector(0.f), DirectionalLight.Direction, UpVector);
+
 					float Linear = CameraNear + (CascadeShadowFar - CameraNear) * ((j + 1) / (float)CascadeShadowCount);
 					float Log = CameraNear * std::pow(CascadeShadowFar / CameraNear, (j + 1) / (float)CascadeShadowCount);
 					float Dist = (1.f - LogRatio) * Linear + LogRatio * Log;
@@ -475,7 +477,7 @@ struct FSceneRenderData
 						CascadeCenter += *WorldCorners[k];
 					CascadeCenter *= 1.f / 8.f;
 					const FVector LightCameraPosition = CascadeCenter - DirectionalLight.Direction.Normalized() * 100.f;
-					const FMatrix ViewMatrix = LookAt(LightCameraPosition, CascadeCenter, UpVector);
+					FMatrix ViewMatrix = LookAt(LightCameraPosition, CascadeCenter, UpVector);
 
 					float RadiusSquared = 0.f;
 					float MinLightX = FLT_MAX;
@@ -495,6 +497,7 @@ struct FSceneRenderData
 
 					FVector4 CenterInLight = FVector4(CascadeCenter, 1.f) * ViewMatrix;
 
+					const float CenterX = std::round(CenterInLight.X / TexelSize) * TexelSize; // 중심을 가까운 격자점에 스냅함
 					const float CenterY = std::round(CenterInLight.Y / TexelSize) * TexelSize; // 중심을 가까운 격자점에 스냅함
 					const float CenterZ = std::round(CenterInLight.Z / TexelSize) * TexelSize;
 					float NearX = MinLightX;
@@ -515,10 +518,13 @@ struct FSceneRenderData
 
 						NearX = std::min(NearX, LightCenter.X - LightExtent.X);
 					}
-					NearX -= 1.f;
-					FMatrix CascadeProjectionMatrix = Ortho(CenterY - Extent, CenterY + Extent, CenterZ + Extent, CenterZ - Extent, NearX, MaxLightX);
 
+					FMatrix CascadeProjectionMatrix = Ortho(Extent, -Extent, Extent, -Extent, 0, MaxLightX - NearX);
+	
 					FLightShadowRenderData Shadow{};
+					FVector NearPlaneCenterInLight = FVector(NearX, CenterY, CenterZ);
+					FVector4 NearPlaneCenterWorld = FVector4(NearPlaneCenterInLight, 1.0) * ViewMatrix.Inverse();
+					ViewMatrix = LookAt(FVector(NearPlaneCenterWorld.X, NearPlaneCenterWorld.Y, NearPlaneCenterWorld.Z), FVector(NearPlaneCenterWorld.X, NearPlaneCenterWorld.Y, NearPlaneCenterWorld.Z) + DirectionalLight.Direction, UpVector);
 					Shadow.ViewProjection = ViewMatrix * CascadeProjectionMatrix;
 					Shadow.Near = NearX;
 					Shadow.Far = MaxLightX;
