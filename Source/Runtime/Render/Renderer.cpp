@@ -774,7 +774,7 @@ void FRenderer::RenderShadowPass(
 	
 
 	int64 TotalBytes = (int64)ShadowMapManager.GetAtlasResolution() * ShadowMapManager.GetAtlasResolution() * 4 * ShadowMapManager.GetNumAtlas();
-	if (DirectionalShadow != nullptr)
+	if (ShadowMapManager.GetDirectionalShadowSRV() != nullptr)
 	{
 		TotalBytes += (int64)ShadowMapManager.GetDirectionalResolution() * ShadowMapManager.GetDirectionalResolution() * 4;
 	}
