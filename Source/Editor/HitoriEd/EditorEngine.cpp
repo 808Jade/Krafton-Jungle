@@ -489,8 +489,15 @@ void UEditorEngine::RenderMultipleViewports()
 	}
 
 	EMultipleViewportsCameraPreset CameraPresets[4]{};
-	for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
+	for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex) {
 		CameraPresets[ViewIndex] = MultipleViewportsAdapter.GetCameraPreset(ViewIndex);
+	}
+	for (int32 ViewIndex = 0; ViewIndex < 5; ++ViewIndex) {
+		UWorld * World = GetWorldForView(ViewIndex);
+		if (World == nullptr) continue;
+		World->GetScene().ClearShadowDirty();
+	}
+		
 	ViewportsPanel->SetControlState(
 		MultipleViewportsAdapter.GetLayoutMode(),
 		MultipleViewportsAdapter.GetSingleViewIndex(),
@@ -926,6 +933,11 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 	FFrustumPlanes frustemPlanes = ExtractFrustumPlanes(ViewProjection);
 
 	ViewWorld.GetScene().BuildStructuredLightAndShadowData(PointLights, SpotLights, DirectionalLights, ShadowInfos, PreviewShadowMapLightProxy, ShadowStats, bDrawShadows, &frustemPlanes, ViewCameraLocation);
+	
+	bool bCacheHit;
+	bCacheHit = !ViewWorld.GetScene().IsShadowDirty() && (ShadowInfos.Num() == PrevShadowCount[ViewIndex]);
+	PrevShadowCount[ViewIndex] = ShadowInfos.Num();
+
 	Renderer->SetLighting(Lighting, PointLights, SpotLights);
 
 	const FShadowInfo* DirectionalShadowInfo = bDrawShadows ? ViewWorld.GetScene().GetDirectionalShadowInfo() : nullptr;
@@ -949,7 +961,9 @@ void UEditorEngine::RenderFrame(const int32 ViewIndex, UWorld& ViewWorld,
 			ViewWorld.GetScene().Proxies,
 			PreviewShadowMapLightProxy,
 			ShadowStats,
-			SettingsPanel->GetSettings().bVisualizeCascades);
+			SettingsPanel->GetSettings().bVisualizeCascades,
+			bCacheHit
+		);
 	}
 
 	FStatOverlay::SetShadowStats(ShadowStats);
