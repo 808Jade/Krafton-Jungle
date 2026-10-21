@@ -565,12 +565,20 @@ float SampleSingleCascadeShadow(float3 WorldPosition, float3 Normal, int Cascade
 {
     float3 L = -DirectionalLight.Direction;
 
-    // 1. 빛과 표면 사이의 각도 계산 (비스듬할수록 오프셋을 더 많이 줌)
-    float NdotL = dot(Normal, L);
-    float NormalOffsetScale = clamp(1.0f - saturate(NdotL), 0.0f, 1.0f);
+    // 1. 빛과 표면 사이의 각도 계산 (sin(theta) 기반 경사각 스케일링, 수직 입사 시에도 최소 0.5 텍셀 오프셋을 보장하여 평면 아크네 방지)
+    float NdotL = saturate(dot(Normal, L));
+    float NormalOffsetScale = clamp(sqrt(1.0f - NdotL * NdotL), 0.5f, 1.5f);
 
-    // 2. 표면 노멀 방향으로 월드 좌표를 이동 (NormalBias: 상수 버퍼 b5에서 전달)
-    float3 ShadowWorldPos = WorldPosition + Normal * (NormalBias * NormalOffsetScale);
+    float AtlasWidth, AtlasHeight;
+    DirectionalLightShadowmapAtlas.GetDimensions(AtlasWidth, AtlasHeight);
+    float CascadeRes = AtlasWidth * 0.5f;
+
+    // 텍셀의 월드 공간 크기 = (2 * Radius) / CascadeResolution
+    float WorldUnitsPerTexel = (2.0f * CascadeSplitSpheres[CascadeIndex].w) / CascadeRes;
+
+    // 2. 표면 노멀 방향으로 월드 좌표를 이동 (NormalBias는 텍셀 배수 단위로 작동하여 캐스케이드별 최적 바이어스 자동 적용)
+    float EffectiveNormalBias = NormalBias * WorldUnitsPerTexel;
+    float3 ShadowWorldPos = WorldPosition + Normal * (EffectiveNormalBias * NormalOffsetScale);
 
     // 3. 선택된 캐스케이드의 VP 행렬로 Light Clip Space 계산
     float4 LightClip = mul(float4(ShadowWorldPos, 1.0f), CascadeViewProjection[CascadeIndex]);
@@ -587,11 +595,28 @@ float SampleSingleCascadeShadow(float3 WorldPosition, float3 Normal, int Cascade
     float4 Offset = CascadeOffsets[CascadeIndex];
     float2 AtlasUV = BaseUV * Offset.xy + Offset.zw;
 
-    float StoredDepth = DirectionalLightShadowmapAtlas.SampleLevel(ShadowPointSampler, AtlasUV, 0);
+    float2 TexelSize = 1.0f / float2(AtlasWidth, AtlasHeight);
 
-    // 5. 깊이 비교
+    // 쿼드런트 아틀라스 경계 클램핑 (인접 캐스케이드 사분면 침범 방지)
+    float2 TileMin = Offset.zw + 0.5f * TexelSize;
+    float2 TileMax = Offset.zw + Offset.xy - 0.5f * TexelSize;
+
     float DepthBias = CascadeBiases[CascadeIndex];
-    return (Ndc.z - DepthBias) > StoredDepth ? 0.0f : 1.0f;
+    float CompareValue = Ndc.z - DepthBias;
+
+    // 5. 3x3 PCF 필터링 (하드웨어 비교 샘플러 ShadowCmpSampler 사용)
+    float ShadowLit = 0.0f;
+    [unroll]
+    for (int y = -1; y <= 1; ++y)
+    {
+        [unroll]
+        for (int x = -1; x <= 1; ++x)
+        {
+            float2 SampleUV = clamp(AtlasUV + float2(x, y) * TexelSize, TileMin, TileMax);
+            ShadowLit += DirectionalLightShadowmapAtlas.SampleCmpLevelZero(ShadowCmpSampler, SampleUV, CompareValue);
+        }
+    }
+    return ShadowLit / 9.0f;
 }
 
 // 캐스케이드 인덱스 및 경계면 블렌딩 정보 계산

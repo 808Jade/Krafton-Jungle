@@ -49,7 +49,8 @@ public:
 		const FVector& LightDirection,
 		FVector4 InOutCascadeSpheres[4],
 		uint32 CascadeResolution,
-		FMatrix OutCascadeMatrices[4]);
+		FMatrix OutCascadeMatrices[4],
+		float OutCascadeRanges[4] = nullptr);
 	void SetupDirectionalShadow(
 		const FShadowInfo& DirectionalShadow,
 		const FVector& LightDirection,
@@ -101,6 +102,7 @@ private:
 	ComPtr<ID3D11DepthStencilView> DirectionalShadowDSV;
 	TUniquePtr<FConstantBuffer> DirectionalShadowCB;
 	FMatrix CachedCascadeMatrices[4] = {};
+	float CachedCascadeRanges[4] = {};
 	uint32 DirectionalResolution = 4096;
 
 	uint32 ShadowInfoCapacity = 0;

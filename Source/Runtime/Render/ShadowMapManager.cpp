@@ -425,7 +425,8 @@ void FShadowMapManager::ComputeCascadeLightMatrices(
     const FVector& LightDirection,
     FVector4 InOutCascadeSpheres[4],
     uint32 CascadeResolution,
-    FMatrix OutCascadeMatrices[4])
+    FMatrix OutCascadeMatrices[4],
+    float OutCascadeRanges[4])
 {
     // 1. Directional Light 카메라의 기저 벡터 정의
     FVector Forward = LightDirection.GetSafeNormal();
@@ -472,8 +473,11 @@ void FShadowMapManager::ComputeCascadeLightMatrices(
             InOutCascadeSpheres[i] = FVector4(SnappedCenter.X, SnappedCenter.Y, SnappedCenter.Z, Radius);
         }
 
-        // 캐스터를 수용하기 위해 구체 중심에서 빛의 반대 방향으로 충분히 물러남
-        const float BackDistance = Radius * 2.0f;
+        // Shadow Pancaking (DepthClipEnable = FALSE) 적용:
+        // 광원 쪽으로 멀리 있는 캐스터는 GPU가 깊이 0.0으로 클램핑하므로 Frustum을 거대하게 밀어낼 필요가 없음.
+        // 수신 구체 앞/뒤로 안전 마진(NearMargin)만 살짝 두어 깊이 구간(DepthRange)을 극도로 타이트하게 압축.
+        const float NearMargin = 5.0f;
+        const float BackDistance = Radius + NearMargin;
         const FVector Eye = SnappedCenter - Forward * BackDistance;
 
         // Light View 행렬
@@ -483,12 +487,18 @@ void FShadowMapManager::ComputeCascadeLightMatrices(
         const float Width = 2.0f * Radius;
         const float Height = Width;
         const float NearClip = 0.1f;
-        const float FarClip = Radius * 4.0f;
+        const float FarClip = BackDistance + Radius + NearMargin;
+        const float DepthRange = FarClip - NearClip;
+
+        if (OutCascadeRanges)
+        {
+            OutCascadeRanges[i] = DepthRange;
+        }
 
         const float XScale = 2.0f / Width;
         const float YScale = 2.0f / Height;
-        const float ZScale = 1.0f / (FarClip - NearClip);
-        const float ZOffset = -NearClip / (FarClip - NearClip);
+        const float ZScale = 1.0f / DepthRange;
+        const float ZOffset = -NearClip / DepthRange;
 
         const FMatrix Proj = FMatrix(
             0.0f, 0.0f, ZScale, 0.0f,
@@ -521,8 +531,8 @@ void FShadowMapManager::SetupDirectionalShadow(
     FVector4 CascadeSpheres[4];
     ComputeCascadeSpheres(CameraPosition, CameraForward, FovDegrees, AspectRatio, 0.1f, 300.0f, CascadeSpheres);
 
-    // 2. 4개 구체 기반 텍셀 스내핑된 Light VP 행렬 계산 (4096 Atlas의 2x2 분할이므로 캐스케이드당 2048)
-    ComputeCascadeLightMatrices(LightDirection, CascadeSpheres, DirectionalResolution / 2, CachedCascadeMatrices);
+    // 2. 4개 구체 기반 텍셀 스내핑된 Light VP 행렬 및 깊이 구간 길이 계산 (4096 Atlas의 2x2 분할이므로 캐스케이드당 2048)
+    ComputeCascadeLightMatrices(LightDirection, CascadeSpheres, DirectionalResolution / 2, CachedCascadeMatrices, CachedCascadeRanges);
 
     FDirectionalShadowConstants Constants{};
     for (int i = 0; i < 4; ++i)
@@ -538,7 +548,15 @@ void FShadowMapManager::SetupDirectionalShadow(
     Constants.CascadeOffsets[3] = FVector4(0.5f, 0.5f, 0.5f, 0.5f); // Bottom-Right
 
     // 4. 바이어스 및 캐스케이드 개수
-    Constants.CascadeBiases = FVector4(DirectionalShadow.Bias, DirectionalShadow.Bias * 1.5f, DirectionalShadow.Bias * 2.5f, DirectionalShadow.Bias * 4.0f);
+    // 각 캐스케이드의 깊이 구간(FarClip - NearClip) 길이에 비례하여 DepthBias를 동적으로 계산
+    const float BaseBias = DirectionalShadow.Bias;
+    const float BaseRange = (CachedCascadeRanges[0] > 0.0f) ? CachedCascadeRanges[0] : 1.0f;
+    Constants.CascadeBiases = FVector4(
+        BaseBias * (CachedCascadeRanges[0] / BaseRange),
+        BaseBias * (CachedCascadeRanges[1] / BaseRange),
+        BaseBias * (CachedCascadeRanges[2] / BaseRange),
+        BaseBias * (CachedCascadeRanges[3] / BaseRange)
+    );
     Constants.NormalBias = DirectionalShadow.NormalBias;
     Constants.NumCascades = 4;
     Constants.bVisualizeCascades = bVisualizeCascades ? 1 : 0;

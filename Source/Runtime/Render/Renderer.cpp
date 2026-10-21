@@ -668,7 +668,7 @@ void FRenderer::RenderShadowPass(
 	Context->PSSetShader(nullptr, nullptr, 0);
 
 	RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
+	RenderCommand::SetRasterizerState(ERasterizerState::ShadowDepth);
 	// Depth on, LESS, Write
 	RenderCommand::SetDepthStencilState(EDepthStencilState::Default);
 	RenderCommand::SetBlendState(EBlendState::Opaque);
