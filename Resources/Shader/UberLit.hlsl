@@ -578,7 +578,79 @@ int GetCascadeIndex(float3 WorldPosition)
 }
 
 // 단일 캐스케이드의 그림자 판정 (0.0: 그림자, 1.0: 밝음)
-float SampleSingleCascadeShadow(float3 WorldPosition, float3 Normal, int CascadeIndex)
+// Directional Light (Texture2D Atlas) 필터링 함수
+float Directional_BasicShadow(float2 UV, float CompareValue, float2 TileMin, float2 TileMax)
+{
+    float2 SampleUV = clamp(UV, TileMin, TileMax);
+    float StoredDepth = DirectionalLightShadowmapAtlas.SampleLevel(ShadowPointSampler, SampleUV, 0);
+    return CompareValue > StoredDepth ? 0.0f : 1.0f;
+}
+
+float Directional_HW_PCF(float2 UV, float CompareValue, float2 TileMin, float2 TileMax)
+{
+    float2 SampleUV = clamp(UV, TileMin, TileMax);
+    return DirectionalLightShadowmapAtlas.SampleCmpLevelZero(ShadowCmpSampler, SampleUV, CompareValue);
+}
+
+float Directional_FilterShadow(float2 UV, float CompareValue, float RadiusUV, float2 TileMin, float2 TileMax, float2x2 Rot)
+{
+    float Sum = 0.0f;
+    float WeightSum = 0.0f;
+    uint Count = GetShadowTapCount();
+
+    [loop]
+    for (uint i = 0; i < Count; ++i)
+    {
+        float2 Tap = GetFilterTap(i, Rot);
+        float Weight = bShadowGaussian != 0u ? exp(-dot(Tap, Tap) * ShadowGaussK) : 1.0f;
+        float2 TapUV = clamp(UV + Tap * RadiusUV, TileMin, TileMax);
+        Sum += Weight * DirectionalLightShadowmapAtlas.SampleCmpLevelZero(ShadowCmpSampler, TapUV, CompareValue);
+        WeightSum += Weight;
+    }
+    return Sum / max(WeightSum, 1e-5f);
+}
+
+// Directional Light (CSM Orthographic) PCSS:
+// Blocker Search -> Contact-Hardening Penumbra -> Variable Radius Filter
+float Directional_PCSS(float2 TexelSize, float2 AtlasUV, float ReceiverNdcZ, float CompareValue, float2 TileMin, float2 TileMax, float2x2 Rot)
+{
+    float MaxFilterUV = TexelSize.x * ShadowMaxFilterTexels;
+    float SearchUV = min(MaxFilterUV * ShadowSearchScale, (TileMax.x - TileMin.x) * 0.5f);
+
+    // 1) Blocker Search
+    float dB = 0.0f;
+    float BlockerCount = 0.0f;
+    uint Count = GetShadowTapCount();
+
+    [loop]
+    for (uint i = 0; i < Count; ++i)
+    {
+        float2 SampleUV = clamp(AtlasUV + GetFilterTap(i, Rot) * SearchUV, TileMin, TileMax);
+        float BlockerDepth = DirectionalLightShadowmapAtlas.SampleLevel(ShadowPointSampler, SampleUV, 0);
+
+        if (BlockerDepth < CompareValue)
+        {
+            dB += BlockerDepth;
+            BlockerCount += 1.0f;
+        }
+    }
+
+    if (BlockerCount == 0.0f)
+        return 1.0f;
+
+    dB /= BlockerCount;
+
+    // 2) Penumbra Size 계산 (Contact Hardening)
+    // 직교 투영(평행광)에서 차폐체(dB)와 수신기(ReceiverNdcZ) 깊이 차이에 비례하여 반그림자 확장
+    float DepthDiff = max(ReceiverNdcZ - dB, 0.0f);
+    float PenumbraRatio = saturate(DepthDiff / max(CompareValue, 1e-4f));
+    float FilterUV = clamp(PenumbraRatio * MaxFilterUV, TexelSize.x * 0.5f, MaxFilterUV);
+
+    // 3) 가변 반경 필터링
+    return Directional_FilterShadow(AtlasUV, CompareValue, FilterUV, TileMin, TileMax, Rot);
+}
+
+float SampleSingleCascadeShadow(float3 WorldPosition, float3 Normal, int CascadeIndex, float2 PixelPos)
 {
     float3 L = -DirectionalLight.Direction;
 
@@ -622,18 +694,24 @@ float SampleSingleCascadeShadow(float3 WorldPosition, float3 Normal, int Cascade
     float CompareValue = Ndc.z - DepthBias;
 
     // 5. 3x3 PCF 필터링 (하드웨어 비교 샘플러 ShadowCmpSampler 사용)
-    float ShadowLit = 0.0f;
-    [unroll]
-    for (int y = -1; y <= 1; ++y)
+    // 5. 그림자 필터링 (Hard / HW_PCF / PCF / PCSS)
+    [branch]
+    switch (ShadowFilterMode)
     {
-        [unroll]
-        for (int x = -1; x <= 1; ++x)
-        {
-            float2 SampleUV = clamp(AtlasUV + float2(x, y) * TexelSize, TileMin, TileMax);
-            ShadowLit += DirectionalLightShadowmapAtlas.SampleCmpLevelZero(ShadowCmpSampler, SampleUV, CompareValue);
-        }
+    case SHADOW_FILTER_HARD:
+        return Directional_BasicShadow(AtlasUV, CompareValue, TileMin, TileMax);
+
+    case SHADOW_FILTER_HW_PCF:
+        return Directional_HW_PCF(AtlasUV, CompareValue, TileMin, TileMax);
+
+    case SHADOW_FILTER_PCF:
+        return Directional_FilterShadow(AtlasUV, CompareValue, ShadowPCFRadiusTexels * TexelSize.x,
+                                        TileMin, TileMax, GetShadowRotation(PixelPos));
+
+    default:
+        // PCSS
+        return Directional_PCSS(TexelSize, AtlasUV, Ndc.z, CompareValue, TileMin, TileMax, GetShadowRotation(PixelPos));
     }
-    return ShadowLit / 9.0f;
 }
 
 // 캐스케이드 인덱스 및 경계면 블렌딩 정보 계산
@@ -661,7 +739,7 @@ void GetCascadeBlendInfo(float3 WorldPosition, out int CascadeIndex, out int Nex
 }
 
 // Directional Light 전용 그림자 판정
-float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
+float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal, float2 PixelPos)
 {
     if (NumCascades <= 0)
         return 1.0f;
@@ -677,12 +755,12 @@ float ComputeDirectionalShadowFactor(float3 WorldPosition, float3 Normal)
         if (CascadeIndex >= NumCascades)
             return 1.0f;
 
-        float Shadow = SampleSingleCascadeShadow(WorldPosition, Normal, CascadeIndex);
+        float Shadow = SampleSingleCascadeShadow(WorldPosition, Normal, CascadeIndex, PixelPos);
 
         // 블렌딩 영역에 걸쳐 있다면 다음 캐스케이드와 lerp
         if (BlendFactor > 0.0f && NextCascadeIndex < NumCascades)
         {
-            float NextShadow = SampleSingleCascadeShadow(WorldPosition, Normal, NextCascadeIndex);
+            float NextShadow = SampleSingleCascadeShadow(WorldPosition, Normal, NextCascadeIndex, PixelPos);
             Shadow = lerp(Shadow, NextShadow, BlendFactor);
         }
 
@@ -709,7 +787,7 @@ float3 WorldPosition, float3 V, float n, float2 PixelPosition, out float3 Diffus
         float GeoFactor = 1.0f;
         float3 ShadowNormal = N;
 #endif
-        float Shadow = ComputeDirectionalShadowFactor(WorldPosition, ShadowNormal);
+        float Shadow = ComputeDirectionalShadowFactor(WorldPosition, ShadowNormal, PixelPosition);
         
         AccumulateLight(Il * GeoFactor * Shadow, N, L, V, n, DiffuseLight, SpecularLight);
     }
@@ -901,7 +979,7 @@ float4 mainPS(FPSInput Input) : SV_TARGET
 #else
         float3 ShadowNormal = WorldNormal;
 #endif
-        float Shadow = ComputeDirectionalShadowFactor(Input.WorldPosition, ShadowNormal);
+        float Shadow = ComputeDirectionalShadowFactor(Input.WorldPosition, ShadowNormal, Input.Position.xy);
 
         float3 BaseColor = CascadeColors[min(CascadeIdx, 4)];
         if (BlendFactor > 0.0f && CascadeIdx < NumCascades - 1)
