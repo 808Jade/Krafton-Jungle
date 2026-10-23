@@ -1,0 +1,383 @@
+{
+    "Actors": [
+        {
+            "Class": "AStaticMeshActor",
+            "Components": [
+                {
+                    "Class": "UStaticMeshComponent",
+                    "Name": "UStaticMeshComponent_0",
+                    "ParentUUID": null,
+                    "Properties": {
+                        "ObjectUUID": 75,
+                        "OverrideMaterials": [],
+                        "StaticMesh": "Cube",
+                        "Transform": {
+                            "Location": [
+                                9.735981941223145,
+                                -10.534355163574219,
+                                4.441062927246094
+                            ],
+                            "Rotation": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "Scale": [
+                                1.0,
+                                12.459693908691406,
+                                25.841997146606445
+                            ]
+                        },
+                        "bVisible": true
+                    }
+                }
+            ],
+            "Properties": {
+                "ObjectUUID": 74
+            },
+            "RootComponentUUID": 75
+        },
+        {
+            "Class": "AStaticMeshActor",
+            "Components": [
+                {
+                    "Class": "UStaticMeshComponent",
+                    "Name": "UStaticMeshComponent_0",
+                    "ParentUUID": null,
+                    "Properties": {
+                        "ObjectUUID": 77,
+                        "OverrideMaterials": [],
+                        "StaticMesh": "Cube",
+                        "Transform": {
+                            "Location": [
+                                26.58694076538086,
+                                0.8230996131896973,
+                                4.182173728942871
+                            ],
+                            "Rotation": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "Scale": [
+                                1.9749999046325684,
+                                14.581703186035156,
+                                18.779083251953125
+                            ]
+                        },
+                        "bVisible": true
+                    }
+                }
+            ],
+            "Properties": {
+                "ObjectUUID": 76
+            },
+            "RootComponentUUID": 77
+        },
+        {
+            "Class": "AStaticMeshActor",
+            "Components": [
+                {
+                    "Class": "UStaticMeshComponent",
+                    "Name": "UStaticMeshComponent_0",
+                    "ParentUUID": null,
+                    "Properties": {
+                        "ObjectUUID": 79,
+                        "OverrideMaterials": [],
+                        "StaticMesh": "Cube",
+                        "Transform": {
+                            "Location": [
+                                0.0,
+                                -19.7869873046875,
+                                0.0
+                            ],
+                            "Rotation": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "Scale": [
+                                206.65916442871094,
+                                5.812183380126953,
+                                37.49690246582031
+                            ]
+                        },
+                        "bVisible": true
+                    }
+                }
+            ],
+            "Properties": {
+                "ObjectUUID": 78
+            },
+            "RootComponentUUID": 79
+        },
+        {
+            "Class": "AStaticMeshActor",
+            "Components": [
+                {
+                    "Class": "UStaticMeshComponent",
+                    "Name": "UStaticMeshComponent_0",
+                    "ParentUUID": null,
+                    "Properties": {
+                        "ObjectUUID": 81,
+                        "OverrideMaterials": [],
+                        "StaticMesh": "Cube",
+                        "Transform": {
+                            "Location": [
+                                -0.00067138671875,
+                                -9.548065185546875,
+                                -3.1842637062072754
+                            ],
+                            "Rotation": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "Scale": [
+                                358.5809631347656,
+                                34.77527618408203,
+                                11.789712905883789
+                            ]
+                        },
+                        "bVisible": true
+                    }
+                }
+            ],
+            "Properties": {
+                "ObjectUUID": 80
+            },
+            "RootComponentUUID": 81
+        },
+        {
+            "Class": "AStaticMeshActor",
+            "Components": [
+                {
+                    "Class": "UStaticMeshComponent",
+                    "Name": "UStaticMeshComponent_0",
+                    "ParentUUID": null,
+                    "Properties": {
+                        "ObjectUUID": 83,
+                        "OverrideMaterials": [],
+                        "StaticMesh": "Cube",
+                        "Transform": {
+                            "Location": [
+                                0.0,
+                                8.650778770446777,
+                                0.0
+                            ],
+                            "Rotation": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "Scale": [
+                                102.40510559082031,
+                                1.0,
+                                24.152273178100586
+                            ]
+                        },
+                        "bVisible": true
+                    }
+                }
+            ],
+            "Properties": {
+                "ObjectUUID": 82
+            },
+            "RootComponentUUID": 83
+        },
+        {
+            "Class": "ASphereGlowActor",
+            "Components": [
+                {
+                    "Class": "USphereGlowComponent",
+                    "Name": "USphereGlowComponent_0",
+                    "ParentUUID": null,
+                    "Properties": {
+                        "Color": [
+                            1.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "Intensity": 0.5,
+                        "ObjectUUID": 88,
+                        "Radius": 10.0,
+                        "RadiusFallOff": 9.600000381469727,
+                        "Transform": {
+                            "Location": [
+                                -2.6735682487487793,
+                                -5.780389785766602,
+                                13.74533748626709
+                            ],
+                            "Rotation": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "Scale": [
+                                1.0,
+                                1.0,
+                                1.0
+                            ]
+                        },
+                        "bVisible": true
+                    }
+                }
+            ],
+            "Properties": {
+                "ObjectUUID": 87
+            },
+            "RootComponentUUID": 88
+        },
+        {
+            "Class": "AStaticMeshActor",
+            "Components": [
+                {
+                    "Class": "UStaticMeshComponent",
+                    "Name": "UStaticMeshComponent_0",
+                    "ParentUUID": null,
+                    "Properties": {
+                        "ObjectUUID": 92,
+                        "OverrideMaterials": [
+                            {
+                                "Base": "DefaultMaterial",
+                                "BaseColor": [
+                                    0.0,
+                                    0.02205902338027954,
+                                    0.75,
+                                    0.003921568859368563
+                                ],
+                                "BlendState": "Opaque",
+                                "SamplerState": "LinearClamp",
+                                "Shininess": 32.0,
+                                "Textures": [
+                                    "WhiteTexture"
+                                ],
+                                "UVScrollSpeed": [
+                                    0.0,
+                                    0.0
+                                ],
+                                "bTwoSided": false
+                            }
+                        ],
+                        "StaticMesh": "Cube",
+                        "Transform": {
+                            "Location": [
+                                0.0,
+                                -0.7779779434204102,
+                                26.35270881652832
+                            ],
+                            "Rotation": [
+                                18.925384521484375,
+                                -8.83747673034668,
+                                -25.611785888671875
+                            ],
+                            "Scale": [
+                                1.0,
+                                3.7322328090667725,
+                                1.0
+                            ]
+                        },
+                        "bVisible": true
+                    }
+                }
+            ],
+            "Properties": {
+                "ObjectUUID": 91
+            },
+            "RootComponentUUID": 92
+        },
+        {
+            "Class": "AFogActor",
+            "Components": [
+                {
+                    "Class": "UExpHeightFogComponent",
+                    "Name": "UExpHeightFogComponent_0",
+                    "ParentUUID": 103,
+                    "Properties": {
+                        "FogParam.EndDistance": 1000.0,
+                        "FogParam.FogCutOffDistance": 1000.0,
+                        "FogParam.FogDensity": 0.2199999988079071,
+                        "FogParam.FogHeightFalloff": 0.20000000298023224,
+                        "FogParam.FogInscatteringLuminance": [
+                            0.7450979948043823,
+                            0.1351402997970581,
+                            0.1351402997970581,
+                            1.0
+                        ],
+                        "FogParam.FogMaxOpacity": 1.0,
+                        "FogParam.StartDistance": 0.0,
+                        "ObjectUUID": 104,
+                        "Transform": {
+                            "Location": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "Rotation": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "Scale": [
+                                1.0,
+                                1.0,
+                                1.0
+                            ]
+                        }
+                    }
+                },
+                {
+                    "Class": "UBillboardComponent",
+                    "Name": "UBillboardComponent_0",
+                    "ParentUUID": null,
+                    "Properties": {
+                        "Material": {
+                            "Asset": "FogIcon"
+                        },
+                        "ObjectUUID": 103,
+                        "Transform": {
+                            "Location": [
+                                0.0,
+                                0.0,
+                                4.240814208984375
+                            ],
+                            "Rotation": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "Scale": [
+                                1.0,
+                                1.0,
+                                1.0
+                            ]
+                        },
+                        "bVisible": true
+                    }
+                }
+            ],
+            "Properties": {
+                "ObjectUUID": 102
+            },
+            "RootComponentUUID": 103
+        }
+    ],
+    "NextUUID": 124,
+    "PerspectiveCamera": {
+        "FOV": 60.0,
+        "FarClip": 10000.0,
+        "Location": [
+            -27.756887435913086,
+            -4.122946739196777,
+            17.18234634399414
+        ],
+        "NearClip": 0.10000000149011612,
+        "Rotation": [
+            0.0,
+            0.21294240653514862,
+            -0.0034679051022976637
+        ]
+    },
+    "Version": 2
+}
