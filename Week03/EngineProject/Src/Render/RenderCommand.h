@@ -1,0 +1,90 @@
+#pragma once
+
+#include "RenderDevice.h"
+
+enum class EShaderBindFlagBits : uint32
+{
+	None = 0,
+	Vertex = 1,
+	Geometry = 1 << 2,
+	Domain = 1 << 3,
+	Hull = 1 << 4,
+	Pixel = 1 << 5,
+	Compute = 1 << 6
+};
+
+DEFINE_ENUM_OPERATORS(EShaderBindFlagBits);
+
+class RenderCommand
+{
+public:
+	static void Init(FRenderDevice* InRenderDevice);
+
+	static TUniquePtr<FVertexBuffer> CreateStaticVertexBuffer(const void* InVertices, uint32 InSize, uint32 Stride);
+	static TUniquePtr<FVertexBuffer> CreateDynamicVertexBuffer(uint32 MaxSize, uint32 Stride);
+
+	static TUniquePtr<FIndexBuffer> CreateStaticIndexBuffer(const uint32* InIndices, uint32 MaxIndexCount);
+	static TUniquePtr<FIndexBuffer> CreateDynamicIndexBuffer(uint32 MaxIndexCount);
+
+	static TUniquePtr<FConstantBuffer> CreateConstantBuffer(uint32 BufferSize);
+
+	static TUniquePtr<FTexture2D> CreateTexture2D(const D3D11_TEXTURE2D_DESC& Desc, const void* InitialData = nullptr);
+
+	static TUniquePtr<FShader> CreateShader(const wchar_t* FileName, D3D11_INPUT_ELEMENT_DESC* InLayoutDesc, size_t InLayoutSize);
+	static TUniquePtr<FShader> CreateShader(const wchar_t* FileName, std::vector<D3D11_INPUT_ELEMENT_DESC> Layouts);
+
+	static void BindPipelineState(const FPipelineState& PipelineState);
+
+	static void BindMesh(UStaticMesh* Mesh);
+
+	static void BindShader(FShader* Shader);
+
+	static void Draw(uint32 VertexCount, uint32 StartIndexLocation = 0);
+	static void DrawIndexed(uint32 IndexCount, uint32 StartIndexLocation = 0, int32 BaseVertexLocation = 0);
+	static void DrawInstance(uint32 IndexCount, uint32 StartIndexLocation = 0, int32 BaseVertexLocation = 0);
+
+	template <typename T>
+	static void UpdateBufferData(FBuffer* InBuffer, T* Data)
+	{
+		UpdateBufferData(InBuffer, Data, sizeof(T));
+	}
+	static void UpdateBufferData(FBuffer* InBuffer, const void* Data, uint32 DataSize);
+
+	static void BindVertexBuffer(FVertexBuffer* VertexBuffer);
+	static void BindIndexBuffer(FIndexBuffer* IndexBuffer);
+	static void BindConstantBuffer(uint32 Slot, FConstantBuffer* ConstantBuffer, EShaderBindFlagBits FlagBits);
+	static void BindShaderResource(uint32 Slot, FTexture2D* Texture2D, EShaderBindFlagBits FlagBits);
+	static void BindShaderResource(uint32 Slot, UTexture2D* Texture2D, EShaderBindFlagBits FlagBits);
+
+	static void BeginRenderPass(const FRenderingInfo& RenderingInfo);
+	static void EndRenderPass(const FRenderingInfo& RenderingInfo);
+	static void ClearDepthStencil(FTexture2D* DepthStencilTexture, float Depth = 1.0f, uint8 Stencil = 0);
+
+	static void SetViewport(uint32 InX, uint32 InY, uint32 InWidth, uint32 InHeight);
+
+	static void SetRasterizerState(ERasterizerState State);
+	static void SetBlendState(EBlendState State);
+	static void SetDepthStencilState(EDepthStencilState State);
+	static void BindSamplerState(uint32 Slot, ESamplerState SamplerState, EShaderBindFlagBits FlagBits);
+
+	inline static void SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topology)
+	{
+		RenderDevice->GetContext()->IASetPrimitiveTopology(Topology);
+	}
+
+	//inline static void BindTexture(uint32 Slot, UTexture2D* Texture2D, EShaderBindFlagBits FlagBits);
+
+	//inline static void SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topology);
+
+	//inline static void SetDepthStencilEnabled(bool bEnabled);
+
+	//inline static void SetBlendStateEnabled(bool bEnabled);
+
+	//inline static void BindShader(FShader* InShader);
+
+	//inline static void BindMesh(UStaticMesh* InMesh);
+
+
+private:
+	inline static FRenderDevice* RenderDevice = nullptr;
+};

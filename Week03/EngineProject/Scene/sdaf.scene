@@ -1,0 +1,24 @@
+{
+    "Version": 1,
+    "NextUUID": 14,
+    "Primitives": {
+        "13": {
+            "Location": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "Rotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "Scale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "Type": "Camera"
+        }
+    }
+}

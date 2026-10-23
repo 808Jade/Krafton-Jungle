@@ -1,0 +1,51 @@
+#pragma once
+
+#include <d3d11.h>
+
+struct FVertex
+{
+	FVector Position = FVector();
+	FVector2 UV = FVector2();
+	FVector4 Color = FVector4();
+
+	static std::vector<D3D11_INPUT_ELEMENT_DESC> GetLayout() 
+	{
+		return
+		{
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		};
+	}
+};
+
+struct FTextVertex
+{
+	FVector Position;
+	FVector2 UV;
+
+	static std::vector<D3D11_INPUT_ELEMENT_DESC> GetLayout()
+	{
+		return
+		{
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		};
+	}
+};
+
+// Todo: subuv
+struct FParticleVertex
+{
+	FVector Position;
+	FVector2 UV;
+
+	static std::vector<D3D11_INPUT_ELEMENT_DESC> GetLayout()
+	{
+		return
+		{
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		};
+	}
+};
