@@ -54,6 +54,7 @@ namespace
 		}
 	}
 
+	// 재귀적으로 특정 노드에서 시작하여 자식 노드들을 dfs로 탐색하여 Bone을 모은다.
 	void CollectBones(FbxNode* Node, int32 ParentIndex, TArray<FBoneInfo>& OutBones, TArray<FbxNode*>& OutBoneNodes)
 	{
 		const FbxNodeAttribute* Attribute = Node->GetNodeAttribute();
@@ -71,6 +72,39 @@ namespace
 		for (int32 i = 0; i < Node->GetChildCount(); ++i)
 		{
 			CollectBones(Node->GetChild(i), ParentIndex, OutBones, OutBoneNodes);
+		}
+	}
+
+	// 오른손 좌표계를 엔진의 왼손 좌표계로 변환한다. 
+	FMatrix ToEngineMatrix(const FbxMatrix& Source)
+	{
+		FMatrix Out;
+		for (int32 Row = 0; Row < 4; ++Row)
+		{
+			for (int32 Col = 0; Col < 4; ++Col)
+			{
+				Out.M[Row][Col] = static_cast<float>(Source.Get(Row, Col));
+			}
+		}
+		for (int32 i = 0; i < 4; ++i)
+		{
+			Out.M[1][i] = -Out.M[1][i];
+			Out.M[i][1] = -Out.M[i][1];
+		}
+		return Out;
+	}
+
+	// 각 Bone의 Global 행렬을 구한 뒤, 부모 기준의 Local 행렬로 바꿔 RefLocal에 저장한다.
+	void ExtractRefLocals(TArray<FBoneInfo>& Bones, const TArray<FbxNode*>& BoneNodes)
+	{
+		TArray<FMatrix> Globals;
+		for (int32 i = 0; i < Bones.Num(); ++i)
+		{
+			const FMatrix Global = ToEngineMatrix(BoneNodes[i]->EvaluateGlobalTransform());
+			Globals.Add(Global);
+
+			const int32 Parent = Bones[i].ParentIndex;
+			Bones[i].RefLocal = Parent >= 0 ? Global * Globals[Parent].Inverse() : Global;
 		}
 	}
 
@@ -122,6 +156,7 @@ namespace
 		LogSceneSpace("after", Scene);
 	}
 
+	// Context의 Scene을 파일을 읽어서 로드. 축변환, 삼각형화까지 한다.
 	bool LoadScene(const FString& Path, FFbxContext& Context)
 	{
 		Context.Manager = FbxManager::Create();
@@ -159,6 +194,26 @@ namespace
 }
 
 
+TUniquePtr<FSkeletalMeshData> FFbxImporter::LoadSkeletalMeshData(const FString& Path)
+{
+	FFbxContext Context;
+	if (!LoadScene(Path, Context))
+	{
+		return nullptr;
+	}
+
+	TUniquePtr<FSkeletalMeshData> Data = MakeUnique<FSkeletalMeshData>();
+	TArray<FbxNode*> BoneNodes;
+	CollectBones(Context.Scene->GetRootNode(), -1, Data->Bones, BoneNodes);
+	if (Data->Bones.IsEmpty())
+	{
+		HTR_LOG(Warning, "FBX has no skeleton: {}", Path);
+		return nullptr;
+	}
+	ExtractRefLocals(Data->Bones, BoneNodes);
+
+	return Data;
+}
 
 // 디버그용 출력
 void FFbxImporter::PrintFbxInfo(const FString& Path)
@@ -185,14 +240,19 @@ void FFbxImporter::PrintFbxInfo(const FString& Path)
 	HTR_LOG(Info, "Meshes: {} (non-triangle: {})", MeshCount, NonTriangleMeshes);
 
 	PrintNodeTree(Context.Scene->GetRootNode(), 0);
+}
 
-	TArray<FBoneInfo> Bones;
-	TArray<FbxNode*> BoneNodes;
-	CollectBones(Context.Scene->GetRootNode(), -1, Bones, BoneNodes);
+void FFbxImporter::PrintSkeleton(const FSkeletalMeshData& Data)
+{
+	HTR_LOG(Info, "Bones: {}", Data.Bones.Num());
 
-	HTR_LOG(Info, "Bones: {}", Bones.Num());
-	for (int32 i = 0; i < Bones.Num(); ++i)
+	TArray<int32> Depths;
+	for (int32 i = 0; i < Data.Bones.Num(); ++i)
 	{
-		HTR_LOG(Info, "[{}] {} (parent {})", i, Bones[i].Name, Bones[i].ParentIndex);
+		const FBoneInfo& Bone = Data.Bones[i];
+		const int32 Depth = Bone.ParentIndex >= 0 ? Depths[Bone.ParentIndex] + 1 : 0;
+		Depths.Add(Depth);
+
+		HTR_LOG(Info, "{}[{}] {}", FString(static_cast<size_t>(Depth) * 2, ' '), i, Bone.Name);
 	}
 }
