@@ -18,6 +18,7 @@
 
 #include "Render/ImageLoader.h"
 #include <cctype>
+#include "FbxImporter/FbxImporter.h"
 
 
 namespace
@@ -189,6 +190,10 @@ void UAssetManager::LoadAsset(const FString& Key, const FString& Path) {
 	}
 	if (Extension == ".obj") {
 		LoadObjStaticMesh(Path);
+	}
+	if (Extension == ".fbx") {
+		// TODO: 나중에 진짜 함수로 바꾸기
+		FFbxImporter::PrintFbxInfo(Path);
 	}
 }
 

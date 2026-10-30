@@ -21,6 +21,38 @@ namespace
 		}
 	};
 
+	const char* GetAttributeTypeName(FbxNode* Node)
+	{
+		const FbxNodeAttribute* Attribute = Node->GetNodeAttribute();
+		if (!Attribute)
+		{
+			return "None";
+		}
+
+		switch (Attribute->GetAttributeType())
+		{
+		case FbxNodeAttribute::eNull:     return "Null";
+		case FbxNodeAttribute::eSkeleton: return "Skeleton";
+		case FbxNodeAttribute::eMesh:     return "Mesh";
+		case FbxNodeAttribute::eCamera:   return "Camera";
+		case FbxNodeAttribute::eLight:    return "Light";
+		case FbxNodeAttribute::eMarker:   return "Marker";
+		default:                          return "Other";
+		}
+	}
+
+	// 디버그용: 노드 트리를 깊이만큼 들여쓰기해서 출력한다
+	void PrintNodeTree(FbxNode* Node, int32 Depth)
+	{
+		const FbxMesh* Mesh = Node->GetMesh();
+		HTR_LOG(Info, "{}{} [{}]{}", FString(static_cast<size_t>(Depth) * 2, ' '), Node->GetName(), GetAttributeTypeName(Node), Mesh && !Mesh->IsTriangleMesh() ? " (NOT TRIANGLE)" : "");
+
+		for (int32 i = 0; i < Node->GetChildCount(); ++i)
+		{
+			PrintNodeTree(Node->GetChild(i), Depth + 1);
+		}
+	}
+
 	// 디버그용: Scene의 축계·단위를 로그로 남긴다
 	void LogSceneSpace(const char* Label, FbxScene* Scene)
 	{
@@ -40,7 +72,7 @@ namespace
 			Settings.GetSystemUnit().GetScaleFactor());
 	}
 
-	// FBX SDK는 좌표계 변환을 해주지 않는다. 여기서는 오른손 Z-Up까지만 변환을 한다. 왼손 좌표계로의 변환은 나중에
+	// 여기서는 오른손 Z-Up 좌표계 변환만 한다. 왼손 좌표계로의 변환은 나중에
 	void ConvertToEngineSpace(FbxScene* Scene, FbxManager* Manager)
 	{
 		LogSceneSpace("before", Scene);
@@ -59,6 +91,7 @@ namespace
 			FbxSystemUnit::m.ConvertScene(Scene);
 		}
 
+		// 모든 폴리곤을 삼각형으로 쪼갠다
 		FbxGeometryConverter Converter(Manager);
 		if (!Converter.Triangulate(Scene, true))
 		{
@@ -129,4 +162,5 @@ void FFbxImporter::PrintFbxInfo(const FString& Path)
 		}
 	}
 	HTR_LOG(Info, "Meshes: {} (non-triangle: {})", MeshCount, NonTriangleMeshes);
+	PrintNodeTree(Context.Scene->GetRootNode(), 0);
 }
