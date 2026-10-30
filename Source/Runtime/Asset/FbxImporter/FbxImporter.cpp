@@ -4,6 +4,7 @@
 #include <fbxsdk.h>
 
 #include "Core/EngineLog.h"
+#include "Render/SkeletalMeshData.h"
 
 namespace
 {
@@ -50,6 +51,26 @@ namespace
 		for (int32 i = 0; i < Node->GetChildCount(); ++i)
 		{
 			PrintNodeTree(Node->GetChild(i), Depth + 1);
+		}
+	}
+
+	void CollectBones(FbxNode* Node, int32 ParentIndex, TArray<FBoneInfo>& OutBones, TArray<FbxNode*>& OutBoneNodes)
+	{
+		const FbxNodeAttribute* Attribute = Node->GetNodeAttribute();
+		if (Attribute && Attribute->GetAttributeType() == FbxNodeAttribute::eSkeleton)
+		{
+			FBoneInfo Bone;
+			Bone.Name = Node->GetName();
+			Bone.ParentIndex = ParentIndex;
+
+			ParentIndex = OutBones.Num();
+			OutBones.Add(Bone);
+			OutBoneNodes.Add(Node);
+		}
+
+		for (int32 i = 0; i < Node->GetChildCount(); ++i)
+		{
+			CollectBones(Node->GetChild(i), ParentIndex, OutBones, OutBoneNodes);
 		}
 	}
 
@@ -162,5 +183,16 @@ void FFbxImporter::PrintFbxInfo(const FString& Path)
 		}
 	}
 	HTR_LOG(Info, "Meshes: {} (non-triangle: {})", MeshCount, NonTriangleMeshes);
+
 	PrintNodeTree(Context.Scene->GetRootNode(), 0);
+
+	TArray<FBoneInfo> Bones;
+	TArray<FbxNode*> BoneNodes;
+	CollectBones(Context.Scene->GetRootNode(), -1, Bones, BoneNodes);
+
+	HTR_LOG(Info, "Bones: {}", Bones.Num());
+	for (int32 i = 0; i < Bones.Num(); ++i)
+	{
+		HTR_LOG(Info, "[{}] {} (parent {})", i, Bones[i].Name, Bones[i].ParentIndex);
+	}
 }
