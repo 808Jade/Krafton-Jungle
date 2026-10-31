@@ -56,6 +56,7 @@ class UEditorEngine : public UEngine
 	GENERATED_BODY()
 public:
 	FEngineConfig GetConfig() const override;
+	void RegisterAssetImporters() override;
 	bool Init() override;
 	void Tick(float DeltaTime) override;
 	void PreExit() override;

@@ -33,6 +33,7 @@
 #include "Components/TextRenderComponent.h"
 
 #include "Asset/AssetManager.h"
+#include "Editor/Fbx/FbxImporter.h"
 #include "Render/RenderResourceManager.h"
 
 #include "Render/RenderCommand.h"
@@ -1527,4 +1528,8 @@ void UEditorEngine::SaveSceneAs()
 		return;
 	}
 	FEditorFileUtils::SaveSceneAs(EditorWorld);
+}
+void UEditorEngine::RegisterAssetImporters()
+{
+	UAssetManager::SetSkeletalMeshImporter(&FFbxImporter::Import);
 }

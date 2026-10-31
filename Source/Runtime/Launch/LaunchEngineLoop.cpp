@@ -89,6 +89,8 @@ bool FEngineLoop::PreInit(HINSTANCE hInstance, UClass* EngineClass)
 	FSplashScreen::SetText(L"Loading Assets...");
 	FRenderResourceManager::Init();
 
+	GEngine->RegisterAssetImporters(); //skeletal
+
 	constexpr float AssetStart = 0.1f;
 	constexpr float AssetEnd = 0.8f;
 	UAssetManager::Init([](int32 Loaded, int32 Total, const FString& Path)

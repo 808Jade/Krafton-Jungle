@@ -7,6 +7,7 @@
 #include <filesystem>
 
 #include "Core/EngineLog.h"
+#include "Asset/BakeIO.h"
 #include "Render/StaticMeshData.h"
 #include "Render/Vertex.h"
 #include "Containers/Map.h"
@@ -14,6 +15,8 @@
 #include "Asset/ObjImporter/StaticMeshBake.h"
 
 #include <algorithm>
+
+using namespace BakeIO;                   
 
 namespace
 {

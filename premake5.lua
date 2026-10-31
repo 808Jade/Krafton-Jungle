@@ -25,6 +25,7 @@ IncludeDir["DDSLoader"] = "Source/ThirdParty/DDSLoader"
 IncludeDir["lua"]   = "Source/ThirdParty/lua/src"
 IncludeDir["sol2"]  = "Source/ThirdParty/sol2/include"
 IncludeDir["miniaudio"]  = "Source/ThirdParty/miniaudio"
+FbxSdkDir = os.getenv("FBXSDK_DIR") or "C:/Program Files/Autodesk/FBX/FBX SDK/2020.3.11"
 
 -- premake의 filter는 project()를 만나면 초기화된다.
 -- 두 프로젝트가 같은 런타임(/MDd vs /MD)으로 컴파일되지 않으면 링크가 실패하므로
@@ -254,6 +255,7 @@ project "HitoriEditor"
 		"%{IncludeDir.json}",
 		"%{IncludeDir.lua}",
 		"%{IncludeDir.sol2}",
+		FbxSdkDir .. "/include",
 	}
 
 	links
@@ -263,6 +265,12 @@ project "HitoriEditor"
 		"dxguid.lib",
 		"d3dcompiler.lib",
 	}
+	links { "libfbxsdk-md", "libxml2-md", "zlib-md", "bcrypt" }
+	filter "configurations:Debug or Benchmark_Debug"
+		libdirs { FbxSdkDir .. "/lib/x64/debug" }
+	filter { "configurations:not Debug", "configurations:not Benchmark_Debug" }
+		libdirs { FbxSdkDir .. "/lib/x64/release" }
+
 
 	filter "configurations:ObjViewer"
 		targetname "ObjViewer"

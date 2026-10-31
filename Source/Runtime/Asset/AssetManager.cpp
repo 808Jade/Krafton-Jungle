@@ -10,7 +10,9 @@
 #include "Render/RenderResourceManager.h"
 
 #include "Asset/ObjImporter/ObjImporter.h"
-
+#include "Asset/SkeletalMesh/SkeletalMeshBake.h"
+#include "Render/SkeletalMeshData.h"
+#include "Render/SkeletalMesh.h"
 #include "Render/GeometryGenerator.h"
 #include "UObject/UObjectGlobals.h"
 
@@ -121,6 +123,64 @@ namespace
 	{
 		return fs::relative(Path, "Assets").generic_string();
 	}
+	TUniquePtr<FSkeletalMeshData> LoadSkeletalMeshData(const FString& Path, const UAssetManager::FSkeletalMeshImporter& Importer)
+	{
+		const FString BinPath = Path + ".bin";
+
+		// 1. 최신성: .fbx가 .bin보다 새로우면 다시 굽는다 (다시 구울 수 있을 때만)
+		bool bStale = false;
+		if (Importer)
+		{
+			std::error_code BinError, FbxError;
+			const auto BinTime = fs::last_write_time(BinPath, BinError);
+			const auto FbxTime = fs::last_write_time(Path, FbxError);
+			bStale = !BinError && !FbxError && FbxTime > BinTime;
+		}
+
+		// 2. 캐시 읽기
+		if (!bStale)
+		{
+			if (TUniquePtr<FSkeletalMeshData> Baked = FSkeletalMeshBake::ReadBaked(BinPath))
+			{
+				return Baked;
+			}
+		}
+
+		// 3. 굽는 사람 없음 (게임)
+		if (!Importer)
+		{
+			HTR_LOG(Warning, "[FBX] {}: no baked data, import in editor", Path);
+			return nullptr;
+		}
+
+		// 4. 굽기 (실패 로그는 Importer가 남긴다)
+		TUniquePtr<FSkeletalMeshData> Data = MakeUnique<FSkeletalMeshData>();
+		if (!Importer(Path, *Data))
+		{
+			return nullptr;
+		}
+
+		// 5. 캐시 저장
+		FSkeletalMeshBake::WriteBaked(BinPath, *Data);
+
+		// 6. 저장 직후 다시 읽어 개수 비교 (직렬화 실수를 그 자리에서 발견)
+		const TUniquePtr<FSkeletalMeshData> Reloaded = FSkeletalMeshBake::ReadBaked(BinPath);
+		if (!Reloaded ||
+			Reloaded->Mesh.Vertices.Num() != Data->Mesh.Vertices.Num() ||
+			Reloaded->SkinWeights.Num() != Data->SkinWeights.Num() ||
+			Reloaded->Bones.Num() != Data->Bones.Num())
+		{
+			HTR_LOG(Error, "[BAKE] {}: reload mismatch", BinPath);
+		}
+		return Data;
+	}
+}
+
+UAssetManager::FSkeletalMeshImporter UAssetManager::SkeletalMeshImporter;
+
+void UAssetManager::SetSkeletalMeshImporter(FSkeletalMeshImporter InImporter)
+{
+	SkeletalMeshImporter = std::move(InImporter);
 }
 
 UAssetManager& UAssetManager::Get()
@@ -189,6 +249,9 @@ void UAssetManager::LoadAsset(const FString& Key, const FString& Path) {
 	}
 	if (Extension == ".obj") {
 		LoadObjStaticMesh(Path);
+	}
+	if (Extension == ".fbx") {
+		LoadFbxMesh(Path);
 	}
 }
 
@@ -537,4 +600,45 @@ FLODGenerateResult UAssetManager::GenerateStaticMeshLODs(UStaticMesh& Mesh, cons
 	Mesh.ScreenThresholds = Request.ScreenThresholds;
 	Mesh.RebuildRenderData();
 	return Result;
+}
+
+URenderAsset* UAssetManager::LoadFbxMesh(const FString& Path)
+{
+	// 1. 키 확인 (Static이든 Skeletal이든)
+	const FString Key = MakeAssetKey(Path);
+	if (URenderAsset* Cached = GetAssetByPath<URenderAsset>(Key))
+	{
+		return Cached;
+	}
+
+	// 2. 데이터 얻기 (.bin 또는 에디터 Importer)
+	TUniquePtr<FSkeletalMeshData> Data = LoadSkeletalMeshData(Path, SkeletalMeshImporter);
+	if (!Data)
+	{
+		return nullptr;
+	}
+
+	// 3. 바인드 포즈 메시: GPU 버퍼·머티리얼 (Static/Skeletal 공통)
+	UStaticMesh* RenderMesh = CreateStaticMesh(&Data->Mesh);
+	if (!RenderMesh)
+	{
+		return nullptr;
+	}
+
+	// [if] 뼈 없음 → StaticMesh로 등록 (소품 FBX)
+	if (Data->Bones.IsEmpty())
+	{
+		Get().RegisterAsset(Key, RenderMesh);
+		return RenderMesh;
+	}
+
+	// 4. 뼈 있음 → SkeletalMesh로 등록 (RenderMesh는 키 없이 SkeletalMesh가 들고 있음)
+	USkeletalMesh* SkeletalMesh = NewObject<USkeletalMesh>();
+	SkeletalMesh->Data = std::move(*Data);
+	SkeletalMesh->RenderMesh = RenderMesh;
+	Get().RegisterAsset(Key, SkeletalMesh);
+
+	HTR_LOG(Info, "[FBX] {}: registered as SkeletalMesh (vertices {}, bones {})", Path,
+		SkeletalMesh->Data.Mesh.Vertices.Num(), SkeletalMesh->Data.Bones.Num());
+	return SkeletalMesh;
 }

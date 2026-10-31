@@ -7,6 +7,7 @@
 
 #include "Render/StaticMeshData.h"
 #include "Core/EngineLog.h"
+#include "Asset/BakeIO.h"
 
 static_assert(sizeof(FVertex) == 64);
 
@@ -17,6 +18,8 @@ static_assert(std::is_trivially_copyable_v<FVector4>);
 static_assert(std::is_trivially_copyable_v<FBox>);
 
 static_assert(std::is_trivially_copyable_v<FLODSourceVertex>);
+
+using namespace BakeIO;
 
 namespace
 {
@@ -29,71 +32,6 @@ namespace
 		char Magic[4] = { 'S', 'M', 'B', 'K' };
 		uint32 Version = BakeVersion;
 	};
-
-	// 숫자 || 숫자만 있는 구조체
-	template<typename T>
-	void WritePod(std::ofstream& Out, const T& Value)
-	{
-		static_assert(std::is_trivially_copyable_v<T>, "invalid plane old data");
-		Out.write(reinterpret_cast<const char*>(&Value), sizeof(T));
-	}
-
-	template<typename T>
-	bool ReadPod(std::ifstream& In, T& Value)
-	{
-		static_assert(std::is_trivially_copyable_v<T>);
-		In.read(reinterpret_cast<char*>(&Value), sizeof(T));
-		return static_cast<bool>(In);
-	}
-
-	// 배열: 개수 + 원소 전체를 한 번에
-	template<typename T>
-	void WriteArray(std::ofstream& Out, const TArray<T>& Array)
-	{
-		const uint32 Count = static_cast<uint32>(Array.Num());
-		WritePod(Out, Count);
-		if (Count > 0)
-		{
-			Out.write(reinterpret_cast<const char*>(Array.GetData()), sizeof(T) * Count);
-		}
-	}
-
-	template<typename T>
-	bool ReadArray(std::ifstream& In, TArray<T>& Array, uint32 MaxCount)
-	{
-		uint32 Count = 0;
-		if (!ReadPod(In, Count) || Count > MaxCount)
-		{
-			return false;
-		}
-
-		Array.SetNum(static_cast<int32>(Count));
-		if (Count > 0)
-		{
-			In.read(reinterpret_cast<char*>(Array.GetData()), sizeof(T) * Count);
-		}
-		return static_cast<bool>(In);
-	}
-
-	// 길이 + 문자열
-	void WriteString(std::ofstream& Out, const FString& Str)
-	{
-		const uint32 Length = static_cast<uint32>(Str.size());
-		WritePod(Out, Length);
-		Out.write(Str.data(), Length);
-	}
-
-	bool ReadString(std::ifstream& In, FString& Str)
-	{
-		uint32 Length = 0;
-		if (!ReadPod(In, Length) || Length > 4096)
-		{
-			return false;
-		}
-		Str.resize(Length);
-		In.read(Str.data(), Length);
-		return static_cast<bool>(In);
-	}
 }
 
 TUniquePtr<FStaticMeshData> FStaticMeshBake::ReadBaked(const FString& BinPath)
@@ -105,7 +43,6 @@ TUniquePtr<FStaticMeshData> FStaticMeshBake::ReadBaked(const FString& BinPath)
 	}
 
 	TUniquePtr<FStaticMeshData> Data = MakeUnique<FStaticMeshData>();
-	uint32 MaxCount = 1000000;
 
 	// 우리 형식이 맞는지, 같은 구조로 저장했는지 확인
 	FBakeHeader Header;
@@ -118,31 +55,7 @@ TUniquePtr<FStaticMeshData> FStaticMeshBake::ReadBaked(const FString& BinPath)
 		return nullptr;
 	}
 
-	if (!ReadArray<FVertex>(In, Data->Vertices, MaxCount) ||
-		!ReadArray<FLODSourceVertex>(In, Data->LODSourceVertices, MaxCount) ||
-		!ReadArray<uint32>(In, Data->Indices, MaxCount) ||
-		!ReadArray<FStaticMeshSection>(In, Data->Sections, MaxCount))
-	{
-		return nullptr;
-	}
-
-	uint32 MaterialSlotsNum = 0;
-	if (!ReadPod<uint32>(In, MaterialSlotsNum))
-	{
-		return nullptr;
-	}
-
-	for (uint32 i = 0; i < MaterialSlotsNum; ++i)
-	{
-		FStaticMaterialSlot Slot{};
-		if (!ReadString(In, Slot.Name) || !ReadPod<FVector4>(In, Slot.BaseColor) || !ReadString(In, Slot.DiffuseTexturePath) || !ReadString(In, Slot.NormalTexturePath)) {
-			return nullptr;
-		}
-		Data->MaterialSlots.Add(std::move(Slot));
-	}
-
-	// AABB
-	if (!ReadPod<FBox>(In, Data->AABB))
+	if (!ReadMeshBody(In, *Data))
 	{
 		return nullptr;
 	}
@@ -169,12 +82,57 @@ void FStaticMeshBake::WriteBaked(const FString& BinPath, const FStaticMeshData& 
 	}
 
 	WritePod<FBakeHeader>(Out, FBakeHeader());
+	WriteMeshBody(Out, Data);
+
+	// 스트림은 한 번 실패하면 상태가 유지되므로 마지막에 한 번만 확인
+	if (!Out)
+	{
+		HTR_LOG(Warning, "[BAKE] {}: write failed", BinPath);
+	}
+}
+
+// 메시 본문: 배열 4개 → 머티리얼 슬롯 → AABB (헤더 다음 바이트부터)
+bool FStaticMeshBake::ReadMeshBody(std::ifstream& In, FStaticMeshData& Data)
+{
+	constexpr uint32 MaxCount = 1000000;
+
+	// 1. 배열 4개
+	if (!ReadArray<FVertex>(In, Data.Vertices, MaxCount) ||
+		!ReadArray<FLODSourceVertex>(In, Data.LODSourceVertices, MaxCount) ||
+		!ReadArray<uint32>(In, Data.Indices, MaxCount) ||
+		!ReadArray<FStaticMeshSection>(In, Data.Sections, MaxCount))
+	{
+		return false;
+	}
+
+	// 2. 머티리얼 슬롯
+	uint32 MaterialSlotsNum = 0;
+	if (!ReadPod<uint32>(In, MaterialSlotsNum))
+	{
+		return false;
+	}
+	for (uint32 i = 0; i < MaterialSlotsNum; ++i)
+	{
+		FStaticMaterialSlot Slot{};
+		if (!ReadString(In, Slot.Name) || !ReadPod<FVector4>(In, Slot.BaseColor) || !ReadString(In, Slot.DiffuseTexturePath) || !ReadString(In, Slot.NormalTexturePath)) {
+			return false;
+		}
+		Data.MaterialSlots.Add(std::move(Slot));
+	}
+
+	// 3. AABB
+	return ReadPod<FBox>(In, Data.AABB);
+}
+
+void FStaticMeshBake::WriteMeshBody(std::ofstream& Out, const FStaticMeshData& Data)
+{
+	// 1. 배열 4개
 	WriteArray<FVertex>(Out, Data.Vertices);
 	WriteArray<FLODSourceVertex>(Out, Data.LODSourceVertices);
 	WriteArray<uint32>(Out, Data.Indices);
 	WriteArray<FStaticMeshSection>(Out, Data.Sections);
 
-	// MaterialSlots
+	// 2. 머티리얼 슬롯
 	WritePod<uint32>(Out, Data.MaterialSlots.Num());
 	for (const auto& Slot : Data.MaterialSlots)
 	{
@@ -184,12 +142,6 @@ void FStaticMeshBake::WriteBaked(const FString& BinPath, const FStaticMeshData& 
 		WriteString(Out, Slot.NormalTexturePath);
 	}
 
-	// AABB
+	// 3. AABB
 	WritePod<FBox>(Out, Data.AABB);
-
-	// 스트림은 한 번 실패하면 상태가 유지되므로 마지막에 한 번만 확인
-	if (!Out)
-	{
-		HTR_LOG(Warning, "[BAKE] {}: write failed", BinPath);
-	}
 }

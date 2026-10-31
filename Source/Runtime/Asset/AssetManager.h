@@ -4,7 +4,6 @@
 #include "UObject/Property.h"
 #include "Render/Renderer.h"
 #include "Asset/LOD/StaticMeshLODGenerator.h"
-
 #include <filesystem>
 #include <functional>
 
@@ -17,6 +16,7 @@ enum class EAssetType
 
 class UStaticMesh;
 class USoundWave;
+struct FSkeletalMeshData;
 
 namespace fs = std::filesystem;
 
@@ -67,6 +67,12 @@ public:
 	UFont* LoadFontAtlas(const FString& JsonPath, const FString& AtlasTexturePath);
 	USoundWave* LoadSound(const FString& Path);
 	static UStaticMesh* LoadObjStaticMesh(const FString& Path);
+	// 뼈 없는 FBX → UStaticMesh, 뼈 있는 FBX → USkeletalMesh
+	static URenderAsset* LoadFbxMesh(const FString& Path);
+
+	// FBX 경로를 받아 FSkeletalMeshData를 채운다. 에디터만 등록하고, 게임에서는 비어 있다.
+	using FSkeletalMeshImporter = std::function<bool(const FString& FbxPath, FSkeletalMeshData& OutData)>;
+	static void SetSkeletalMeshImporter(FSkeletalMeshImporter InImporter);
 
 	FLODGenerateResult GenerateStaticMeshLODs(UStaticMesh& Mesh,const FLODGenerateRequest& Request);
 
@@ -84,6 +90,7 @@ private:
 
 	//TMap<FString, UStaticMesh*> MeshMap;	// KEY: FILE NAME OR 쉐입 첫글자 대문자
 	TMap<FString, TUniquePtr<FShader>> ShaderMap;	// KEY: FILE NAME
+	static FSkeletalMeshImporter SkeletalMeshImporter;
 
 	//TMap<FString, UTexture2D*> TextureMap;
 };

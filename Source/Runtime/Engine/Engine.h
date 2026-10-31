@@ -71,6 +71,8 @@ public:
 	// 창을 만들기 전에 호출된다.
 	virtual FEngineConfig GetConfig() const { return {}; }
 
+	// AssetManager가 에셋을 스캔하기 전에 호출된다. 에셋 임포터를 등록하는 자리다.
+	virtual void RegisterAssetImporters() {}
 	// Device·Window·Swapchain·AssetManager가 준비된 뒤 호출된다.
 	virtual bool Init();
 	// 한 프레임의 갱신과 모든 렌더 패스를 기록한다. Present는 FEngineLoop가 호출 직후에 한다.
