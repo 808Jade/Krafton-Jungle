@@ -18,6 +18,8 @@
 
 #include "Render/ImageLoader.h"
 #include <cctype>
+#include "FbxImporter/FbxImporter.h"
+#include "Render/SkeletalMeshData.h"
 
 
 namespace
@@ -189,6 +191,13 @@ void UAssetManager::LoadAsset(const FString& Key, const FString& Path) {
 	}
 	if (Extension == ".obj") {
 		LoadObjStaticMesh(Path);
+	}
+	if (Extension == ".fbx") 
+	{
+		if (TUniquePtr<FSkeletalMeshData> Data{ FFbxImporter::LoadSkeletalMeshData(Path) })
+		{
+			FFbxImporter::PrintSkeleton(*Data);
+		}
 	}
 }
 

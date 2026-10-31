@@ -25,6 +25,9 @@ IncludeDir["DDSLoader"] = "Source/ThirdParty/DDSLoader"
 IncludeDir["lua"]   = "Source/ThirdParty/lua/src"
 IncludeDir["sol2"]  = "Source/ThirdParty/sol2/include"
 IncludeDir["miniaudio"]  = "Source/ThirdParty/miniaudio"
+IncludeDir["fbxsdk"]  = "Source/ThirdParty/FBXSDK/include"
+
+FbxSdkLibDir = "%{wks.location}/Source/ThirdParty/FBXSDK/lib/x64"
 
 -- premake의 filter는 project()를 만나면 초기화된다.
 -- 두 프로젝트가 같은 런타임(/MDd vs /MD)으로 컴파일되지 않으면 링크가 실패하므로
@@ -96,6 +99,22 @@ function CommonSettings()
 		optimize "speed"
 		symbols  "on"
 
+
+	filter {}
+end
+
+-- FBX SDK는 DLL로 쓴다. libfbxsdk.lib은 임포트 라이브러리라 StaticLib(HitoriEngine)이 아니라 exe가 링크한다.
+-- 런타임(/MDd, /MD)에 맞는 폴더를 고르고, dll은 exe 옆에 복사해 실행 시 로더가 찾게 한다.
+function LinkFbxSdk()
+	links { "libfbxsdk" }
+
+	filter "configurations:Debug or Benchmark_Debug"
+		libdirs { FbxSdkLibDir .. "/debug" }
+		postbuildcommands { '{COPYFILE} "' .. FbxSdkLibDir .. '/debug/libfbxsdk.dll" "%{cfg.targetdir}"' }
+
+	filter { "configurations:not Debug", "configurations:not Benchmark_Debug" }
+		libdirs { FbxSdkLibDir .. "/release" }
+		postbuildcommands { '{COPYFILE} "' .. FbxSdkLibDir .. '/release/libfbxsdk.dll" "%{cfg.targetdir}"' }
 
 	filter {}
 end
@@ -188,7 +207,11 @@ project "HitoriEngine"
 		"%{IncludeDir.miniaudio}",
 		"%{IncludeDir.lua}",
 		"%{IncludeDir.sol2}",
+		"%{IncludeDir.fbxsdk}",
 	}
+
+	-- fbxsdk.h의 FBXSDK_DLL을 __declspec(dllimport)로 만든다. 없으면 정적 lib 기준 심볼을 찾아 링크가 실패한다.
+	defines { "FBXSDK_SHARED" }
 
 	links { "Lua" }
 
@@ -264,6 +287,8 @@ project "HitoriEditor"
 		"d3dcompiler.lib",
 	}
 
+	LinkFbxSdk()
+
 	filter "configurations:ObjViewer"
 		targetname "ObjViewer"
 
@@ -316,6 +341,8 @@ project "HitoriGame"
 		"dxguid.lib",
 		"d3dcompiler.lib",
 	}
+
+	LinkFbxSdk()
 
 
 -- 셰이더를 VS에서 편집하기 위한 보기 전용 프로젝트 (언리얼의 Shaders와 같은 역할).

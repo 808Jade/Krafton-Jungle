@@ -458,3 +458,7 @@ AGENTS.md
 /Docs/Runtime/ParticleSystem.md
 Tools/SnowMountain/build_snow_mountain.py
 /Tools
+
+# FBX SDK 바이너리. 위의 [Dd]ebug/ [Rr]elease/ 규칙에 걸리지 않게 다시 포함한다.
+!Source/ThirdParty/FBXSDK/lib/x64/debug/
+!Source/ThirdParty/FBXSDK/lib/x64/release/
