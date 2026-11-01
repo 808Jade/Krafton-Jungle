@@ -48,8 +48,7 @@ void FPrimitiveSceneProxy::UpdateRenderState()
     bHiddenInGame = !Component->IsShown(true);
     bCastsShadow = Component->bCastShadow;
     bReceiveShadow = Component->bReceiveShadow;
-    UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Component);
-    if (StaticMeshComponent) Mesh = StaticMeshComponent->GetStaticMesh();
+    Mesh = Component->GetRenderMesh();
     if (Mesh != PreviousMesh)
     {
         if (PreviousMesh) PreviousMesh->UnregisterProxy(this);
@@ -60,6 +59,6 @@ void FPrimitiveSceneProxy::UpdateRenderState()
     std::vector<UMaterial*> Materials;
     Materials.reserve(Mesh->MeshData.MaterialSlots.Num());
     for (uint32 Slot = 0; Slot < static_cast<uint32>(Mesh->MeshData.MaterialSlots.Num()); ++Slot)
-        Materials.push_back(StaticMeshComponent->GetMaterial(Slot));
+        Materials.push_back(Component->GetMaterial(Slot));
     RenderState = Mesh->GetRenderState(Materials);
 }
