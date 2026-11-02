@@ -16,6 +16,7 @@
 #include "GameFramework/Actor/ExponentialHeightFogActor.h"
 #include "GameFramework/Actor/FireBallActor.h"
 #include "GameFramework/Actor/ProjectileActor.h"
+#include "GameFramework/Actor/DecalActor.h"
 #include "GameFramework/Actor/ScoreboardManager.h"
 class FViewportsPanel;
 
@@ -40,7 +41,7 @@ public:
 
 	int32 SelectedIndex = 0;
 
-	const char* Items[8] = { "StaticMesh", "SkeletalMesh", "Particle", "Text", "HeightFog", "FireBall", "Projectile", "ScoreboardManager" };
+	const char* Items[9] = { "StaticMesh", "SkeletalMesh", "Particle", "Text", "HeightFog", "FireBall", "Projectile", "ScoreboardManager", "Decal"};
 	FGizmo* Gizmo = nullptr;
 	int32 GizmoSelectedIndex = 0;
 	const char* GizmoItems[3] ={"Location","Rotation","Scale"};
@@ -58,6 +59,7 @@ public:
 		AFireBallActor::StaticClass(),
 		AProjectileActor::StaticClass(),
 		AScoreboardManager::StaticClass(),
+		ADecalActor::StaticClass(),
 		ALevelSequenceActor::StaticClass(),
 	};
 
