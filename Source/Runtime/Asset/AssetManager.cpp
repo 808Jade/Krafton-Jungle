@@ -19,7 +19,7 @@
 #include "Render/ImageLoader.h"
 #include <cctype>
 #include "FbxImporter/FbxImporter.h"
-#include "Render/SkeletalMeshData.h"
+#include "Render/SkeletalMesh.h"
 
 
 namespace
@@ -197,6 +197,24 @@ void UAssetManager::LoadAsset(const FString& Key, const FString& Path) {
 		if (TUniquePtr<FSkeletalMeshData> Data{ FFbxImporter::LoadSkeletalMeshData(Path) })
 		{
 			FFbxImporter::PrintSkeleton(*Data);
+			UStaticMesh* RenderMesh = CreateStaticMesh(&Data->Mesh);
+			if (!RenderMesh)
+			{
+				return;
+			}
+			// 1. 뼈 없음 → StaticMesh
+			if (Data->Bones.IsEmpty())
+			{
+				RegisterAsset(Key, RenderMesh);
+				return;
+			}
+
+			// 2. 뼈 있음 → SkeletalMesh
+			USkeletalMesh* SkeletalMesh = NewObject<USkeletalMesh>();
+			SkeletalMesh->Data = std::move(*Data);
+			SkeletalMesh->RenderMesh = RenderMesh;
+			RegisterAsset(Key, SkeletalMesh);
+			HTR_LOG(Info, "SkeletalMesh registered: {} (bones {})", Key, SkeletalMesh->Data.Bones.Num());
 		}
 	}
 }

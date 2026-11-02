@@ -1,0 +1,29 @@
+#pragma once
+
+#include "SkinnedMeshComponent.h"
+#include "SkeletalMeshComponent.generated.h"
+
+UCLASS()
+class USkeletalMeshComponent : public USkinnedMeshComponent
+{
+	GENERATED_BODY()
+public:
+	USkeletalMeshComponent();
+
+	// 1. Local 자세 편집
+	void ResetToRefPose();
+	bool SetBoneLocalRotation(const FString& BoneName, const FRotator& Rotation);
+	void ApplyPose() { RefreshSkinning(LocalPose); }
+
+	virtual void PostEditChangeProperty(const FProperty& Property) override;
+
+protected:
+	// 뼈별 Local 자세 (부모 기준)
+	TArray<FMatrix> LocalPose;
+
+	// 테스트용: Details에서 본 하나 돌려 보기 (Step 6 완료 기준)
+	UPROPERTY(EditAnywhere)
+	FString TestBoneName = "upperarm_l";
+	UPROPERTY(EditAnywhere)
+	FRotator TestBoneRotation;
+};

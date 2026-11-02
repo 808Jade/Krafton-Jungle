@@ -422,7 +422,7 @@ bool FObjImporter::Cook(const FObjInfo& Raw, FStaticMeshData& Out)
 			for (const auto& RawIndex : Face.Indexes)
 			{
 				if (const int32* Found = Cache.Find(RawIndex))
-				{
+				{	
 					Corners.Add(static_cast<uint32>(*Found));
 					continue;
 				}
