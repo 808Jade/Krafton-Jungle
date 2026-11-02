@@ -157,6 +157,27 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 	if (!Renderer->GetDecalConstants())
 		return;
 
+	TArray<FPrimitiveSceneProxy*> Receivers;
+	for (auto Proxy : RenderData.VisibleProxies)
+	{
+		if (Cast<UBillboardComponent>(Proxy->GetComponent()))
+		{
+			continue;
+		}
+		if (auto Comp = Cast<UStaticMeshComponent>(Proxy->GetComponent()))
+		{
+			if (Comp->IsEditorIcon())
+			{
+				continue;
+			}
+		}
+		Receivers.Add(Proxy);
+	}
+	Renderer->UploadViewMatrix(View.ViewProjectionMatrix);
+
+	TArray<FMeshDrawBatch> Batches;
+	FMeshPassProcessor Processor;
+
 	for (TObjectIterator<UDecalComponent> Decal; Decal; ++Decal)
 	{
 		if (!Decal || !Decal->IsRegistered() || !Decal->IsShown(View.bGameView) || !Decal->GetOwner() || Decal->GetOwner()->GetWorld() != World || !Decal->GetDecalTexture())
@@ -165,8 +186,14 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 		FDecalConstants Constants{ Decal->GetWorldToDecal() };
 		RenderCommand::UpdateBufferData(Renderer->GetDecalConstants(), &Constants);
 		RenderCommand::BindConstantBuffer(3, Renderer->GetDecalConstants(), EShaderBindFlagBits::Pixel);
+
+		if (Processor.Build(Receivers, Decal->GetDecalTexture(), Batches))
+		{
+			Renderer->DrawMeshes(Batches);
+		}
 	}
 	RenderCommand::BindConstantBuffer(3, nullptr, EShaderBindFlagBits::Pixel);
+	RenderCommand::UnbindShaderResources(0, 1, EShaderBindFlagBits::Pixel);
 }
 
 // 가시성 검사 및 렌더 큐 수집

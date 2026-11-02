@@ -11,6 +11,7 @@
 #include "Render/PostProcess/ToneMapData.h"
 #include "Render/PostProcess/CameraOverlayRenderer.h"
 #include "Text/TextRenderer.h"
+#include "DecalData.h"
 
 namespace
 {
