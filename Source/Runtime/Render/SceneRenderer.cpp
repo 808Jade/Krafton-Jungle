@@ -160,16 +160,9 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 	TArray<FPrimitiveSceneProxy*> Receivers;
 	for (auto Proxy : RenderData.VisibleProxies)
 	{
-		if (Cast<UBillboardComponent>(Proxy->GetComponent()))
+		if (!Proxy->bReceiveDecals)
 		{
 			continue;
-		}
-		if (auto Comp = Cast<UStaticMeshComponent>(Proxy->GetComponent()))
-		{
-			if (Comp->IsEditorIcon())
-			{
-				continue;
-			}
 		}
 		Receivers.Add(Proxy);
 	}
