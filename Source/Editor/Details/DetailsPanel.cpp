@@ -690,6 +690,7 @@ namespace
 				Value->Roll = Euler[0];
 				Value->Pitch = Euler[1];
 				Value->Yaw = Euler[2];
+				bChanged = true;
 			}
 			break;
 		}
@@ -732,6 +733,7 @@ namespace
 			if (ImGui::InputText(Label.c_str(), Buffer, sizeof(Buffer)))
 			{
 				*Value = Buffer;
+				bChanged = true;
 			}
 			if (CustomFont) ImGui::PopFont();
 			break;

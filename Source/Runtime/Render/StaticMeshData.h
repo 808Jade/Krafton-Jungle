@@ -48,6 +48,9 @@ struct FStaticMeshData
 
 	std::optional<TBVH<FMeshTriangleElement>> TriangleBVH;
 
+	// Tangent가 이미 계산·임포트되어 있으면 true. CreateStaticMesh가 다시 계산하지 않는다.
+	bool bTangentsBuilt = false;
+
 	// TODO: 나중에 Sections, MaterialSlots 도 Append 해줘야 함.
 	void Append(const FStaticMeshData& Other)
 	{
@@ -74,5 +77,7 @@ struct FStaticMeshData
 
 	void BuildTriangleBVH();
 
-	void BuildTangentSpace(); 
+	// MikkTSpace로 Tangent를 계산한다. bKeepExisting이면 Tangent.W != 0인 정점(임포트한 값)은 그대로 둔다.
+	// 한 정점을 쓰는 코너끼리 Tangent가 다르면 정점을 복제해 나누므로 Vertices·Indices·LODSourceVertices가 늘 수 있다.
+	void BuildTangentSpace(bool bKeepExisting = false);
 };

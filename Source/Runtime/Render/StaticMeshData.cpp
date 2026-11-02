@@ -7,8 +7,69 @@
 #include <format>
 #include <vector>
 
+#include "mikktspace.h"
+
 namespace
 {
+	// MikkTSpace 콜백이 받는 사용자 데이터. 결과는 코너(삼각형 × 3)마다 따로 받는다.
+	struct FMikkContext
+	{
+		const FStaticMeshData* Mesh = nullptr;
+		TArray<FVector4> CornerTangents; // xyz = Tangent, w = Handedness
+	};
+
+	const FVertex& GetMikkVertex(const SMikkTSpaceContext* Context, int Face, int Corner)
+	{
+		const FStaticMeshData* Mesh = static_cast<const FMikkContext*>(Context->m_pUserData)->Mesh;
+		return Mesh->Vertices[Mesh->Indices[Face * 3 + Corner]];
+	}
+
+	int MikkGetNumFaces(const SMikkTSpaceContext* Context)
+	{
+		return static_cast<const FMikkContext*>(Context->m_pUserData)->Mesh->Indices.Num() / 3;
+	}
+
+	int MikkGetNumVerticesOfFace(const SMikkTSpaceContext*, const int)
+	{
+		return 3;
+	}
+
+	void MikkGetPosition(const SMikkTSpaceContext* Context, float Out[], const int Face, const int Corner)
+	{
+		const FVector& P = GetMikkVertex(Context, Face, Corner).Position;
+		Out[0] = P.X; Out[1] = P.Y; Out[2] = P.Z;
+	}
+
+	void MikkGetNormal(const SMikkTSpaceContext* Context, float Out[], const int Face, const int Corner)
+	{
+		const FVector& N = GetMikkVertex(Context, Face, Corner).Normal;
+		Out[0] = N.X; Out[1] = N.Y; Out[2] = N.Z;
+	}
+
+	void MikkGetTexCoord(const SMikkTSpaceContext* Context, float Out[], const int Face, const int Corner)
+	{
+		const FVector2& UV = GetMikkVertex(Context, Face, Corner).UV;
+		Out[0] = UV.X; Out[1] = UV.Y;
+	}
+
+	// Handedness는 MikkTSpace의 fSign 대신 실제 Bitangent로 직접 구한다.
+	// fSign은 삼각형 감기 방향을 따르는데, 엔진은 FBX/OBJ의 감기를 뒤집어 쓰므로 부호가 엇갈릴 수 있다.
+	void MikkSetTSpace(const SMikkTSpaceContext* Context, const float Tangent[], const float Bitangent[],
+		const float, const float, const tbool, const int Face, const int Corner)
+	{
+		FMikkContext* Mikk = static_cast<FMikkContext*>(Context->m_pUserData);
+		const FVector T(Tangent[0], Tangent[1], Tangent[2]);
+		const FVector B(Bitangent[0], Bitangent[1], Bitangent[2]);
+		const FVector& N = GetMikkVertex(Context, Face, Corner).Normal;
+		const float Handedness = N.Cross(T).Dot(B) < 0.0f ? -1.0f : 1.0f;
+		Mikk->CornerTangents[Face * 3 + Corner] = FVector4(T, Handedness);
+	}
+
+	bool IsSameTangent(const FVector4& A, const FVector4& B)
+	{
+		return A.W == B.W && FVector(A.X, A.Y, A.Z).Dot(FVector(B.X, B.Y, B.Z)) > 0.999f;
+	}
+
 	uint32 CountVertexCacheMisses(const uint32* Indices, uint32 IndexCount, uint32 CacheSize)
 	{
 		std::vector<uint32> Cache;
@@ -214,68 +275,82 @@ void FStaticMeshData::BuildTriangleBVH()
 	TriangleBVH->Build(Elements);
 }
 
-void FStaticMeshData::BuildTangentSpace() {
-	const int32 VertexCount{ Vertices.Num() };
+void FStaticMeshData::BuildTangentSpace(bool bKeepExisting) {
 	const int32 IndexCount{ Indices.Num() };
-	constexpr float UVTolerance{ 1.0e-8f };
-	constexpr float VectorToleranceSquared{ 1.0e-12f };
+	if (IndexCount < 3 || Vertices.IsEmpty()) {
+		return;
+	}
 
-	TArray<FVector> TangentSums{};
-	TArray<FVector> BitangentSums{};
-	TangentSums.SetNum(VertexCount);
-	BitangentSums.SetNum(VertexCount);
-	// 삼각형마다 Tangent, Bitangent를 계산하고 각 정점에 합산
-	for (int32 Index{ 0 }; Index + 2 < IndexCount; Index += 3) {
-		const uint32 IndexA{ Indices[Index] };
-		const uint32 IndexB{ Indices[Index + 1] };
-		const uint32 IndexC{ Indices[Index + 2] };
+	// 1. MikkTSpace로 코너마다 Tangent 계산
+	FMikkContext Mikk;
+	Mikk.Mesh = this;
+	Mikk.CornerTangents.SetNum(IndexCount);
+	for (FVector4& Tangent : Mikk.CornerTangents) {
+		Tangent = FVector4{ 1.0f, 0.0f, 0.0f, 1.0f }; // MikkTSpace가 건너뛴 코너의 기본값
+	}
 
-		const FVertex& VertexA{ Vertices[IndexA] };
-		const FVertex& VertexB{ Vertices[IndexB] };
-		const FVertex& VertexC{ Vertices[IndexC] };
+	SMikkTSpaceInterface Interface{};
+	Interface.m_getNumFaces = MikkGetNumFaces;
+	Interface.m_getNumVerticesOfFace = MikkGetNumVerticesOfFace;
+	Interface.m_getPosition = MikkGetPosition;
+	Interface.m_getNormal = MikkGetNormal;
+	Interface.m_getTexCoord = MikkGetTexCoord;
+	Interface.m_setTSpace = MikkSetTSpace;
 
-		const FVector Edge1{ VertexB.Position - VertexA.Position };
-		const FVector Edge2{ VertexC.Position - VertexA.Position };
-		const FVector2 DeltaUV1{ VertexB.UV - VertexA.UV };
-		const FVector2 DeltaUV2{ VertexC.UV - VertexA.UV };
+	SMikkTSpaceContext Context{};
+	Context.m_pInterface = &Interface;
+	Context.m_pUserData = &Mikk;
+	if (!genTangSpaceDefault(&Context)) {
+		return; // 메모리 할당 실패. 기존 Tangent를 그대로 둔다
+	}
 
-		const float Determinant{ DeltaUV1.X * DeltaUV2.Y - DeltaUV1.Y * DeltaUV2.X };
-		if (std::abs(Determinant) <= UVTolerance) {
+	// 2. 코너 결과를 정점에 기록. 한 정점의 코너끼리 값이 다르면 정점을 복제해 나눈다
+	const int32 OriginalVertexCount{ Vertices.Num() };
+	TArray<uint8> bImported{}; // 기록하면서 W가 바뀌므로 시작 전에 표시해 둔다 (TArray<bool>은 vector<bool>이라 못 쓴다)
+	bImported.SetNum(OriginalVertexCount);
+	for (int32 Index{ 0 }; Index < OriginalVertexCount; ++Index) {
+		bImported[Index] = bKeepExisting && Vertices[Index].Tangent.W != 0.0f;
+	}
+	TArray<uint8> bAssigned{};
+	bAssigned.SetNum(OriginalVertexCount);
+	TArray<TArray<uint32>> Splits{}; // 원래 정점 → 복제한 정점들
+	Splits.SetNum(OriginalVertexCount);
+
+	for (int32 Corner{ 0 }; Corner < IndexCount; ++Corner) {
+		const uint32 VertexIndex{ Indices[Corner] };
+		if (bImported[VertexIndex]) {
+			continue; // 임포트한 Tangent
+		}
+
+		const FVector4& Tangent{ Mikk.CornerTangents[Corner] };
+		if (!bAssigned[VertexIndex]) {
+			Vertices[VertexIndex].Tangent = Tangent;
+			bAssigned[VertexIndex] = 1;
+			continue;
+		}
+		if (IsSameTangent(Vertices[VertexIndex].Tangent, Tangent)) {
 			continue;
 		}
 
-		const FVector Tangent{ (Edge1 * DeltaUV2.Y - Edge2 * DeltaUV1.Y) / Determinant };
-		const FVector Bitangent{ (Edge2 * DeltaUV1.X - Edge1 * DeltaUV2.X) / Determinant };
-
-		TangentSums[IndexA] += Tangent;
-		TangentSums[IndexB] += Tangent;
-		TangentSums[IndexC] += Tangent;
-
-		BitangentSums[IndexA] += Bitangent;
-		BitangentSums[IndexB] += Bitangent;
-		BitangentSums[IndexC] += Bitangent;
+		int32 SplitIndex{ -1 };
+		for (uint32 Candidate : Splits[VertexIndex]) {
+			if (IsSameTangent(Vertices[Candidate].Tangent, Tangent)) {
+				SplitIndex = static_cast<int32>(Candidate);
+				break;
+			}
+		}
+		if (SplitIndex < 0) {
+			SplitIndex = Vertices.Num();
+			FVertex Copy{ Vertices[VertexIndex] };
+			Copy.Tangent = Tangent;
+			Vertices.Add(Copy);
+			if (!LODSourceVertices.IsEmpty()) {
+				LODSourceVertices.Add(LODSourceVertices[VertexIndex]);
+			}
+			Splits[VertexIndex].Add(static_cast<uint32>(SplitIndex));
+		}
+		Indices[Corner] = static_cast<uint32>(SplitIndex);
 	}
 
-	// 각 정점마다 합산된 Tangent, Bitangent를 정규화하고 Handedness를 계산하여 최종 Tangent를 설정
-	for (int32 Index{ 0 }; Index < VertexCount; ++Index) {
-		FVertex& Vertex{ Vertices[Index] };
-		const FVector Normal{ Vertex.Normal.GetSafeNormal(VectorToleranceSquared) };
-
-		if (Normal.SizeSquared() <= VectorToleranceSquared) {
-			Vertex.Tangent = FVector4{ 1.0f, 0.0f, 0.0f, 1.0f };
-			continue;
-		}
-
-		FVector Tangent{ TangentSums[Index] - Normal * Normal.Dot(TangentSums[Index]) };
-
-		if (Tangent.SizeSquared() <= VectorToleranceSquared) {
-			const FVector Axis{ std::abs(Normal.X) < 0.9f ? FVector{ 1.0f, 0.0f, 0.0f } : FVector{ 0.0f, 1.0f, 0.0f } };
-			Tangent = Axis - Normal * Normal.Dot(Axis);
-		}
-
-		Tangent = Tangent.GetSafeNormal(VectorToleranceSquared);
-
-		const float Handedness{ Normal.Cross(Tangent).Dot(BitangentSums[Index]) < 0.0f ? -1.0f : 1.0f };
-		Vertex.Tangent = FVector4{ Tangent, Handedness };
-	}
+	bTangentsBuilt = true;
 }

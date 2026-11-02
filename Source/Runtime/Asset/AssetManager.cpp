@@ -59,7 +59,12 @@ namespace
 			Optimized.Sections.Add(DefaultSection);
 		}
 
-		Optimized.BuildTangentSpace();
+		// FBX처럼 임포터가 이미 Tangent를 만든 메시는 다시 계산하지 않는다.
+		// (다시 계산하면 정점이 나뉘어 SkeletalMesh의 SkinWeights와 개수가 어긋난다)
+		if (!Optimized.bTangentsBuilt)
+		{
+			Optimized.BuildTangentSpace();
+		}
 		Optimized.OptimizeTriangleOrderForVertexCache();
 
 		TUniquePtr<FVertexBuffer> VB = RenderCommand::CreateStaticVertexBuffer(Optimized.Vertices.GetData(), sizeof(FVertex) * static_cast<uint32>(Optimized.Vertices.size()), sizeof(FVertex));
@@ -488,12 +493,14 @@ bool UAssetManager::ReorientStaticMesh(UStaticMesh& Mesh, const std::function<FV
 	Data.AABB = Bounds;
 	Data.BuildTangentSpace();
 
-	// 인덱스는 그대로다 (회전은 삼각형 감기 방향을 바꾸지 않는다). 정점 버퍼만 다시 올린다.
+	// 회전은 삼각형 감기 방향을 바꾸지 않지만, Tangent 계산이 정점을 나눌 수 있어 인덱스 버퍼도 다시 올린다.
 	TUniquePtr<FVertexBuffer> VB = RenderCommand::CreateStaticVertexBuffer(Data.Vertices.GetData(),
 		sizeof(FVertex) * static_cast<uint32>(Data.Vertices.Num()), sizeof(FVertex));
-	if (!VB)
+	TUniquePtr<FIndexBuffer> IB = RenderCommand::CreateStaticIndexBuffer(Data.Indices.GetData(), static_cast<uint32>(Data.Indices.Num()));
+	if (!VB || !IB)
 		return false;
 	Mesh.VertexBuffer = std::move(VB);
+	Mesh.IndexBuffer = std::move(IB);
 
 	Data.BuildTriangleBVH();   // 피킹용 삼각형 BVH도 새 좌표로
 	return true;

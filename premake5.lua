@@ -26,6 +26,7 @@ IncludeDir["lua"]   = "Source/ThirdParty/lua/src"
 IncludeDir["sol2"]  = "Source/ThirdParty/sol2/include"
 IncludeDir["miniaudio"]  = "Source/ThirdParty/miniaudio"
 IncludeDir["fbxsdk"]  = "Source/ThirdParty/FBXSDK/include"
+IncludeDir["mikktspace"]  = "Source/ThirdParty/mikktspace"
 
 FbxSdkLibDir = "%{wks.location}/Source/ThirdParty/FBXSDK/lib/x64"
 
@@ -195,6 +196,8 @@ project "HitoriEngine"
 		"Source/Runtime/**.cpp",
 		"%{IncludeDir.DDSLoader}/*.h",
 		"%{IncludeDir.DDSLoader}/*.cpp",
+		"%{IncludeDir.mikktspace}/*.h",
+		"%{IncludeDir.mikktspace}/*.c",
 	}
 
 	includedirs
@@ -208,6 +211,7 @@ project "HitoriEngine"
 		"%{IncludeDir.lua}",
 		"%{IncludeDir.sol2}",
 		"%{IncludeDir.fbxsdk}",
+		"%{IncludeDir.mikktspace}",
 	}
 
 	-- fbxsdk.h의 FBXSDK_DLL을 __declspec(dllimport)로 만든다. 없으면 정적 lib 기준 심볼을 찾아 링크가 실패한다.
@@ -233,6 +237,12 @@ project "HitoriEngine"
 
 	filter "files:Source/Runtime/Audio/MiniaudioImpl.cpp"
 		enablepch "Off"
+	filter {}
+
+	-- MikkTSpace는 C 소스다. 엔진 PCH(C++)를 쓰지 않고 C로 컴파일한다.
+	filter "files:Source/ThirdParty/mikktspace/**.c"
+		enablepch "Off"
+		compileas "C"
 	filter {}
 
 -- 에디터 애플리케이션. ObjViewer 구성에서는 같은 exe가 뷰어로 빌드된다.

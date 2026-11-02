@@ -83,6 +83,7 @@ namespace
 		int32 CP = -1;
 		float NX = 0.0f, NY = 0.0f, NZ = 0.0f;
 		float U = 0.0f, V = 0.0f;
+		float TX = 0.0f, TY = 0.0f, TZ = 0.0f, TW = 0.0f; // Tangent만 다른 정점이 합쳐지지 않게
 
 		bool operator==(const FFbxVertexKey&) const = default;
 	};
@@ -93,13 +94,56 @@ namespace
 		size_t operator()(const FFbxVertexKey& Key) const
 		{
 			size_t Hash = std::hash<int32>{}(Key.CP);
-			for (float F : { Key.NX, Key.NY, Key.NZ, Key.U, Key.V })
+			for (float F : { Key.NX, Key.NY, Key.NZ, Key.U, Key.V, Key.TX, Key.TY, Key.TZ, Key.TW })
 			{
 				Hash = Hash * 31 + std::hash<float>{}(F);
 			}
 			return Hash;
 		}
 	};
+
+	// Layer Element(Tangent, Binormal 등)에서 코너 하나의 값을 꺼낸다. Mapping/Reference Mode를 직접 분기한다.
+	template <typename TElement>
+	bool GetElementValue(const TElement* Element, int32 ControlPoint, int32 PolygonVertex, int32 Polygon, FbxVector4& Out)
+	{
+		if (!Element)
+		{
+			return false;
+		}
+
+		int32 Index = 0;
+		switch (Element->GetMappingMode())
+		{
+		case FbxGeometryElement::eByControlPoint:  Index = ControlPoint; break;
+		case FbxGeometryElement::eByPolygonVertex: Index = PolygonVertex; break;
+		case FbxGeometryElement::eByPolygon:       Index = Polygon; break;
+		case FbxGeometryElement::eAllSame:         Index = 0; break;
+		default:                                   return false;
+		}
+
+		if (Element->GetReferenceMode() == FbxGeometryElement::eIndexToDirect)
+		{
+			if (Index >= Element->GetIndexArray().GetCount())
+			{
+				return false;
+			}
+			Index = Element->GetIndexArray().GetAt(Index);
+		}
+		if (Index < 0 || Index >= Element->GetDirectArray().GetCount())
+		{
+			return false;
+		}
+
+		Out = Element->GetDirectArray().GetAt(Index);
+		return true;
+	}
+
+	// FBX 방향 벡터 → 엔진 방향 벡터 (노드 회전 반영 후 Y 반전)
+	FVector ToEngineDirection(const FbxAMatrix& NormalMatrix, const FbxVector4& Direction)
+	{
+		const FbxVector4 D = NormalMatrix.MultT(FbxVector4(Direction[0], Direction[1], Direction[2], 0.0));
+		return FVector(static_cast<float>(D[0]), -static_cast<float>(D[1]), static_cast<float>(D[2]));
+	}
 	void CollectMeshNodes(FbxNode* Node, TArray<FbxNode*>& OutMeshNodes)
 	{
 		const FbxNodeAttribute* Attribute = Node->GetNodeAttribute();
@@ -230,6 +274,32 @@ namespace
 
 		return bImported;
 	}
+	// FBX 폴더와 textures 하위 폴더에서 이름(Stem)이 같은 이미지를 찾는다.
+	// TGA를 PNG·DDS로 바꿔 넣는 경우가 많아 확장자가 달라도 찾는다. PreferredExtension을 먼저 본다.
+	FString FindTextureByStem(const std::filesystem::path& Dir, const std::filesystem::path& Stem, const std::filesystem::path& PreferredExtension = {})
+	{
+		namespace fs = std::filesystem;
+		std::error_code Error;
+		const fs::path Extensions[] = { PreferredExtension, ".png", ".tga", ".dds", ".jpg" };
+		for (const fs::path& Folder : { Dir, Dir / "textures", Dir / "Textures" })
+		{
+			for (const fs::path& Extension : Extensions)
+			{
+				if (Extension.empty())
+				{
+					continue;
+				}
+				fs::path Candidate = Folder / Stem;
+				Candidate += Extension;
+				if (fs::is_regular_file(Candidate, Error))
+				{
+					return Candidate.lexically_normal().generic_string();
+				}
+			}
+		}
+		return FString();
+	}
+
 	// 머티리얼 속성에 연결된 텍스처 파일 경로 찾기 (Step 7)
 	FString FindTexturePath(FbxSurfaceMaterial* Material, const char* PropertyName, const FString& FbxPath)
 	{
@@ -239,31 +309,52 @@ namespace
 			return FString();
 		}
 		const FbxFileTexture* Texture = Property.GetSrcObject<FbxFileTexture>(0);
-		if (!Texture)
+		if (!Texture || FString(Texture->GetFileName()).empty())
 		{
-			return FString();
+			return FString(); // 텍스처가 연결만 되고 파일이 지정되지 않은 경우
 		}
 
 		namespace fs = std::filesystem;
 		const fs::path Dir = fs::path(FbxPath).parent_path();
 		const fs::path FileName = fs::path(Texture->GetFileName()).filename();
-		const fs::path Candidates[] =
+
+		std::error_code Error;
+		// 1. 기록된 경로 그대로: FBX 기준 상대 경로, 저장 당시 절대 경로
+		for (const fs::path& Candidate : { Dir / Texture->GetRelativeFileName(), fs::path(Texture->GetFileName()) })
 		{
-			Dir / Texture->GetRelativeFileName(),  // 1. FBX 기준 상대 경로
-			fs::path(Texture->GetFileName()),      // 2. 저장 당시 절대 경로
-			Dir / FileName,                        // 3. FBX와 같은 폴더
-			Dir / "textures" / FileName,           // 4. textures 하위 폴더
-		};
-		for (const fs::path& Candidate : Candidates)
-		{
-			std::error_code Error;
 			if (fs::is_regular_file(Candidate, Error))
 			{
 				return Candidate.lexically_normal().generic_string();
 			}
 		}
-		HTR_LOG(Warning, "FBX texture not found: {}", Texture->GetFileName());
+
+		// 2. 파일 이름으로 FBX 폴더와 textures 하위 폴더에서 찾기
+		const FString Found = FindTextureByStem(Dir, FileName.stem(), FileName.extension());
+		if (!Found.empty())
+		{
+			return Found;
+		}
+
+		HTR_LOG(Warning, "FBX texture not found: {} (put {} next to the FBX or in its textures folder)", Texture->GetFileName(), FileName.generic_string());
 		return FString();
+	}
+
+	// 바인드 순간 메시 노드의 Global. Skin이 있으면 Cluster에 저장된 값을, 없으면 지금 Global을 쓴다.
+	// 정점을 이 행렬로 구워야 InvBindPose(바인드 순간 뼈의 역)와 같은 시점이 된다.
+	FbxAMatrix GetMeshBindGlobal(FbxNode* Node)
+	{
+		FbxMesh* Mesh = Node->GetMesh();
+		if (Mesh->GetDeformerCount(FbxDeformer::eSkin) > 0)
+		{
+			FbxSkin* Skin = static_cast<FbxSkin*>(Mesh->GetDeformer(0, FbxDeformer::eSkin));
+			if (Skin->GetClusterCount() > 0)
+			{
+				FbxAMatrix MeshBind;
+				Skin->GetCluster(0)->GetTransformMatrix(MeshBind);
+				return MeshBind;
+			}
+		}
+		return Node->EvaluateGlobalTransform();
 	}
 
 	void ExtractMesh(FbxScene* Scene, const FString& Path, FStaticMeshData& MeshData)
@@ -276,42 +367,62 @@ namespace
 		int32 CPOffset = 0;
 		TMap<FFbxVertexKey, uint32, FFbxVertexKeyHash> VertexCache;
 		TArray<TArray<uint32>> SlotIndices;
+		int32 TangentMeshCount = 0;
 		for (FbxNode* Node : MeshNodes)
 		{
 			FbxMesh* Mesh = Node->GetMesh();
-			const FbxAMatrix Global = Node->EvaluateGlobalTransform();
+			const FbxAMatrix Global = GetMeshBindGlobal(Node);
 			FbxAMatrix NormalMatrix = Global;
 			NormalMatrix.SetT(FbxVector4(0.0, 0.0, 0.0, 0.0)); // NormalMatrix에서 이동에 대한 성분을 뺌
 
 			FbxStringList UVSetNames;
 			Mesh->GetUVSetNames(UVSetNames);
 			const char* UVSetName = UVSetNames.GetCount() > 0 ? UVSetNames[0].Buffer() : nullptr;
-			
-			// 머티리얼 슬롯 등록
-			const int32 SlotOffset = MeshData.MaterialSlots.Num();
-			const int32 MaterialCount = Node->GetMaterialCount();
 
-			for (int32 m = 0;m < MaterialCount; ++m)
+			// Tangent가 저장된 메시면 그대로 쓴다. 없으면 나중에 MikkTSpace로 계산한다.
+			const FbxGeometryElementTangent* TangentElement = Mesh->GetElementTangent(0);
+			const FbxGeometryElementBinormal* BinormalElement = Mesh->GetElementBinormal(0);
+			if (TangentElement)
 			{
-				FStaticMaterialSlot Slot;
-				//Material은 메시가 아니라 노드에 붙어있음
-				FbxSurfaceMaterial* Material = Node->GetMaterial(m);
-				Slot.Name = Material->GetName();
-				// 텍스처 경로 (Step 7)
-				Slot.DiffuseTexturePath = FindTexturePath(Material, FbxSurfaceMaterial::sDiffuse, Path);
-				Slot.NormalTexturePath = FindTexturePath(Material, FbxSurfaceMaterial::sNormalMap, Path);
-				if (Slot.NormalTexturePath.empty())
-				{
-					Slot.NormalTexturePath = FindTexturePath(Material, FbxSurfaceMaterial::sBump, Path);
-				}
-				MeshData.MaterialSlots.Add(Slot);
+				++TangentMeshCount;
 			}
-			//Material이 없는 노드의 경우
-			if (MaterialCount == 0)
+
+			// 머티리얼 슬롯 등록. 여러 노드가 같은 머티리얼을 쓰면 슬롯 하나를 공유한다.
+			const int32 MaterialCount = Node->GetMaterialCount();
+			TArray<int32> SlotOf; // 노드의 머티리얼 번호 → 전체 슬롯 번호
+			for (int32 m = 0; m < std::max(MaterialCount, 1); ++m)
 			{
-				FStaticMaterialSlot Slot;
-				Slot.Name = "Default";
-				MeshData.MaterialSlots.Add(Slot);
+				//Material은 메시가 아니라 노드에 붙어있음. 없는 노드는 Default
+				FbxSurfaceMaterial* Material = MaterialCount > 0 ? Node->GetMaterial(m) : nullptr;
+				const FString Name = Material ? Material->GetName() : "Default";
+
+				int32 SlotIndex = -1;
+				for (int32 s = 0; s < MeshData.MaterialSlots.Num(); ++s)
+				{
+					if (MeshData.MaterialSlots[s].Name == Name)
+					{
+						SlotIndex = s;
+						break;
+					}
+				}
+				if (SlotIndex < 0)
+				{
+					FStaticMaterialSlot Slot;
+					Slot.Name = Name;
+					if (Material)
+					{
+						// 텍스처 경로 (Step 7)
+						Slot.DiffuseTexturePath = FindTexturePath(Material, FbxSurfaceMaterial::sDiffuse, Path);
+						Slot.NormalTexturePath = FindTexturePath(Material, FbxSurfaceMaterial::sNormalMap, Path);
+						if (Slot.NormalTexturePath.empty())
+						{
+							Slot.NormalTexturePath = FindTexturePath(Material, FbxSurfaceMaterial::sBump, Path);
+						}
+					}
+					SlotIndex = MeshData.MaterialSlots.Num();
+					MeshData.MaterialSlots.Add(Slot);
+				}
+				SlotOf.Add(SlotIndex);
 			}
 			SlotIndices.SetNum(MeshData.MaterialSlots.Num());
 			FbxGeometryElementMaterial* MaterialElement = Mesh->GetElementMaterial();
@@ -355,8 +466,35 @@ namespace
 						// FBX는 텍스처 이미지의 왼쪽 아래가 원점, D3D는 왼쪽 위가 원점
 					}
 
+					// Tangent. W = 0은 "임포트한 값 없음" 표시로, BuildTangentSpace가 이 정점만 계산한다.
+					Vertex.Tangent = FVector4(1.0f, 0.0f, 0.0f, 0.0f);
+					const int32 PolygonVertex = Mesh->GetPolygonVertexIndex(p) + c;
+					FbxVector4 T;
+					if (GetElementValue(TangentElement, CP, PolygonVertex, p, T))
+					{
+						const FVector Tangent = ToEngineDirection(NormalMatrix, T).GetSafeNormal();
+						float Handedness = 0.0f;
+						FbxVector4 B;
+						if (GetElementValue(BinormalElement, CP, PolygonVertex, p, B))
+						{
+							// Binormal은 FBX의 +V 방향이다. 엔진은 V를 뒤집었으므로(1 - V) 엔진 기준 Bitangent는 그 반대
+							const FVector Bitangent = -ToEngineDirection(NormalMatrix, B);
+							Handedness = Vertex.Normal.Cross(Tangent).Dot(Bitangent) < 0.0f ? -1.0f : 1.0f;
+						}
+						else if (T[3] != 0.0)
+						{
+							// Y 반전(Cross 부호 반전)과 V 반전(Bitangent 반전)이 서로 상쇄되어 FBX의 W를 그대로 쓴다
+							Handedness = T[3] < 0.0 ? -1.0f : 1.0f;
+						}
+						if (Handedness != 0.0f && Tangent.SizeSquared() > 0.0f)
+						{
+							Vertex.Tangent = FVector4(Tangent, Handedness);
+						}
+					}
+
 					// 2-3. 같은 정점이면 재사용, 없으면 추가
-					const FFbxVertexKey Key{ CPOffset + CP, Vertex.Normal.X, Vertex.Normal.Y, Vertex.Normal.Z, Vertex.UV.X, Vertex.UV.Y };
+					const FFbxVertexKey Key{ CPOffset + CP, Vertex.Normal.X, Vertex.Normal.Y, Vertex.Normal.Z, Vertex.UV.X, Vertex.UV.Y,
+						Vertex.Tangent.X, Vertex.Tangent.Y, Vertex.Tangent.Z, Vertex.Tangent.W };
 					if (const uint32* Found = VertexCache.Find(Key))
 					{
 						Corner[c] = *Found;
@@ -380,7 +518,7 @@ namespace
 				{
 					LocalSlot = 0;
 				}
-				TArray<uint32>& Bucket = SlotIndices[SlotOffset + LocalSlot];
+				TArray<uint32>& Bucket = SlotIndices[SlotOf[LocalSlot]];
 				// 인덱스(FBX는 반시계기준.엔진에 맞게 시계방향으로 보정)
 				Bucket.Add(Corner[0]);
 				Bucket.Add(Corner[2]);
@@ -404,6 +542,13 @@ namespace
 			MeshData.Indices.Append(SlotIndices[s]);
 			MeshData.Sections.Add(Section);
 		}
+
+		// 3-1. 임포트한 Tangent가 없는 정점만 MikkTSpace로 계산.
+		// Skin 추출(LODSourceVertices로 Control Point를 찾음)보다 먼저 해야 나뉜 정점도 가중치를 받는다.
+		const int32 VertexCountBeforeTangent = MeshData.Vertices.Num();
+		MeshData.BuildTangentSpace(true);
+		HTR_LOG(Info, "FBX tangent: imported meshes {}/{}, split verts {}",
+			TangentMeshCount, MeshNodes.Num(), MeshData.Vertices.Num() - VertexCountBeforeTangent);
 
 		// 4. AABB
 		if (!MeshData.Vertices.IsEmpty())
