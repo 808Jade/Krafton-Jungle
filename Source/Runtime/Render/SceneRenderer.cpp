@@ -20,6 +20,8 @@
 #include "Render/PostProcess/ToneMapData.h"
 #include "Text/TextRenderer.h"
 #include "UObject/UObjectIterator.h"
+#include "Components/DecalComponent.h"
+#include "Render/DecalData.h"
 
 #include <cmath>
 #include <algorithm>
@@ -148,6 +150,23 @@ void FSceneRenderer::RenderSceneText(FRenderer* Renderer)
 		TextRenderer->OnRender(Text->GetText(), Text->GetWorldMatrix(), Text->GetTextSize(),
 			*Text->GetFont(), View.ViewProjectionMatrix);
 	}
+}
+
+void FSceneRenderer::RenderDecals(FRenderer* Renderer)
+{
+	if (!Renderer->GetDecalConstants())
+		return;
+
+	for (TObjectIterator<UDecalComponent> Decal; Decal; ++Decal)
+	{
+		if (!Decal || !Decal->IsRegistered() || !Decal->IsShown(View.bGameView) || !Decal->GetOwner() || Decal->GetOwner()->GetWorld() != World || !Decal->GetDecalTexture())
+			continue;
+
+		FDecalConstants Constants{ Decal->GetWorldToDecal() };
+		RenderCommand::UpdateBufferData(Renderer->GetDecalConstants(), &Constants);
+		RenderCommand::BindConstantBuffer(3, Renderer->GetDecalConstants(), EShaderBindFlagBits::Pixel);
+	}
+	RenderCommand::BindConstantBuffer(3, nullptr, EShaderBindFlagBits::Pixel);
 }
 
 // 가시성 검사 및 렌더 큐 수집
@@ -664,6 +683,15 @@ bool FSceneRenderer::AddViewportPasses(FRenderGraphBuilder& Graph, FRenderer* Re
 	if (!SceneColor || !Depth) return false;
 	bHasFog = false;
 	bFXAAPassSucceeded = true;
+
+	if (!Options.bShowWorldNormal && Options.bDrawPrimitives)
+	{
+		if (!Graph.AddRasterPass(MakeViewportPass("Decal", SceneColor, Depth),
+			[this, Renderer]
+			{
+			RenderDecals(Renderer);
+			})) return false;
+	}
 
 	if (!Options.bShowWorldNormal && Options.bDrawPrimitives && Options.bEnableFog && Callbacks.HeightFog)
 	{
