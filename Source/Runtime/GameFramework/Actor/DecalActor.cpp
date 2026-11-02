@@ -36,5 +36,4 @@ ADecalActor::ADecalActor()
 	ArrowComponent->SetHiddenInDetails(true);
 	ArrowComponent->SetCastShadow(false);
 	ArrowComponent->SetReceiveShadow(false);
-
 }
