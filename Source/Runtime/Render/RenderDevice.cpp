@@ -345,8 +345,8 @@ void FRenderDevice::CreateStates()
 		DecalDesc.CullMode = D3D11_CULL_BACK;
 		DecalDesc.FrontCounterClockwise = FALSE;
 		DecalDesc.DepthClipEnable = TRUE;
-		DecalDesc.DepthBias = -100;
-		DecalDesc.SlopeScaledDepthBias = -1.0f;
+		DecalDesc.DepthBias = -2;
+		DecalDesc.SlopeScaledDepthBias = -0.5f;
 		DecalDesc.DepthBiasClamp = 0.0f;
 		Device->CreateRasterizerState(&DecalDesc, RasterizerStates[(uint8)ERasterizerState::Decal].GetAddressOf());
 	}
