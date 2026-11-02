@@ -18,6 +18,8 @@ public:
 	virtual void PostEditChangeProperty(const FProperty& Property) override;
 
 protected:
+	virtual void OnSkeletalMeshChanged() override;
+
 	// 뼈별 Local 자세 (부모 기준)
 	TArray<FMatrix> LocalPose;
 

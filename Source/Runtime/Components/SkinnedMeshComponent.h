@@ -32,8 +32,15 @@ public:
 	void RefreshSkinning(const TArray<FMatrix>& LocalPose);
 	const TArray<FMatrix>& GetComponentSpaceTransforms() const { return ComponentSpace; }
 
+	// 6. 씬 저장/로드: 불러온 에셋이 기본값과 다르면 OnSkeletalMeshChanged
+	using Super::Serialize;
+	virtual void Serialize(FStructuredArchive::FRecord Record) override;
+
 protected:
 	virtual void CreateRenderState() override;
+
+	// 에셋이 바뀐 뒤 스키닝 결과·렌더 상태를 다시 만든다. 파생 클래스는 자세를 새 뼈 기준으로 맞춘다
+	virtual void OnSkeletalMeshChanged();
 
 	UPROPERTY(EditAnywhere)
 	USkeletalMesh* SkeletalMesh = nullptr;

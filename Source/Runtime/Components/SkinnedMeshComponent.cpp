@@ -8,11 +8,26 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
 		return;
 
 	SkeletalMesh = InSkeletalMesh;
+	ClearOverrideMaterials();   // 슬롯 구성이 에셋마다 다르다
+	OnSkeletalMeshChanged();
+}
+
+void USkinnedMeshComponent::OnSkeletalMeshChanged()
+{
 	ComponentSpace.Reset();
-	ClearOverrideMaterials();
 	RecreateMeshObject();
 	MarkRenderStateDirty();
 	OnTransformDirty();
+}
+
+void USkinnedMeshComponent::Serialize(FStructuredArchive::FRecord Record)
+{
+	// 불러오기는 리플렉션이 SkeletalMesh 포인터만 바꾼다. 생성자 기본 에셋으로 만든 스키닝 버퍼·자세를 새 에셋 기준으로 다시 만든다
+	USkeletalMesh* Previous = SkeletalMesh;
+	Super::Serialize(Record);   // 덮어쓰기 머티리얼도 여기서 읽으므로 지우지 않는다
+
+	if (Record.GetUnderlyingArchive().IsLoading() && SkeletalMesh != Previous)
+		OnSkeletalMeshChanged();
 }
 
 const FStaticMeshData* USkinnedMeshComponent::GetMeshData() const
