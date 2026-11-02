@@ -33,64 +33,53 @@ namespace
 		return Extension;
 	}
 
-	UStaticMesh* CreateStaticMesh(const FStaticMeshData* MeshData)
+	// 슬롯·섹션이 없으면 기본값을 넣고 Tangent와 삼각형 순서를 준비한다.
+	// 인덱스만 재배열하고 정점 순서는 바꾸지 않는다 (SkeletalMesh의 SkinWeights가 정점 순서를 따른다).
+	void PrepareMeshData(FStaticMeshData& Data)
 	{
-		if (!MeshData || !MeshData->Vertices.Num() || !MeshData->Indices.Num())
-			return nullptr;
-
-		FStaticMeshData Optimized = *MeshData;
-
 		// Mesh에 MaterialSlot 없을 경우 Default Material 할당
-		if (Optimized.MaterialSlots.IsEmpty())
+		if (Data.MaterialSlots.IsEmpty())
 		{
 			FStaticMaterialSlot DefaultSlot;
 			DefaultSlot.Name = "Default";
-			Optimized.MaterialSlots.Add(DefaultSlot);
+			Data.MaterialSlots.Add(DefaultSlot);
 		}
 
 		// Mesh에 Section이 없을 경우 전체 메쉬을 섹션 하나로 세팅
-		if (Optimized.Sections.IsEmpty())
+		if (Data.Sections.IsEmpty())
 		{
 			FStaticMeshSection DefaultSection;
 			DefaultSection.StartIndex = 0;
-			DefaultSection.IndexCount = static_cast<uint32>(Optimized.Indices.Num());
+			DefaultSection.IndexCount = static_cast<uint32>(Data.Indices.Num());
 			DefaultSection.MaterialSlotIndex = 0;
 
-			Optimized.Sections.Add(DefaultSection);
+			Data.Sections.Add(DefaultSection);
 		}
 
 		// FBX처럼 임포터가 이미 Tangent를 만든 메시는 다시 계산하지 않는다.
 		// (다시 계산하면 정점이 나뉘어 SkeletalMesh의 SkinWeights와 개수가 어긋난다)
-		if (!Optimized.bTangentsBuilt)
+		if (!Data.bTangentsBuilt)
 		{
-			Optimized.BuildTangentSpace();
+			Data.BuildTangentSpace();
 		}
-		Optimized.OptimizeTriangleOrderForVertexCache();
+		Data.OptimizeTriangleOrderForVertexCache();
+	}
 
-		TUniquePtr<FVertexBuffer> VB = RenderCommand::CreateStaticVertexBuffer(Optimized.Vertices.GetData(), sizeof(FVertex) * static_cast<uint32>(Optimized.Vertices.size()), sizeof(FVertex));
-		TUniquePtr<FIndexBuffer> IB = RenderCommand::CreateStaticIndexBuffer(Optimized.Indices.GetData(), static_cast<uint32>(Optimized.Indices.size()));
-		if (VB == nullptr || IB == nullptr) return nullptr;
-
-		UStaticMesh* Mesh = NewObject<UStaticMesh>();
-		Mesh->MeshData = std::move(Optimized);
-
-		// Vertex/Index GPU 업로드
-		Mesh->VertexBuffer = std::move(VB);
-		Mesh->IndexBuffer = std::move(IB);
-
+	// MaterialSlots를 실제 UMaterial로 변환한다 (텍스처 로드 포함). StaticMesh·SkeletalMesh가 함께 쓴다.
+	bool CreateMaterialsForSlots(const TArray<FStaticMaterialSlot>& Slots, TArray<UMaterial*>& OutMaterials)
+	{
 		UMaterial* DefaultMaterial = UAssetManager::GetAssetByPath<UMaterial>("DefaultMaterial");
 		if (!DefaultMaterial)
 		{
-			return nullptr;
+			return false;
 		}
 
-		// MaterialSlots를 실제 UMaterial로 변환
-		for (const FStaticMaterialSlot& Slot : Mesh->MeshData.MaterialSlots)
+		for (const FStaticMaterialSlot& Slot : Slots)
 		{
 			UMaterial* Material = UMaterial::CreateInstance(DefaultMaterial);
 			if (!Material)
 			{
-				return nullptr;
+				return false;
 			}
 			Material->BaseColor = Slot.BaseColor;
 			if (Material->BaseColor.W < 1.0f)
@@ -115,13 +104,65 @@ namespace
 				}
 			}
 
-			Mesh->Materials.Add(Material);
+			OutMaterials.Add(Material);
+		}
+		return true;
+	}
+
+	UStaticMesh* CreateStaticMesh(const FStaticMeshData* MeshData)
+	{
+		if (!MeshData || !MeshData->Vertices.Num() || !MeshData->Indices.Num())
+			return nullptr;
+
+		FStaticMeshData Optimized = *MeshData;
+		PrepareMeshData(Optimized);
+
+		TUniquePtr<FVertexBuffer> VB = RenderCommand::CreateStaticVertexBuffer(Optimized.Vertices.GetData(), sizeof(FVertex) * static_cast<uint32>(Optimized.Vertices.size()), sizeof(FVertex));
+		TUniquePtr<FIndexBuffer> IB = RenderCommand::CreateStaticIndexBuffer(Optimized.Indices.GetData(), static_cast<uint32>(Optimized.Indices.size()));
+		if (VB == nullptr || IB == nullptr) return nullptr;
+
+		UStaticMesh* Mesh = NewObject<UStaticMesh>();
+		Mesh->MeshData = std::move(Optimized);
+
+		// Vertex/Index GPU 업로드
+		Mesh->VertexBuffer = std::move(VB);
+		Mesh->IndexBuffer = std::move(IB);
+
+		if (!CreateMaterialsForSlots(Mesh->MeshData.MaterialSlots, Mesh->Materials))
+		{
+			return nullptr;
 		}
 
 		Mesh->MeshData.BuildTriangleBVH();
 		Mesh->RebuildRenderData();
 
 		return Mesh;
+	}
+
+	// 뼈가 있는 FBX → SkeletalMesh. UStaticMesh를 거치지 않는다.
+	// 정점 버퍼는 컴포넌트마다 스키닝 결과가 달라서 만들지 않는다 (FSkeletalMeshObjectCPUSkin이 만든다).
+	USkeletalMesh* CreateSkeletalMesh(FSkeletalMeshData&& Data, const FString& Key)
+	{
+		FStaticMeshData& Mesh = Data.Mesh;
+		if (Mesh.Vertices.IsEmpty() || Mesh.Indices.IsEmpty())
+			return nullptr;
+
+		PrepareMeshData(Mesh);
+		if (Data.SkinWeights.Num() != Mesh.Vertices.Num())
+		{
+			HTR_LOG(Error, "SkeletalMesh {}: skin weights {} != vertices {}", Key, Data.SkinWeights.Num(), Mesh.Vertices.Num());
+			return nullptr;
+		}
+		Mesh.BuildTriangleBVH(); // 피킹은 바인드 자세 기준
+
+		USkeletalMesh* SkeletalMesh = NewObject<USkeletalMesh>();
+		SkeletalMesh->IndexBuffer = RenderCommand::CreateStaticIndexBuffer(Mesh.Indices.GetData(), static_cast<uint32>(Mesh.Indices.Num()));
+		if (!SkeletalMesh->IndexBuffer || !CreateMaterialsForSlots(Mesh.MaterialSlots, SkeletalMesh->Materials))
+		{
+			return nullptr;
+		}
+		SkeletalMesh->Data = std::move(Data);
+		return SkeletalMesh;
 	}
 
 	FString MakeAssetKey(const FString& Path)
@@ -202,24 +243,22 @@ void UAssetManager::LoadAsset(const FString& Key, const FString& Path) {
 		if (TUniquePtr<FSkeletalMeshData> Data{ FFbxImporter::LoadSkeletalMeshData(Path) })
 		{
 			FFbxImporter::PrintSkeleton(*Data);
-			UStaticMesh* RenderMesh = CreateStaticMesh(&Data->Mesh);
-			if (!RenderMesh)
-			{
-				return;
-			}
 			// 1. 뼈 없음 → StaticMesh
 			if (Data->Bones.IsEmpty())
 			{
-				RegisterAsset(Key, RenderMesh);
+				if (UStaticMesh* StaticMesh = CreateStaticMesh(&Data->Mesh))
+				{
+					RegisterAsset(Key, StaticMesh);
+				}
 				return;
 			}
 
-			// 2. 뼈 있음 → SkeletalMesh
-			USkeletalMesh* SkeletalMesh = NewObject<USkeletalMesh>();
-			SkeletalMesh->Data = std::move(*Data);
-			SkeletalMesh->RenderMesh = RenderMesh;
-			RegisterAsset(Key, SkeletalMesh);
-			HTR_LOG(Info, "SkeletalMesh registered: {} (bones {})", Key, SkeletalMesh->Data.Bones.Num());
+			// 2. 뼈 있음 → SkeletalMesh (StaticMesh 경로와 독립)
+			if (USkeletalMesh* SkeletalMesh = CreateSkeletalMesh(std::move(*Data), Key))
+			{
+				RegisterAsset(Key, SkeletalMesh);
+				HTR_LOG(Info, "SkeletalMesh registered: {} (bones {})", Key, SkeletalMesh->Data.Bones.Num());
+			}
 		}
 	}
 }

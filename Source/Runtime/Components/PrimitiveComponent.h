@@ -57,6 +57,9 @@ public:
 	// 컴포넌트 월드 행렬만으로 같은 그림을 못 만들므로 nullptr을 돌려준다.
 	virtual UStaticMesh* GetRenderMesh() const { return nullptr; }
 
+	// Scene에 등록할 때 만들 프록시. 기본은 스태틱 메시용 FPrimitiveSceneProxy, 스켈레탈 메시는 전용 프록시
+	virtual FPrimitiveSceneProxy* CreatePrimitiveSceneProxy();
+
 	virtual int32 GetNumMaterials() const { return 0; }
 	virtual UMaterial* GetMaterial(int32 SlotIndex) const { return nullptr; }
 	virtual void SetMaterial(int32 SlotIndex, UMaterial* InMaterial) {}

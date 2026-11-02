@@ -3,11 +3,13 @@
 
 #include <fbxsdk.h>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <utility>
 
 #include "Core/EngineLog.h"
+#include "FbxBake.h"
 #include "Render/SkeletalMeshData.h"
 
 namespace
@@ -710,8 +712,34 @@ namespace
 }
 
 
+namespace
+{
+	// Import와 Bake 로드 결과를 같은 형식으로 남겨 두 경로를 로그로 비교한다 (Step 8 완료 기준)
+	void LogLoadSummary(const FString& Path, const char* Source, double ElapsedMs, const FSkeletalMeshData& Data)
+	{
+		HTR_LOG(Info, "[FBX] {} {} in {:.1f} ms (verts {}, tris {}, sections {}, bones {}, weights {})",
+			Path, Source, ElapsedMs, Data.Mesh.Vertices.Num(), Data.Mesh.Indices.Num() / 3,
+			Data.Mesh.Sections.Num(), Data.Bones.Num(), Data.SkinWeights.Num());
+	}
+
+	double MillisecondsSince(std::chrono::steady_clock::time_point Start)
+	{
+		return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - Start).count();
+	}
+}
+
 TUniquePtr<FSkeletalMeshData> FFbxImporter::LoadSkeletalMeshData(const FString& Path)
 {
+	const auto Start = std::chrono::steady_clock::now();
+	const FString BinPath = Path + ".bin";
+
+	// 0. Bake가 있고 원본이 그대로면 FBX SDK를 거치지 않는다
+	if (TUniquePtr<FSkeletalMeshData> Baked = FFbxBake::Read(BinPath, Path))
+	{
+		LogLoadSummary(Path, "loaded from bake", MillisecondsSince(Start), *Baked);
+		return Baked;
+	}
+
 	FFbxContext Context;
 
 	// 1. 파일열기
@@ -730,6 +758,10 @@ TUniquePtr<FSkeletalMeshData> FFbxImporter::LoadSkeletalMeshData(const FString& 
 	ExtractRefLocals(Data->Bones, BoneNodes);
 	ExtractMesh(Context.Scene, Path, Data->Mesh);
 	ExtractSkin(Context.Scene, BoneNodes, *Data);
+	LogLoadSummary(Path, "imported", MillisecondsSince(Start), *Data);
+
+	// 2. 다음 로드부터는 Bake를 읽는다
+	FFbxBake::Write(BinPath, Path, *Data);
 	return Data;
 }
 

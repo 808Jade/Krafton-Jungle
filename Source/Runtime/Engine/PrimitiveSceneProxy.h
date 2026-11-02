@@ -7,15 +7,22 @@ class FScene;
 class UPrimitiveComponent;
 class UStaticMesh;
 class UMaterial;
+class FVertexBuffer;
+class FIndexBuffer;
 
+// 기본 프록시는 스태틱 메시(에셋 버퍼를 그대로 그림)용이다. 다른 메시 종류는 파생해 버퍼·섹션을 바꾼다.
 class FPrimitiveSceneProxy
 {
 public:
 	explicit FPrimitiveSceneProxy(UPrimitiveComponent* InComponent);
-	
-	~FPrimitiveSceneProxy();
+
+	virtual ~FPrimitiveSceneProxy();
 	void UpdateTransform();
-	void UpdateRenderState();
+	virtual void UpdateRenderState();
+
+	// 그림자·외곽선처럼 프록시 단위로 그리는 패스가 쓰는 버퍼. 기본은 스태틱 메시 에셋의 LOD 버퍼
+	virtual FVertexBuffer* GetVertexBuffer(uint32 LODIndex) const;
+	virtual FIndexBuffer* GetIndexBuffer(uint32 LODIndex) const;
 	void OnMeshRenderDataChanged();
 	void OnMeshDestroyed();
 
@@ -39,12 +46,14 @@ public:
 
 	bool bCastsShadow = true;
 	bool bReceiveShadow = true;
+protected:
+	// 섹션(머티리얼·인덱스 범위)과 LOD. 파생 프록시가 UpdateRenderState에서 채운다
+	TSharedPtr<const FMeshRenderState> RenderState;
 private:
 	friend class FScene;
 	FScene* Scene = nullptr;
 	UPrimitiveComponent* Component = nullptr;
 	UStaticMesh* Mesh = nullptr;
-	TSharedPtr<const FMeshRenderState> RenderState;
 	FMatrix LocalToWorld;
 	FMatrix WorldToLocal;
 	FAABB Bounds;
