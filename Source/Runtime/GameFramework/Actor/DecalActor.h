@@ -3,6 +3,7 @@
 #include "GameFramework/Actor.h"
 #include "Components/BillboardComponent.h"
 #include "Components/DecalComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "DecalActor.generated.h"
 
 UCLASS()
@@ -19,4 +20,5 @@ public:
 private:
 	UDecalComponent* DecalComponent = nullptr;
 	UBillboardComponent* BillboardComponent = nullptr;
+	UStaticMeshComponent* ArrowComponent = nullptr;
 };
