@@ -9,7 +9,7 @@ ADecalActor::ADecalActor()
 
 	BillboardComponent = CreateDefaultSubobject<UBillboardComponent>("UBillboardComponent");
 	BillboardComponent->SetEditorIcon(true);
-	BillboardComponent->SetHiddenInDetails(true);
+	BillboardComponent->SetHiddenInGame(true);
 	BillboardComponent->SetIconSize(2.0f);
 	BillboardComponent->SetupAttachment(DecalComponent);
 	BillboardComponent->SetHiddenInDetails(true);

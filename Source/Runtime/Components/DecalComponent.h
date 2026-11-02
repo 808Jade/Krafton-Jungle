@@ -3,6 +3,8 @@
 #include "SceneComponent.h"
 #include "DecalComponent.generated.h"
 
+class FLineBatcher;
+
 UCLASS()
 class UDecalComponent : public USceneComponent
 {
@@ -15,6 +17,8 @@ public:
 	void SetDecalSize(const FVector& InSize) { DecalSize = InSize; }
 
 	virtual FBox CalcLocalBounds() const override;
+
+	void DrawDebug(FLineBatcher* LineBatcher) const;
 
 private:
 	UPROPERTY(EditAnywhere)

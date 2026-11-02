@@ -31,6 +31,7 @@
 #include "Components/RectLightComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Components/TextRenderComponent.h"
+#include "Components/DecalComponent.h"
 
 #include "Asset/AssetManager.h"
 #include "Render/RenderResourceManager.h"
@@ -1173,6 +1174,17 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 
 						const AActor* SelectedActor =
 							Gizmo->GetTarget() ? Gizmo->GetTarget()->GetOwner() : nullptr;
+
+						if (SelectedActor)
+						{
+							for (UActorComponent* Component : SelectedActor->GetComponents())
+							{
+								if (UDecalComponent* Decal = Cast<UDecalComponent>(Component))
+								{
+									Decal->DrawDebug(LineBatcher.get());
+								}
+							}
+						}
 
 						DrawCollisionShapes(EditorWorld, LineBatcher.get(), SelectedActor);
 						DrawSpringArms(EditorWorld, LineBatcher.get(), SelectedActor);
