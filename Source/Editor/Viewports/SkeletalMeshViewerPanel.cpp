@@ -4,6 +4,7 @@
 #include "GameFramework/Actor/SkeletalMeshActor.h"
 #include "GameFramework/Actor/DirectionalLightActor.h"
 #include "Components/PrimitiveComponent.h"
+#include "Render/SkeletalMesh.h"
 
 #include <algorithm>
 
@@ -53,7 +54,10 @@ void FSkeletalMeshViewerPanel::OnRender()
 	bHovered = false;
 	if (ImGui::Begin(GetPanelName(), &bOpen))
 	{
-		const ImVec2 Size = ImGui::GetContentRegionAvail();
+		// 왼쪽은 뷰포트 이미지, 오른쪽은 본 트리
+		const ImVec2 Avail = ImGui::GetContentRegionAvail();
+		const float TreeWidth = std::min(ImGui::GetFontSize() * 18.0f, Avail.x * 0.5f);
+		const ImVec2 Size(Avail.x - TreeWidth - ImGui::GetStyle().ItemSpacing.x, Avail.y);
 		const bool bVisible = Size.x >= 1.0f && Size.y >= 1.0f;
 		ViewportClient->SetActive(bVisible);
 		if (bVisible)
@@ -67,7 +71,12 @@ void FSkeletalMeshViewerPanel::OnRender()
 			else
 				ImGui::Dummy(Size);
 			bHovered = ImGui::IsItemHovered();
+			ImGui::SameLine();
 		}
+		// 본 계층은 깊어서(Manny 손가락 끝은 15단계 안팎) 넘치는 이름은 가로 스크롤로 본다
+		if (ImGui::BeginChild("BoneTree", ImVec2(0.0f, Avail.y), ImGuiChildFlags_Borders, ImGuiWindowFlags_HorizontalScrollbar))
+			DrawBoneTree();
+		ImGui::EndChild();
 	}
 	else
 	{
@@ -101,6 +110,73 @@ void FSkeletalMeshViewerPanel::Shutdown()
 	PreviewWorld = nullptr;
 	PreviewActor = nullptr;
 	ViewportClient.reset();
+}
+
+void FSkeletalMeshViewerPanel::DrawBoneTree()
+{
+	const USkeletalMesh* Mesh = PreviewActor ? PreviewActor->GetSkeletalMeshComponent()->GetSkeletalMesh() : nullptr;
+	if (!Mesh)
+	{
+		ImGui::TextDisabled("No skeletal mesh");
+		return;
+	}
+	if (Mesh != BoneTreeMesh)
+		RebuildBoneChildren(Mesh);
+
+	ImGui::Text("Bones (%d)", Mesh->Data.Bones.Num());
+	ImGui::Separator();
+	// 에디터 기본 들여쓰기(18px)는 깊은 계층에서 이름을 밀어내므로 좁힌다. 계층은 연결선으로 읽힌다
+	ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0f);
+	for (int32 Root : RootBones)
+		DrawBoneNode(Mesh, Root);
+	ImGui::PopStyleVar();
+
+	// 빈 곳을 클릭하면 선택 해제 (Outliner와 같은 동작)
+	if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+		SelectedBone = INDEX_NONE;
+}
+
+void FSkeletalMeshViewerPanel::DrawBoneNode(const USkeletalMesh* Mesh, int32 BoneIndex)
+{
+	const TArray<int32>& Children = BoneChildren[BoneIndex];
+	ImGuiTreeNodeFlags Flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick
+		| ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_DrawLinesToNodes;
+	if (Children.IsEmpty())
+		Flags |= ImGuiTreeNodeFlags_Leaf;
+	if (BoneIndex == SelectedBone)
+		Flags |= ImGuiTreeNodeFlags_Selected;
+
+	// ID는 본 인덱스. 이름이 겹쳐도 노드가 섞이지 않는다
+	const bool bOpen = ImGui::TreeNodeEx(reinterpret_cast<void*>(static_cast<intptr_t>(BoneIndex)), Flags,
+		"%s", Mesh->Data.Bones[BoneIndex].Name.c_str());
+	// 화살표로 접고 펼 때는 선택하지 않는다
+	if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen())
+		SelectedBone = BoneIndex;
+
+	if (bOpen)
+	{
+		for (int32 Child : Children)
+			DrawBoneNode(Mesh, Child);
+		ImGui::TreePop();
+	}
+}
+
+void FSkeletalMeshViewerPanel::RebuildBoneChildren(const USkeletalMesh* Mesh)
+{
+	BoneTreeMesh = Mesh;
+	SelectedBone = INDEX_NONE;
+	RootBones.Reset();
+	BoneChildren.Reset();
+	const TArray<FBoneInfo>& Bones = Mesh->Data.Bones;
+	BoneChildren.SetNum(Bones.Num());
+	for (int32 Index = 0; Index < Bones.Num(); ++Index)
+	{
+		const int32 Parent = Bones[Index].ParentIndex;
+		if (Bones.IsValidIndex(Parent))
+			BoneChildren[Parent].Add(Index);
+		else
+			RootBones.Add(Index);
+	}
 }
 
 void FSkeletalMeshViewerPanel::GatherCameraInput()

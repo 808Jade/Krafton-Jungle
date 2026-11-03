@@ -26,10 +26,20 @@ public:
 	// OnRender에서 ImGui 입력으로 모은 카메라 입력을 꺼내고 누적값(마우스 이동·휠)을 비운다
 	FViewportCameraInput ConsumeCameraInput();
 
+	// 본 트리에서 고른 본. 없으면 INDEX_NONE
+	int32 GetSelectedBone() const { return SelectedBone; }
+	void SelectBone(int32 BoneIndex) { SelectedBone = BoneIndex; }
+
 private:
 	// 메시 바운드가 화면에 들어오게 카메라를 앞쪽에 둔다
 	void FocusCamera();
 	void GatherCameraInput();
+
+	// 우측 본 계층 트리 (Outliner처럼 클릭으로 선택)
+	void DrawBoneTree();
+	void DrawBoneNode(const USkeletalMesh* Mesh, int32 BoneIndex);
+	// 본 배열은 부모 인덱스만 가지므로 트리를 그리려고 자식 목록을 만든다. 메시가 바뀔 때만 다시 만든다
+	void RebuildBoneChildren(const USkeletalMesh* Mesh);
 
 	UWorld* PreviewWorld = nullptr;
 	ASkeletalMeshActor* PreviewActor = nullptr;
@@ -39,4 +49,9 @@ private:
 	FViewportCameraInput CameraInput;
 	bool bHovered = false;
 	bool bCameraCaptured = false;
+
+	const USkeletalMesh* BoneTreeMesh = nullptr;
+	TArray<TArray<int32>> BoneChildren;
+	TArray<int32> RootBones;
+	int32 SelectedBone = INDEX_NONE;
 };
