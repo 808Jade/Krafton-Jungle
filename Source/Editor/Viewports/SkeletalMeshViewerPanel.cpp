@@ -5,8 +5,16 @@
 #include "GameFramework/Actor/DirectionalLightActor.h"
 #include "Components/PrimitiveComponent.h"
 #include "Render/SkeletalMesh.h"
+#include "Render/LineBatcher.h"
 
 #include <algorithm>
+#include <cmath>
+
+namespace
+{
+	// 에디터 기본 들여쓰기(18px)는 깊은 계층에서 이름을 밀어내므로 좁힌다
+	constexpr float BONE_TREE_INDENT = 8.0f;
+}
 
 bool FSkeletalMeshViewerPanel::Init()
 {
@@ -61,7 +69,8 @@ void FSkeletalMeshViewerPanel::OnRender()
 	{
 		// 왼쪽은 뷰포트 이미지, 오른쪽은 본 트리
 		const ImVec2 Avail = ImGui::GetContentRegionAvail();
-		const float TreeWidth = std::min(ImGui::GetFontSize() * 18.0f, Avail.x * 0.5f);
+		// 트리는 가장 긴 이름에 맞추고, 창이 좁으면 절반까지만 쓰고 가로 스크롤로 본다
+		const float TreeWidth = std::min(CalcBoneTreeWidth(), Avail.x * 0.5f);
 		const ImVec2 Size(Avail.x - TreeWidth - ImGui::GetStyle().ItemSpacing.x, Avail.y);
 		const bool bVisible = Size.x >= 1.0f && Size.y >= 1.0f;
 		ViewportClient->SetActive(bVisible);
@@ -118,6 +127,164 @@ void FSkeletalMeshViewerPanel::Shutdown()
 	ViewportClient.reset();
 }
 
+namespace
+{
+	constexpr int32 JOINT_SEGMENT_COUNT = 16;
+	const FVector4 BONE_COLOR(0.02f, 0.04f, 0.3f, 1.0f);           // 짙은 남색
+	const FVector4 SELECTED_BONE_COLOR(0.55f, 1.0f, 0.2f, 1.0f);   // 연두색
+	const FVector4 DESCENDANT_BONE_COLOR(1.0f, 1.0f, 1.0f, 1.0f);  // 고른 본 아래 전부
+	const FVector4 PARENT_BONE_COLOR(1.0f, 0.55f, 0.0f, 1.0f);     // 고른 본의 바로 위 부모
+
+	// 선 셰이더(BoundingBoxShader.hlsl)가 픽셀 색에 0.5를 더하므로 미리 빼서 위 색이 그대로 나오게 한다
+	FVector4 ToLineColor(const FVector4& Color)
+	{
+		return FVector4(Color.X - 0.5f, Color.Y - 0.5f, Color.Z - 0.5f, Color.W);
+	}
+
+	void AddWireCircle(FLineBatcher* LineBatcher, const FVector& Center, const FVector& AxisA, const FVector& AxisB,
+		float Radius, const FVector4& Color)
+	{
+		FVector Prev = Center + AxisA * Radius;
+		for (int32 i = 1; i <= JOINT_SEGMENT_COUNT; ++i)
+		{
+			const float Angle = 2.0f * PI * i / JOINT_SEGMENT_COUNT;
+			const FVector Point = Center + AxisA * (std::cos(Angle) * Radius) + AxisB * (std::sin(Angle) * Radius);
+			LineBatcher->AddLine(Prev, Point, Color);
+			Prev = Point;
+		}
+	}
+
+	void AddWireJoint(FLineBatcher* LineBatcher, const FVector& Center, float Radius, const FVector4& Color)
+	{
+		AddWireCircle(LineBatcher, Center, FVector(1, 0, 0), FVector(0, 1, 0), Radius, Color);
+		AddWireCircle(LineBatcher, Center, FVector(1, 0, 0), FVector(0, 0, 1), Radius, Color);
+		AddWireCircle(LineBatcher, Center, FVector(0, 1, 0), FVector(0, 0, 1), Radius, Color);
+	}
+
+	// 밑면(정사각형)은 부모 관절, 꼭짓점은 자식 관절
+	void AddWirePyramid(FLineBatcher* LineBatcher, const FVector& Base, const FVector& Apex, float Radius, const FVector4& Color)
+	{
+		const FVector Dir = (Apex - Base).Normalized();
+		// 뼈와 거의 평행한 축으로 외적하면 0이 되므로 그때는 다른 축을 쓴다
+		const FVector Ref = std::abs(Dir.Z) < 0.99f ? FVector(0, 0, 1) : FVector(1, 0, 0);
+		const FVector U = FVector::Cross(Dir, Ref).Normalized() * Radius;
+		const FVector V = FVector::Cross(Dir, U.Normalized()) * Radius;
+
+		const FVector Corners[4] = { Base + U + V, Base - U + V, Base - U - V, Base + U - V };
+		for (int32 i = 0; i < 4; ++i)
+		{
+			LineBatcher->AddLine(Corners[i], Corners[(i + 1) % 4], Color);
+			LineBatcher->AddLine(Corners[i], Apex, Color);
+		}
+	}
+}
+
+void FSkeletalMeshViewerPanel::DrawBones(FLineBatcher* LineBatcher) const
+{
+	if (!LineBatcher || !PreviewActor)
+		return;
+	const USkeletalMeshComponent* Component = PreviewActor->GetSkeletalMeshComponent();
+	const USkeletalMesh* Mesh = Component ? Component->GetSkeletalMesh() : nullptr;
+	if (!Mesh || Mesh->Data.Bones.IsEmpty())
+		return;
+	const TArray<FBoneInfo>& Bones = Mesh->Data.Bones;
+
+	// Component Space는 ApplyPose 전에는 비어 있으므로 그때는 바인드(Ref) 자세로 직접 쌓는다
+	TArray<FMatrix> RefSpace;
+	const TArray<FMatrix>* ComponentSpace = &Component->GetComponentSpaceTransforms();
+	if (ComponentSpace->Num() != Bones.Num())
+	{
+		RefSpace.SetNum(Bones.Num());
+		for (int32 i = 0; i < Bones.Num(); ++i)
+		{
+			const int32 Parent = Bones[i].ParentIndex;
+			RefSpace[i] = Parent >= 0 ? Bones[i].RefLocal * RefSpace[Parent] : Bones[i].RefLocal;
+		}
+		ComponentSpace = &RefSpace;
+	}
+
+	// 행벡터 규약이라 월드 = Component Space × 컴포넌트 월드, 관절 위치는 4행(이동)
+	const FMatrix ComponentToWorld = Component->GetWorldMatrix();
+	TArray<FVector> Joints;
+	Joints.SetNum(Bones.Num());
+	for (int32 i = 0; i < Bones.Num(); ++i)
+	{
+		const FMatrix World = (*ComponentSpace)[i] * ComponentToWorld;
+		Joints[i] = FVector(World.M[3][0], World.M[3][1], World.M[3][2]);
+	}
+
+	// 굵기는 뼈 길이에 비례시키되(손가락이 뭉개지지 않게) 메시 크기에 맞춘 상한을 둔다
+	const FBox Bounds = Component->CalcBounds();
+	const FVector Size = Bounds.Max - Bounds.Min;
+	const float MaxRadius = std::max({ Size.X, Size.Y, Size.Z }) * 0.01f;
+	TArray<float> JointRadius;
+	JointRadius.SetNum(Bones.Num());
+	for (float& Radius : JointRadius)
+		Radius = MaxRadius;
+	for (int32 i = 0; i < Bones.Num(); ++i)
+	{
+		const int32 Parent = Bones[i].ParentIndex;
+		if (!Bones.IsValidIndex(Parent))
+			continue;
+		// 관절 구는 이어진 뼈 중 가장 짧은 것에 맞춘다
+		const float Radius = (Joints[i] - Joints[Parent]).Length() * 0.1f;
+		JointRadius[i] = std::min(JointRadius[i], Radius);
+		JointRadius[Parent] = std::min(JointRadius[Parent], Radius);
+	}
+
+	// 본별 색. 부모 인덱스가 항상 자기보다 작아서 앞에서부터 한 번 훑으면 자손 여부가 정해진다
+	const int32 SelectedParent = Bones.IsValidIndex(SelectedBone) ? Bones[SelectedBone].ParentIndex : INDEX_NONE;
+	// TArray<bool>은 std::vector<bool> 특수화라 원소 참조가 안 된다
+	TArray<uint8> bDescendant;
+	bDescendant.SetNum(Bones.Num());
+	TArray<const FVector4*> Colors;
+	Colors.SetNum(Bones.Num());
+	// 깊이 테스트 없이 그려서 나중에 그린 선이 위에 덮인다. 고른 본의 관절에는 자식 사각뿔의 밑면이 겹치므로
+	// 강조할수록 뒤에 그린다 (0: 기본, 1: 자손·부모, 2: 고른 본)
+	TArray<uint8> DrawOrder;
+	DrawOrder.SetNum(Bones.Num());
+	for (int32 i = 0; i < Bones.Num(); ++i)
+	{
+		const int32 Parent = Bones[i].ParentIndex;
+		bDescendant[i] = Bones.IsValidIndex(Parent) && (Parent == SelectedBone || bDescendant[Parent]);
+		DrawOrder[i] = 1;
+		if (i == SelectedBone)
+		{
+			Colors[i] = &SELECTED_BONE_COLOR;
+			DrawOrder[i] = 2;
+		}
+		else if (bDescendant[i])
+			Colors[i] = &DESCENDANT_BONE_COLOR;
+		else if (i == SelectedParent)
+			Colors[i] = &PARENT_BONE_COLOR;
+		else
+		{
+			Colors[i] = &BONE_COLOR;
+			DrawOrder[i] = 0;
+		}
+	}
+
+	for (uint8 Order = 0; Order <= 2; ++Order)
+	{
+		for (int32 i = 0; i < Bones.Num(); ++i)
+		{
+			if (DrawOrder[i] != Order)
+				continue;
+			const int32 Parent = Bones[i].ParentIndex;
+			const FVector4 Color = ToLineColor(*Colors[i]);
+			AddWireJoint(LineBatcher, Joints[i], JointRadius[i], Color);
+
+			if (!Bones.IsValidIndex(Parent))
+				continue;
+			const float Length = (Joints[i] - Joints[Parent]).Length();
+			if (Length <= 1e-4f)
+				continue;
+			// 사각뿔(부모→자식)은 자식 본의 색을 따른다: 고른 본으로 들어오는 뼈가 연두색이 된다
+			AddWirePyramid(LineBatcher, Joints[Parent], Joints[i], std::min(Length * 0.1f, MaxRadius), Color);
+		}
+	}
+}
+
 void FSkeletalMeshViewerPanel::DrawBoneTree()
 {
 	const USkeletalMesh* Mesh = PreviewActor ? PreviewActor->GetSkeletalMeshComponent()->GetSkeletalMesh() : nullptr;
@@ -132,7 +299,7 @@ void FSkeletalMeshViewerPanel::DrawBoneTree()
 	ImGui::Text("Bones (%d)", Mesh->Data.Bones.Num());
 	ImGui::Separator();
 	// 에디터 기본 들여쓰기(18px)는 깊은 계층에서 이름을 밀어내므로 좁힌다. 계층은 연결선으로 읽힌다
-	ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, BONE_TREE_INDENT);
 	for (int32 Root : RootBones)
 		DrawBoneNode(Mesh, Root);
 	ImGui::PopStyleVar();
@@ -175,14 +342,43 @@ void FSkeletalMeshViewerPanel::RebuildBoneChildren(const USkeletalMesh* Mesh)
 	BoneChildren.Reset();
 	const TArray<FBoneInfo>& Bones = Mesh->Data.Bones;
 	BoneChildren.SetNum(Bones.Num());
+	BoneDepth.SetNum(Bones.Num());
 	for (int32 Index = 0; Index < Bones.Num(); ++Index)
 	{
 		const int32 Parent = Bones[Index].ParentIndex;
 		if (Bones.IsValidIndex(Parent))
+		{
 			BoneChildren[Parent].Add(Index);
+			BoneDepth[Index] = BoneDepth[Parent] + 1;
+		}
 		else
+		{
 			RootBones.Add(Index);
+			BoneDepth[Index] = 0;
+		}
 	}
+}
+
+float FSkeletalMeshViewerPanel::CalcBoneTreeWidth()
+{
+	const ImGuiStyle& Style = ImGui::GetStyle();
+	const USkeletalMesh* Mesh = PreviewActor ? PreviewActor->GetSkeletalMeshComponent()->GetSkeletalMesh() : nullptr;
+	float Content = ImGui::CalcTextSize("No skeletal mesh").x;
+	if (Mesh)
+	{
+		if (Mesh != BoneTreeMesh)
+			RebuildBoneChildren(Mesh);
+		// 노드 한 줄 = 들여쓰기(깊이 × 8, DrawBoneTree와 같은 값) + 화살표 칸(FontSize + FramePadding × 2) + 이름
+		const float ArrowWidth = ImGui::GetFontSize() + Style.FramePadding.x * 2.0f;
+		const TArray<FBoneInfo>& Bones = Mesh->Data.Bones;
+		for (int32 i = 0; i < Bones.Num(); ++i)
+		{
+			const float Row = BoneDepth[i] * BONE_TREE_INDENT + ArrowWidth + ImGui::CalcTextSize(Bones[i].Name.c_str()).x;
+			Content = std::max(Content, Row);
+		}
+	}
+	// 자식 창 안쪽 여백(양쪽)과 세로 스크롤바, 테두리를 더한다
+	return Content + Style.WindowPadding.x * 2.0f + Style.ScrollbarSize + Style.ChildBorderSize * 2.0f;
 }
 
 void FSkeletalMeshViewerPanel::GatherCameraInput()

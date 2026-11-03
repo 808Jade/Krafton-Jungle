@@ -1209,11 +1209,20 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 						}
 
 						LineBatcher->OnRender(SceneView.ViewProjectionMatrix);
+
+						// 뼈는 메시 안쪽에 있으므로 깊이 테스트 없이 따로 한 번 더 그린다
+						if (bPreviewWorld)
+						{
+							LineBatcher->BeginFrame();
+							SkeletalMeshViewerPanel->DrawBones(LineBatcher.get());
+							LineBatcher->OnRender(SceneView.ViewProjectionMatrix, false);
+						}
 					};
 			}
-			if (SettingsPanel->GetSettings().bDrawBatchLine)
+			// 뷰어는 뼈를 보는 창이라 그리드가 방해만 된다
+			if (SettingsPanel->GetSettings().bDrawBatchLine && !bPreviewWorld)
 			{
-				Overlays.EditorGrid = [this, ViewClient, &SceneView, ViewportSetting]
+				Overlays.EditorGrid =[this, ViewClient, &SceneView, ViewportSetting]
 					{
 						EGridPlane GridPlane = EGridPlane::XY;
 						switch (ViewClient->GetViewportType())
