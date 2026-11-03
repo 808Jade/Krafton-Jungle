@@ -1,4 +1,4 @@
-﻿#include "EnginePCH.h"
+#include "EnginePCH.h"
 #include "Render/SceneRenderer.h"
 #include "Render/Renderer.h"
 #include "Render/SceneLightResources.h"
@@ -155,6 +155,8 @@ void FSceneRenderer::RenderSceneText(FRenderer* Renderer)
 
 void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 {
+	SCOPE_CYCLE_COUNTER(DecalStats::STAT_DecalPass);
+
 	if (!Renderer->GetDecalConstants())
 		return;
 
@@ -175,24 +177,27 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 		const FBox DecalBounds = Decal->CalcBounds();
 		const FOBB DecalOBB = Decal->GetDecalOBB();
 		Receivers.Reset();
-		Scene.BVH.Query
-		(
-			[&](const FBox& Bounds)
-			{
-				return UWorld::AreAABBsOverlapping(DecalBounds, Bounds);
-			}, 
-			[&](FPrimitiveSceneProxy* Proxy)
-			{
-				if (Proxy->IsShown(View.bGameView) && Proxy->bReceiveDecals && Proxy->GetMesh())
+		{
+			SCOPE_CYCLE_COUNTER(DecalStats::STAT_DecalCulling);
+			Scene.BVH.Query
+			(
+				[&](const FBox& Bounds)
 				{
-					FOBB MeshOBB = FOBB::FromLocalBox(Proxy->GetMesh()->GetRenderBounds(), Proxy->GetLocalToWorld());
-					if (IntersectOBB(DecalOBB, MeshOBB))
+					return UWorld::AreAABBsOverlapping(DecalBounds, Bounds);
+				},
+				[&](FPrimitiveSceneProxy* Proxy)
+				{
+					if (Proxy->IsShown(View.bGameView) && Proxy->bReceiveDecals && Proxy->GetMesh())
 					{
-						Receivers.Add(Proxy);
+						FOBB MeshOBB = FOBB::FromLocalBox(Proxy->GetMesh()->GetRenderBounds(), Proxy->GetLocalToWorld());
+						if (IntersectOBB(DecalOBB, MeshOBB))
+						{
+							Receivers.Add(Proxy);
+						}
 					}
 				}
-			}
-		);
+			);
+		}
 		if (Receivers.IsEmpty())
 			continue;
 		Stats.DecalsRendered++;

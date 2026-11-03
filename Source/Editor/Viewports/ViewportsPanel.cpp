@@ -11,6 +11,7 @@
 #include <format>
 
 #include "Core/Stats/EditorStats.h"
+#include "Render/DecalData.h"
 
 namespace {
 constexpr float SplitterThickness = 6.0f;
@@ -468,6 +469,20 @@ const FRenderStats& Stats = RenderData.RenderStats;
 			Lines.Add({ std::format("  Cascade Views  Redrawn {} / Cached {}",
 				Stats.CascadeViewsRedrawn, Stats.CascadeViewsCached), ValueColor });
 		}
+	}
+
+	if (FStatOverlay::IsEnabled(EStatFlags::Decal)) {
+		Lines.Add({ "Decal", TitleColor });
+		Lines.Add({ std::format("  Decals  {} / {}", Stats.DecalsRendered, Stats.DecalCount), ValueColor });
+		Lines.Add({ std::format("  Receivers  {}", Stats.DecalReceivers), ValueColor });
+		Lines.Add({ std::format("  Draw Calls  {}", Stats.DecalDrawCalls), ValueColor });
+
+		const auto FormatMs = [](TStatId StatId) -> FString {
+			const FCycleStatData* Data = FStatRegistry::Find(StatId);
+			return Data ? std::format("{:.3f} ms", Data->GetRecentAverageMs()) : FString("-");
+		};
+		Lines.Add({ "  Culling  " + FormatMs(DecalStats::STAT_DecalCulling), ValueColor });
+		Lines.Add({ "  Pass  " + FormatMs(DecalStats::STAT_DecalPass), ValueColor });
 	}
 
 	if (Lines.Num() == 0 && ProfileLines.Num() == 0)
