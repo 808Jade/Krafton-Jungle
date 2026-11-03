@@ -31,6 +31,7 @@ enum class EPSOType : uint8
 	ShadowProjection,        // 그림자 한 장을 화면 마스크(ScreenShadowMask)에 그린다
 	ShadowMaskVisualize,     // Shadow Mask 뷰 모드: 마스크를 화면에 띄운다
 	Decal,					 // 씬 메시를 다시 그려 데칼 박스 안에만 텍스처를 찍는다
+	DecalAdditive,
 	Count
 };
 

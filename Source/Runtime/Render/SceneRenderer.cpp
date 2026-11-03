@@ -206,8 +206,8 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 		FDecalConstants Constants{ Decal->GetWorldToDecal(), Decal->GetFadeAlpha() };
 		RenderCommand::UpdateBufferData(Renderer->GetDecalConstants(), &Constants);
 		RenderCommand::BindConstantBuffer(3, Renderer->GetDecalConstants(), EShaderBindFlagBits::Pixel);
-
-		if (Processor.Build(Receivers, Decal->GetDecalTexture(), Batches))
+		EPSOType PSOType = Decal->IsAdditiveBlend() ? EPSOType::DecalAdditive : EPSOType::Decal;
+		if (Processor.Build(Receivers, Decal->GetDecalTexture(), PSOType, Batches))
 		{
 			for (const auto& Batch : Batches)
 			{

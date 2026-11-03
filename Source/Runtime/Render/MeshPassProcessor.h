@@ -93,5 +93,5 @@ public:
 	bool Build(const TArray<FPrimitiveSceneProxy*>& ShadowMeshes, EPSOType PSOType, TArray<FMeshDrawBatch>& OutBatches,
 		const FVector& PreTranslation = FVector::ZeroVector);
 
-	bool Build(const TArray<FPrimitiveSceneProxy*>& Receivers, UTexture2D* DecalTexture, TArray<FMeshDrawBatch>& OutBatches) const;
+	bool Build(const TArray<FPrimitiveSceneProxy*>& Receivers, UTexture2D* DecalTexture, EPSOType PSOType, TArray<FMeshDrawBatch>& OutBatches) const;
 };

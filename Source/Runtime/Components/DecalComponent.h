@@ -32,13 +32,16 @@ public:
 
 	float GetFadeAlpha() const;
 
+	bool IsAdditiveBlend() const { return bAdditiveBlend; }
+	void SetAdditiveBlend(bool bInAdditive) { bAdditiveBlend = bInAdditive; }
+
 private:
 	void ResolveTexture();
 
 	UPROPERTY(EditAnywhere)
 	FVector DecalSize = FVector(1.f, 1.f, 1.f);
 	UPROPERTY(EditAnywhere)
-	FString DecalTexturePath = "Assets/Checker.png";
+	FString DecalTexturePath = "Assets/textures/SpotLight.png";
 	UPROPERTY(EditAnywhere)
 	float FadeInStartDelay = 0.f;
 	UPROPERTY(EditAnywhere)
@@ -47,6 +50,8 @@ private:
 	float FadeStartDelay = 0.f;  
 	UPROPERTY(EditAnywhere)
 	float FadeDuration = 0.f;      
+	UPROPERTY(EditAnywhere)
+	bool bAdditiveBlend = false;
 
 	float ElapsedTime = 0.f;       
 

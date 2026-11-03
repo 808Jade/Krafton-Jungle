@@ -310,11 +310,11 @@ bool FMeshPassProcessor::Build(const TArray<FPrimitiveSceneProxy*>& ShadowMeshes
 	return true;
 }
 
-bool FMeshPassProcessor::Build(const TArray<FPrimitiveSceneProxy*>& Receivers, UTexture2D* DecalTexture, TArray<FMeshDrawBatch>& OutBatches) const
+bool FMeshPassProcessor::Build(const TArray<FPrimitiveSceneProxy*>& Receivers, UTexture2D* DecalTexture, EPSOType PSOType, TArray<FMeshDrawBatch>& OutBatches) const
 {
 	OutBatches.Reset();
 
-	const FPipelineState* Pipeline = FRenderResourceManager::GetPSO(EPSOType::Decal);
+	const FPipelineState* Pipeline = FRenderResourceManager::GetPSO(PSOType);
 	if (!Pipeline || !Pipeline->Shader || !Pipeline->Shader->VertexShader || !Pipeline->Shader->PixelShader)
 	{
 		return false;
