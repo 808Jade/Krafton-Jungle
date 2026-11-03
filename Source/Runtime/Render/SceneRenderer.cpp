@@ -167,7 +167,7 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 
 	for (TObjectIterator<UDecalComponent> Decal; Decal; ++Decal)
 	{
-		if (!Decal || !Decal->IsRegistered() || !Decal->IsShown(View.bGameView) || !Decal->GetOwner() || Decal->GetOwner()->GetWorld() != World || !Decal->GetDecalTexture())
+		if (!Decal || !Decal->IsRegistered() || !Decal->IsShown(View.bGameView) || !Decal->GetOwner() || Decal->GetOwner()->GetWorld() != World || !Decal->GetDecalTexture() || Decal->GetFadeAlpha() <= 0.f)
 			continue;
 
 		const FBox DecalBounds = Decal->CalcBounds();
@@ -194,7 +194,7 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 		if (Receivers.IsEmpty())
 			continue;
 
-		FDecalConstants Constants{ Decal->GetWorldToDecal() };
+		FDecalConstants Constants{ Decal->GetWorldToDecal(), Decal->GetFadeAlpha() };
 		RenderCommand::UpdateBufferData(Renderer->GetDecalConstants(), &Constants);
 		RenderCommand::BindConstantBuffer(3, Renderer->GetDecalConstants(), EShaderBindFlagBits::Pixel);
 

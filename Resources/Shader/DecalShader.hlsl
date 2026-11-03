@@ -13,6 +13,8 @@ cbuffer Worldconstants : register(b2)
 cbuffer DecalConstants : register(b3)
 {
     matrix WorldToDecal;
+    float FadeAlpha;
+    float3 DecalPadding;
 };
 
 struct VS_INPUT
@@ -58,5 +60,6 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     float DepthFade = saturate(4.f - 4.f * abs(DecalPosition.x));
     Color.a *= DepthFade;
     
+    Color.a *= FadeAlpha;
     return Color;
 }
