@@ -583,6 +583,22 @@ namespace
 	}
 
 	// Skin(가중치) + InvBindPose 추출 (Step 6)
+	// 스킨 디포머가 붙은 메시가 하나라도 있으면 SkeletalMesh로 본다.
+	// 언리얼 FFbxImporter::GetSceneInfo/GetImportType(FbxMainImport.cpp)과 같은 기준: 뼈 노드 유무가 아니라 메시의 eSkin 디포머
+	bool HasSkinnedMesh(FbxScene* Scene)
+	{
+		for (int32 i = 0; i < Scene->GetGeometryCount(); ++i)
+		{
+			FbxGeometry* Geometry = Scene->GetGeometry(i);
+			if (Geometry->GetAttributeType() == FbxNodeAttribute::eMesh &&
+				static_cast<FbxMesh*>(Geometry)->GetDeformerCount(FbxDeformer::eSkin) > 0)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
 	void ExtractSkin(FbxScene* Scene, const TArray<FbxNode*>& BoneNodes, FSkeletalMeshData& Data)
 	{
 		if (Data.Bones.IsEmpty() || Data.Mesh.Vertices.IsEmpty())
@@ -751,9 +767,19 @@ TUniquePtr<FSkeletalMeshData> FFbxImporter::LoadSkeletalMeshData(const FString& 
 	TUniquePtr<FSkeletalMeshData> Data = MakeUnique<FSkeletalMeshData>();
 	TArray<FbxNode*> BoneNodes;
 	CollectBones(Context.Scene->GetRootNode(), -1, Data->Bones, BoneNodes);
-	if (Data->Bones.IsEmpty())
+	// 스킨된 메시가 없으면 리그가 딸려 왔어도 StaticMesh다. 이후 단계(Bake 형식, LoadAsset 분기)는 뼈 유무로 갈리므로 뼈를 비운다
+	if (!HasSkinnedMesh(Context.Scene))
 	{
-		HTR_LOG(Warning, "FBX has no skeleton: {}", Path);
+		if (!Data->Bones.IsEmpty())
+		{
+			HTR_LOG(Info, "FBX has {} bones but no skinned mesh, importing as StaticMesh: {}", Data->Bones.Num(), Path);
+		}
+		Data->Bones.Reset();
+		BoneNodes.Reset();
+	}
+	else if (Data->Bones.IsEmpty())
+	{
+		HTR_LOG(Warning, "FBX has skinned mesh but no skeleton node: {}", Path);
 	}
 	ExtractRefLocals(Data->Bones, BoneNodes);
 	ExtractMesh(Context.Scene, Path, Data->Mesh);

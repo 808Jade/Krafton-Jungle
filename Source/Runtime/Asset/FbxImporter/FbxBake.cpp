@@ -20,7 +20,8 @@ namespace
 	using namespace BakeArchive;
 
 	// FVertex, FBoneInfo, FSkinWeight, FStaticMeshData(StaticMeshBake 본문) 구조가 바뀌면 올린다
-	constexpr uint32 FbxBakeVersion{ 1 };
+	// 2: Static/Skeletal 판정을 뼈 유무에서 스킨 디포머 유무로 바꿈 (예전 Bake를 버리고 다시 Import)
+	constexpr uint32 FbxBakeVersion{ 2 };
 
 	// FBX는 OBJ보다 커서(DROID 인덱스 약 40만 개) 배열 상한을 넉넉히 둔다
 	constexpr uint32 MaxCount{ 16'000'000 };

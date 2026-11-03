@@ -243,7 +243,7 @@ void UAssetManager::LoadAsset(const FString& Key, const FString& Path) {
 		if (TUniquePtr<FSkeletalMeshData> Data{ FFbxImporter::LoadSkeletalMeshData(Path) })
 		{
 			FFbxImporter::PrintSkeleton(*Data);
-			// 1. 뼈 없음 → StaticMesh
+			// 1. 뼈 없음 → StaticMesh. 임포터가 스킨된 메시가 없으면 뼈를 비워 두므로 실제 기준은 스킨 디포머 유무다
 			if (Data->Bones.IsEmpty())
 			{
 				if (UStaticMesh* StaticMesh = CreateStaticMesh(&Data->Mesh))

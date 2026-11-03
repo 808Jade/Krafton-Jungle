@@ -7,7 +7,7 @@
 USkeletalMeshComponent::USkeletalMeshComponent()
 {
 	// 배치 직후 보이도록 기본 에셋을 둔다 (StaticMeshComponent의 Cube와 같은 역할). Details에서 바꾼다
-	SkeletalMesh = UAssetManager::GetAssetByPath<USkeletalMesh>("Models/UnrealMan/SKM_Manny_Simple.FBX");
+	SkeletalMesh = UAssetManager::GetAssetByPath<USkeletalMesh>("Models/SKM_UnrealMan/SKM_Manny_Simple.FBX");
 	ResetToRefPose();
 }
 
