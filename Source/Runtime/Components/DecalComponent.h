@@ -48,7 +48,7 @@ private:
 	UPROPERTY(EditAnywhere)
 	FVector DecalSize = FVector(1.f, 1.f, 1.f);
 	UPROPERTY(EditAnywhere)
-	FString DecalTexturePath = "Assets/textures/SpotLight.png";
+	FString DecalTexturePath = "Assets/Checker.png";
 	UPROPERTY(EditAnywhere)
 	float FadeInStartDelay = 0.f;
 	UPROPERTY(EditAnywhere)
