@@ -48,3 +48,8 @@ void UDecalComponent::PostEditChangeProperty(const FProperty& Property)
 		ResolveTexture();
 	}
 }
+
+FOBB UDecalComponent::GetDecalOBB() const
+{
+	return FOBB::FromLocalBox(CalcLocalBounds(), GetWorldMatrix());
+}

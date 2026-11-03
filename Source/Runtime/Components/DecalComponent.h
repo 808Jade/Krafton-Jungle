@@ -26,6 +26,7 @@ public:
 
 	virtual void OnRegister() override;
 	virtual void PostEditChangeProperty(const FProperty& Property) override;
+	FOBB GetDecalOBB() const;
 
 private:
 	void ResolveTexture();

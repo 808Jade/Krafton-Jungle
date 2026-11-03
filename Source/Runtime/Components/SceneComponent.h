@@ -4,6 +4,7 @@
 #include "ActorComponent.h"
 #include "Math/Box.h"
 #include "Collision/HitResult.h"
+#include "Math/OBB.h"
 #include "SceneComponent.generated.h"
 
 enum class EAttachmentRule

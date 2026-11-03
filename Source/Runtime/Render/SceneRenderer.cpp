@@ -22,6 +22,7 @@
 #include "UObject/UObjectIterator.h"
 #include "Components/DecalComponent.h"
 #include "Render/DecalData.h"
+#include "Math/OBB.h"
 
 #include <cmath>
 #include <algorithm>
@@ -170,6 +171,7 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 			continue;
 
 		const FBox DecalBounds = Decal->CalcBounds();
+		const FOBB DecalOBB = Decal->GetDecalOBB();
 		Receivers.Reset();
 		Scene.BVH.Query
 		(
@@ -179,9 +181,13 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 			}, 
 			[&](FPrimitiveSceneProxy* Proxy)
 			{
-				if (Proxy->IsShown(View.bGameView) && Proxy->bReceiveDecals)
+				if (Proxy->IsShown(View.bGameView) && Proxy->bReceiveDecals && Proxy->GetMesh())
 				{
-					Receivers.Add(Proxy);
+					FOBB MeshOBB = FOBB::FromLocalBox(Proxy->GetMesh()->GetRenderBounds(), Proxy->GetLocalToWorld());
+					if (IntersectOBB(DecalOBB, MeshOBB))
+					{
+						Receivers.Add(Proxy);
+					}
 				}
 			}
 		);
