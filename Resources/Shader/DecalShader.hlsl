@@ -53,5 +53,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     }
     
     float2 UV = float2(DecalPosition.y * 0.5f + 0.5f, 0.5f - DecalPosition.z * 0.5f);
-    return g_txDecal.Sample(g_Sample, UV);
+    float4 Color = g_txDecal.Sample(g_Sample, UV);
+    
+    float DepthFade = saturate(4.f - 4.f * abs(DecalPosition.x));
+    Color.a *= DepthFade;
+    
+    return Color;
 }
