@@ -3,6 +3,11 @@
 #include "Render/LineBatcher.h"
 #include "Asset/AssetManager.h"
 
+UDecalComponent::UDecalComponent()
+{
+	PrimaryComponentTick.bCanEverTick = true;
+}
+
 FBox UDecalComponent::CalcLocalBounds() const
 {
 	return FBox{DecalSize * -1.f, DecalSize};
@@ -52,4 +57,32 @@ void UDecalComponent::PostEditChangeProperty(const FProperty& Property)
 FOBB UDecalComponent::GetDecalOBB() const
 {
 	return FOBB::FromLocalBox(CalcLocalBounds(), GetWorldMatrix());
+}
+
+void UDecalComponent::TickComponent(float DeltaTime)
+{
+	Super::TickComponent(DeltaTime);
+	
+	ElapsedTime += DeltaTime;
+}
+
+float UDecalComponent::GetFadeAlpha() const
+{
+	float FadeIn = 1.f;
+	if (ElapsedTime < FadeInStartDelay)
+	{
+		FadeIn = 0.f;
+	}
+	else if (FadeInDuration > 0.f)
+	{
+		FadeIn = std::clamp((ElapsedTime - FadeInStartDelay) / FadeInDuration, 0.f, 1.f);
+	}
+
+	float FadeOut = 1.f;
+	if (FadeDuration > 0.f)
+	{
+		FadeOut = std::clamp(1.f - (ElapsedTime - FadeStartDelay) / FadeDuration, 0.f, 1.f);
+	}
+
+	return FadeIn * FadeOut;
 }

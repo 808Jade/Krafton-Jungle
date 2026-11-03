@@ -11,7 +11,7 @@ class UDecalComponent : public USceneComponent
 {
 	GENERATED_BODY()
 public:
-	UDecalComponent() = default;
+	UDecalComponent();
 	virtual ~UDecalComponent() override = default;
 
 	const FVector GetDecalSize() const { return DecalSize; }
@@ -28,6 +28,10 @@ public:
 	virtual void PostEditChangeProperty(const FProperty& Property) override;
 	FOBB GetDecalOBB() const;
 
+	virtual void TickComponent(float DeltaTime) override;
+
+	float GetFadeAlpha() const;
+
 private:
 	void ResolveTexture();
 
@@ -35,6 +39,16 @@ private:
 	FVector DecalSize = FVector(1.f, 1.f, 1.f);
 	UPROPERTY(EditAnywhere)
 	FString DecalTexturePath = "Assets/Checker.png";
+	UPROPERTY(EditAnywhere)
+	float FadeInStartDelay = 0.f;
+	UPROPERTY(EditAnywhere)
+	float FadeInDuration = 0.f;   
+	UPROPERTY(EditAnywhere)
+	float FadeStartDelay = 0.f;  
+	UPROPERTY(EditAnywhere)
+	float FadeDuration = 0.f;      
+
+	float ElapsedTime = 0.f;       
 
 	UTexture2D* DecalTexture = nullptr;
 };
