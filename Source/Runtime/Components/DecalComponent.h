@@ -35,6 +35,11 @@ public:
 	bool IsAdditiveBlend() const { return bAdditiveBlend; }
 	void SetAdditiveBlend(bool bInAdditive) { bAdditiveBlend = bInAdditive; }
 
+	FColor GetDecalColor() const { return DecalColor; }
+	void SetDecalColor(const FColor& InColor) { DecalColor = InColor; }
+	float GetIntensity() const { return Intensity; }
+	void SetIntensity(float InIntensity) { Intensity = InIntensity; }
+
 private:
 	void ResolveTexture();
 
@@ -52,6 +57,11 @@ private:
 	float FadeDuration = 0.f;      
 	UPROPERTY(EditAnywhere)
 	bool bAdditiveBlend = false;
+	UPROPERTY(EditAnywhere)
+	FColor DecalColor = FColor(255, 255, 255, 255);
+	UPROPERTY(EditAnywhere)
+	float Intensity = 1.f;
+
 
 	float ElapsedTime = 0.f;       
 

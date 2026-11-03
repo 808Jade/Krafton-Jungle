@@ -13,8 +13,11 @@ cbuffer Worldconstants : register(b2)
 cbuffer DecalConstants : register(b3)
 {
     matrix WorldToDecal;
+    float4 DecalColor;
     float FadeAlpha;
-    float3 DecalPadding;
+    float Intensity;
+    float IsAdditive;
+    float DecalPadding;
 };
 
 struct VS_INPUT
@@ -58,8 +61,13 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     float4 Color = g_txDecal.Sample(g_Sample, UV);
     
     float DepthFade = saturate(4.f - 4.f * abs(DecalPosition.x));
-    Color.a *= DepthFade;
+    Color.a *= DepthFade * FadeAlpha;
     
-    Color.a *= FadeAlpha;
+    Color.rgb *= DecalColor.rgb * Intensity;
+    
+    if (IsAdditive > 0.5f)
+    {
+        Color.rgb *= Color.a;
+    }
     return Color;
 }

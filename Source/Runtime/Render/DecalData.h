@@ -12,7 +12,10 @@ namespace DecalStats
 struct alignas(16) FDecalConstants
 {
 	FMatrix WorldToDecal;
+	FLinearColor DecalColor{};
 	float FadeAlpha = 1.f;
-	FVector Padding;
+	float Intensity = 0.f;
+	float IsAdditive = 0.f;
+	float Padding = 0.f;
 };
-static_assert(sizeof(FDecalConstants) == 80);
+static_assert(sizeof(FDecalConstants) == 96);
