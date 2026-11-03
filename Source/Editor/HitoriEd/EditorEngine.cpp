@@ -176,6 +176,7 @@ bool UEditorEngine::Init()
 	UIEditorPanel = EditorUI->AddEditorPanel<FUIEditorPanel>();
 	ContentDrawerPanel->SetCreateWidgetCallback([this](const FString& Path) { UIEditorPanel->NewAsset(Path); });
 	ContentDrawerPanel->SetOpenWidgetCallback([this](const FString& Path) { UIEditorPanel->OpenAsset(Path); });
+	ContentDrawerPanel->SetOpenSkeletalMeshCallback([this](USkeletalMesh* Mesh) { SkeletalMeshViewerPanel->OpenAsset(Mesh); });
 
 	Outline = MakeUnique<FOutline>();
 

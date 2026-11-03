@@ -3,6 +3,21 @@
 #include "Asset/AssetManager.h"
 #include "Text/Font.h"
 #include "Editor/HitoriEd/EditorDragDrop.h"
+#include "Render/SkeletalMesh.h"
+
+namespace
+{
+	// 언리얼 콘텐츠 브라우저처럼 썸네일 아래 띠 색으로 에셋 타입을 구분한다 (전용 아이콘이 없어서)
+	const ImU32 SKELETAL_MESH_TYPE_COLOR = IM_COL32(225, 75, 225, 255);
+
+	bool IsBakeCache(const fs::path& Path)
+	{
+		FString Extension = Path.extension().string();
+		for (char& Character : Extension)
+			Character = static_cast<char>(std::tolower(static_cast<unsigned char>(Character)));
+		return Extension == ".bin";
+	}
+}
 
 bool FContentDrawerPanel::Init()
 {
@@ -108,6 +123,9 @@ void FContentDrawerPanel::OnRender()
 
 				if (TypeError)
 					continue;
+				// .bin은 OBJ·FBX를 빨리 다시 읽으려고 구운 캐시라 에셋으로 보여 주지 않는다
+				if (!bIsDirectory && IsBakeCache(Path))
+					continue;
 
 				ImGui::TableNextColumn();
 
@@ -121,6 +139,7 @@ void FContentDrawerPanel::OnRender()
 				// 폴더/파일 아이콘은 끌 수 없어야 하므로 썸네일과 구분해서 들고 있는다.
 				UTexture2D* TextureAsset = nullptr;
 				UFont* FontAsset = nullptr;
+				USkeletalMesh* SkeletalMeshAsset = nullptr;
 
 				// 폴더 또는 파일 아이콘 표시
 				if (bIsDirectory)
@@ -143,6 +162,11 @@ void FContentDrawerPanel::OnRender()
 						Thumbnail = FontAsset->AtlasTexture;
 					}
 
+					// FBX 메시는 "Assets/"를 뺀 상대 경로로 등록된다 (UAssetManager::LoadAsset).
+					// 매 프레임 파일마다 불리므로 디스크를 보지 않는 lexically_relative를 쓴다
+					SkeletalMeshAsset = UAssetManager::GetAssetByPath<USkeletalMesh>(
+						Path.lexically_relative(AssetRootPath).generic_string());
+
 					if (Thumbnail == nullptr)
 					{
 						Thumbnail = UAssetManager::GetAssetByPath<UTexture2D>(FileIconPath);
@@ -151,6 +175,20 @@ void FContentDrawerPanel::OnRender()
 				if (Thumbnail)
 				{
 					ImGui::ImageButton(PathString.c_str(), (ImTextureID)Thumbnail->GetResource()->GetSRV(), { thumbnailSize, thumbnailSize });
+				}
+
+				if (SkeletalMeshAsset)
+				{
+					// 파일 아이콘 아래에 타입 색 띠와 "SK" 표시를 얹는다
+					const ImVec2 Min = ImGui::GetItemRectMin();
+					const ImVec2 Max = ImGui::GetItemRectMax();
+					ImDrawList* DrawList = ImGui::GetWindowDrawList();
+					DrawList->AddRectFilled(ImVec2(Min.x, Max.y - 4.0f), Max, SKELETAL_MESH_TYPE_COLOR);
+					DrawList->AddText(ImVec2(Min.x + 6.0f, Min.y + 4.0f), SKELETAL_MESH_TYPE_COLOR, "SK");
+
+					if (ImGui::IsItemHovered())
+						ImGui::SetTooltip("Skeletal Mesh\nBones: %d\nDouble-click to open in Skeletal Mesh Viewer",
+							SkeletalMeshAsset->Data.Bones.Num());
 				}
 
 				// 페이로드에 포인터를 그대로 실어서 받는 쪽이 AssetMap을 다시 뒤지지 않게 한다.
@@ -182,6 +220,10 @@ void FContentDrawerPanel::OnRender()
 					else if (Path.extension() == ".widget" && OnOpenWidget)
 					{
 						OnOpenWidget(PathString);
+					}
+					else if (SkeletalMeshAsset && OnOpenSkeletalMesh)
+					{
+						OnOpenSkeletalMesh(SkeletalMeshAsset);
 					}
 				}
 				// 파일 이름 표시

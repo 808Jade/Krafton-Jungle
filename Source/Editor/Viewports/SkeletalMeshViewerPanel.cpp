@@ -43,6 +43,9 @@ bool FSkeletalMeshViewerPanel::Init()
 	ViewportClient->SetViewIndex(4); // 0~3은 메인 뷰포트 몫
 	ViewportClient->Resize(1, 1);
 	FocusCamera();
+
+	// 시작할 때는 닫아 두고, 콘텐츠 드로어 더블클릭(OpenAsset)이나 Window 메뉴로 연다
+	SetOpen(false);
 	return true;
 }
 
@@ -124,6 +127,9 @@ void FSkeletalMeshViewerPanel::OpenAsset(USkeletalMesh* Mesh)
 {
 	if (!PreviewActor || !Mesh)
 		return;
+	// 이전 메시의 본 인덱스가 새 메시에서 엉뚱한 본을 가리키지 않게 선택부터 비운다
+	SelectedBone = INDEX_NONE;
+	BoneGizmo.SetTarget(nullptr);
 	PreviewActor->GetSkeletalMeshComponent()->SetSkeletalMesh(Mesh);
 	PreviewActor->GetSkeletalMeshComponent()->ApplyPose();
 	FocusCamera();
