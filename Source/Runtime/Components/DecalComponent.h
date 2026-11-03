@@ -40,6 +40,8 @@ public:
 	float GetIntensity() const { return Intensity; }
 	void SetIntensity(float InIntensity) { Intensity = InIntensity; }
 
+	void SetDecalTexturePath(const FString& InPath) { DecalTexturePath = InPath; }
+
 private:
 	void ResolveTexture();
 
