@@ -40,6 +40,11 @@ struct FRenderStats
 	uint32 CascadeViewsRedrawn = 0;
 	uint32 CascadeViewsCached = 0;
 
+	uint32 DecalCount = 0;      // 필터를 통과해 판정한 데칼
+	uint32 DecalsRendered = 0;  // Receiver가 하나 이상 있었던 데칼
+	uint32 DecalReceivers = 0;  // Narrow Phase까지 통과한 메시 수 (데칼별 합)
+	uint32 DecalDrawCalls = 0;  // 데칼 패스 DrawIndexed 수
+
 	void Reset() { *this = FRenderStats(); }
 };
 

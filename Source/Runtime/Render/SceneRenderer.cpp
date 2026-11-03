@@ -164,11 +164,13 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 	TArray<FMeshDrawBatch> Batches;
 	FMeshPassProcessor Processor;
 	FScene& Scene = World->GetScene();
+	FRenderStats& Stats = RenderData.RenderStats;
 
 	for (TObjectIterator<UDecalComponent> Decal; Decal; ++Decal)
 	{
 		if (!Decal || !Decal->IsRegistered() || !Decal->IsShown(View.bGameView) || !Decal->GetOwner() || Decal->GetOwner()->GetWorld() != World || !Decal->GetDecalTexture() || Decal->GetFadeAlpha() <= 0.f)
 			continue;
+		Stats.DecalCount++;
 
 		const FBox DecalBounds = Decal->CalcBounds();
 		const FOBB DecalOBB = Decal->GetDecalOBB();
@@ -193,6 +195,8 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 		);
 		if (Receivers.IsEmpty())
 			continue;
+		Stats.DecalsRendered++;
+		Stats.DecalReceivers += Receivers.Num();
 
 		FDecalConstants Constants{ Decal->GetWorldToDecal(), Decal->GetFadeAlpha() };
 		RenderCommand::UpdateBufferData(Renderer->GetDecalConstants(), &Constants);
@@ -200,6 +204,10 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 
 		if (Processor.Build(Receivers, Decal->GetDecalTexture(), Batches))
 		{
+			for (const auto& Batch : Batches)
+			{
+				Stats.DecalDrawCalls += Batch.Items.Num();
+			}
 			Renderer->DrawMeshes(Batches);
 		}
 	}
