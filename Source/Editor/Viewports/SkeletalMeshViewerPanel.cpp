@@ -30,6 +30,14 @@ bool FSkeletalMeshViewerPanel::Init()
 			Primitive->SetVisible(false);
 	}
 
+	// 기즈모가 잡을 보이지 않는 대리 컴포넌트. 루트라서 Relative가 곧 World다
+	AActor* PivotActor = PreviewWorld->SpawnActor<AActor>();
+	BonePivot = Cast<USceneComponent>(PivotActor->AddComponent(USceneComponent::StaticClass(), "BonePivot"));
+	PivotActor->SetRootComponent(BonePivot);
+
+	// Component Space를 채워 둔다. 피킹·본 편집이 부모 본 행렬을 읽는다
+	PreviewActor->GetSkeletalMeshComponent()->ApplyPose();
+
 	ViewportClient = MakeUnique<FEditorViewportClient>();
 	ViewportClient->SetWorld(PreviewWorld);
 	ViewportClient->SetViewIndex(4); // 0~3은 메인 뷰포트 몫
@@ -50,6 +58,8 @@ void FSkeletalMeshViewerPanel::Tick(float DeltaTime)
 	// 카메라 입력은 이 Tick보다 먼저, 렌더는 뒤에 돌아서 이번 프레임 카메라와 어긋나지 않는다
 	if (PreviewLight)
 		PreviewLight->GetLightComponent()->SetRelativeRotation(ViewportClient->GetViewRotation());
+
+	UpdateBoneGizmoAndPicking();
 }
 
 void FSkeletalMeshViewerPanel::OnRender()
@@ -67,6 +77,7 @@ void FSkeletalMeshViewerPanel::OnRender()
 	bHovered = false;
 	if (ImGui::Begin(GetPanelName(), &bOpen))
 	{
+		DrawGizmoToolbar();
 		// 왼쪽은 뷰포트 이미지, 오른쪽은 본 트리
 		const ImVec2 Avail = ImGui::GetContentRegionAvail();
 		// 트리는 가장 긴 이름에 맞추고, 창이 좁으면 절반까지만 쓰고 가로 스크롤로 본다
@@ -80,11 +91,14 @@ void FSkeletalMeshViewerPanel::OnRender()
 			RequestedWidth = static_cast<uint32>(Size.x);
 			RequestedHeight = static_cast<uint32>(Size.y);
 			ViewportClient->SetRect({ 0.0f, 0.0f, Size.x, Size.y });
-			if (FTexture2D* Color = ViewportClient->GetColorTarget(); Color && Color->GetSRV())
-				ImGui::Image(Color->GetSRV(), Size);
-			else
-				ImGui::Dummy(Size);
+			// Image는 입력을 받지 않는 아이템이라 그 위에서 드래그하면 ImGui가 창을 옮긴다.
+			// 보이지 않는 버튼이 왼쪽·오른쪽 클릭을 차지해 기즈모 드래그와 카메라 조작이 창 이동으로 새지 않게 한다
+			ImGui::InvisibleButton("##ViewerViewport", Size, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
 			bHovered = ImGui::IsItemHovered();
+			const ImVec2 Min = ImGui::GetItemRectMin();
+			if (FTexture2D* Color = ViewportClient->GetColorTarget(); Color && Color->GetSRV())
+				ImGui::GetWindowDrawList()->AddImage(Color->GetSRV(), Min, ImGui::GetItemRectMax());
+			ImageMin = FVector2(Min.x, Min.y);
 			ImGui::SameLine();
 		}
 		// 본 계층은 깊어서(Manny 손가락 끝은 15단계 안팎) 넘치는 이름은 가로 스크롤로 본다
@@ -111,6 +125,7 @@ void FSkeletalMeshViewerPanel::OpenAsset(USkeletalMesh* Mesh)
 	if (!PreviewActor || !Mesh)
 		return;
 	PreviewActor->GetSkeletalMeshComponent()->SetSkeletalMesh(Mesh);
+	PreviewActor->GetSkeletalMeshComponent()->ApplyPose();
 	FocusCamera();
 	SetOpen(true);
 	ImGui::SetWindowFocus(GetPanelName());
@@ -124,6 +139,8 @@ void FSkeletalMeshViewerPanel::Shutdown()
 	PreviewWorld = nullptr;
 	PreviewActor = nullptr;
 	PreviewLight = nullptr;
+	BonePivot = nullptr;
+	BoneGizmo.SetTarget(nullptr);
 	ViewportClient.reset();
 }
 
@@ -179,14 +196,12 @@ namespace
 	}
 }
 
-void FSkeletalMeshViewerPanel::DrawBones(FLineBatcher* LineBatcher) const
+bool FSkeletalMeshViewerPanel::CalcJointWorldPositions(TArray<FVector>& OutJoints) const
 {
-	if (!LineBatcher || !PreviewActor)
-		return;
-	const USkeletalMeshComponent* Component = PreviewActor->GetSkeletalMeshComponent();
+	const USkeletalMeshComponent* Component = PreviewActor ? PreviewActor->GetSkeletalMeshComponent() : nullptr;
 	const USkeletalMesh* Mesh = Component ? Component->GetSkeletalMesh() : nullptr;
 	if (!Mesh || Mesh->Data.Bones.IsEmpty())
-		return;
+		return false;
 	const TArray<FBoneInfo>& Bones = Mesh->Data.Bones;
 
 	// Component Space는 ApplyPose 전에는 비어 있으므로 그때는 바인드(Ref) 자세로 직접 쌓는다
@@ -205,13 +220,22 @@ void FSkeletalMeshViewerPanel::DrawBones(FLineBatcher* LineBatcher) const
 
 	// 행벡터 규약이라 월드 = Component Space × 컴포넌트 월드, 관절 위치는 4행(이동)
 	const FMatrix ComponentToWorld = Component->GetWorldMatrix();
-	TArray<FVector> Joints;
-	Joints.SetNum(Bones.Num());
+	OutJoints.SetNum(Bones.Num());
 	for (int32 i = 0; i < Bones.Num(); ++i)
 	{
 		const FMatrix World = (*ComponentSpace)[i] * ComponentToWorld;
-		Joints[i] = FVector(World.M[3][0], World.M[3][1], World.M[3][2]);
+		OutJoints[i] = FVector(World.M[3][0], World.M[3][1], World.M[3][2]);
 	}
+	return true;
+}
+
+void FSkeletalMeshViewerPanel::DrawBones(FLineBatcher* LineBatcher) const
+{
+	TArray<FVector> Joints;
+	if (!LineBatcher || !CalcJointWorldPositions(Joints))
+		return;
+	const USkeletalMeshComponent* Component = PreviewActor->GetSkeletalMeshComponent();
+	const TArray<FBoneInfo>& Bones = Component->GetSkeletalMesh()->Data.Bones;
 
 	// 굵기는 뼈 길이에 비례시키되(손가락이 뭉개지지 않게) 메시 크기에 맞춘 상한을 둔다
 	const FBox Bounds = Component->CalcBounds();
@@ -282,6 +306,133 @@ void FSkeletalMeshViewerPanel::DrawBones(FLineBatcher* LineBatcher) const
 			// 사각뿔(부모→자식)은 자식 본의 색을 따른다: 고른 본으로 들어오는 뼈가 연두색이 된다
 			AddWirePyramid(LineBatcher, Joints[Parent], Joints[i], std::min(Length * 0.1f, MaxRadius), Color);
 		}
+	}
+}
+
+int32 FSkeletalMeshViewerPanel::PickBone(const FVector2& MousePos) const
+{
+	TArray<FVector> Joints;
+	if (!ViewportClient || !CalcJointWorldPositions(Joints))
+		return INDEX_NONE;
+	const TArray<FBoneInfo>& Bones = PreviewActor->GetSkeletalMeshComponent()->GetSkeletalMesh()->Data.Bones;
+
+	const FMatrix ViewProj = ViewportClient->GetViewProjectionMatrix();
+	const int ScreenW = static_cast<int>(ViewportClient->GetWidth());
+	const int ScreenH = static_cast<int>(ViewportClient->GetHeight());
+	TArray<FVector2> Screen;
+	Screen.SetNum(Bones.Num());
+	for (int32 i = 0; i < Bones.Num(); ++i)
+		Screen[i] = WorldToScreen(Joints[i], ViewProj, ScreenW, ScreenH);
+	// WorldToScreen은 카메라 뒤를 -FLT_MAX로 돌려준다
+	auto IsOnScreen = [&Screen](int32 i) { return Screen[i].X > -FLT_MAX; };
+
+	// 관절 하나에 자기 뼈의 끝과 자식 뼈들의 시작이 겹친다. 같은 거리면 앞(부모 쪽) 인덱스가 남도록 <로 비교해
+	// 관절을 클릭하면 그 관절의 본이 골라진다
+	constexpr float PickPixels = 8.0f;
+	int32 Best = INDEX_NONE;
+	float BestDist = PickPixels;
+	for (int32 i = 0; i < Bones.Num(); ++i)
+	{
+		if (!IsOnScreen(i))
+			continue;
+		const float DX = MousePos.X - Screen[i].X;
+		const float DY = MousePos.Y - Screen[i].Y;
+		float Dist = std::sqrt(DX * DX + DY * DY);
+		const int32 Parent = Bones[i].ParentIndex;
+		if (Bones.IsValidIndex(Parent) && IsOnScreen(Parent))
+			Dist = std::min(Dist, DistanceToSegment(MousePos, Screen[Parent], Screen[i]));
+		if (Dist < BestDist)
+		{
+			BestDist = Dist;
+			Best = i;
+		}
+	}
+	return Best;
+}
+
+void FSkeletalMeshViewerPanel::UpdateBoneGizmoAndPicking()
+{
+	const USkeletalMeshComponent* Component = PreviewActor ? PreviewActor->GetSkeletalMeshComponent() : nullptr;
+	const USkeletalMesh* Mesh = Component ? Component->GetSkeletalMesh() : nullptr;
+	const bool bHasBone = BonePivot && Mesh && Mesh->Data.Bones.IsValidIndex(SelectedBone);
+	BoneGizmo.SetTarget(bHasBone ? BonePivot : nullptr);
+
+	if (!ViewportClient->IsActive())
+	{
+		bLeftClicked = false;
+		return;
+	}
+
+	// 드래그 중이 아니면 기즈모 위치를 본에 맞춘다 (트리에서 다른 본을 골랐거나 부모 본이 움직였을 때)
+	if (bHasBone && !BoneGizmo.IsUsing())
+		SyncPivotFromBone();
+
+	// 우클릭 카메라 조작 중에는 기즈모를 잡지 않는다. 드래그를 시작한 뒤에는 창 밖으로 나가도 이어간다
+	const bool bMouseDown = bLeftDown && !bCameraCaptured && (bHovered || BoneGizmo.IsUsing());
+	const FRay Ray = ViewportClient->DeprojectScreenToWorld(MouseLocal);
+	BoneGizmo.Update(Ray, MouseLocal, ViewportClient->GetViewProjectionMatrix(),
+		static_cast<int>(ViewportClient->GetWidth()), static_cast<int>(ViewportClient->GetHeight()),
+		bMouseDown, ViewportClient->GetViewLocation(), !ViewportClient->IsPerspective());
+
+	if (BoneGizmo.IsUsing())
+		ApplyPivotToBone();
+	else if (bLeftClicked && BoneGizmo.GetHoveredAxis() < 0)
+		SelectedBone = PickBone(MouseLocal);   // 빈 곳이면 INDEX_NONE이라 선택이 풀린다
+	bLeftClicked = false;
+}
+
+void FSkeletalMeshViewerPanel::SyncPivotFromBone()
+{
+	const USkeletalMeshComponent* Component = PreviewActor->GetSkeletalMeshComponent();
+	const TArray<FMatrix>& ComponentSpace = Component->GetComponentSpaceTransforms();
+	if (!ComponentSpace.IsValidIndex(SelectedBone))
+		return;
+	// 위치·회전·스케일 분해는 SetWorldTransform에 맡긴다
+	BonePivot->SetWorldTransform(ComponentSpace[SelectedBone] * Component->GetWorldMatrix(), false);
+}
+
+void FSkeletalMeshViewerPanel::ApplyPivotToBone()
+{
+	USkeletalMeshComponent* Component = PreviewActor->GetSkeletalMeshComponent();
+	const TArray<FMatrix>& ComponentSpace = Component->GetComponentSpaceTransforms();
+	const TArray<FBoneInfo>& Bones = Component->GetSkeletalMesh()->Data.Bones;
+	if (!ComponentSpace.IsValidIndex(SelectedBone))
+		return;
+
+	// 월드 → Component Space → 부모 기준 Local. 행벡터라 역행렬은 오른쪽에 곱한다
+	const FMatrix BoneComponentSpace = BonePivot->GetWorldMatrix() * Component->GetWorldMatrix().Inverse();
+	const int32 Parent = Bones[SelectedBone].ParentIndex;
+	const FMatrix Local = ComponentSpace.IsValidIndex(Parent)
+		? BoneComponentSpace * ComponentSpace[Parent].Inverse()
+		: BoneComponentSpace;
+	if (Component->SetBoneLocalTransform(SelectedBone, Local))
+		Component->ApplyPose();
+}
+
+void FSkeletalMeshViewerPanel::DrawGizmoToolbar()
+{
+	int32 Mode = static_cast<int32>(BoneGizmo.GetMode());
+	if (ImGui::RadioButton("Translate", Mode == static_cast<int32>(EGizmoMode::Location))) BoneGizmo.SetMode(EGizmoMode::Location);
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Rotate", Mode == static_cast<int32>(EGizmoMode::Rotation))) BoneGizmo.SetMode(EGizmoMode::Rotation);
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Scale", Mode == static_cast<int32>(EGizmoMode::Scale))) BoneGizmo.SetMode(EGizmoMode::Scale);
+	ImGui::SameLine();
+	ImGui::TextDisabled("|");
+	ImGui::SameLine();
+	const bool bLocal = BoneGizmo.GetSpace() == EGizmoSpace::Local;
+	if (ImGui::RadioButton("Local", bLocal)) BoneGizmo.SetSpace(EGizmoSpace::Local);
+	ImGui::SameLine();
+	if (ImGui::RadioButton("World", !bLocal)) BoneGizmo.SetSpace(EGizmoSpace::World);
+	ImGui::SameLine();
+	ImGui::TextDisabled("(Space: cycle mode)");
+
+	// 메인 에디터처럼 Space로 모드 순환. 뷰어 창에 포커스가 있을 때만
+	if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !bCameraCaptured && !BoneGizmo.IsUsing()
+		&& !ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_Space, false))
+	{
+		Mode = (Mode + 1) % 3;
+		BoneGizmo.SetMode(static_cast<EGizmoMode>(Mode));
 	}
 }
 
@@ -393,6 +544,12 @@ void FSkeletalMeshViewerPanel::GatherCameraInput()
 	}
 	if (!ImGui::IsMouseDown(ImGuiMouseButton_Right) || !ViewportClient->IsActive())
 		bCameraCaptured = false;
+
+	// 왼쪽 버튼은 본 피킹·기즈모용. 뷰포트 이미지 좌상단 기준 픽셀로 바꿔 둔다
+	bLeftDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
+	if (bHovered && !bCameraCaptured && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+		bLeftClicked = true;
+	MouseLocal = FVector2(IO.MousePos.x - ImageMin.X, IO.MousePos.y - ImageMin.Y);
 
 	CameraInput.bCaptured = bCameraCaptured;
 	CameraInput.bAllowWheel = bCameraCaptured || bHovered;

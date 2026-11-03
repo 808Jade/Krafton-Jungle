@@ -51,6 +51,16 @@ bool USkeletalMeshComponent::SetBoneLocalRotation(const FString& BoneName, const
 	return false;
 }
 
+bool USkeletalMeshComponent::SetBoneLocalTransform(int32 BoneIndex, const FMatrix& Local)
+{
+	if (!SkeletalMesh || !SkeletalMesh->Data.Bones.IsValidIndex(BoneIndex))
+		return false;
+	if (LocalPose.Num() != SkeletalMesh->Data.Bones.Num())
+		ResetToRefPose();
+	LocalPose[BoneIndex] = Local;
+	return true;
+}
+
 void USkeletalMeshComponent::PostEditChangeProperty(const FProperty& Property)
 {
 	Super::PostEditChangeProperty(Property);

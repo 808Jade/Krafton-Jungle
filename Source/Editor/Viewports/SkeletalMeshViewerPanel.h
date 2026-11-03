@@ -2,6 +2,7 @@
 
 #include "Editor/EditorUI/EditorPanel.h"
 #include "Editor/Viewports/EditorViewportClient.h"
+#include "Editor/Gizmo/Gizmo.h"
 
 class UWorld;
 class USkeletalMesh;
@@ -35,10 +36,24 @@ public:
 	// 언리얼 Persona처럼 관절은 와이어 구, 뼈는 부모→자식 사각뿔로 그린다. 깊이 테스트 없이 그리는 건 호출자 몫
 	void DrawBones(FLineBatcher* LineBatcher) const;
 
+	// 고른 본을 조작하는 뷰어 전용 기즈모 (레벨 기즈모와 따로 둔다). 대상이 없으면 그리지 않는다
+	const FGizmo& GetBoneGizmo() const { return BoneGizmo; }
+
 private:
 	// 메시 바운드가 화면에 들어오게 카메라를 앞쪽에 둔다
 	void FocusCamera();
 	void GatherCameraInput();
+
+	// 관절 월드 위치. Component Space가 비었으면 바인드 자세로 쌓는다
+	bool CalcJointWorldPositions(TArray<FVector>& OutJoints) const;
+	// 뷰포트 로컬 픽셀에서 화면상 가장 가까운 뼈(부모→자식 선분)를 고른다. 없으면 INDEX_NONE
+	int32 PickBone(const FVector2& MousePos) const;
+	// 기즈모 갱신 → 드래그 중이면 본에 반영, 아니면 대리 컴포넌트를 본에 맞춘다 → 클릭 피킹
+	void UpdateBoneGizmoAndPicking();
+	// 대리 컴포넌트 ↔ 고른 본 월드 변환
+	void SyncPivotFromBone();
+	void ApplyPivotToBone();
+	void DrawGizmoToolbar();
 
 	// 우측 본 계층 트리 (Outliner처럼 클릭으로 선택)
 	void DrawBoneTree();
@@ -58,6 +73,15 @@ private:
 	FViewportCameraInput CameraInput;
 	bool bHovered = false;
 	bool bCameraCaptured = false;
+
+	// 기즈모는 본이 아니라 이 대리 컴포넌트를 움직이고, 그 변환을 본 Local로 되돌려 넣는다
+	USceneComponent* BonePivot = nullptr;
+	FGizmo BoneGizmo;
+	// OnRender에서 모은 왼쪽 마우스 입력. 처리는 다음 Tick(렌더 전)에서 한다
+	FVector2 ImageMin;
+	FVector2 MouseLocal;
+	bool bLeftDown = false;
+	bool bLeftClicked = false;
 
 	const USkeletalMesh* BoneTreeMesh = nullptr;
 	TArray<TArray<int32>> BoneChildren;

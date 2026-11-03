@@ -1252,6 +1252,13 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 					GizmoRenderer->OnRender(*Gizmo, SceneView.ViewProjectionMatrix,
 						SceneView.ViewLocation, !SceneView.bIsPerspective);
 				};
+			// 뷰어는 레벨 기즈모 대신 고른 본을 잡는 자기 기즈모를 그린다
+			if (bPreviewWorld && SkeletalMeshViewerPanel->GetBoneGizmo().GetTarget())
+				Overlays.EditorGizmo = [this, &SceneView]
+				{
+					GizmoRenderer->OnRender(SkeletalMeshViewerPanel->GetBoneGizmo(), SceneView.ViewProjectionMatrix,
+						SceneView.ViewLocation, !SceneView.bIsPerspective);
+				};
 			Overlays.bClearEditorDepth = true;
 			if (!bPreviewWorld && SettingsPanel->GetSettings().bShowUUID)
 				Overlays.EditorUUID = [this, &SceneView] { RenderActorUUIDs(SceneView); };
