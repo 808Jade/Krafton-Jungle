@@ -46,6 +46,7 @@ void FSettingsPanel::OnRender()
 	ImGui::Checkbox("Cache Shadows", &Settings.bCacheShadows);
 	ImGui::Checkbox("Draw Bounding Box", &Settings.bDrawBoundingBox);
 	ImGui::Checkbox("Show Object UUID", &Settings.bShowUUID);
+	ImGui::Checkbox("Draw Decals", &Settings.bShowDecals);
 	const char* RenderingPaths[] = { "Forward", "Deferred" };
 	int RenderingPathIndex = static_cast<int>(Settings.RenderingPath);
 	ImGui::SetNextItemWidth(200.0f);
@@ -198,6 +199,7 @@ bool FSettingsPanel::SaveSettings() const
 	File << "DisplayGamma=" << Settings.DisplayGamma << "\n";
 	File << "ShowVignette=" << Settings.bShowVignette << "\n";
 	File << "ShowCameraOverlay=" << Settings.bShowCameraOverlay << "\n";
+	File << "ShowDecals=" << Settings.bShowDecals << "\n";
 
 	File << "LightCullingMode=" << (Settings.LightCullingMode == ELightCullingMode::Off ? "Off" : Settings.LightCullingMode == ELightCullingMode::Tiled ? "Tiled" : "Clustered") << "\n";
 	File << "RenderingPath=" << (Settings.RenderingPath == ERenderingPath::Forward ? "Forward" : "Deferred") << "\n";
@@ -348,6 +350,7 @@ bool FSettingsPanel::LoadSettings()
 				else if (Key == "DisplayGamma")      Settings.DisplayGamma = std::stof(ValueStr);
 				else if (Key == "ShowVignette")      Settings.bShowVignette = std::stoi(ValueStr);
 				else if (Key == "ShowCameraOverlay") Settings.bShowCameraOverlay = std::stoi(ValueStr);
+				else if (Key == "ShowDecals") Settings.bShowDecals= std::stoi(ValueStr);
 
 				else if (Key == "LightCullingMode")
 				{

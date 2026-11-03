@@ -722,7 +722,7 @@ bool FSceneRenderer::AddViewportPasses(FRenderGraphBuilder& Graph, FRenderer* Re
 	bHasFog = false;
 	bFXAAPassSucceeded = true;
 
-	if (!Options.bShowWorldNormal && Options.bDrawPrimitives)
+	if (!Options.bShowWorldNormal && Options.bDrawPrimitives && Options.bShowDecals)
 	{
 		if (!Graph.AddRasterPass(MakeViewportPass("Decal", SceneColor, Depth),
 			[this, Renderer]
