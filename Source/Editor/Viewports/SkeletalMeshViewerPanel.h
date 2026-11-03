@@ -6,6 +6,7 @@
 class UWorld;
 class USkeletalMesh;
 class ASkeletalMeshActor;
+class ADirectionalLightActor;
 
 // 스켈레탈 메시 하나를 레벨과 분리된 프리뷰 월드에 띄워 보는 창.
 // 렌더는 UEditorEngine::RenderViewports가 이 창의 뷰포트 클라이언트로 한 번 더 그린다.
@@ -43,6 +44,8 @@ private:
 
 	UWorld* PreviewWorld = nullptr;
 	ASkeletalMeshActor* PreviewActor = nullptr;
+	// 카메라를 따라 돌아서 보이는 면을 항상 비춘다
+	ADirectionalLightActor* PreviewLight = nullptr;
 	TUniquePtr<FEditorViewportClient> ViewportClient;
 	uint32 RequestedWidth = 1;
 	uint32 RequestedHeight = 1;

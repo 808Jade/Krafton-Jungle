@@ -15,8 +15,8 @@ bool FSkeletalMeshViewerPanel::Init()
 	PreviewActor = PreviewWorld->SpawnActor<ASkeletalMeshActor>();
 
 	// 라이트 아이콘과 화살표 메시는 프리뷰에 방해만 되니 숨기고 빛만 남긴다
-	ADirectionalLightActor* Light = PreviewWorld->SpawnActor<ADirectionalLightActor>();
-	for (UActorComponent* Component : Light->GetComponents())
+	PreviewLight = PreviewWorld->SpawnActor<ADirectionalLightActor>();
+	for (UActorComponent* Component : PreviewLight->GetComponents())
 	{
 		if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
 			Primitive->SetVisible(false);
@@ -37,6 +37,11 @@ void FSkeletalMeshViewerPanel::Tick(float DeltaTime)
 		return;
 	if (RequestedWidth != ViewportClient->GetWidth() || RequestedHeight != ViewportClient->GetHeight())
 		ViewportClient->Resize(RequestedWidth, RequestedHeight);
+
+	// 라이트 방향(전방)을 카메라 전방과 맞춰 카메라가 보는 면이 정면으로 빛을 받게 한다.
+	// 카메라 입력은 이 Tick보다 먼저, 렌더는 뒤에 돌아서 이번 프레임 카메라와 어긋나지 않는다
+	if (PreviewLight)
+		PreviewLight->GetLightComponent()->SetRelativeRotation(ViewportClient->GetViewRotation());
 }
 
 void FSkeletalMeshViewerPanel::OnRender()
@@ -109,6 +114,7 @@ void FSkeletalMeshViewerPanel::Shutdown()
 		PreviewWorld->ClearWorld();
 	PreviewWorld = nullptr;
 	PreviewActor = nullptr;
+	PreviewLight = nullptr;
 	ViewportClient.reset();
 }
 
