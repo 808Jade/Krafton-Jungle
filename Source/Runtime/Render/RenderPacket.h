@@ -16,6 +16,9 @@ struct FRenderPacket
 	const FPrimitiveSceneProxy* Proxy = nullptr;
 	const FMatrix* Model = nullptr;
 	UStaticMesh* Mesh = nullptr;
+	// Mesh 없이 버퍼를 직접 넘기는 패킷(스켈레탈 메시의 스키닝 결과 등). Mesh가 있으면 쓰지 않는다
+	FVertexBuffer* VertexBuffer = nullptr;
+	FIndexBuffer* IndexBuffer = nullptr;
 	UMaterial* Material = nullptr;
 	const void* MaterialParamData = nullptr;
 	float CameraToParticleDistance = 0.0f;
@@ -105,8 +108,10 @@ class FRenderQueue : public TArray<FRenderPacket>
 			return (1ull << 63) | (~DistanceBits & 0xFFFFFFFFull);
 		}
 
+		// 버퍼를 직접 넘긴 패킷은 메시 ID가 없어 머티리얼 순으로만 묶는다
+		const uint64 MeshSortID = Packet.Mesh ? Packet.Mesh->SortID : 0;
 		return (static_cast<uint64>(Packet.Material->SortID) << 47)
-			| (static_cast<uint64>(Packet.Mesh->SortID) << 31)
+			| (MeshSortID << 31)
 			| (static_cast<uint64>(Packet.LODIndex & 0x3) << 29);
 	}
 
@@ -161,7 +166,7 @@ public:
 		for (int32 Index = 0; Index < TotalPackets; ++Index)
 		{
 			const FRenderPacket& Packet = (*this)[Index];
-			if (!Packet.Mesh || !Packet.Material) continue;
+			if ((!Packet.Mesh && !Packet.VertexBuffer) || !Packet.Material) continue;
 			SortItems.Add({ MakeSortKey(Packet), Index });
 		}
 

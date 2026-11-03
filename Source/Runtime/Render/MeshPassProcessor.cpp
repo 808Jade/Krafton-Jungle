@@ -35,13 +35,14 @@ namespace
 			| (static_cast<uint64>(Group.LODIndex & 0x3) << 29);
 	}
 
-	bool BuildBatch(FMeshDrawBatch& Batch, UStaticMesh* Mesh, uint8 LOD,
+	// 메시 종류(스태틱·스켈레탈)는 모르고 정점·인덱스 버퍼만 받는다
+	bool BuildBatch(FMeshDrawBatch& Batch, FVertexBuffer* VertexBuffer, FIndexBuffer* IndexBuffer,
 		UMaterial* Material, EMeshPassType Pass, const FSceneView& View, ELightingModel LightingModel,
 		const void* OverrideParams = nullptr, uint32 OverrideSize = 0)
 	{
-		if (!Mesh || !Material) return false;
-		Batch.VertexBuffer = Mesh->GetVertexBuffer(LOD);
-		Batch.IndexBuffer = Mesh->GetIndexBuffer(LOD);
+		if (!Material) return false;
+		Batch.VertexBuffer = VertexBuffer;
+		Batch.IndexBuffer = IndexBuffer;
 		if (!Batch.VertexBuffer || !Batch.IndexBuffer) return false;
 		const bool bUsesUberShader = Pass == EMeshPassType::Forward || Pass == EMeshPassType::WorldNormal;
 		if (bUsesUberShader)
@@ -198,7 +199,8 @@ bool FMeshPassProcessor::Build(const FSceneView& View, const FRenderQueue& Queue
 		for (const FStaticDrawGroup* Group : Groups)
 		{
 			FMeshDrawBatch Batch; // Render에게 전달하는 최종 구조체
-			if (!BuildBatch(Batch, Group->Mesh, Group->LODIndex, Group->Material, Pass, View, LightingModel))
+			if (!BuildBatch(Batch, Group->Mesh->GetVertexBuffer(Group->LODIndex), Group->Mesh->GetIndexBuffer(Group->LODIndex),
+				Group->Material, Pass, View, LightingModel))
 				return false;
 
 			Batch.Items.Reserve(static_cast<uint32>(Group->Items.size()));
@@ -218,7 +220,9 @@ bool FMeshPassProcessor::Build(const FSceneView& View, const FRenderQueue& Queue
 		if (Pass == EMeshPassType::WorldNormal &&
 			(!Packet.Material || Packet.Material->PSOType != EPSOType::StaticMesh_Opaque)) continue;
 		FMeshDrawBatch Batch;
-		if (!BuildBatch(Batch, Packet.Mesh, Packet.LODIndex, Packet.Material, Pass, View,
+		FVertexBuffer* VertexBuffer = Packet.Mesh ? Packet.Mesh->GetVertexBuffer(Packet.LODIndex) : Packet.VertexBuffer;
+		FIndexBuffer* IndexBuffer = Packet.Mesh ? Packet.Mesh->GetIndexBuffer(Packet.LODIndex) : Packet.IndexBuffer;
+		if (!BuildBatch(Batch, VertexBuffer, IndexBuffer, Packet.Material, Pass, View,
 			LightingModel, Packet.MaterialParamData, Packet.MaterialParamDataSize)) return false;
 
 		const uint32 IndexCount = Packet.IndexCount ? Packet.IndexCount : Batch.IndexBuffer->GetIndexCount();
@@ -250,22 +254,21 @@ bool FMeshPassProcessor::Build(const TArray<FPrimitiveSceneProxy*>& ShadowMeshes
 			continue;
 		}
 
-		UStaticMesh* Mesh = Proxy->GetMesh();
-		if (!Mesh || Proxy->GetLODCount() == 0)
+		if (Proxy->GetLODCount() == 0)
 		{
 			continue;
 		}
 
 		if (!Proxy->bCastsShadow) continue;
 
-		// 우선 LOD 0 사용
+		// 우선 LOD 0 사용. 버퍼는 프록시가 메시 종류에 맞게 준다 (스켈레탈은 스키닝 결과)
 		constexpr uint8 LOD = 0;
 		const FCachedMeshLOD& CachedLOD = Proxy->GetLOD(LOD);
 
 		FMeshDrawBatch Batch{};
 		Batch.Pipeline = *Pipeline;
-		Batch.VertexBuffer = Mesh->GetVertexBuffer(LOD);
-		Batch.IndexBuffer = Mesh->GetIndexBuffer(LOD);
+		Batch.VertexBuffer = Proxy->GetVertexBuffer(LOD);
+		Batch.IndexBuffer = Proxy->GetIndexBuffer(LOD);
 		Batch.bUseObjectSlots = false;
 		Batch.bBindViewConstants = true;
 		Batch.ObjectBindingSlot = 2;
@@ -273,7 +276,7 @@ bool FMeshPassProcessor::Build(const TArray<FPrimitiveSceneProxy*>& ShadowMeshes
 
 		if (!Batch.VertexBuffer || !Batch.IndexBuffer)
 		{
-			return false;
+			continue; // 아직 버퍼가 없는 프록시(스키닝 결과를 만들기 전 등)는 이번 그림자에서 뺀다
 		}
 
 		for (uint32 Index = 0; Index < CachedLOD.NumSections; ++Index)

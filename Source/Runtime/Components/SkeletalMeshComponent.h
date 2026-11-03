@@ -13,11 +13,15 @@ public:
 	// 1. Local 자세 편집
 	void ResetToRefPose();
 	bool SetBoneLocalRotation(const FString& BoneName, const FRotator& Rotation);
+	// 인덱스로 뼈 하나의 Local(부모 기준) 행렬을 바꾼다. 반영은 ApplyPose
+	bool SetBoneLocalTransform(int32 BoneIndex, const FMatrix& Local);
 	void ApplyPose() { RefreshSkinning(LocalPose); }
 
 	virtual void PostEditChangeProperty(const FProperty& Property) override;
 
 protected:
+	virtual void OnSkeletalMeshChanged() override;
+
 	// 뼈별 Local 자세 (부모 기준)
 	TArray<FMatrix> LocalPose;
 

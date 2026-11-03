@@ -159,6 +159,7 @@ bool UEditorEngine::Init()
 	EditorControlsPanel = EditorUI->AddEditorPanel<FEditorControlsPanel>();
 	ViewportsPanel = EditorUI->AddEditorPanel<FViewportsPanel>();
 	ContentDrawerPanel = EditorUI->AddEditorPanel<FContentDrawerPanel>();
+	SkeletalMeshViewerPanel = EditorUI->AddEditorPanel<FSkeletalMeshViewerPanel>();
 
 	// OutLine
 	OutlineRenderer = MakeUnique<FOutlineRenderer>();
@@ -176,6 +177,7 @@ bool UEditorEngine::Init()
 	UIEditorPanel = EditorUI->AddEditorPanel<FUIEditorPanel>();
 	ContentDrawerPanel->SetCreateWidgetCallback([this](const FString& Path) { UIEditorPanel->NewAsset(Path); });
 	ContentDrawerPanel->SetOpenWidgetCallback([this](const FString& Path) { UIEditorPanel->OpenAsset(Path); });
+	ContentDrawerPanel->SetOpenSkeletalMeshCallback([this](USkeletalMesh* Mesh) { SkeletalMeshViewerPanel->OpenAsset(Mesh); });
 
 	Outline = MakeUnique<FOutline>();
 
@@ -505,6 +507,13 @@ void UEditorEngine::UpdateViewportState(const float DeltaTime)
 			i == HoveredViewIndex, WheelDelta, MoveSpeed, MouseSens);
 	}
 
+	// 스켈레탈 메시 뷰어 창. 입력은 뷰어 패널이 ImGui에서 모아 둔다 (메인 창 밖으로 꺼내도 동작하도록)
+	if (FEditorViewportClient* ViewerClient = SkeletalMeshViewerPanel->GetViewportClient();
+		ViewerClient && ViewerClient->IsActive())
+	{
+		ViewerClient->TickInput(DeltaTime, SkeletalMeshViewerPanel->ConsumeCameraInput(), MoveSpeed, MouseSens);
+	}
+
 	// 활성 뷰포트 시점 동기화
 	const int32 ActiveIndex = ViewportsPanel->GetActiveViewIndex();
 	if (FEditorViewportClient* ActiveClient = ViewportsPanel->GetViewportClient(ActiveIndex))
@@ -675,6 +684,24 @@ void UEditorEngine::RenderViewports()
 
 				CopyPIEWindowToBackbuffer();
 			}
+		}
+	}
+
+	// 스켈레탈 메시 뷰어의 프리뷰 월드. 레벨 뷰포트와 같은 경로로 그리고, 결과는 뷰어 창이 ImGui 이미지로 띄운다
+	if (SkeletalMeshViewerPanel && SkeletalMeshViewerPanel->IsOpen())
+	{
+		FEditorViewportClient* Client = SkeletalMeshViewerPanel->GetViewportClient();
+		UWorld* World = SkeletalMeshViewerPanel->GetPreviewWorld();
+		if (Client && World && Client->IsActive())
+		{
+			// 프리뷰 월드는 Tick하지 않으므로 바뀐 트랜스폼을 여기서 씬에 올린다
+			World->GetScene().UpdateAllTransforms();
+			FSceneRenderOptions Options;
+			BuildSceneRenderOptions(Client, false, Options);
+			const FSceneView View = Client->CalcSceneView(Client->GetRect());
+			FSceneRenderer SceneRenderer(World, View, Client->GetRenderData());
+			SceneRenderer.InitViews(Renderer, Options);
+			RenderFrame(Client, View, Options, SceneRenderer, World, false);
 		}
 	}
 
@@ -1122,7 +1149,9 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 				return;
 			}
 			const FViewportSettings ViewportSetting{ 0, 0, Targets.SceneColor->GetWidth(),Targets.SceneColor->GetHeight(), 0.0f, 1.0f };
-			const bool bIsActiveViewport = ViewportsPanel && SceneView.ViewIndex == ViewportsPanel->GetActiveViewIndex();
+			// 스켈레탈 메시 뷰어는 레벨 선택(기즈모·외곽선·라이트 범위)과 레벨 액터 디버그 도형을 그리지 않는다
+			const bool bPreviewWorld = TargetWorld && TargetWorld->GetWorldType() == EWorldType::SkeletalMeshViewer;
+			const bool bIsActiveViewport = !bPreviewWorld && ViewportsPanel && SceneView.ViewIndex == ViewportsPanel->GetActiveViewIndex();
 
 			const bool bDrawSelectedLight = bIsActiveViewport && Gizmo->GetTarget() &&
 				(Cast<ASpotLightActor>(Gizmo->GetTarget()->GetOwner()) ||
@@ -1131,7 +1160,7 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 
 			const bool bDrawCascadeBounds = SettingsPanel->GetSettings().bDrawCascadeBounds;
 			{
-				Overlays.EditorLines = [this, ViewClient, &SceneView, bDrawSelectedLight, bDrawCascadeBounds]
+				Overlays.EditorLines = [this, ViewClient, &SceneView, bDrawSelectedLight, bDrawCascadeBounds, bPreviewWorld]
 					{
 						LineBatcher->BeginFrame();
 						if (bDrawCascadeBounds)
@@ -1177,6 +1206,11 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 						const AActor* SelectedActor =
 							Gizmo->GetTarget() ? Gizmo->GetTarget()->GetOwner() : nullptr;
 
+						if (!bPreviewWorld)
+						{
+							DrawCollisionShapes(EditorWorld, LineBatcher.get(), SelectedActor);
+							DrawSpringArms(EditorWorld, LineBatcher.get(), SelectedActor);
+						}
 						if (SelectedActor)
 						{
 							for (UActorComponent* Component : SelectedActor->GetComponents())
@@ -1192,11 +1226,20 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 						DrawSpringArms(EditorWorld, LineBatcher.get(), SelectedActor);
 
 						LineBatcher->OnRender(SceneView.ViewProjectionMatrix);
+
+						// 뼈는 메시 안쪽에 있으므로 깊이 테스트 없이 따로 한 번 더 그린다
+						if (bPreviewWorld)
+						{
+							LineBatcher->BeginFrame();
+							SkeletalMeshViewerPanel->DrawBones(LineBatcher.get());
+							LineBatcher->OnRender(SceneView.ViewProjectionMatrix, false);
+						}
 					};
 			}
-			if (SettingsPanel->GetSettings().bDrawBatchLine)
+			// 뷰어는 뼈를 보는 창이라 그리드가 방해만 된다
+			if (SettingsPanel->GetSettings().bDrawBatchLine && !bPreviewWorld)
 			{
-				Overlays.EditorGrid = [this, ViewClient, &SceneView, ViewportSetting]
+				Overlays.EditorGrid =[this, ViewClient, &SceneView, ViewportSetting]
 					{
 						EGridPlane GridPlane = EGridPlane::XY;
 						switch (ViewClient->GetViewportType())
@@ -1226,8 +1269,15 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 					GizmoRenderer->OnRender(*Gizmo, SceneView.ViewProjectionMatrix,
 						SceneView.ViewLocation, !SceneView.bIsPerspective);
 				};
+			// 뷰어는 레벨 기즈모 대신 고른 본을 잡는 자기 기즈모를 그린다
+			if (bPreviewWorld && SkeletalMeshViewerPanel->GetBoneGizmo().GetTarget())
+				Overlays.EditorGizmo = [this, &SceneView]
+				{
+					GizmoRenderer->OnRender(SkeletalMeshViewerPanel->GetBoneGizmo(), SceneView.ViewProjectionMatrix,
+						SceneView.ViewLocation, !SceneView.bIsPerspective);
+				};
 			Overlays.bClearEditorDepth = true;
-			if (SettingsPanel->GetSettings().bShowUUID)
+			if (!bPreviewWorld && SettingsPanel->GetSettings().bShowUUID)
 				Overlays.EditorUUID = [this, &SceneView] { RenderActorUUIDs(SceneView); };
 		});
 	if (!bRendered) return;
@@ -1264,6 +1314,7 @@ void UEditorEngine::PreExit()
 	EndPlayMap();
 	// 시퀀서는 에디터 월드 액터를 가리키므로 월드보다 먼저 정리한다
 	if (SequencerPanel) SequencerPanel->Shutdown();
+	if (SkeletalMeshViewerPanel) SkeletalMeshViewerPanel->Shutdown();
 	EditorWorld->ClearWorld();
 	// PIE 창이 열린 채 종료하면 Device가 살아 있을 때 Swapchain과 타깃을 먼저 정리한다.
 	DestroyPIEWindow();

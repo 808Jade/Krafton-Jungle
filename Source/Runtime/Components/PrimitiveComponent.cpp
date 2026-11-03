@@ -66,6 +66,11 @@ void UPrimitiveComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const F
 {
 }
 
+FPrimitiveSceneProxy* UPrimitiveComponent::CreatePrimitiveSceneProxy()
+{
+	return new FPrimitiveSceneProxy(this);
+}
+
 bool UPrimitiveComponent::LineTraceComponent(const FRay& WorldRay, FHitResult& OutHit)
 {
 	const FStaticMeshData* Mesh = GetMeshData();

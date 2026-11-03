@@ -2,9 +2,11 @@
 #include "StaticMeshBake.h"
 
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <type_traits>
 
+#include "Asset/BakeArchive.h"
 #include "Render/StaticMeshData.h"
 #include "Core/EngineLog.h"
 
@@ -30,70 +32,75 @@ namespace
 		uint32 Version = BakeVersion;
 	};
 
-	// 숫자 || 숫자만 있는 구조체
-	template<typename T>
-	void WritePod(std::ofstream& Out, const T& Value)
+	using namespace BakeArchive;
+
+	// 텍스처 경로를 기준 폴더 상대로 바꿔 저장한다 (다른 PC에서도 맞게). 기준이 없거나 바꿀 수 없으면 그대로
+	FString ToStoredPath(const FString& Path, const FString& BaseDir)
 	{
-		static_assert(std::is_trivially_copyable_v<T>, "invalid plane old data");
-		Out.write(reinterpret_cast<const char*>(&Value), sizeof(T));
+		if (Path.empty() || BaseDir.empty())
+			return Path;
+		const std::filesystem::path Relative = std::filesystem::path(Path).lexically_relative(BaseDir);
+		return Relative.empty() ? Path : Relative.generic_string();
 	}
 
-	template<typename T>
-	bool ReadPod(std::ifstream& In, T& Value)
+	FString FromStoredPath(const FString& Path, const FString& BaseDir)
 	{
-		static_assert(std::is_trivially_copyable_v<T>);
-		In.read(reinterpret_cast<char*>(&Value), sizeof(T));
-		return static_cast<bool>(In);
+		if (Path.empty() || BaseDir.empty() || std::filesystem::path(Path).is_absolute())
+			return Path;
+		return (std::filesystem::path(BaseDir) / Path).lexically_normal().generic_string();
+	}
+}
+
+bool FStaticMeshBake::ReadMeshBody(std::ifstream& In, FStaticMeshData& Data, uint32 MaxCount, const FString& TextureBaseDir)
+{
+	if (!ReadArray<FVertex>(In, Data.Vertices, MaxCount) ||
+		!ReadArray<FLODSourceVertex>(In, Data.LODSourceVertices, MaxCount) ||
+		!ReadArray<uint32>(In, Data.Indices, MaxCount) ||
+		!ReadArray<FStaticMeshSection>(In, Data.Sections, MaxCount))
+	{
+		return false;
 	}
 
-	// 배열: 개수 + 원소 전체를 한 번에
-	template<typename T>
-	void WriteArray(std::ofstream& Out, const TArray<T>& Array)
+	uint32 MaterialSlotsNum = 0;
+	if (!ReadPod<uint32>(In, MaterialSlotsNum))
 	{
-		const uint32 Count = static_cast<uint32>(Array.Num());
-		WritePod(Out, Count);
-		if (Count > 0)
-		{
-			Out.write(reinterpret_cast<const char*>(Array.GetData()), sizeof(T) * Count);
-		}
+		return false;
 	}
 
-	template<typename T>
-	bool ReadArray(std::ifstream& In, TArray<T>& Array, uint32 MaxCount)
+	for (uint32 i = 0; i < MaterialSlotsNum; ++i)
 	{
-		uint32 Count = 0;
-		if (!ReadPod(In, Count) || Count > MaxCount)
-		{
+		FStaticMaterialSlot Slot{};
+		if (!ReadString(In, Slot.Name) || !ReadPod<FVector4>(In, Slot.BaseColor) || !ReadString(In, Slot.DiffuseTexturePath) || !ReadString(In, Slot.NormalTexturePath)) {
 			return false;
 		}
-
-		Array.SetNum(static_cast<int32>(Count));
-		if (Count > 0)
-		{
-			In.read(reinterpret_cast<char*>(Array.GetData()), sizeof(T) * Count);
-		}
-		return static_cast<bool>(In);
+		Slot.DiffuseTexturePath = FromStoredPath(Slot.DiffuseTexturePath, TextureBaseDir);
+		Slot.NormalTexturePath = FromStoredPath(Slot.NormalTexturePath, TextureBaseDir);
+		Data.MaterialSlots.Add(std::move(Slot));
 	}
 
-	// 길이 + 문자열
-	void WriteString(std::ofstream& Out, const FString& Str)
+	// AABB
+	return ReadPod<FBox>(In, Data.AABB);
+}
+
+void FStaticMeshBake::WriteMeshBody(std::ofstream& Out, const FStaticMeshData& Data, const FString& TextureBaseDir)
+{
+	WriteArray<FVertex>(Out, Data.Vertices);
+	WriteArray<FLODSourceVertex>(Out, Data.LODSourceVertices);
+	WriteArray<uint32>(Out, Data.Indices);
+	WriteArray<FStaticMeshSection>(Out, Data.Sections);
+
+	// MaterialSlots
+	WritePod<uint32>(Out, Data.MaterialSlots.Num());
+	for (const auto& Slot : Data.MaterialSlots)
 	{
-		const uint32 Length = static_cast<uint32>(Str.size());
-		WritePod(Out, Length);
-		Out.write(Str.data(), Length);
+		WriteString(Out, Slot.Name);
+		WritePod<FVector4>(Out, Slot.BaseColor);
+		WriteString(Out, ToStoredPath(Slot.DiffuseTexturePath, TextureBaseDir));
+		WriteString(Out, ToStoredPath(Slot.NormalTexturePath, TextureBaseDir));
 	}
 
-	bool ReadString(std::ifstream& In, FString& Str)
-	{
-		uint32 Length = 0;
-		if (!ReadPod(In, Length) || Length > 4096)
-		{
-			return false;
-		}
-		Str.resize(Length);
-		In.read(Str.data(), Length);
-		return static_cast<bool>(In);
-	}
+	// AABB
+	WritePod<FBox>(Out, Data.AABB);
 }
 
 TUniquePtr<FStaticMeshData> FStaticMeshBake::ReadBaked(const FString& BinPath)
@@ -118,31 +125,7 @@ TUniquePtr<FStaticMeshData> FStaticMeshBake::ReadBaked(const FString& BinPath)
 		return nullptr;
 	}
 
-	if (!ReadArray<FVertex>(In, Data->Vertices, MaxCount) ||
-		!ReadArray<FLODSourceVertex>(In, Data->LODSourceVertices, MaxCount) ||
-		!ReadArray<uint32>(In, Data->Indices, MaxCount) ||
-		!ReadArray<FStaticMeshSection>(In, Data->Sections, MaxCount))
-	{
-		return nullptr;
-	}
-
-	uint32 MaterialSlotsNum = 0;
-	if (!ReadPod<uint32>(In, MaterialSlotsNum))
-	{
-		return nullptr;
-	}
-
-	for (uint32 i = 0; i < MaterialSlotsNum; ++i)
-	{
-		FStaticMaterialSlot Slot{};
-		if (!ReadString(In, Slot.Name) || !ReadPod<FVector4>(In, Slot.BaseColor) || !ReadString(In, Slot.DiffuseTexturePath) || !ReadString(In, Slot.NormalTexturePath)) {
-			return nullptr;
-		}
-		Data->MaterialSlots.Add(std::move(Slot));
-	}
-
-	// AABB
-	if (!ReadPod<FBox>(In, Data->AABB))
+	if (!ReadMeshBody(In, *Data, MaxCount))
 	{
 		return nullptr;
 	}
@@ -169,23 +152,7 @@ void FStaticMeshBake::WriteBaked(const FString& BinPath, const FStaticMeshData& 
 	}
 
 	WritePod<FBakeHeader>(Out, FBakeHeader());
-	WriteArray<FVertex>(Out, Data.Vertices);
-	WriteArray<FLODSourceVertex>(Out, Data.LODSourceVertices);
-	WriteArray<uint32>(Out, Data.Indices);
-	WriteArray<FStaticMeshSection>(Out, Data.Sections);
-
-	// MaterialSlots
-	WritePod<uint32>(Out, Data.MaterialSlots.Num());
-	for (const auto& Slot : Data.MaterialSlots)
-	{
-		WriteString(Out, Slot.Name);
-		WritePod<FVector4>(Out, Slot.BaseColor);
-		WriteString(Out, Slot.DiffuseTexturePath);
-		WriteString(Out, Slot.NormalTexturePath);
-	}
-
-	// AABB
-	WritePod<FBox>(Out, Data.AABB);
+	WriteMeshBody(Out, Data);
 
 	// 스트림은 한 번 실패하면 상태가 유지되므로 마지막에 한 번만 확인
 	if (!Out)

@@ -26,7 +26,8 @@ public:
 	void AddPath(const TArray<FVector>& Points, const FVector4& Color);
 
 	void Flush();
-	void OnRender(const FMatrix& ViewProjection);
+	// bDepthTest가 false면 메시에 가려지지 않고 위에 그린다 (스켈레탈 메시 뷰어의 뼈 표시)
+	void OnRender(const FMatrix& ViewProjection, bool bDepthTest = true);
 
 private:
 	FRenderer* Renderer;

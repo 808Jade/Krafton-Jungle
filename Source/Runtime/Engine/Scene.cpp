@@ -7,7 +7,7 @@ void FScene::AddPrimitive(UPrimitiveComponent* Component)
 {
 	if (!Component || Component->SceneProxy) return;
 
-	FPrimitiveSceneProxy* Proxy = new FPrimitiveSceneProxy(Component);
+	FPrimitiveSceneProxy* Proxy = Component->CreatePrimitiveSceneProxy(); // 메시 종류별 프록시
 	Proxy->Scene = this;
 	Proxy->PackedIndex = PrimitiveSceneProxies.Num();
 	Component->SceneProxy = Proxy;
