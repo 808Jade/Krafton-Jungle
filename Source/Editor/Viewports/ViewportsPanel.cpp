@@ -394,7 +394,9 @@ void FViewportsPanel::DrawStatOverlay(ImDrawList* DrawList, const ImVec2& ViewMi
 	}
 
 	if (const FCycleStatData *PickingData =
-					FStatRegistry::Find(EditorStats::STAT_PickingTime)) {
+					FStatOverlay::IsEnabled(EStatFlags::Profile)
+							? FStatRegistry::Find(EditorStats::STAT_PickingTime)
+							: nullptr) {
 		ProfileLines.Add({"Picking", TitleColor});
 		FProfileStatLine Line{"  Time (ms)", ValueColor};
 		Line.Values[0] = std::format("Last: {:.2f}", PickingData->GetLastMs());
