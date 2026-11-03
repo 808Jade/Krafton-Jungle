@@ -157,23 +157,35 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 	if (!Renderer->GetDecalConstants())
 		return;
 
-	TArray<FPrimitiveSceneProxy*> Receivers;
-	for (auto Proxy : RenderData.VisibleProxies)
-	{
-		if (!Proxy->bReceiveDecals)
-		{
-			continue;
-		}
-		Receivers.Add(Proxy);
-	}
 	Renderer->UploadViewMatrix(View.ViewProjectionMatrix);
 
+	TArray<FPrimitiveSceneProxy*> Receivers;
 	TArray<FMeshDrawBatch> Batches;
 	FMeshPassProcessor Processor;
+	FScene& Scene = World->GetScene();
 
 	for (TObjectIterator<UDecalComponent> Decal; Decal; ++Decal)
 	{
 		if (!Decal || !Decal->IsRegistered() || !Decal->IsShown(View.bGameView) || !Decal->GetOwner() || Decal->GetOwner()->GetWorld() != World || !Decal->GetDecalTexture())
+			continue;
+
+		const FBox DecalBounds = Decal->CalcBounds();
+		Receivers.Reset();
+		Scene.BVH.Query
+		(
+			[&](const FBox& Bounds)
+			{
+				return UWorld::AreAABBsOverlapping(DecalBounds, Bounds);
+			}, 
+			[&](FPrimitiveSceneProxy* Proxy)
+			{
+				if (Proxy->IsShown(View.bGameView) && Proxy->bReceiveDecals)
+				{
+					Receivers.Add(Proxy);
+				}
+			}
+		);
+		if (Receivers.IsEmpty())
 			continue;
 
 		FDecalConstants Constants{ Decal->GetWorldToDecal() };
