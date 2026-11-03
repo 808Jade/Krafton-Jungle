@@ -6,6 +6,7 @@
 #include "Editor/HitoriEd/EditorDragDrop.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkinnedMeshComponent.h"
 #include "Components/TextRenderComponent.h"
 #include "Components/ParticleSubUVComponent.h"
 #include "Components/SpotLightComponent.h"
@@ -303,16 +304,16 @@ namespace
 		}
 	}
 
-	void DrawMeshSlot(UObject* Owner, UStaticMesh** StaticMeshPtr)
+	// 메시 에셋 콤보. 고르면 SetAsset으로 넘긴다 (컴포넌트 Setter가 렌더 상태까지 갱신하도록)
+	template <typename TAsset, typename FSetAsset>
+	void DrawMeshAssetCombo(const char* ComboId, TAsset* Current, FSetAsset&& SetAsset)
 	{
-		UStaticMesh* Current = *StaticMeshPtr;
-
 		FString CurrentPath = Current ? Current->GetPath() : "";
 		FString CurrentFileName = Current ? GetAssetDisplayName(CurrentPath) : "None";
 
 		ImGui::SetNextItemWidth(-1.0f);
 
-		bool bOpen = ImGui::BeginCombo("##StaticMesh", CurrentFileName.c_str());
+		bool bOpen = ImGui::BeginCombo(ComboId, CurrentFileName.c_str());
 		if (ImGui::IsItemHovered() && Current)
 		{
 			ImGui::SetTooltip("%s", CurrentPath.c_str());
@@ -320,7 +321,7 @@ namespace
 
 		if (bOpen)
 		{
-			for (TObjectIterator<UStaticMesh> Itr; Itr; ++Itr)
+			for (TObjectIterator<TAsset> Itr; Itr; ++Itr)
 			{
 				bool bSelected = (*Itr == Current);
 
@@ -335,12 +336,7 @@ namespace
 					{
 						ImGui::SetTooltip("%s", ItemPath.c_str());
 					}
-
-					// 메모리를 직접 바꾸지 않고 SetFont를 거친다
-					if (UStaticMeshComponent* MeshComponent = Cast<UStaticMeshComponent>(Owner))
-						MeshComponent->SetStaticMesh(*Itr);
-					else
-						*StaticMeshPtr = *Itr;
+					SetAsset(*Itr);
 				}
 				ImGui::PopID();
 				if (bSelected)
@@ -348,6 +344,30 @@ namespace
 			}
 			ImGui::EndCombo();
 		}
+	}
+
+	void DrawMeshSlot(UObject* Owner, UStaticMesh** StaticMeshPtr)
+	{
+		DrawMeshAssetCombo("##StaticMesh", *StaticMeshPtr, [Owner, StaticMeshPtr](UStaticMesh* Mesh)
+		{
+			// 메모리를 직접 바꾸지 않고 SetStaticMesh를 거친다
+			if (UStaticMeshComponent* MeshComponent = Cast<UStaticMeshComponent>(Owner))
+				MeshComponent->SetStaticMesh(Mesh);
+			else
+				*StaticMeshPtr = Mesh;
+		});
+	}
+
+	void DrawSkeletalMeshSlot(UObject* Owner, USkeletalMesh** SkeletalMeshPtr)
+	{
+		DrawMeshAssetCombo("##SkeletalMesh", *SkeletalMeshPtr, [Owner, SkeletalMeshPtr](USkeletalMesh* Mesh)
+		{
+			// 스키닝 결과 버퍼와 자세를 새 에셋 기준으로 다시 만들어야 하므로 SetSkeletalMesh를 거친다
+			if (USkinnedMeshComponent* MeshComponent = Cast<USkinnedMeshComponent>(Owner))
+				MeshComponent->SetSkeletalMesh(Mesh);
+			else
+				*SkeletalMeshPtr = Mesh;
+		});
 	}
 
 	UMaterial* EnsureMaterialOverride(UMeshComponent* MeshComponent, int32 Slot, UMaterial* Effective, UMaterial* Override)
@@ -690,6 +710,7 @@ namespace
 				Value->Roll = Euler[0];
 				Value->Pitch = Euler[1];
 				Value->Yaw = Euler[2];
+				bChanged = true;
 			}
 			break;
 		}
@@ -732,6 +753,7 @@ namespace
 			if (ImGui::InputText(Label.c_str(), Buffer, sizeof(Buffer)))
 			{
 				*Value = Buffer;
+				bChanged = true;
 			}
 			if (CustomFont) ImGui::PopFont();
 			break;
@@ -778,6 +800,10 @@ namespace
 			else if (Property.Class == UStaticMesh::StaticClass())
 			{
 				DrawMeshSlot(Object, reinterpret_cast<UStaticMesh**>(ObjPtr));
+			}
+			else if (Property.Class == USkeletalMesh::StaticClass())
+			{
+				DrawSkeletalMeshSlot(Object, reinterpret_cast<USkeletalMesh**>(ObjPtr));
 			}
 			break;
 		}

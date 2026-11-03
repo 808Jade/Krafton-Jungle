@@ -6,9 +6,16 @@
 
 USkeletalMeshComponent::USkeletalMeshComponent()
 {
-	// 임시 기본값: Details에서 고르기 전까지 (Step 9에서 제거)
-	SkeletalMesh = UAssetManager::GetAssetByPath<USkeletalMesh>("Models/UnrealMan/SKM_Manny_Simple.FBX");
+	// 배치 직후 보이도록 기본 에셋을 둔다 (StaticMeshComponent의 Cube와 같은 역할). Details에서 바꾼다
+	SkeletalMesh = UAssetManager::GetAssetByPath<USkeletalMesh>("Models/SKM_UnrealMan/SKM_Manny_Simple.FBX");
 	ResetToRefPose();
+}
+
+void USkeletalMeshComponent::OnSkeletalMeshChanged()
+{
+	// 뼈 수와 바인드 자세가 에셋마다 다르므로 이전 에셋의 자세는 버린다
+	ResetToRefPose();
+	Super::OnSkeletalMeshChanged();
 }
 
 void USkeletalMeshComponent::ResetToRefPose()
@@ -42,6 +49,16 @@ bool USkeletalMeshComponent::SetBoneLocalRotation(const FString& BoneName, const
 		}
 	}
 	return false;
+}
+
+bool USkeletalMeshComponent::SetBoneLocalTransform(int32 BoneIndex, const FMatrix& Local)
+{
+	if (!SkeletalMesh || !SkeletalMesh->Data.Bones.IsValidIndex(BoneIndex))
+		return false;
+	if (LocalPose.Num() != SkeletalMesh->Data.Bones.Num())
+		ResetToRefPose();
+	LocalPose[BoneIndex] = Local;
+	return true;
 }
 
 void USkeletalMeshComponent::PostEditChangeProperty(const FProperty& Property)

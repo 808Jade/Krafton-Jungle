@@ -1,7 +1,6 @@
 #include "EnginePCH.h"
 #include "SkinnedMeshComponent.h"
-#include "Render/RenderCommand.h"
-#include "UObject/UObjectGlobals.h"
+#include "Engine/SkeletalMeshSceneProxy.h"
 
 void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
 {
@@ -9,93 +8,111 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
 		return;
 
 	SkeletalMesh = InSkeletalMesh;
-	SkinnedRenderMesh = nullptr;
-	SkinnedVertices.Reset();
+	ClearOverrideMaterials();   // 슬롯 구성이 에셋마다 다르다
+	OnSkeletalMeshChanged();
+}
+
+void USkinnedMeshComponent::OnSkeletalMeshChanged()
+{
 	ComponentSpace.Reset();
-	ClearOverrideMaterials();
+	RecreateMeshObject();
 	MarkRenderStateDirty();
 	OnTransformDirty();
 }
 
-UStaticMesh* USkinnedMeshComponent::GetRenderMesh() const
+void USkinnedMeshComponent::Serialize(FStructuredArchive::FRecord Record)
 {
-	if (SkinnedRenderMesh)
-		return SkinnedRenderMesh;
-	return SkeletalMesh ? SkeletalMesh->RenderMesh : nullptr;
+	// 불러오기는 리플렉션이 SkeletalMesh 포인터만 바꾼다. 생성자 기본 에셋으로 만든 스키닝 버퍼·자세를 새 에셋 기준으로 다시 만든다
+	USkeletalMesh* Previous = SkeletalMesh;
+	Super::Serialize(Record);   // 덮어쓰기 머티리얼도 여기서 읽으므로 지우지 않는다
+
+	if (Record.GetUnderlyingArchive().IsLoading() && SkeletalMesh != Previous)
+		OnSkeletalMeshChanged();
 }
 
 const FStaticMeshData* USkinnedMeshComponent::GetMeshData() const
 {
-	UStaticMesh* RenderMesh = GetRenderMesh();
-	return RenderMesh ? &RenderMesh->GetMeshData() : nullptr;
+	return SkeletalMesh ? &SkeletalMesh->Data.Mesh : nullptr;
+}
+
+FBox USkinnedMeshComponent::CalcLocalBounds() const
+{
+	if (MeshObject && MeshObject->IsValid())
+		return MeshObject->GetLocalBounds();
+	return Super::CalcLocalBounds(); // 바인드 자세 AABB
 }
 
 int32 USkinnedMeshComponent::GetNumMaterials() const
 {
-	UStaticMesh* RenderMesh = GetRenderMesh();
-	return RenderMesh ? static_cast<int32>(RenderMesh->GetMeshData().MaterialSlots.Num()) : 0;
+	return SkeletalMesh ? static_cast<int32>(SkeletalMesh->Data.Mesh.MaterialSlots.Num()) : 0;
 }
 
 FString USkinnedMeshComponent::GetMaterialSlotName(int32 SlotIndex) const
 {
 	if (SlotIndex < 0 || SlotIndex >= GetNumMaterials())
 		return FString();
-	return GetRenderMesh()->GetMeshData().MaterialSlots[SlotIndex].Name;
+	return SkeletalMesh->Data.Mesh.MaterialSlots[SlotIndex].Name;
 }
 
 UMaterial* USkinnedMeshComponent::GetDefaultMaterial(int32 SlotIndex) const
 {
-	UStaticMesh* RenderMesh = GetRenderMesh();
-	return RenderMesh ? RenderMesh->GetMaterial(static_cast<uint32>(SlotIndex)) : nullptr;
+	return SkeletalMesh ? SkeletalMesh->GetMaterial(static_cast<uint32>(SlotIndex)) : nullptr;
 }
 
-// 에셋 메시를 복제해 이 컴포넌트 전용 메시(Dynamic VB)를 만든다
-bool USkinnedMeshComponent::EnsureSkinnedRenderMesh()
+FPrimitiveSceneProxy* USkinnedMeshComponent::CreatePrimitiveSceneProxy()
 {
-	if (SkinnedRenderMesh)
-		return true;
+	return new FSkeletalMeshSceneProxy(this);
+}
 
-	UStaticMesh* Source = SkeletalMesh ? SkeletalMesh->RenderMesh : nullptr;
-	if (!Source)
-		return false;
+void USkinnedMeshComponent::CreateRenderState()
+{
+	// 프록시가 처음 그릴 때부터 정점 버퍼가 있도록 먼저 만든다
+	if (!MeshObject)
+		RecreateMeshObject();
+	Super::CreateRenderState();
+}
 
-	const FStaticMeshData& SourceData = Source->GetMeshData();
-	const uint32 VertexBytes = sizeof(FVertex) * static_cast<uint32>(SourceData.Vertices.Num());
+void USkinnedMeshComponent::RecreateMeshObject()
+{
+	MeshObject.reset();
+	if (SkeletalMesh)
+		MeshObject = MakeUnique<FSkeletalMeshObjectCPUSkin>(SkeletalMesh);
+}
 
-	// 1. 정점: 매 갱신마다 덮어쓰므로 Dynamic
-	TUniquePtr<FVertexBuffer> VB = RenderCommand::CreateDynamicVertexBuffer(VertexBytes, sizeof(FVertex));
-	// 2. 인덱스: 바뀌지 않으므로 Static
-	TUniquePtr<FIndexBuffer> IB = RenderCommand::CreateStaticIndexBuffer(SourceData.Indices.GetData(), static_cast<uint32>(SourceData.Indices.Num()));
-	if (!VB || !IB)
-		return false;
+// 스태틱 메시는 섹션을 정적 묶음으로 모아 그리지만, 스켈레탈 메시는 컴포넌트마다 정점 버퍼가 달라
+// 언리얼의 동적 메시 요소처럼 매 프레임 패킷으로 제출한다.
+void USkinnedMeshComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue, const FViewContext& ViewContext)
+{
+	const FPrimitiveSceneProxy* Proxy = GetSceneProxy();
+	const FMeshRenderState* State = Proxy ? Proxy->GetRenderState() : nullptr;
+	if (!State || !MeshObject || !MeshObject->IsValid() || !SkeletalMesh)
+		return;
 
-	// 3. 메시 데이터·머티리얼은 에셋에서 복사 (피킹·바운드는 바인드 자세 기준)
-	UStaticMesh* Mesh = NewObject<UStaticMesh>();
-	Mesh->MeshData = SourceData;
-	Mesh->Materials = Source->Materials;
-	Mesh->VertexBuffer = std::move(VB);
-	Mesh->IndexBuffer = std::move(IB);
-	Mesh->RebuildRenderData();
-
-	SkinnedRenderMesh = Mesh;
-	SkinnedVertices = SourceData.Vertices;
-
-	// 4. 프록시가 새 메시를 보도록 갱신 요청
-	MarkRenderStateDirty();
-	return true;
+	const FCachedMeshLOD& LOD = State->LODs[0];
+	for (uint32 I = 0; I < LOD.NumSections; ++I)
+	{
+		const FCachedMeshSection& Section = State->Sections[LOD.FirstSection + I];
+		FRenderPacket& Packet = RenderQueue.AddDefaulted_GetRef();
+		Packet.Proxy = Proxy;
+		Packet.VertexBuffer = MeshObject->GetVertexBuffer();
+		Packet.IndexBuffer = SkeletalMesh->IndexBuffer.get();
+		Packet.Material = Section.Material;
+		Packet.StartIndex = Section.StartIndex;
+		Packet.IndexCount = Section.IndexCount;
+	}
 }
 
 void USkinnedMeshComponent::RefreshSkinning(const TArray<FMatrix>& LocalPose)
 {
-	if (!SkeletalMesh || !SkeletalMesh->RenderMesh || !EnsureSkinnedRenderMesh())
+	if (!SkeletalMesh)
 		return;
+	if (!MeshObject)
+		RecreateMeshObject();
 
 	const TArray<FBoneInfo>& Bones = SkeletalMesh->Data.Bones;
-	const TArray<FSkinWeight>& Weights = SkeletalMesh->Data.SkinWeights;
-	const TArray<FVertex>& Source = SkeletalMesh->RenderMesh->GetMeshData().Vertices;
-	if (LocalPose.Num() != Bones.Num() || Weights.Num() != Source.Num())
+	if (LocalPose.Num() != Bones.Num())
 	{
-		HTR_LOG(Warning, "Skinning skipped: pose {}, bones {}, weights {}, verts {}", LocalPose.Num(), Bones.Num(), Weights.Num(), Source.Num());
+		HTR_LOG(Warning, "Skinning skipped: pose {}, bones {}", LocalPose.Num(), Bones.Num());
 		return;
 	}
 
@@ -112,36 +129,9 @@ void USkinnedMeshComponent::RefreshSkinning(const TArray<FMatrix>& LocalPose)
 		SkinMatrices[i] = Bones[i].InvBindPose * ComponentSpace[i];
 	}
 
-	// 3. 정점마다 뼈 4개의 결과를 비율대로 섞기
-	for (int32 v = 0; v < Source.Num(); ++v)
-	{
-		const FVertex& In = Source[v];
-		const FVector InTangent(In.Tangent.X, In.Tangent.Y, In.Tangent.Z);
-		FVector Position = FVector::ZeroVector;
-		FVector Normal = FVector::ZeroVector;
-		FVector Tangent = FVector::ZeroVector;
+	// 3. 정점 변형과 GPU 업로드는 MeshObject가 한다
+	MeshObject->Update(SkinMatrices);
 
-		for (int32 k = 0; k < 4; ++k)
-		{
-			const float W = Weights[v].Weights[k];
-			const int32 Bone = Weights[v].BoneIndices[k];
-			if (W <= 0.0f || Bone < 0 || Bone >= Bones.Num())
-				continue;
-
-			const FMatrix& S = SkinMatrices[Bone];
-			Position += S.TransformPosition(In.Position) * W;
-			Normal += S.TransformVector(In.Normal) * W;
-			Tangent += S.TransformVector(InTangent) * W;
-		}
-
-		FVertex& Out = SkinnedVertices[v];
-		Out.Position = Position;
-		Out.Normal = Normal.GetSafeNormal(SMALL_NUMBER, In.Normal);
-		const FVector T = Tangent.GetSafeNormal(SMALL_NUMBER, InTangent);
-		Out.Tangent = FVector4(T.X, T.Y, T.Z, In.Tangent.W);
-	}
-
-	// 4. GPU 업로드 (Map WRITE_DISCARD)
-	RenderCommand::UpdateBufferData(SkinnedRenderMesh->VertexBuffer.get(), SkinnedVertices.GetData(),
-		sizeof(FVertex) * static_cast<uint32>(SkinnedVertices.Num()));
+	// 4. 자세가 바뀌면 바운드도 바뀐다 (컬링·그림자 캐시 갱신)
+	OnTransformDirty();
 }

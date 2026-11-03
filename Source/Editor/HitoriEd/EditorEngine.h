@@ -26,6 +26,7 @@
 #include "Editor/Settings/SettingsPanel.h"
 #include "Editor/Sequencer/SequencerPanel.h"
 #include "Editor/Viewports/ViewportsPanel.h"
+#include "Editor/Viewports/SkeletalMeshViewerPanel.h"
 #include "Editor/LevelViewportLayout.h"
 #include "Editor/ContentDrawer/ContentDrawerPanel.h"
 #include "Editor/UIEditor/UIEditorPanel.h"
@@ -177,6 +178,7 @@ private:
 	FOutlinerPanel* OutlinerPanel = nullptr;
 	FContentDrawerPanel* ContentDrawerPanel = nullptr;
 	FUIEditorPanel* UIEditorPanel = nullptr;
+	FSkeletalMeshViewerPanel* SkeletalMeshViewerPanel = nullptr;
 
 	UWorld* EditorWorld = nullptr;
 	UWorld* PlayWorld = nullptr;

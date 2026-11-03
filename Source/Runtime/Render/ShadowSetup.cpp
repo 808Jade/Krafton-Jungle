@@ -248,7 +248,8 @@ void FSceneRenderer::AddInteractingPrimitives(FScene& Scene, FProjectedShadowInf
 		[&](FPrimitiveSceneProxy* Proxy)
 		{
 			if (!Proxy->bCastsShadow || !Proxy->IsShown(View.bGameView)) return;
-			if (!Proxy->GetMesh() || !Proxy->GetRenderState()) return;
+			// 메시 종류와 상관없이 그릴 버퍼와 섹션이 있으면 Caster다 (스켈레탈은 스키닝 결과 버퍼)
+			if (!Proxy->GetRenderState() || !Proxy->GetVertexBuffer(0)) return;
 
 			// 카메라에서 너무 작게 보이는 Caster는 그림자도 눈에 띄지 않는다 (r.Shadow.RadiusThreshold).
 			const FAABB& Bounds = Proxy->GetBounds();

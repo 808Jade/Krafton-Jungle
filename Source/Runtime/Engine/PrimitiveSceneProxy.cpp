@@ -15,6 +15,16 @@ FPrimitiveSceneProxy::~FPrimitiveSceneProxy()
     if (Mesh) Mesh->UnregisterProxy(this);
 }
 
+FVertexBuffer* FPrimitiveSceneProxy::GetVertexBuffer(uint32 LODIndex) const
+{
+    return Mesh && LODIndex < Mesh->GetLODCount() ? Mesh->GetVertexBuffer(LODIndex) : nullptr;
+}
+
+FIndexBuffer* FPrimitiveSceneProxy::GetIndexBuffer(uint32 LODIndex) const
+{
+    return Mesh && LODIndex < Mesh->GetLODCount() ? Mesh->GetIndexBuffer(LODIndex) : nullptr;
+}
+
 void FPrimitiveSceneProxy::OnMeshRenderDataChanged()
 {
     if (Scene)
