@@ -9,6 +9,7 @@
 #include "Render/SceneView.h"
 #include "Render/SceneRenderData.h"
 #include "Render/Texture2D.h"
+#include "Camera/ViewportCameraMovement.h"
 
 #include <functional>
 
@@ -87,6 +88,8 @@ public:
 	// 카메라 입력 처리
 	void TickInput(float DeltaTime, bool bCaptured, bool bHovered,
 		int32 WheelDelta, float MoveSpeed, float MouseSensitivity);
+	// 입력을 호출자가 모아 넘기는 버전. 메인 창 메시지를 받지 못하는 창(ImGui로 띄운 뷰어 등)이 쓴다
+	void TickInput(float DeltaTime, const FViewportCameraInput& Input, float MoveSpeed, float MouseSensitivity);
 
 	// 기즈모 조작과 피킹 처리
 	void

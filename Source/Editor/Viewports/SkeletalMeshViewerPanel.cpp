@@ -43,6 +43,7 @@ void FSkeletalMeshViewerPanel::OnRender()
 	if (!IsOpen() || !ViewportClient)
 	{
 		bHovered = false;
+		bCameraCaptured = false;
 		if (ViewportClient)
 			ViewportClient->SetActive(false);
 		return;
@@ -73,6 +74,7 @@ void FSkeletalMeshViewerPanel::OnRender()
 		// 탭이 가려졌거나 접힌 상태
 		ViewportClient->SetActive(false);
 	}
+	GatherCameraInput();
 	ImGui::End();
 	if (!bOpen)
 	{
@@ -99,6 +101,46 @@ void FSkeletalMeshViewerPanel::Shutdown()
 	PreviewWorld = nullptr;
 	PreviewActor = nullptr;
 	ViewportClient.reset();
+}
+
+void FSkeletalMeshViewerPanel::GatherCameraInput()
+{
+	// FInputSystem은 메인 창 메시지만 받아서, 메인 창 밖으로 꺼낸 ImGui 창에서는 입력이 오지 않는다.
+	// ImGui IO는 모든 ImGui 창의 입력을 받으므로 뷰어 카메라는 이것으로 움직인다
+	const ImGuiIO& IO = ImGui::GetIO();
+	if (bHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+	{
+		bCameraCaptured = true;
+		ImGui::SetWindowFocus(GetPanelName());
+	}
+	if (!ImGui::IsMouseDown(ImGuiMouseButton_Right) || !ViewportClient->IsActive())
+		bCameraCaptured = false;
+
+	CameraInput.bCaptured = bCameraCaptured;
+	CameraInput.bAllowWheel = bCameraCaptured || bHovered;
+	if (bCameraCaptured)
+	{
+		CameraInput.MouseX += IO.MouseDelta.x;
+		CameraInput.MouseY += IO.MouseDelta.y;
+	}
+	// ImGui 휠은 한 칸이 1.0, FInputSystem 휠은 한 칸이 WHEEL_DELTA(120)라 메인 뷰포트와 속도를 맞춘다
+	if (CameraInput.bAllowWheel)
+		CameraInput.Wheel += IO.MouseWheel * static_cast<float>(WHEEL_DELTA);
+	CameraInput.bForward = ImGui::IsKeyDown(ImGuiKey_W);
+	CameraInput.bBackward = ImGui::IsKeyDown(ImGuiKey_S);
+	CameraInput.bRight = ImGui::IsKeyDown(ImGuiKey_D);
+	CameraInput.bLeft = ImGui::IsKeyDown(ImGuiKey_A);
+	CameraInput.bUp = ImGui::IsKeyDown(ImGuiKey_E);
+	CameraInput.bDown = ImGui::IsKeyDown(ImGuiKey_Q);
+}
+
+FViewportCameraInput FSkeletalMeshViewerPanel::ConsumeCameraInput()
+{
+	const FViewportCameraInput Result = CameraInput;
+	CameraInput.MouseX = 0.0f;
+	CameraInput.MouseY = 0.0f;
+	CameraInput.Wheel = 0.0f;
+	return Result;
 }
 
 void FSkeletalMeshViewerPanel::FocusCamera()

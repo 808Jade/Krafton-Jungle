@@ -27,6 +27,12 @@ void FEditorViewportClient::TickInput(float DeltaTime, bool bCaptured,
   Input.bLeft = FInputSystem::IsKeyDown(EKeyCode::A);
   Input.bUp = FInputSystem::IsKeyDown(EKeyCode::E);
   Input.bDown = FInputSystem::IsKeyDown(EKeyCode::Q);
+  TickInput(DeltaTime, Input, MoveSpeed, MouseSensitivity);
+}
+
+void FEditorViewportClient::TickInput(float DeltaTime,
+                                      const FViewportCameraInput &Input,
+                                      float MoveSpeed, float MouseSensitivity) {
   FViewportCameraState Camera{ViewLocation, ViewRotation, OrthoWidth,
       Width > 0 ? static_cast<float>(Width) : 800.0f, bIsPerspective};
   ApplyViewportCameraMovement(Camera, Input, DeltaTime, MoveSpeed, MouseSensitivity);

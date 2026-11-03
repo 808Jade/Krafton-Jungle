@@ -505,17 +505,11 @@ void UEditorEngine::UpdateViewportState(const float DeltaTime)
 			i == HoveredViewIndex, WheelDelta, MoveSpeed, MouseSens);
 	}
 
-	// 스켈레탈 메시 뷰어 창. 우클릭을 그 창 위에서 시작했을 때만 카메라를 잡는다
+	// 스켈레탈 메시 뷰어 창. 입력은 뷰어 패널이 ImGui에서 모아 둔다 (메인 창 밖으로 꺼내도 동작하도록)
 	if (FEditorViewportClient* ViewerClient = SkeletalMeshViewerPanel->GetViewportClient();
 		ViewerClient && ViewerClient->IsActive())
 	{
-		static bool bViewerCaptured = false;
-		const bool bViewerHovered = SkeletalMeshViewerPanel->IsViewportHovered();
-		if (FInputSystem::IsMouseReleased(EMouseButton::Right))
-			bViewerCaptured = false;
-		if (FInputSystem::IsMousePressed(EMouseButton::Right) && bViewerHovered)
-			bViewerCaptured = true;
-		ViewerClient->TickInput(DeltaTime, bViewerCaptured, bViewerHovered, WheelDelta, MoveSpeed, MouseSens);
+		ViewerClient->TickInput(DeltaTime, SkeletalMeshViewerPanel->ConsumeCameraInput(), MoveSpeed, MouseSens);
 	}
 
 	// 활성 뷰포트 시점 동기화

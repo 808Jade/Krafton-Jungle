@@ -23,16 +23,20 @@ public:
 
 	FEditorViewportClient* GetViewportClient() const { return ViewportClient.get(); }
 	UWorld* GetPreviewWorld() const { return PreviewWorld; }
-	bool IsViewportHovered() const { return bHovered; }
+	// OnRender에서 ImGui 입력으로 모은 카메라 입력을 꺼내고 누적값(마우스 이동·휠)을 비운다
+	FViewportCameraInput ConsumeCameraInput();
 
 private:
 	// 메시 바운드가 화면에 들어오게 카메라를 앞쪽에 둔다
 	void FocusCamera();
+	void GatherCameraInput();
 
 	UWorld* PreviewWorld = nullptr;
 	ASkeletalMeshActor* PreviewActor = nullptr;
 	TUniquePtr<FEditorViewportClient> ViewportClient;
 	uint32 RequestedWidth = 1;
 	uint32 RequestedHeight = 1;
+	FViewportCameraInput CameraInput;
 	bool bHovered = false;
+	bool bCameraCaptured = false;
 };
