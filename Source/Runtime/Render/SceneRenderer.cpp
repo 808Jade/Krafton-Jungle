@@ -1,4 +1,4 @@
-﻿#include "EnginePCH.h"
+#include "EnginePCH.h"
 #include "Render/SceneRenderer.h"
 #include "Render/Renderer.h"
 #include "Render/SceneLightResources.h"
@@ -20,6 +20,9 @@
 #include "Render/PostProcess/ToneMapData.h"
 #include "Text/TextRenderer.h"
 #include "UObject/UObjectIterator.h"
+#include "Components/DecalComponent.h"
+#include "Render/DecalData.h"
+#include "Math/OBB.h"
 
 #include <cmath>
 #include <algorithm>
@@ -148,6 +151,79 @@ void FSceneRenderer::RenderSceneText(FRenderer* Renderer)
 		TextRenderer->OnRender(Text->GetText(), Text->GetWorldMatrix(), Text->GetTextSize(),
 			*Text->GetFont(), View.ViewProjectionMatrix);
 	}
+}
+
+void FSceneRenderer::RenderDecals(FRenderer* Renderer)
+{
+	SCOPE_CYCLE_COUNTER(DecalStats::STAT_DecalPass);
+
+	if (!Renderer->GetDecalConstants())
+		return;
+
+	Renderer->UploadViewMatrix(View.ViewProjectionMatrix);
+
+	TArray<FPrimitiveSceneProxy*> Receivers;
+	TArray<FMeshDrawBatch> Batches;
+	FMeshPassProcessor Processor;
+	FScene& Scene = World->GetScene();
+	FRenderStats& Stats = RenderData.RenderStats;
+
+	for (TObjectIterator<UDecalComponent> Decal; Decal; ++Decal)
+	{
+		if (!Decal || !Decal->IsRegistered() || !Decal->IsShown(View.bGameView) || !Decal->GetOwner() || Decal->GetOwner()->GetWorld() != World || !Decal->GetDecalTexture() || Decal->GetFadeAlpha() <= 0.f)
+			continue;
+		Stats.DecalCount++;
+
+		const FBox DecalBounds = Decal->CalcBounds();
+		const FOBB DecalOBB = Decal->GetDecalOBB();
+		Receivers.Reset();
+		{
+			SCOPE_CYCLE_COUNTER(DecalStats::STAT_DecalCulling);
+			Scene.BVH.Query
+			(
+				[&](const FBox& Bounds)
+				{
+					return UWorld::AreAABBsOverlapping(DecalBounds, Bounds);
+				},
+				[&](FPrimitiveSceneProxy* Proxy)
+				{
+					if (Proxy->IsShown(View.bGameView) && Proxy->bReceiveDecals && Proxy->GetMesh())
+					{
+						FOBB MeshOBB = FOBB::FromLocalBox(Proxy->GetMesh()->GetRenderBounds(), Proxy->GetLocalToWorld());
+						if (IntersectOBB(DecalOBB, MeshOBB))
+						{
+							Receivers.Add(Proxy);
+						}
+					}
+				}
+			);
+		}
+		if (Receivers.IsEmpty())
+			continue;
+		Stats.DecalsRendered++;
+		Stats.DecalReceivers += Receivers.Num();
+
+		FDecalConstants Constants{
+			Decal->GetWorldToDecal(),
+			FLinearColor(Decal->GetDecalColor()),
+			Decal->GetFadeAlpha(),
+			Decal->GetIntensity(),
+			Decal->IsAdditiveBlend() ? 1.f : 0.f,
+		};
+		RenderCommand::UpdateBufferData(Renderer->GetDecalConstants(), &Constants);
+		RenderCommand::BindConstantBuffer(3, Renderer->GetDecalConstants(), EShaderBindFlagBits::Pixel);
+		EPSOType PSOType = Decal->IsAdditiveBlend() ? EPSOType::DecalAdditive : EPSOType::Decal;
+		if (Processor.Build(Receivers, Decal->GetDecalTexture(), PSOType, Batches))
+		{
+			for (const auto& Batch : Batches)
+			{
+				Stats.DecalDrawCalls += Batch.Items.Num();
+			}
+			Renderer->DrawMeshes(Batches);
+		}
+	}
+	RenderCommand::BindConstantBuffer(3, nullptr, EShaderBindFlagBits::Pixel);
+	RenderCommand::UnbindShaderResources(0, 1, EShaderBindFlagBits::Pixel);
 }
 
 // 가시성 검사 및 렌더 큐 수집
@@ -664,6 +740,15 @@ bool FSceneRenderer::AddViewportPasses(FRenderGraphBuilder& Graph, FRenderer* Re
 	if (!SceneColor || !Depth) return false;
 	bHasFog = false;
 	bFXAAPassSucceeded = true;
+
+	if (!Options.bShowWorldNormal && Options.bDrawPrimitives && Options.bShowDecals)
+	{
+		if (!Graph.AddRasterPass(MakeViewportPass("Decal", SceneColor, Depth),
+			[this, Renderer]
+			{
+			RenderDecals(Renderer);
+			})) return false;
+	}
 
 	if (!Options.bShowWorldNormal && Options.bDrawPrimitives && Options.bEnableFog && Callbacks.HeightFog)
 	{

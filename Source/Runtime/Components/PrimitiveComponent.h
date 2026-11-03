@@ -88,11 +88,14 @@ public:
 
 	void SetCastShadow(bool NewValue);
 	void SetReceiveShadow(bool NewValue);
+	void SetReceiveDecals(bool NewValue);
 
 	UPROPERTY(EditAnywhere)
 	bool bCastShadow = true;
 	UPROPERTY(EditAnywhere)
 	bool bReceiveShadow = true;
+	UPROPERTY(EditAnywhere)
+	bool bReceiveDecals = true;
 
 	// ---- 충돌 이벤트 (담당: C) ----
 	FComponentOverlapSignature OnComponentBeginOverlap;

@@ -31,6 +31,7 @@
 #include "Components/RectLightComponent.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Components/TextRenderComponent.h"
+#include "Components/DecalComponent.h"
 
 #include "Asset/AssetManager.h"
 #include "Render/RenderResourceManager.h"
@@ -930,6 +931,7 @@ void UEditorEngine::BuildSceneRenderOptions(FGameViewportClient* ViewClient, FSc
 	Options.DisplayGamma = S.DisplayGamma;
 	Options.bShowVignette = S.bShowVignette;
 	Options.bShowCameraOverlay = S.bShowCameraOverlay;
+	Options.bShowDecals = S.bShowDecals;
 }
 
 void UEditorEngine::BuildSceneRenderOptions(FEditorViewportClient* ViewClient, bool IsPIE, FSceneRenderOptions& Options)
@@ -954,6 +956,7 @@ void UEditorEngine::BuildSceneRenderOptions(FEditorViewportClient* ViewClient, b
 	Options.DisplayGamma = S.DisplayGamma;
 	Options.bShowVignette = S.bShowVignette;
 	Options.bShowCameraOverlay = S.bShowCameraOverlay;
+	Options.bShowDecals = S.bShowDecals;
 
 	Options.bDrawPrimitives = IsPIE || SettingsPanel->GetSettings().bDrawPrimitives;
 	Options.bEnableFog = ViewClient->GetViewportMode() == EViewportMode::Solid;
@@ -1208,6 +1211,19 @@ void UEditorEngine::RenderFrame(FEditorViewportClient* ViewClient,
 							DrawCollisionShapes(EditorWorld, LineBatcher.get(), SelectedActor);
 							DrawSpringArms(EditorWorld, LineBatcher.get(), SelectedActor);
 						}
+						if (SelectedActor)
+						{
+							for (UActorComponent* Component : SelectedActor->GetComponents())
+							{
+								if (UDecalComponent* Decal = Cast<UDecalComponent>(Component))
+								{
+									Decal->DrawDebug(LineBatcher.get());
+								}
+							}
+						}
+
+						DrawCollisionShapes(EditorWorld, LineBatcher.get(), SelectedActor);
+						DrawSpringArms(EditorWorld, LineBatcher.get(), SelectedActor);
 
 						LineBatcher->OnRender(SceneView.ViewProjectionMatrix);
 

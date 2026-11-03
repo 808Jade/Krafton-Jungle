@@ -133,6 +133,7 @@ private:
 
 	bool RenderHeightFog(FRenderer* Renderer, FTexture2D* DepthTarget, FTexture2D* ColorTarget);
 	void RenderSceneText(FRenderer* Renderer);
+	void RenderDecals(FRenderer* Renderer);
 
 
 	UWorld* World = nullptr;

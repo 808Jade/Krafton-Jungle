@@ -30,7 +30,7 @@ public:
 	void SubmitToRenderQueue(FRenderQueue& Queue, uint32 LODIndex);
 
 	bool IsEditorIcon() const { return bEditorIcon; }
-	void SetEditorIcon(bool IsEditorIcon) { bEditorIcon = IsEditorIcon; }
+	void SetEditorIcon(bool IsEditorIcon) { bEditorIcon = IsEditorIcon; bReceiveDecals = false; }
 
 private:
 	UPROPERTY(EditAnywhere)

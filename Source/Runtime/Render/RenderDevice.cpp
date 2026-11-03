@@ -338,6 +338,17 @@ void FRenderDevice::CreateStates()
 		// 방향광 cascade용. 지금은 같은 설정이지만, 정사영(선형 깊이)과 원근(비선형 깊이)을 따로 조정할 수 있게 상태를 나눠 둔다.
 		D3D11_RASTERIZER_DESC DirectionalShadowDesc = LightShadowDesc;
 		Device->CreateRasterizerState(&DirectionalShadowDesc, RasterizerStates[(uint8)(ERasterizerState::DirectionalLightShadow)].GetAddressOf());
+
+		// 데칼은 같은 메시를 다시 그리므로 깊이를 카메라 쪽으로 당겨 Z-fighting을 막는다.
+		D3D11_RASTERIZER_DESC DecalDesc = {};
+		DecalDesc.FillMode = D3D11_FILL_SOLID;
+		DecalDesc.CullMode = D3D11_CULL_BACK;
+		DecalDesc.FrontCounterClockwise = FALSE;
+		DecalDesc.DepthClipEnable = TRUE;
+		DecalDesc.DepthBias = -2;
+		DecalDesc.SlopeScaledDepthBias = -0.5f;
+		DecalDesc.DepthBiasClamp = 0.0f;
+		Device->CreateRasterizerState(&DecalDesc, RasterizerStates[(uint8)ERasterizerState::Decal].GetAddressOf());
 	}
 
 	// ---------- DepthStencil ----------

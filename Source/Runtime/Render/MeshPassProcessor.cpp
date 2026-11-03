@@ -313,3 +313,74 @@ bool FMeshPassProcessor::Build(const TArray<FPrimitiveSceneProxy*>& ShadowMeshes
 	return true;
 }
 
+bool FMeshPassProcessor::Build(const TArray<FPrimitiveSceneProxy*>& Receivers, UTexture2D* DecalTexture, EPSOType PSOType, TArray<FMeshDrawBatch>& OutBatches) const
+{
+	OutBatches.Reset();
+
+	const FPipelineState* Pipeline = FRenderResourceManager::GetPSO(PSOType);
+	if (!Pipeline || !Pipeline->Shader || !Pipeline->Shader->VertexShader || !Pipeline->Shader->PixelShader)
+	{
+		return false;
+	}
+
+	for (FPrimitiveSceneProxy* Receiver : Receivers)
+	{
+		if (!Receiver || !Receiver->GetRenderState())
+		{
+			continue;
+		}
+
+		UStaticMesh* Mesh = Receiver->GetMesh();
+		if (!Mesh || Receiver->GetLODCount() == 0)
+		{
+			continue;
+		}
+
+		uint32 LOD = 0;
+		const FCachedMeshLOD& CachedLOD = Receiver->GetLOD(LOD);
+
+		FMeshDrawBatch Batch{};
+		Batch.Pipeline = *Pipeline;
+		Batch.VertexBuffer = Mesh->GetVertexBuffer(LOD);
+		Batch.IndexBuffer = Mesh->GetIndexBuffer(LOD);
+		Batch.bUseObjectSlots = false;
+		Batch.bBindViewConstants = true;
+		Batch.ObjectBindingSlot = 2;
+		Batch.ObjectStages = EShaderBindFlagBits::Vertex;
+		Batch.Textures = { { DecalTexture, EShaderBindFlagBits::Pixel } };
+
+		if (!Batch.VertexBuffer || !Batch.IndexBuffer)
+		{
+			return false;
+		}
+
+		for (uint32 Index = 0; Index < CachedLOD.NumSections; ++Index)
+		{
+			const FCachedMeshSection& Section = Receiver->GetSection(CachedLOD.FirstSection + Index);
+
+			if (Section.IndexCount == 0)
+			{
+				continue;
+			}
+
+			FMeshDrawBatch::FItem Item{};
+			Item.StartIndex = Section.StartIndex;
+			Item.IndexCount = Section.IndexCount;
+			Item.ObjectKey = Receiver;
+
+			FPerObjectConstants Constants = MakePerObjectConstants(Receiver->GetLocalToWorld());
+			std::memcpy(Item.ObjectData.data(), &Constants, sizeof(Constants));
+			Item.ObjectDataSize = sizeof(Constants);
+
+			Batch.Items.Add(std::move(Item));
+		}
+
+		if (!Batch.Items.IsEmpty())
+		{
+			OutBatches.Add(std::move(Batch));
+		}
+	}
+
+	return !OutBatches.IsEmpty();
+}
+

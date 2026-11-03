@@ -45,6 +45,7 @@ public:
 
 	bool bCastsShadow = true;
 	bool bReceiveShadow = true;
+	bool bReceiveDecals = true;
 protected:
 	// 섹션(머티리얼·인덱스 범위)과 LOD. 파생 프록시가 UpdateRenderState에서 채운다
 	TSharedPtr<const FMeshRenderState> RenderState;

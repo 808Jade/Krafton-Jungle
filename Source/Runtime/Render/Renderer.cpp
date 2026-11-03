@@ -11,6 +11,7 @@
 #include "Render/PostProcess/ToneMapData.h"
 #include "Render/PostProcess/CameraOverlayRenderer.h"
 #include "Text/TextRenderer.h"
+#include "DecalData.h"
 
 namespace
 {
@@ -145,6 +146,7 @@ void FRenderer::InitScenePasses(const FString& SkyPanoramaPath)
 	CameraOverlay = MakeUnique<FCameraOverlayRenderer>();   // FXAA->Init(this); 아래
 	CameraOverlay->Init(this);
 	ToneMapConstants = RenderCommand::CreateConstantBuffer(sizeof(FToneMapData));
+	DecalConstants = RenderCommand::CreateConstantBuffer(sizeof(FDecalConstants));
 	SceneText = MakeUnique<FTextRenderer>();
 	SceneText->Init();
 }
