@@ -346,7 +346,7 @@ bool FMeshPassProcessor::Build(const TArray<FPrimitiveSceneProxy*>& Receivers, U
 		Batch.bUseObjectSlots = false;
 		Batch.bBindViewConstants = true;
 		Batch.ObjectBindingSlot = 2;
-		Batch.ObjectStages = EShaderBindFlagBits::Vertex;
+		Batch.ObjectStages = EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel;
 		Batch.Textures = { { DecalTexture, EShaderBindFlagBits::Pixel } };
 
 		if (!Batch.VertexBuffer || !Batch.IndexBuffer)

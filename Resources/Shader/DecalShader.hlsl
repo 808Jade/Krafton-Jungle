@@ -1,5 +1,4 @@
 #pragma pack_matrix(row_major)
-
 #include "ColorSpace.hlsli"
 
 cbuffer Viewconstants : register(b0)
@@ -10,8 +9,6 @@ cbuffer Viewconstants : register(b0)
 cbuffer Worldconstants : register(b2)
 {
     matrix World;
-    matrix View;
-    matrix Projection;
     matrix NormalMatrix;
     float4 ShadowFlags;
 };
@@ -25,6 +22,12 @@ cbuffer DecalConstants : register(b4)
     float IsAdditive;
     float HasShadowDecal;
 };
+
+static const float4 SpecularColorShininess = float4(0.f, 0.f, 0.f, 1.f);
+
+#define LIGHT_SHADOW_ENABLED (ShadowFlags.x > 0.5f && HasShadowDecal > 0.5f)
+
+#include "ForwardLighting.hlsli"
 
 struct VS_INPUT
 {
@@ -74,7 +77,12 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     Color.a *= DepthFade * FadeAlpha;
     Color.rgb *= DecalColor.rgb * Intensity;
     
-    if (IsAdditive > 0.5f)
+    if (IsAdditive < 0.5f)
+    {
+        FLightResult LightResult = CalculateLighting(Input.position.xyz, Input.worldPosition, 0, N, false);
+        Color.rgb *= LightResult.Diffuse;
+    }
+    else
     {
         Color.rgb *= Color.a;
     }
