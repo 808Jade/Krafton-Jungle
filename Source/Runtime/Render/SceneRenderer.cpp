@@ -211,7 +211,7 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 			Decal->IsAdditiveBlend() ? 1.f : 0.f,
 		};
 		RenderCommand::UpdateBufferData(Renderer->GetDecalConstants(), &Constants);
-		RenderCommand::BindConstantBuffer(3, Renderer->GetDecalConstants(), EShaderBindFlagBits::Pixel);
+		RenderCommand::BindConstantBuffer(4, Renderer->GetDecalConstants(), EShaderBindFlagBits::Pixel);
 		EPSOType PSOType = Decal->IsAdditiveBlend() ? EPSOType::DecalAdditive : EPSOType::Decal;
 		if (Processor.Build(Receivers, Decal->GetDecalTexture(), PSOType, Batches))
 		{
@@ -688,6 +688,18 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 		})) return false;
 	}
 
+	// Decal Pass
+	if (Options.bDrawPrimitives && Options.bShowDecals)
+	{
+		if (!Graph.AddRasterPass(MakeViewportPass("Decal", LightingHDR, Depth),
+			[this, Renderer]
+			{
+				if (!bCorePassSucceeded)
+					return;
+				RenderDecals(Renderer);
+			})) return false;
+	}
+
 	FRenderGraphRasterPassDesc ToneMap{};
 	ToneMap.Name = "ToneMap";
 	ToneMap.ReadTextures = { LightingHDR };
@@ -740,15 +752,6 @@ bool FSceneRenderer::AddViewportPasses(FRenderGraphBuilder& Graph, FRenderer* Re
 	if (!SceneColor || !Depth) return false;
 	bHasFog = false;
 	bFXAAPassSucceeded = true;
-
-	if (!Options.bShowWorldNormal && Options.bDrawPrimitives && Options.bShowDecals)
-	{
-		if (!Graph.AddRasterPass(MakeViewportPass("Decal", SceneColor, Depth),
-			[this, Renderer]
-			{
-			RenderDecals(Renderer);
-			})) return false;
-	}
 
 	if (!Options.bShowWorldNormal && Options.bDrawPrimitives && Options.bEnableFog && Callbacks.HeightFog)
 	{

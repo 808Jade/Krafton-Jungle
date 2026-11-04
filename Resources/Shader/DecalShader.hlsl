@@ -1,5 +1,7 @@
 #pragma pack_matrix(row_major)
 
+#include "ColorSpace.hlsli"
+
 cbuffer Viewconstants : register(b0)
 {
     matrix VP;
@@ -10,7 +12,7 @@ cbuffer Worldconstants : register(b2)
     matrix World;
 };
 
-cbuffer DecalConstants : register(b3)
+cbuffer DecalConstants : register(b4)
 {
     matrix WorldToDecal;
     float4 DecalColor;
@@ -59,6 +61,7 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     
     float2 UV = float2(DecalPosition.y * 0.5f + 0.5f, 0.5f - DecalPosition.z * 0.5f);
     float4 Color = g_txDecal.Sample(g_Sample, UV);
+    Color.rgb = LinearToSRGB(Color.rgb);
     
     float DepthFade = saturate(4.f - 4.f * abs(DecalPosition.x));
     Color.a *= DepthFade * FadeAlpha;
