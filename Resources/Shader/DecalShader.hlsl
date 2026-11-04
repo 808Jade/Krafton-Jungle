@@ -73,23 +73,24 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     float3 N = normalize(Input.worldNormal);
     float2 UV = float2(DecalPosition.y * 0.5f + 0.5f, 0.5f - DecalPosition.z * 0.5f);
     float4 Color = g_txDecal.Sample(g_Sample, UV);
-    Color.rgb = SRGBToLinear(Color.rgb);
-    
     float DepthFade = saturate(4.f - 4.f * abs(DecalPosition.x));
+
+    if (IsAdditive > 0.5f)
+    {
+        // Fake 라이트: 텍스처 알파를 감쇠 마스크로 한 번만 사용한다
+        // (sRGB→Linear 변환 + 알파 재곱셈을 하면 감쇠가 f^3.2 가 되어 원이 작게 보임)
+        float Mask = Color.a * DepthFade * FadeAlpha;
+        return float4(DecalColor.rgb * Intensity * Mask, Mask);
+    }
+
+    Color.rgb = SRGBToLinear(Color.rgb);
     Color.a *= DepthFade * FadeAlpha;
     Color.rgb *= DecalColor.rgb * Intensity;
-    
-    if (IsAdditive < 0.5f)
+
+    if (IsUnlit < 0.5f)
     {
-        if (IsUnlit < 0.5f)
-        {   
-            FLightResult LightResult = CalculateLighting(Input.position.xyz, Input.worldPosition, 0, N, false);
-            Color.rgb *= LightResult.Diffuse;
-        }
-    }
-    else
-    {
-        Color.rgb *= Color.a;
+        FLightResult LightResult = CalculateLighting(Input.position.xyz, Input.worldPosition, 0, N, false);
+        Color.rgb *= LightResult.Diffuse;
     }
     return Color;
 }
