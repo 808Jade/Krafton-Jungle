@@ -190,9 +190,19 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer, const FSceneRenderOptions
 				},
 				[&](FPrimitiveSceneProxy* Proxy)
 				{
-					if (Proxy->IsShown(View.bGameView) && Proxy->bReceiveDecals && Proxy->GetMesh())
+					if (Proxy->IsShown(View.bGameView) && Proxy->bReceiveDecals && Proxy->GetRenderState())
 					{
-						FOBB MeshOBB = FOBB::FromLocalBox(Proxy->GetMesh()->GetRenderBounds(), Proxy->GetLocalToWorld());
+						FBox Bounds;
+						if (Proxy->GetMesh())
+						{
+							Bounds = Proxy->GetMesh()->GetRenderBounds();
+						}
+						else 
+						{
+							Bounds = Proxy->GetComponent()->CalcLocalBounds();
+						}
+
+						FOBB MeshOBB = FOBB::FromLocalBox(Bounds, Proxy->GetLocalToWorld());
 						if (IntersectOBB(DecalOBB, MeshOBB))
 						{
 							Receivers.Add(Proxy);
