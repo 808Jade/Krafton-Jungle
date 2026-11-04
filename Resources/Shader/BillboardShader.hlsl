@@ -51,5 +51,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     float4 color = SpriteTexture.Sample(SpriteSampler, input.uv);
     color.rgb *= Tint.rgb;
     color.a *= SpriteAlpha;
+    // 깊이를 쓰므로 투명한 바깥 영역은 버려야 뒤의 Grid와 물체를 가리지 않는다
+    clip(color.a - 0.1f);
     return color;
 }
