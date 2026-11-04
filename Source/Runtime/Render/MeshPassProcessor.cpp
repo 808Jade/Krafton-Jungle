@@ -368,7 +368,7 @@ bool FMeshPassProcessor::Build(const TArray<FPrimitiveSceneProxy*>& Receivers, U
 			Item.IndexCount = Section.IndexCount;
 			Item.ObjectKey = Receiver;
 
-			FPerObjectConstants Constants = MakePerObjectConstants(Receiver->GetLocalToWorld());
+			FPerObjectConstants Constants = MakePerObjectConstants(Receiver->GetLocalToWorld(), Receiver->bReceiveShadow);
 			std::memcpy(Item.ObjectData.data(), &Constants, sizeof(Constants));
 			Item.ObjectDataSize = sizeof(Constants);
 
