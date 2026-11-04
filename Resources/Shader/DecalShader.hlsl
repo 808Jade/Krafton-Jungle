@@ -23,7 +23,7 @@ cbuffer DecalConstants : register(b4)
     float FadeAlpha;
     float Intensity;
     float IsAdditive;
-    float DecalPadding;
+    float HasShadowDecal;
 };
 
 struct VS_INPUT
@@ -72,7 +72,6 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     
     float DepthFade = saturate(4.f - 4.f * abs(DecalPosition.x));
     Color.a *= DepthFade * FadeAlpha;
-    
     Color.rgb *= DecalColor.rgb * Intensity;
     
     if (IsAdditive > 0.5f)

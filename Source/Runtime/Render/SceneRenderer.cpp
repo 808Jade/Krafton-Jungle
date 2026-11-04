@@ -153,7 +153,7 @@ void FSceneRenderer::RenderSceneText(FRenderer* Renderer)
 	}
 }
 
-void FSceneRenderer::RenderDecals(FRenderer* Renderer)
+void FSceneRenderer::RenderDecals(FRenderer* Renderer, const FSceneRenderOptions& Options, FTexture2D* ShadowMask)
 {
 	SCOPE_CYCLE_COUNTER(DecalStats::STAT_DecalPass);
 
@@ -161,6 +161,9 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 		return;
 
 	Renderer->UploadViewMatrix(View.ViewProjectionMatrix);
+
+	if (!BindForwardLighting(Renderer, Options, ShadowMask))
+		return;
 
 	TArray<FPrimitiveSceneProxy*> Receivers;
 	TArray<FMeshDrawBatch> Batches;
@@ -209,6 +212,7 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 			Decal->GetFadeAlpha(),
 			Decal->GetIntensity(),
 			Decal->IsAdditiveBlend() ? 1.f : 0.f,
+			ShadowMask ? 1.f : 0.f,
 		};
 		RenderCommand::UpdateBufferData(Renderer->GetDecalConstants(), &Constants);
 		RenderCommand::BindConstantBuffer(4, Renderer->GetDecalConstants(), EShaderBindFlagBits::Pixel);
@@ -222,7 +226,8 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer)
 			Renderer->DrawMeshes(Batches);
 		}
 	}
-	RenderCommand::BindConstantBuffer(3, nullptr, EShaderBindFlagBits::Pixel);
+	UnbindForwardLighting(Renderer);
+	RenderCommand::BindConstantBuffer(4, nullptr, EShaderBindFlagBits::Pixel);
 	RenderCommand::UnbindShaderResources(0, 1, EShaderBindFlagBits::Pixel);
 }
 
@@ -445,6 +450,7 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 			})) return false;
 	}
 
+	FRenderGraphTextureRef ForwardShadowMask{};
 	if (Options.RenderingPath == ERenderingPath::Deferred) // Deferred rendering
 	{
 		const FRenderGraphTextureDesc GBufferDesc{ Width, Height, ETextureFormat::R8G8B8A8_UNorm };
@@ -626,7 +632,6 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 		}
 
 		// 그림자 광원마다 배정된 채널(R~A)에 Projection한다. 한 픽셀에서 겹치는 그림자 광원은 서로 다른 채널을 받는다.
-		FRenderGraphTextureRef ForwardShadowMask{};
 		if (bForwardShadows)
 		{
 			ForwardShadowMask = Graph.CreateTexture({ Width, Height, ETextureFormat::R8G8B8A8_UNorm }, "ScreenShadowMask");
@@ -692,11 +697,11 @@ bool FSceneRenderer::AddCorePasses(FRenderGraphBuilder& Graph, FRenderer* Render
 	if (Options.bDrawPrimitives && Options.bShowDecals)
 	{
 		if (!Graph.AddRasterPass(MakeViewportPass("Decal", LightingHDR, Depth),
-			[this, Renderer]
+			[this, Renderer, &Graph, Options, ForwardShadowMask]
 			{
 				if (!bCorePassSucceeded)
 					return;
-				RenderDecals(Renderer);
+				RenderDecals(Renderer, Options, ForwardShadowMask ? Graph.Resolve(ForwardShadowMask) : nullptr);
 			})) return false;
 	}
 
