@@ -21,6 +21,8 @@ cbuffer DecalConstants : register(b4)
     float Intensity;
     float IsAdditive;
     float HasShadowDecal;
+    float IsUnlit;
+    float3 DecalPadding;
 };
 
 static const float4 SpecularColorShininess = float4(0.f, 0.f, 0.f, 1.f);
@@ -79,8 +81,11 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     
     if (IsAdditive < 0.5f)
     {
-        FLightResult LightResult = CalculateLighting(Input.position.xyz, Input.worldPosition, 0, N, false);
-        Color.rgb *= LightResult.Diffuse;
+        if (IsUnlit < 0.5f)
+        {   
+            FLightResult LightResult = CalculateLighting(Input.position.xyz, Input.worldPosition, 0, N, false);
+            Color.rgb *= LightResult.Diffuse;
+        }
     }
     else
     {

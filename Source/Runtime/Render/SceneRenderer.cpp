@@ -213,6 +213,7 @@ void FSceneRenderer::RenderDecals(FRenderer* Renderer, const FSceneRenderOptions
 			Decal->GetIntensity(),
 			Decal->IsAdditiveBlend() ? 1.f : 0.f,
 			ShadowMask ? 1.f : 0.f,
+			Options.LightingModel == ELightingModel::Unlit ? 1.f : 0.f,
 		};
 		RenderCommand::UpdateBufferData(Renderer->GetDecalConstants(), &Constants);
 		RenderCommand::BindConstantBuffer(4, Renderer->GetDecalConstants(), EShaderBindFlagBits::Pixel);
