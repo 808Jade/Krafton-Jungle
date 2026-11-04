@@ -54,6 +54,15 @@ void UDecalComponent::PostEditChangeProperty(const FProperty& Property)
 	}
 }
 
+void UDecalComponent::Serialize(FStructuredArchive::FRecord Record)
+{
+	// 불러오기는 스폰(OnRegister에서 기본 텍스처를 찾음) 뒤에 경로 문자열만 덮어쓴다. 불러온 경로로 텍스처를 다시 찾는다
+	Super::Serialize(Record);
+
+	if (Record.GetUnderlyingArchive().IsLoading())
+		ResolveTexture();
+}
+
 FOBB UDecalComponent::GetDecalOBB() const
 {
 	return FOBB::FromLocalBox(CalcLocalBounds(), GetWorldMatrix());

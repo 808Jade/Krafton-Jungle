@@ -330,28 +330,22 @@ bool FMeshPassProcessor::Build(const TArray<FPrimitiveSceneProxy*>& Receivers, U
 			continue;
 		}
 
-		UStaticMesh* Mesh = Receiver->GetMesh();
-		if (!Mesh || Receiver->GetLODCount() == 0)
-		{
-			continue;
-		}
-
 		uint32 LOD = 0;
 		const FCachedMeshLOD& CachedLOD = Receiver->GetLOD(LOD);
 
 		FMeshDrawBatch Batch{};
 		Batch.Pipeline = *Pipeline;
-		Batch.VertexBuffer = Mesh->GetVertexBuffer(LOD);
-		Batch.IndexBuffer = Mesh->GetIndexBuffer(LOD);
+		Batch.VertexBuffer = Receiver->GetVertexBuffer(LOD);
+		Batch.IndexBuffer = Receiver->GetIndexBuffer(LOD);
 		Batch.bUseObjectSlots = false;
 		Batch.bBindViewConstants = true;
 		Batch.ObjectBindingSlot = 2;
-		Batch.ObjectStages = EShaderBindFlagBits::Vertex;
+		Batch.ObjectStages = EShaderBindFlagBits::Vertex | EShaderBindFlagBits::Pixel;
 		Batch.Textures = { { DecalTexture, EShaderBindFlagBits::Pixel } };
 
 		if (!Batch.VertexBuffer || !Batch.IndexBuffer)
 		{
-			return false;
+			continue;
 		}
 
 		for (uint32 Index = 0; Index < CachedLOD.NumSections; ++Index)
@@ -368,7 +362,7 @@ bool FMeshPassProcessor::Build(const TArray<FPrimitiveSceneProxy*>& Receivers, U
 			Item.IndexCount = Section.IndexCount;
 			Item.ObjectKey = Receiver;
 
-			FPerObjectConstants Constants = MakePerObjectConstants(Receiver->GetLocalToWorld());
+			FPerObjectConstants Constants = MakePerObjectConstants(Receiver->GetLocalToWorld(), Receiver->bReceiveShadow);
 			std::memcpy(Item.ObjectData.data(), &Constants, sizeof(Constants));
 			Item.ObjectDataSize = sizeof(Constants);
 

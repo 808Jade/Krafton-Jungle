@@ -16,6 +16,8 @@ struct alignas(16) FDecalConstants
 	float FadeAlpha = 1.f;
 	float Intensity = 0.f;
 	float IsAdditive = 0.f;
-	float Padding = 0.f;
+	float HasShadowDecal = 0.f;
+	float IsUnlit = 0.f;
+	FVector Padding;
 };
-static_assert(sizeof(FDecalConstants) == 96);
+static_assert(sizeof(FDecalConstants) == 112);
