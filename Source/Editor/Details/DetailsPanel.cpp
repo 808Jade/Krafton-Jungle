@@ -475,6 +475,67 @@ namespace
 		ImGui::PopID();
 	}
 
+	// 텍스처를 경로 문자열로 들고 있는 프로퍼티용 슬롯 (예: UDecalComponent::DecalTexturePath).
+	// 포인터 대신 경로만 바꾸고, 실제 텍스처는 컴포넌트가 PostEditChangeProperty에서 다시 찾는다.
+	bool DrawTexturePathSlot(FString* PathPtr)
+	{
+		const float ThumbnailSize{ 64.0f };
+		const float ItemThumbnailSize{ 24.0f };
+		bool bChanged = false;
+
+		UTexture2D* Texture{ PathPtr->empty() ? nullptr : UAssetManager::Get().LoadTexture(*PathPtr) };
+
+		if (Texture && Texture->GetResource()) {
+			ImGui::Image((ImTextureID)Texture->GetResource()->GetSRV(), { ThumbnailSize, ThumbnailSize });
+		} else {
+			ImGui::Button("Empty", { ThumbnailSize, ThumbnailSize });
+		}
+
+		if (ImGui::BeginDragDropTarget()) {
+			if (const ImGuiPayload* Payload{ ImGui::AcceptDragDropPayload(EditorDragDrop::Texture) }) {
+				UTexture2D* DroppedTexture{ *static_cast<UTexture2D**>(Payload->Data) };
+				// 경로가 없는 텍스처(코드로 만든 WhiteTexture 등)는 다시 찾을 수 없으므로 받지 않는다
+				if (DroppedTexture && !DroppedTexture->GetPath().empty() && DroppedTexture->GetPath() != *PathPtr) {
+					*PathPtr = DroppedTexture->GetPath();
+					bChanged = true;
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		const FString CurrentFileName{ Texture ? GetAssetDisplayName(*PathPtr) : "None" };
+		ImGui::SetNextItemWidth(-1.0f);
+		if (ImGui::BeginCombo("##TexturePath", CurrentFileName.c_str())) {
+			if (ImGui::Selectable("None", Texture == nullptr) && !PathPtr->empty()) {
+				PathPtr->clear();
+				bChanged = true;
+			}
+
+			for (TObjectIterator<UTexture2D> Iterator{}; Iterator; ++Iterator) {
+				UTexture2D* ItemTexture{ *Iterator };
+				if (!ItemTexture->GetResource() || ItemTexture->GetPath().empty()) {
+					continue;
+				}
+
+				const bool Selected{ ItemTexture == Texture };
+				ImGui::PushID(ItemTexture);
+				ImGui::Image((ImTextureID)ItemTexture->GetResource()->GetSRV(), { ItemThumbnailSize, ItemThumbnailSize });
+				ImGui::SameLine();
+				if (ImGui::Selectable(GetAssetDisplayName(ItemTexture->GetPath()).c_str(), Selected, ImGuiSelectableFlags_None, { 0.0f, ItemThumbnailSize }) && !Selected) {
+					*PathPtr = ItemTexture->GetPath();
+					bChanged = true;
+				}
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("%s", ItemTexture->GetPath().c_str());
+				}
+				ImGui::PopID();
+			}
+			ImGui::EndCombo();
+		}
+
+		return bChanged;
+	}
+
 	// 메시 컴포넌트의 머티리얼 슬롯을 한 줄씩 그린다.
 	// 텍스처를 드롭하면 그 슬롯의 덮어쓰기에 반영하고, 메시 에셋의 머티리얼은 건드리지 않는다.
 	void DrawMaterialSlots(UMeshComponent* MeshComponent)
@@ -746,6 +807,13 @@ namespace
 		case EPropertyType::String:
 		{
 			FString* Value = static_cast<FString*>(ValuePtr);
+
+			// 이름이 ...TexturePath인 문자열은 텍스처 슬롯으로 그린다 (드래그 앤 드롭 + 콤보)
+			if (Property.Name.find("TexturePath") != FString::npos)
+			{
+				bChanged = DrawTexturePathSlot(Value);
+				break;
+			}
 
 			char Buffer[256] = {};
 			strncpy_s(Buffer, Value->c_str(), sizeof(Buffer) - 1);
