@@ -71,6 +71,7 @@ void FDynamicSpriteEmitterDataBase::SortSpriteParticles(
 	{
 		FParticleOrder Order;
 		Order.ParticleIndex = Source.GetParticleIndex(ActiveIndex);
+		Order.ActiveIndex = ActiveIndex;
 
 		if (Source.SortMode != EParticleSortMode::None)
 		{

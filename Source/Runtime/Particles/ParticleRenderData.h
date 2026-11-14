@@ -13,6 +13,10 @@ struct FParticleOrder
 {
 	// PartilceData 내 실제 저장 슬롯 번호.
 	uint16 ParticleIndex = 0;
+
+	// 활성 목록과 Instances 배열에서의 위치.
+	int32 ActiveIndex = 0;
+
 	float SortKey = 0.0f;
 };
 
