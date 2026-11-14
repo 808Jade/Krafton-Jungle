@@ -182,7 +182,7 @@ void FDynamicSpriteEmitterData::PrepareRenderData(const FParticleSystemSceneProx
 void FDynamicSpriteEmitterData::GatherRenderPackets(
 	const FParticleSystemSceneProxy& Proxy,
 	FRenderQueue& RenderQueue,
-	const FVector& CameraLocation) const
+	const FRenderViewContext& View) const
 {
 	if (!Material || Instances.Num() == 0)
 		return;
@@ -204,12 +204,12 @@ void FDynamicSpriteEmitterData::GatherRenderPackets(
 		std::stable_sort(
 			Packet.SpriteInstances.begin(),
 			Packet.SpriteInstances.end(),
-			[&CameraLocation](
+			[&View](
 				const FParticleSpriteInstanceVertex& A,
 				const FParticleSpriteInstanceVertex& B)
 			{
-				return (A.Position - CameraLocation).SizeSquared() >
-					(B.Position - CameraLocation).SizeSquared();
+				return (A.Position - View.CameraLocation).SizeSquared() >
+					(B.Position - View.CameraLocation).SizeSquared();
 			});
 	}
 
@@ -223,7 +223,7 @@ void FDynamicSpriteEmitterData::GatherRenderPackets(
 
 	Center *= 1.0f / static_cast<float>(Packet.SpriteInstances.Num());
 
-	Packet.CameraToParticleDistance = (Center - CameraLocation).SizeSquared();
+	Packet.CameraToParticleDistance = (Center - View.CameraLocation).SizeSquared();
 
 	Packet.ParticleScreenAlignment = Source.ScreenAlignment;
 	Packet.ParticleAxisLock = Source.AxisLock;

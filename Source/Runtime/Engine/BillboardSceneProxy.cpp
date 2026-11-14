@@ -17,7 +17,7 @@ void FBillboardSceneProxy::UpdateDynamicData()
 
 // 행렬은 Queue가 소유하고 상수는 모든 View 제출이 끝날 때까지 Proxy가 유지한다.
 bool FBillboardSceneProxy::GatherDynamicRenderPackets(FRenderQueue& RenderQueue, FRenderQueue* IconQueue,
-    const FVector&, FBillboardMatrixBuilder BuildBillboardMatrix, const void* ViewContext,
+    const FRenderViewContext& View, FBillboardMatrixBuilder BuildBillboardMatrix, const void* ViewContext,
     TArray<int32>&, TArray<float>&) const
 {
     if (!QuadMesh || !Material) return true;

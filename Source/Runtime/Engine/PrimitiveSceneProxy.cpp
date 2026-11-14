@@ -24,8 +24,14 @@ void FPrimitiveSceneProxy::UpdateDynamicData()
 }
 
 // 처리하지 않은 타입은 호출자가 기존 Component 제출 경로로 보낸다.
-bool FPrimitiveSceneProxy::GatherDynamicRenderPackets(FRenderQueue&, FRenderQueue*,
-                                                      const FVector&, FBillboardMatrixBuilder, const void*, TArray<int32>&, TArray<float>&) const
+bool FPrimitiveSceneProxy::GatherDynamicRenderPackets(
+    FRenderQueue&,
+    FRenderQueue*,
+    const FRenderViewContext&, 
+	FBillboardMatrixBuilder, 
+	const void*, 
+	TArray<int32>&, 
+	TArray<float>&) const
 {
 	return false;
 }

@@ -2,6 +2,7 @@
 
 #include "Particles/ParticleReplayData.h"
 #include "Particles/ParticleVertex.h"
+#include "Engine/PrimitiveSceneProxy.h"
 
 class FParticleSystemSceneProxy;
 class FRenderQueue;
@@ -35,7 +36,7 @@ struct FDynamicEmitterDataBase
 	virtual void GatherRenderPackets(
 		const FParticleSystemSceneProxy& Proxy,
 		FRenderQueue& RenderQueue,
-		const FVector& CameraLocation
+		const FRenderViewContext& View
 	) const {}
 };
 
@@ -69,7 +70,7 @@ public:
 	void GatherRenderPackets(
 		const FParticleSystemSceneProxy& Proxy,
 		FRenderQueue& RenderQueue,
-		const FVector& CameraLocation) const override;
+		const FRenderViewContext& View) const override;
 
 private:
 	FDynamicSpriteEmitterReplayData Source;

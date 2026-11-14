@@ -30,7 +30,7 @@ void FParticleSceneProxy::UpdateDynamicData()
 
 // View별 거리와 정렬 배열은 World의 작업 버퍼를 사용한다.
 bool FParticleSceneProxy::GatherDynamicRenderPackets(FRenderQueue& RenderQueue, FRenderQueue*,
-    const FVector& CameraLocation, FBillboardMatrixBuilder BuildBillboardMatrix, const void* ViewContext,
+    const FRenderViewContext& View, FBillboardMatrixBuilder BuildBillboardMatrix, const void* ViewContext,
     TArray<int32>& SortedParticleIndices, TArray<float>& ParticleDistancesSquared) const
 {
     if (!QuadMesh || !Material) return true;
@@ -40,7 +40,7 @@ bool FParticleSceneProxy::GatherDynamicRenderPackets(FRenderQueue& RenderQueue, 
     ParticleDistancesSquared.SetNum(Particles.Num(), false);
     for (const int32 Index : AliveParticleIndices)
     {
-        const FVector Delta = Particles[Index].Location - CameraLocation;
+        const FVector Delta = Particles[Index].Location - View.CameraLocation;
         ParticleDistancesSquared[Index] = Delta.Dot(Delta);
     }
 

@@ -32,7 +32,7 @@ void FParticleSystemSceneProxy::UpdateDynamicData()
 bool FParticleSystemSceneProxy::GatherDynamicRenderPackets(
     FRenderQueue& RenderQueue,
     FRenderQueue*,
-    const FVector& CameraLocation,
+    const FRenderViewContext& View,
     FBillboardMatrixBuilder,
     const void*,
     TArray<int32>&,
@@ -41,7 +41,7 @@ bool FParticleSystemSceneProxy::GatherDynamicRenderPackets(
 	for (const TUniquePtr<FDynamicEmitterDataBase>& Data : DynamicEmitterData)
 	{
 		if (Data)
-			Data->GatherRenderPackets(*this, RenderQueue, CameraLocation);
+			Data->GatherRenderPackets(*this, RenderQueue, View);
 	}
 	return true;
 }

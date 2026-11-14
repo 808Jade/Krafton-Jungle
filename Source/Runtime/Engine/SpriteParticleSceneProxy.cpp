@@ -79,7 +79,7 @@ void FSpriteParticleSceneProxy::UpdateDynamicData()
 bool FSpriteParticleSceneProxy::GatherDynamicRenderPackets(
     FRenderQueue& RenderQueue,
     FRenderQueue*,
-    const FVector& CameraLocation,
+	const FRenderViewContext& View,
     FBillboardMatrixBuilder,
     const void*,
     TArray<int32>&,
@@ -105,12 +105,11 @@ bool FSpriteParticleSceneProxy::GatherDynamicRenderPackets(
 		std::stable_sort(
 		    Packet.SpriteInstances.begin(),
 		    Packet.SpriteInstances.end(),
-		    [&CameraLocation](
-		        const FParticleSpriteInstanceVertex& A,
+		    [&View](const FParticleSpriteInstanceVertex& A,
 		        const FParticleSpriteInstanceVertex& B)
 		    {
-			    return (A.Position - CameraLocation).SizeSquared() >
-			           (B.Position - CameraLocation).SizeSquared();
+			    return (A.Position - View.CameraLocation).SizeSquared() >
+			           (B.Position - View.CameraLocation).SizeSquared();
 		    });
 	}
 
@@ -124,7 +123,7 @@ bool FSpriteParticleSceneProxy::GatherDynamicRenderPackets(
 
 	Center *= 1.0f / static_cast<float>(Packet.SpriteInstances.Num());
 
-	Packet.CameraToParticleDistance = (Center - CameraLocation).SizeSquared();
+	Packet.CameraToParticleDistance = (Center - View.CameraLocation).SizeSquared();
 
 	const auto& Source = DynamicData->GetSource();
 	Packet.ParticleScreenAlignment = Source.ScreenAlignment;
