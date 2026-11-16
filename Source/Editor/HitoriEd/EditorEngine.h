@@ -28,6 +28,7 @@
 #include "Editor/Settings/SettingsPanel.h"
 #include "Editor/Viewports/ViewportsPanel.h"
 #include "Editor/LevelEditor/MultipleViewports/Adapter/MultipleViewportsAdapter.h"
+#include "Editor/HitoriEd/EditorSceneView.h"
 #include "Editor/ContentDrawer/ContentDrawerPanel.h"
 
 #include "Editor/Rendering/Outline.h"
@@ -49,6 +50,7 @@ class FSkeletalMeshViewerPanel;
 class FBlendSpaceEditorPanel;
 class FStateMachineEditorPanel;
 class FAnimGraphEditorPanel;
+class FParticleSystemEditorPanel;
 
 class UEditorEngine : public UEngine
 {
@@ -66,7 +68,8 @@ public:
 	// Active View의 입력과 Picking 결과만 Gizmo 및 선택 상태에 반영한다.
 	void UpdateGizmoAndPicking();
 	// View 하나의 Scene·Grid·Gizmo·텍스트를 해당 ViewProjection으로 렌더한다.
-	void RenderFrame(int32 ViewIndex, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward, FRenderQueue& RenderQueue, FRenderQueue& IconQueue, FRenderQueue& ArrowQueue);
+	// 어떤 월드를 어떤 View로 어디에 그릴지는 호출자가 정한다. 레벨 뷰포트·PIE 창·애셋 에디터 프리뷰가 함께 쓴다.
+	void RenderFrame(const FEditorSceneView& View, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo, FRenderQueue& RenderQueue, FRenderQueue& IconQueue, FRenderQueue& ArrowQueue);
 	// 네 View 결과와 ImGui를 메인 Swapchain 백버퍼에 합성한다. Present는 FEngineLoop가 한다.
 	void PresentFrame();
 	void DeleteActor(AActor* Actor);
@@ -122,19 +125,24 @@ private:
 	void EndFrame();
 
 	//불투명 물체에 대한 Pass
-	void RenderOpaquePass(int32 ViewIndex, const FRenderingInfo& ViewRenderingInfo,	const FViewConstants& ViewConstants, FRenderQueue& RenderQueue, UWorld& ViewWorld);
+	void RenderOpaquePass(const FEditorSceneView& View, const FRenderingInfo& ViewRenderingInfo,	const FViewConstants& ViewConstants, FRenderQueue& RenderQueue, UWorld& ViewWorld);
 	//안개에 대한 Pass
-	void RenderFogPass(const int32 ViewIndex, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo, const FVector& ViewCameraLocation,const FMatrix& ViewProjection, FRenderQueue& RenderQueue);
+	void RenderFogPass(const FEditorSceneView& View, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo, const FVector& ViewCameraLocation,const FMatrix& ViewProjection, FRenderQueue& RenderQueue);
 	//Overlay Pass
-	void RenderOverlayPass(const int32 ViewIndex, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward, FRenderQueue& RenderQueue, FRenderQueue& IconQueue, FRenderQueue& ArrowQueue);
+	void RenderOverlayPass(const FEditorSceneView& View, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward, FRenderQueue& RenderQueue, FRenderQueue& IconQueue, FRenderQueue& ArrowQueue);
 	//FXAA Pass
-	void RenderFXAAPass(const int32 ViewIndex, const FRenderingInfo& ViewRenderingInfo);
+	void RenderFXAAPass(const FEditorSceneView& View, const FRenderingInfo& ViewRenderingInfo);
 	//Depth Pass
-	void RenderDepthPass(const int32 ViewIndex, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward);
+	void RenderDepthPass(const FEditorSceneView& View, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward);
 	//Normal Pass
 	void RenderNormalPass(const int32 ViewIndex, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward);
 	//ToneMap Pass
-	void RenderToneMapPass(const int32 ViewIndex, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo);
+	void RenderToneMapPass(const FEditorSceneView& View, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo);
+
+	// 패널 View(0~3)와 외부 PIE View의 상태를 Adapter에서 모아 RenderFrame 입력으로 만든다.
+	FEditorSceneView MakeLevelSceneView(int32 ViewIndex) const;
+	// 파티클 에디터의 프리뷰 월드를 패널 소유 타깃에 그린다. 레벨 View와 같은 RenderFrame을 쓴다.
+	void RenderParticlePreview();
 
 	//Icon Pass
 	void RenderIconPass(int32 ViewIndex, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward, FRenderQueue& RenderIconQueue, FRenderQueue& ArrowQueue);
@@ -190,6 +198,7 @@ private:
  FAnimGraphEditorPanel* AnimGraphEditorPanel = nullptr;
  FStateMachineEditorPanel* StateMachineEditorPanel = nullptr;
 	FSkeletalMeshViewerPanel* SkeletalMeshViewerPanel = nullptr;
+	FParticleSystemEditorPanel* ParticleSystemEditorPanel = nullptr;
 
 	UWorld* EditorWorld = nullptr;
 	UWorld* PlayWorld = nullptr;

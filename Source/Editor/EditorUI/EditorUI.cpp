@@ -85,6 +85,7 @@ void FEditorUI::OnRender()
 				ImGui::DockBuilderDockWindow("Blend Space Editor", rootDockId);
 				ImGui::DockBuilderDockWindow("State Machine Editor", rootDockId);
                 ImGui::DockBuilderDockWindow("AnimGraph Editor", rootDockId);
+				ImGui::DockBuilderDockWindow("Particle System Editor", rootDockId);
 				ImGui::DockBuilderFinish(rootDockId);
 			}
 
@@ -152,6 +153,15 @@ void FEditorUI::OnRender()
 		else if (bIsMainViewport)
 		{
 			ImGui::SetNextWindowClass(&LevelViewportClass);
+		}
+		else if (strcmp(Name, "Particle System Editor") == 0)
+		{
+			// 애셋 에디터이므로 Level Editor 창에 가두지 않는다. 저장된 위치가 없는 첫 실행에만
+			// Level Editor와 같은 루트 탭 묶음에 붙인다.
+			const ImGuiWindow* LevelWindow = ImGui::FindWindowByName("Level Editor");
+			const ImGuiID Target = LevelWindow && LevelWindow->DockId ? LevelWindow->DockId : RootWorkspaceDockId;
+			if (Target)
+				ImGui::SetNextWindowDockID(Target, ImGuiCond_FirstUseEver);
 		}
 		else if (!bIsSkelViewer && strcmp(Name, "Blend Space Editor") != 0)
 		{

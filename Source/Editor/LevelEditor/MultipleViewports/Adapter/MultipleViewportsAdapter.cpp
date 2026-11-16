@@ -279,7 +279,18 @@ void FMultipleViewportsAdapter::BuildRenderQueue(UWorld& World, const int32 View
     OutArrowQueue.Reset();
     if (!IsViewActive(ViewIndex)) return;
 
-    const FViewCamera& ViewCamera = GetEffectiveCamera(ViewIndex);
+    BuildRenderQueue(World, GetEffectiveCamera(ViewIndex), GetViewRect(ViewIndex),
+        OutQueue, OutIconQueue, OutArrowQueue);
+}
+
+// 카메라와 영역만으로 컬링·LOD 입력을 만들어 World의 공통 수집 경로를 호출한다.
+void FMultipleViewportsAdapter::BuildRenderQueue(UWorld& World, const FViewCamera& ViewCamera, const FRect& Rect,
+    FRenderQueue& OutQueue, FRenderQueue& OutIconQueue, FRenderQueue& OutArrowQueue)
+{
+    OutQueue.Reset();
+    OutIconQueue.Reset();
+    OutArrowQueue.Reset();
+
     // Runtime은 이 동기 호출 동안만 논리 카메라 Context를 사용한다.
     const auto ResolveBillboard = [](const FVector& Position, float Width, float Height,
         const void* Context) -> FMatrix
@@ -288,7 +299,7 @@ void FMultipleViewportsAdapter::BuildRenderQueue(UWorld& World, const int32 View
         return FEditorViewportClient::BuildBillboardMatrix(Camera, Position, Width, Height);
     };
 
-	FLODViewContext LODContext = GetLODViewContext(ViewIndex);
+	FLODViewContext LODContext = FEditorViewportClient::CalcLODViewContext(ViewCamera, Rect);
 	FFrustumPlanes Frustum = ExtractFrustumPlanes(LODContext.ViewProjection);
 
 	// Renderer를 넘기지 않아 기존 에디터의 GPU 오클루전·상수 업로드 정책을 유지한다.
