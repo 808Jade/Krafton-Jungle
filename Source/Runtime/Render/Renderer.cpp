@@ -190,7 +190,7 @@ void FRenderer::UploadPerObjectConstants()
 		FRenderPacket& P = RenderPackets[Index];
 
 		// 파티클은 인스턴스 버퍼로 그리므로 World를 올리지 않는다. (인스턴스마다 World가 다르다)
-		if (P.IsSpriteParticle())
+		if (P.IsSpriteParticle() || P.IsMeshParticle())
 		{
 			P.Slot = InvalidObjectSlot;
 			continue;
@@ -576,7 +576,7 @@ void FRenderer::RenderPreview(FRenderQueue& InQueue, const FViewConstants& ViewC
 	FirstTranslucentIndex = 0;
 }
 
-void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
+void FRenderer::RenderOpaque(const FMatrix& ViewProjection, const FMeshParticlePacketDraw& DrawMeshParticlePacket)
 {
 	RenderCommand::BindConstantBuffer(4, LightingCB.get(), EShaderBindFlagBits::Pixel | EShaderBindFlagBits::Vertex);
 	RenderCommand::BindShaderResource(10, LocalLightBuffer.get(), EShaderBindFlagBits::Pixel | EShaderBindFlagBits::Vertex);
@@ -592,14 +592,17 @@ void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 	if (NormalDBuffer)
 		RenderCommand::BindShaderResource(11, NormalDBuffer.get(), EShaderBindFlagBits::Pixel);
 	DrawStaticGroups();
-	DrawPackets(0, FirstTranslucentIndex, ViewProjection);
+	DrawPackets(0, FirstTranslucentIndex, ViewProjection, {}, DrawMeshParticlePacket);
 	RenderCommand::UnbindShaderResource(8, EShaderBindFlagBits::Pixel);
 	RenderCommand::UnbindShaderResource(9, EShaderBindFlagBits::Pixel);
 	RenderCommand::UnbindShaderResource(11, EShaderBindFlagBits::Pixel);
 }
 
 // RenderOpaque가 남긴 반투명 패킷을 먼 것부터 그린다.
-void FRenderer::RenderTranslucent(const FMatrix& ViewProjection, const FSpritePacketDraw& DrawSpritePacket)
+void FRenderer::RenderTranslucent(
+	const FMatrix& ViewProjection, 
+	const FSpritePacketDraw& DrawSpritePacket,
+	const FMeshParticlePacketDraw& DrawMeshParticlePacket)
 {
 	RenderCommand::BindConstantBuffer(4, LightingCB.get(), EShaderBindFlagBits::Pixel | EShaderBindFlagBits::Vertex);
 	RenderCommand::BindShaderResource(10, LocalLightBuffer.get(), EShaderBindFlagBits::Pixel | EShaderBindFlagBits::Vertex);
@@ -609,7 +612,7 @@ void FRenderer::RenderTranslucent(const FMatrix& ViewProjection, const FSpritePa
 	RenderCommand::BindConstantBuffer(5, GridCB, EShaderBindFlagBits::Pixel | EShaderBindFlagBits::Vertex);
 
 	BindShadowResources();
-	DrawPackets(FirstTranslucentIndex, SortEntries.Num(), ViewProjection, DrawSpritePacket);
+	DrawPackets(FirstTranslucentIndex, SortEntries.Num(), ViewProjection, DrawSpritePacket, DrawMeshParticlePacket);
 	RenderPackets.Reset();
 	FirstTranslucentIndex = 0;
 	StaticGroups.clear();   // 묶음 메모리는 World 것이므로 이번 프레임이 끝나면 놓는다
@@ -742,12 +745,12 @@ void FRenderer::RenderQueueSorting(FRenderQueue& InQueue, const FViewConstants& 
 	bObjectConstantsPrepared = false;
 }
 
-void FRenderer::RenderDepth(const FMatrix& ViewProjection)
+void FRenderer::RenderDepth(const FMatrix& ViewProjection, const FMeshParticlePacketDraw& DrawMeshParticlePacket)
 {
 	// 불투명 두 경로(스태틱 묶음, 일반 패킷)를 PS 없이 그린다. 반투명은 깊이를 쓰지 않으므로 뺀다.
 	bDepthOnly = true;
 	DrawStaticGroups();
-	DrawPackets(0, FirstTranslucentIndex, ViewProjection);
+	DrawPackets(0, FirstTranslucentIndex, ViewProjection, {}, DrawMeshParticlePacket);
 	bDepthOnly = false;
 
 	// 본 패스가 머티리얼을 처음부터 다시 바인딩해 PS가 돌아오게 한다.
@@ -1101,7 +1104,12 @@ void FRenderer::RenderShadowDepth(FProjectedShadowInfo& ShadowInfo)
 }
 
 // 정렬된 패킷 중 [Begin, End) 범위를 View 행렬과 Section 범위로 그린다.
-void FRenderer::DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProjection, const FSpritePacketDraw& DrawSpritePacket)
+void FRenderer::DrawPackets(
+	uint32 Begin, 
+	uint32 End, 
+	const FMatrix& ViewProjection, 
+	const FSpritePacketDraw& DrawSpritePacket,
+	const FMeshParticlePacketDraw& DrawMeshParticlePacket)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DrawRenderPackets);
 
@@ -1120,17 +1128,35 @@ void FRenderer::DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProject
 		const uint32 PacketIndex = SortEntries[k].PacketIndex;
 		const FRenderPacket& RenderPacket = RenderPackets[PacketIndex];
 
-		if (RenderPacket.IsSpriteParticle())
+		if (RenderPacket.IsSpriteParticle() ||
+			RenderPacket.IsMeshParticle())
 		{
-			if (DrawSpritePacket)
+			if (RenderPacket.IsMeshParticle())
 			{
-				DrawSpritePacket(RenderPacket);
+				if (DrawMeshParticlePacket)
+				{
+					DrawMeshParticlePacket(
+					    RenderPacket,
+					    ViewProjection,
+					    bDepthOnly);
+				}
+				else
+				{
+					HTR_LOG(Error, "Mesh Particle draw callback is missing.");
+				}
 			}
 			else
 			{
-				HTR_LOG(
-				    Error,
-				    "Sprite packet had no draw callback.");
+				if (DrawSpritePacket)
+				{
+					DrawSpritePacket(RenderPacket);
+				}
+				else
+				{
+					HTR_LOG(
+						Error,
+						"Sprite packet had no draw callback.");
+				}
 			}
 
 			// Sprite Draw가 변경한 메시 바인딩을 다시 설정하도록 한다.
