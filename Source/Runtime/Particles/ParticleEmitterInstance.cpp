@@ -13,12 +13,18 @@ FParticleEmitterInstance::~FParticleEmitterInstance()
 
 void FParticleEmitterInstance::Tick(float DeltaTime)
 {
+	// 컴포넌트 트랜스폼으로 EmitterToSimulation, SimulationToWorld 갱신
 	UpdateTransforms();
+	// RelativeTime을 진행시키고 수명(1.0)이 다한 파티클 제거
 	AgeAndKillParticles(DeltaTime);
+	// Velocity, Color, Size, RotationRate를 Base 값으로 되돌림
 	ResetParticleParameters();
+	// 이번 틱에 만들 개수를 계산해 새 파티클 생성
 	Spawn(DeltaTime);
 	//(UpdateModules 자리)
+	// 속도와 회전 속도에 DeltaTime을 곱해 Location, Rotation을 이동
 	IntegrateParticles(DeltaTime);
+	// 활성 파티클을 감싸는 ParticleBoundingBox 갱신
 	UpdateBoundingBox();
 }
 
