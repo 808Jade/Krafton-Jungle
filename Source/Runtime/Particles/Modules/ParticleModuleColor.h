@@ -10,6 +10,13 @@ class UParticleModuleColor : public UParticleModule
 public:
 	UParticleModuleColor() = default;
 
+	void Spawn(FParticleEmitterInstance& Owner, int32 PayloadOffset, float SpawnTime, FBaseParticle& Particle) override;
+
+	void Update(FParticleEmitterInstance& Owner, int32 PayloadOffset, float DeltaTime) override;
+
+	bool NeedsSpawn() const override { return true; }
+	bool NeedsUpdate() const override { return bUseColorOverLife; }
+
 	FParticleColorRange StartColor;
 
 	// true이면 수명에 따라 BaseColor에서 EndColor로 선형 보간한다.
