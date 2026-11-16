@@ -9,7 +9,6 @@ class UParticleSystemComponent;
 class UParticleEmitter;
 class UParticleLODLevel;
 class UParticleModuleTypeDataMesh;
-class UParticleModuleSpawn;
 class UMaterialInterface;
 
 struct FParticleEmitterInstance
@@ -63,8 +62,6 @@ public:
 	UParticleSystemComponent* Component = nullptr;
 	int32 CurrentLODLevelIndex = 0;
 	UParticleLODLevel* CurrentLODLevel = nullptr;
-	// TODO: B의 CacheEmitterModuleInfo가 Spawn 모듈 포인터를 채우면 그 값으로 교체
-	UParticleModuleSpawn* SpawnModule = nullptr;
 
 	UMaterialInterface* CurrentMaterial = nullptr;
 

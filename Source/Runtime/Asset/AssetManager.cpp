@@ -522,7 +522,7 @@ void UAssetManager::CreateDefaultParticleSystem()
 	Required->SortMode = EParticleSortMode::None;
 	Required->ScreenAlignment = EParticleScreenAlignment::Rectangle;
 	Required->EmitterDuration = 1.0f;
-	Required->EmitterLoops = 2;
+	Required->EmitterLoops = 0;
 	Required->MaxActiveParticles = 200;
 
 	UParticleModuleSpawn* Spawn = NewObject<UParticleModuleSpawn>(LODLevel);

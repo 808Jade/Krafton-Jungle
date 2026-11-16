@@ -174,6 +174,7 @@ void FParticleEmitterInstance::UpdateTransforms()
 
 void FParticleEmitterInstance::Spawn(float DeltaTime)
 {
+	const UParticleModuleSpawn* SpawnModule = SpriteTemplate ? SpriteTemplate->SpawnModule : nullptr;
 	if (bEmitterIsDone || bHaltSpawning || !SpawnModule || !SpawnModule->bEnabled)
 	{
 		return;
@@ -402,32 +403,14 @@ void FParticleEmitterInstance::InitParameters(
 	Location = Component ? Component->GetWorldLocation() : FVector(0.0f, 0.0f, 0.0f);
 	OldLocation = Location;
 
-	SpawnModule = nullptr;
-	if (CurrentLODLevel)
-	{
-		for (UParticleModule* Module : CurrentLODLevel->Modules)
-		{
-			if (UParticleModuleSpawn* FoundSpawnModule = Cast<UParticleModuleSpawn>(Module))
-			{
-				SpawnModule = FoundSpawnModule;
-				break;
-			}
-		}
-	}
-
-	int32 MaxParticles = 100;
 	if (Required)
 	{
 		bUseLocalSpace = Required->bUseLocalSpace;
 		CurrentMaterial = Required->Material;
 		EmitterDuration = Required->EmitterDuration;
 		EmitterLoops = Required->EmitterLoops;
-		if (Required->MaxActiveParticles > 0)
-		{
-			MaxParticles = Required->MaxActiveParticles;
-		}
 	}
-	Init(MaxParticles, InTemplate->ParticleSize);
+	Init(InTemplate->MaxActiveParticles, InTemplate->ParticleSize);
 }
 
 /*-----------------------------------------------------------------------------
