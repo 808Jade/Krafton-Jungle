@@ -3,7 +3,7 @@
 cbuffer ParticleMeshConstants : register(b3)
 {
     float4x4 ViewProjection;
-    flaot4 BaseColor;
+    float4 BaseColor;
     
     uint bOpaque;
     uint3 Padding;
