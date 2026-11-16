@@ -1,5 +1,7 @@
 #include "EnginePCH.h"
 #include "ParticleSystemComponent.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleEmitter.h"
 #include "Engine/ParticleSystemSceneProxy.h"
 
 UParticleSystemComponent::UParticleSystemComponent()
@@ -9,23 +11,16 @@ UParticleSystemComponent::UParticleSystemComponent()
 
 UParticleSystemComponent::~UParticleSystemComponent()
 {
-	for (auto* EmitterInstance : EmitterInstances)
-	{
-		delete EmitterInstance;
-	}
-	EmitterInstances.Empty();
+	ResetParticles();
 }
 
 void UParticleSystemComponent::TickComponent(float DeltaTime)
 {
 	Super::TickComponent(DeltaTime);
 
-	if (EmitterInstances.IsEmpty())
+	if (IsActive() && Template && EmitterInstances.IsEmpty())
 	{
-		FParticleEmitterInstance* ParticleEmitterInstance = new FParticleSpriteEmitterInstance();
-		ParticleEmitterInstance->Component = this;
-		ParticleEmitterInstance->Init(100, sizeof(FBaseParticle));
-		EmitterInstances.Add(ParticleEmitterInstance);
+		InitParticles();
 	}
 	
 	for (auto* EmitterInstance : EmitterInstances)
@@ -96,4 +91,118 @@ bool UParticleSystemComponent::GetEmitterBoundingBox(FBox& OutBoundingBox) const
 FPrimitiveSceneProxy* UParticleSystemComponent::CreateSceneProxy()
 {
 	return new FParticleSystemSceneProxy(this);
+}
+
+void UParticleSystemComponent::InitParticles()
+{
+	if (!Template)
+	{
+		return;
+	}
+
+	ResetParticles();
+
+	for (auto* Emitter : Template->Emitters)
+	{
+		if (!Emitter)
+		{
+			continue;
+		}
+		Emitter->CacheEmitterModuleInfo();
+
+		FParticleEmitterInstance* ParticleEmitterInstance = nullptr;
+		if (Emitter->EmitterType == EDynamicEmitterType::Mesh)
+		{
+			ParticleEmitterInstance = new FParticleMeshEmitterInstance();
+		}
+		else
+		{
+			ParticleEmitterInstance = new FParticleSpriteEmitterInstance();
+		}
+		ParticleEmitterInstance->InitParameters(Emitter, this);
+		EmitterInstances.Add(ParticleEmitterInstance);
+	}
+}
+
+void UParticleSystemComponent::ResetParticles()
+{
+	for (auto* EmitterInstance : EmitterInstances)
+	{
+		delete EmitterInstance;
+	}
+	EmitterInstances.Empty();
+}
+
+void UParticleSystemComponent::SetTemplate(UParticleSystem* InTemplate)
+{
+	ResetParticles();
+	Template = InTemplate;
+}
+
+void UParticleSystemComponent::SetActive(bool bNewActive)
+{
+	Super::SetActive(bNewActive);
+
+	if (bNewActive)
+	{
+		ActivateSystem();
+	}
+	else
+	{
+		DeactivateSystem();
+	}
+}
+
+void UParticleSystemComponent::ActivateSystem(bool bReset)
+{
+	if (!Template)
+	{
+		return;
+	}
+
+	if (bReset || EmitterInstances.IsEmpty())
+	{
+		InitParticles();
+		return;
+	}
+
+	for (FParticleEmitterInstance* EmitterInstance : EmitterInstances)
+	{
+		EmitterInstance->bHaltSpawning = false;
+	}
+}
+
+void UParticleSystemComponent::DeactivateSystem()
+{
+	for (FParticleEmitterInstance* EmitterInstance : EmitterInstances)
+	{
+		EmitterInstance->bHaltSpawning = true;
+	}
+}
+
+void UParticleSystemComponent::ResetSystem()
+{
+	for (FParticleEmitterInstance* EmitterInstance : EmitterInstances)
+	{
+		EmitterInstance->KillParticlesForced();
+		EmitterInstance->Rewind();
+		EmitterInstance->bHaltSpawning = false;
+	}
+}
+
+bool UParticleSystemComponent::HasCompleted() const
+{
+	if (EmitterInstances.IsEmpty())
+	{
+		return false;
+	}
+
+	for (const FParticleEmitterInstance* EmitterInstance : EmitterInstances)
+	{
+		if (!EmitterInstance->HasCompleted())
+		{
+			return false;
+		}
+	}
+	return true;
 }

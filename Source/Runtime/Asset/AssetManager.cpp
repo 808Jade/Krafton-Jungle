@@ -21,6 +21,17 @@
 #include "Render/GeometryGenerator.h"
 #include "UObject/UObjectIterator.h"
 
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/Modules/ParticleModuleRequired.h"
+#include "Particles/Modules/ParticleModuleSpawn.h"
+#include "Particles/Modules/ParticleModuleLifetime.h"
+#include "Particles/Modules/ParticleModuleLocation.h"
+#include "Particles/Modules/ParticleModuleVelocity.h"
+#include "Particles/Modules/ParticleModuleSize.h"
+#include "Particles/Modules/ParticleModuleColor.h"
+
 #include "Render/ImageLoader.h"
 #include "Core/ResourcePaths.h"
 #include <algorithm>
@@ -291,6 +302,7 @@ void UAssetManager::Init(const FAssetLoadProgress& OnProgress)
 	Get().CreateDefaultMeshes();
 	Get().CreateParticleMaterial();
 	Get().CreateDefaultParticleMaterial();
+	Get().CreateDefaultParticleSystem();
 	Get().CreateEditorArrowMaterial();
 }
 
@@ -496,6 +508,56 @@ void UAssetManager::CreateDefaultParticleMaterial()
 	DefaultParticleMat->DepthStencilState = EDepthStencilState::ReadOnly;
 	DefaultParticleMat->SamplerState = ESamplerState::LinearClamp;
 	RegisterAsset("DefaultParticleMaterial", DefaultParticleMat);
+}
+
+void UAssetManager::CreateDefaultParticleSystem()
+{
+	UParticleSystem* System = NewObject<UParticleSystem>();
+	UParticleEmitter* Emitter = NewObject<UParticleEmitter>(System);
+	UParticleLODLevel* LODLevel = NewObject<UParticleLODLevel>(Emitter);
+
+	UParticleModuleRequired* Required = NewObject<UParticleModuleRequired>(LODLevel);
+	Required->Material = nullptr;
+	Required->bUseLocalSpace = false;
+	Required->SortMode = EParticleSortMode::None;
+	Required->ScreenAlignment = EParticleScreenAlignment::Rectangle;
+	Required->EmitterDuration = 1.0f;
+	Required->EmitterLoops = 0;
+	Required->MaxActiveParticles = 200;
+
+	UParticleModuleSpawn* Spawn = NewObject<UParticleModuleSpawn>(LODLevel);
+	Spawn->SpawnRate = 20.0f;
+
+	UParticleModuleLifetime* Lifetime = NewObject<UParticleModuleLifetime>(LODLevel);
+	Lifetime->Lifetime = FParticleFloatRange(1.0f, 2.0f);
+
+	UParticleModuleLocation* Location = NewObject<UParticleModuleLocation>(LODLevel);
+	Location->StartLocation = FParticleVectorRange(FVector(-0.2f, -0.2f, 0.0f), FVector(0.2f, 0.2f, 0.0f));
+
+	UParticleModuleVelocity* Velocity = NewObject<UParticleModuleVelocity>(LODLevel);
+	Velocity->StartVelocity = FParticleVectorRange(FVector(-0.5f, -0.5f, 1.0f), FVector(0.5f, 0.5f, 2.0f));
+
+	UParticleModuleSize* Size = NewObject<UParticleModuleSize>(LODLevel);
+	Size->StartSize = FParticleVectorRange(FVector(0.3f, 0.3f, 0.3f));
+
+	UParticleModuleColor* Color = NewObject<UParticleModuleColor>(LODLevel);
+	Color->StartColor = FParticleColorRange(FLinearColor(1.0f, 0.4f, 0.1f, 1.0f), FLinearColor(1.0f, 0.9f, 0.3f, 1.0f));
+	Color->bUseColorOverLife = true;
+
+	LODLevel->Level = 0;
+	LODLevel->RequiredModule = Required;
+	LODLevel->Modules.Add(Spawn);
+	LODLevel->Modules.Add(Lifetime);
+	LODLevel->Modules.Add(Location);
+	LODLevel->Modules.Add(Velocity);
+	LODLevel->Modules.Add(Size);
+	LODLevel->Modules.Add(Color);
+	LODLevel->TypeDataModule = nullptr;
+
+	Emitter->LODLevels.Add(LODLevel);
+	System->Emitters.Add(Emitter);
+
+	RegisterAsset("DefaultParticleSystem", System);
 }
 
 void UAssetManager::CreateParticleMaterial()
