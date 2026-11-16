@@ -30,6 +30,7 @@ public:
 	virtual ~FParticleEmitterInstance();
 	/** 이미터 타입에 맞는 DynamicEmitterData를 생성해 반환. 호출자가 delete 책임. 베이스는 nullptr */
 	virtual FDynamicEmitterDataBase* GetDynamicData() const;
+	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent);
 
 	void Spawn(float DeltaTime);
 	void SpawnParticles(int32 Count, float StartTime, float Increment, const FVector& InitialLocation,

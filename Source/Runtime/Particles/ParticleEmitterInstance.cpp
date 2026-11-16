@@ -5,6 +5,7 @@
 #include "Components/ParticleSystemComponent.h"
 #include "Asset/AssetManager.h"
 #include "Math/Transform.h"
+#include "Particles/ParticleEmitter.h"
 
 FParticleEmitterInstance::~FParticleEmitterInstance()
 {
@@ -316,6 +317,16 @@ UMaterialInterface* FParticleEmitterInstance::GetCurrentMaterial() const
 FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData() const
 {
 	return nullptr;
+}
+
+void FParticleEmitterInstance::InitParameters(
+	UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent)
+{
+	SpriteTemplate = InTemplate;
+	Component = InComponent;
+	CurrentLODLevelIndex = 0;
+	CurrentLODLevel = InTemplate->LODLevels.IsEmpty() ? nullptr : InTemplate->LODLevels[0];
+	Init(100, InTemplate->ParticleSize);
 }
 
 /*-----------------------------------------------------------------------------

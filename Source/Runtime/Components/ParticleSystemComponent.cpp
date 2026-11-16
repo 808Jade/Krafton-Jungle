@@ -1,5 +1,7 @@
 #include "EnginePCH.h"
 #include "ParticleSystemComponent.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleEmitter.h"
 #include "Engine/ParticleSystemSceneProxy.h"
 
 UParticleSystemComponent::UParticleSystemComponent()
@@ -9,23 +11,16 @@ UParticleSystemComponent::UParticleSystemComponent()
 
 UParticleSystemComponent::~UParticleSystemComponent()
 {
-	for (auto* EmitterInstance : EmitterInstances)
-	{
-		delete EmitterInstance;
-	}
-	EmitterInstances.Empty();
+	ResetParticles();
 }
 
 void UParticleSystemComponent::TickComponent(float DeltaTime)
 {
 	Super::TickComponent(DeltaTime);
 
-	if (EmitterInstances.IsEmpty())
+	if (Template && EmitterInstances.IsEmpty())
 	{
-		FParticleEmitterInstance* ParticleEmitterInstance = new FParticleSpriteEmitterInstance();
-		ParticleEmitterInstance->Component = this;
-		ParticleEmitterInstance->Init(100, sizeof(FBaseParticle));
-		EmitterInstances.Add(ParticleEmitterInstance);
+		InitParticles();
 	}
 	
 	for (auto* EmitterInstance : EmitterInstances)
@@ -96,4 +91,50 @@ bool UParticleSystemComponent::GetEmitterBoundingBox(FBox& OutBoundingBox) const
 FPrimitiveSceneProxy* UParticleSystemComponent::CreateSceneProxy()
 {
 	return new FParticleSystemSceneProxy(this);
+}
+
+void UParticleSystemComponent::InitParticles()
+{
+	if (!Template)
+	{
+		return;
+	}
+
+	ResetParticles();
+
+	for (auto* Emitter : Template->Emitters)
+	{
+		if (!Emitter)
+		{
+			continue;
+		}
+		Emitter->CacheEmitterModuleInfo();
+
+		FParticleEmitterInstance* ParticleEmitterInstance = nullptr;
+		if (Emitter->EmitterType == EDynamicEmitterType::Mesh)
+		{
+			ParticleEmitterInstance = new FParticleMeshEmitterInstance();
+		}
+		else
+		{
+			ParticleEmitterInstance = new FParticleSpriteEmitterInstance();
+		}
+		ParticleEmitterInstance->InitParameters(Emitter, this);
+		EmitterInstances.Add(ParticleEmitterInstance);
+	}
+}
+
+void UParticleSystemComponent::ResetParticles()
+{
+	for (auto* EmitterInstance : EmitterInstances)
+	{
+		delete EmitterInstance;
+	}
+	EmitterInstances.Empty();
+}
+
+void UParticleSystemComponent::SetTemplate(UParticleSystem* InTemplate)
+{
+	ResetParticles();
+	Template = InTemplate;
 }
