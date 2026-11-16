@@ -6,7 +6,9 @@
 #include "ParticleHelper.h"
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModule.h"
 #include "Particles/Modules/ParticleModuleRequired.h"
+#include "Particles/Modules/ParticleModuleSpawn.h"
 #include "Particles/Modules/ParticleModuleTypeDataMesh.h"
 
 #include "Components/ParticleSystemComponent.h"
@@ -31,9 +33,10 @@ void FParticleEmitterInstance::Tick(float DeltaTime)
 	AgeAndKillParticles(DeltaTime);
 	// Velocity, Color, Size, RotationRate를 Base 값으로 되돌림
 	ResetParticleParameters();
+	// 모듈들 Update호출
+	UpdateModules(DeltaTime);
 	// 이번 틱에 만들 개수를 계산해 새 파티클 생성
 	Spawn(DeltaTime);
-	//(UpdateModules 자리)
 	// 속도와 회전 속도에 DeltaTime을 곱해 Location, Rotation을 이동
 	IntegrateParticles(DeltaTime);
 	// 활성 파티클을 감싸는 ParticleBoundingBox 갱신
@@ -149,6 +152,9 @@ void FParticleEmitterInstance::UpdateTransforms()
 		return;
 	}
 
+	OldLocation = Location;
+	Location = Component->GetWorldLocation();
+
 	const FMatrix ComponentToWorld =
 		FTransform(Component->GetWorldRotation(), Component->GetWorldLocation()).GetLocalMatrix();
 
@@ -168,31 +174,37 @@ void FParticleEmitterInstance::UpdateTransforms()
 
 void FParticleEmitterInstance::Spawn(float DeltaTime)
 {
-	if (bEmitterIsDone || bHaltSpawning)
+	if (bEmitterIsDone || bHaltSpawning || !SpawnModule || !SpawnModule->bEnabled)
 	{
 		return;
 	}
-
-	// 임시값
-	float Rate = 25.0f;
-	FVector SpawnVelocity = FVector(0.0f, 0.0f, 1.0f);
-	//
 
 	const FVector4 Origin = EmitterToSimulation.GetOrigin();
 	const FVector SpawnLocation(Origin.X, Origin.Y, Origin.Z);
+	const FVector SpawnVelocity(0.0f, 0.0f, 0.0f);
 
-	if (Rate <= 0)
+	const FParticleSpawnBatch RateBatch = SpawnModule->GetRateBatch(DeltaTime, SpawnFraction);
+	SpawnParticles(RateBatch.Count, RateBatch.StartTime, RateBatch.Increment, SpawnLocation, SpawnVelocity);
+
+	TArray<FParticleSpawnBatch> BurstBatches;
+	SpawnModule->GetBurstBatches(PrevEmitterTime, EmitterTime, EmitterDuration, BurstBatches);
+	for (const FParticleSpawnBatch& Batch : BurstBatches)
 	{
-		return;
+		SpawnParticles(Batch.Count, Batch.StartTime, Batch.Increment, SpawnLocation, SpawnVelocity);
 	}
+}
 
-	float PrevSpawnFraction = SpawnFraction;
-	SpawnFraction = PrevSpawnFraction + Rate * DeltaTime;
-	float Increment = 1.0f / Rate;
-	float StartTime = DeltaTime + PrevSpawnFraction * Increment - Increment;
-	const int32 SpawnCount = static_cast<int32>(std::floor(SpawnFraction));
-	SpawnParticles(SpawnCount, StartTime, Increment, SpawnLocation, SpawnVelocity);
-	SpawnFraction -= SpawnCount;
+void FParticleEmitterInstance::UpdateModules(float DeltaTime)
+{
+	for (UParticleModule* UpdateModule : SpriteTemplate->UpdateModules)
+	{
+		if (!UpdateModule || !UpdateModule->bEnabled)
+		{
+			continue;
+		}
+		const int32* Offset = SpriteTemplate->ModuleOffsetMap.Find(UpdateModule);
+		UpdateModule->Update(*this, Offset ? *Offset : 0, DeltaTime);
+	}
 }
 
 void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, 
@@ -208,13 +220,13 @@ void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle,
 void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle, 
 	float InterpolationPercentage, float SpawnTime)
 {
-	//if (CurrentLODLevel->RequiredModule->bUseLocalSpace == false)
-	//{
-	//	if (FVector::Distance(Particle->OldLocation, Particle->Location) > 1.f)
-	//	{
-	//		Particle->Location += (Particle->OldLocation - Particle->Location) * InterpolationPercentage;
-	//	}
-	//}
+	if (!bUseLocalSpace)
+	{
+		if (FVector::Distance(OldLocation, Location) > 0.01f)
+		{
+			Particle->Location += (OldLocation - Location) * InterpolationPercentage;
+		}
+	}
 
 	Particle->OldLocation = Particle->Location;
 	Particle->Location += FVector(Particle->Velocity) * SpawnTime;
@@ -237,23 +249,19 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
 		}
 		uint16 NextFreeIndex = ParticleIndices[ActiveParticles];
 		DECLARE_PARTICLE_PTR(Particle, ParticleData + ParticleStride * NextFreeIndex);
+		SpawnTime = StartTime - Increment * Index;
 		PreSpawn(Particle, InitialLocation, InitialVelocity);
 
-		//for (int32 ModuleIndex = 0; ModuleIndex < LODLevel->SpawnModules.Num(); ModuleIndex++)
+		for (UParticleModule* SpawnModule : SpriteTemplate->SpawnModules)
 		{
-			// [1단계 임시] 하드코딩 초기값
-			const float Lifetime = 1.0f;                       // 수명 1초
-			Particle->OneOverMaxLifetime = 1.0f / Lifetime;
-			Particle->RelativeTime = 0.0f;
-
-			Particle->BaseSize = FVector(1.0f, 1.0f, 1.0f);    // Base와 현재값을 둘 다
-			Particle->Size = Particle->BaseSize;
-
-			Particle->BaseColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
-			Particle->Color = Particle->BaseColor;
-			//
+			if (!SpawnModule || !SpawnModule->bEnabled)
+			{
+				continue;
+			}
+			const int32* Offset = SpriteTemplate->ModuleOffsetMap.Find(SpawnModule);
+			SpawnModule->Spawn(*this, Offset ? *Offset : 0, SpawnTime, *Particle);
 		}
-		SpawnTime = StartTime - Increment * Index;
+		
 		PostSpawn(Particle, InterpolationPercentage, SpawnTime);
 		InterpolationPercentage = InterpolationPercentage != 0 ? InterpolationPercentage - 1.0f / Count : 0;
 		ActiveParticles++;
@@ -390,6 +398,22 @@ void FParticleEmitterInstance::InitParameters(
 	UParticleModuleRequired* Required = CurrentLODLevel ? CurrentLODLevel->RequiredModule : nullptr;
 	Rewind();
 	bHaltSpawning = false;
+
+	Location = Component ? Component->GetWorldLocation() : FVector(0.0f, 0.0f, 0.0f);
+	OldLocation = Location;
+
+	SpawnModule = nullptr;
+	if (CurrentLODLevel)
+	{
+		for (UParticleModule* Module : CurrentLODLevel->Modules)
+		{
+			if (UParticleModuleSpawn* FoundSpawnModule = Cast<UParticleModuleSpawn>(Module))
+			{
+				SpawnModule = FoundSpawnModule;
+				break;
+			}
+		}
+	}
 
 	int32 MaxParticles = 100;
 	if (Required)

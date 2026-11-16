@@ -9,6 +9,7 @@ class UParticleSystemComponent;
 class UParticleEmitter;
 class UParticleLODLevel;
 class UParticleModuleTypeDataMesh;
+class UParticleModuleSpawn;
 class UMaterialInterface;
 
 struct FParticleEmitterInstance
@@ -42,6 +43,7 @@ public:
 	void Release();
 	void Rewind();
 	bool HasCompleted() const;
+	void UpdateModules(float DeltaTime);
 
 	void Tick(float DeltaTime);
 	void TickEmitterTime(float DeltaTime);
@@ -61,12 +63,16 @@ public:
 	UParticleSystemComponent* Component = nullptr;
 	int32 CurrentLODLevelIndex = 0;
 	UParticleLODLevel* CurrentLODLevel = nullptr;
+	// TODO: B의 CacheEmitterModuleInfo가 Spawn 모듈 포인터를 채우면 그 값으로 교체
+	UParticleModuleSpawn* SpawnModule = nullptr;
 
 	UMaterialInterface* CurrentMaterial = nullptr;
 
 	bool bUseLocalSpace = false;
 	FMatrix EmitterToSimulation = FMatrix::Identity;
 	FMatrix SimulationToWorld = FMatrix::Identity;
+	FVector Location = FVector(0.0f, 0.0f, 0.0f);
+	FVector OldLocation = FVector(0.0f, 0.0f, 0.0f);
 
 
 	//Particle
@@ -101,7 +107,7 @@ public:
 	float	EmitterDuration = 1.0f; // 한 루프 길이(초).Required 값으로 채움
 	int32	EmitterLoops = 0; // 반복 횟수. 0이면 무한.Required 값으로 채움
 	bool	bEmitterIsDone = false; // 정해진 루프를 다 돌았음 → 더 이상 스폰하지 않음
-	bool	bHaltSpawning = false;
+	bool	bHaltSpawning = false; //스폰만 멈춤.
 };
 
 struct FParticleSpriteEmitterInstance : public FParticleEmitterInstance
