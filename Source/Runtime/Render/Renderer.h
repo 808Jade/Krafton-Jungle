@@ -12,6 +12,7 @@
 #include "ProjectedShadowInfo.h"
 
 #include <cstddef>
+#include <functional>
 
 constexpr uint32 ObjectSlotBytes = 256;
 
@@ -232,6 +233,9 @@ class FShadowViewRenderer;
 class FRenderer
 {
 public:
+	using FSpritePacketDraw = std::function<void(const FRenderPacket&)>;
+
+public:
 	bool Init();
 
 	// 기존 단일 카메라의 ViewProjection으로 렌더 큐 전체를 그린다.
@@ -258,6 +262,12 @@ public:
 
 	// RenderOpaque가 보관한 반투명 패킷을 먼 것부터 그린다.
 	void RenderTranslucent(const FMatrix& ViewProjection);
+	void RenderTranslucent(
+	    const FMatrix& ViewProjection,
+	    const FVector& CameraPoisiton,
+	    const FVector& CameraForward,
+	    const TArray<FRenderPacket>& ParticlePackets,
+	    const FSpritePacketDraw& DrawSpritePacket);
 
 	// 큐를 Material, Opaque, Mesh에 따라 정렬한다
 	// CameraWorldPos는 ViewProjection과 함께 b0에 올라가 Specular 계산(V 벡터)에 쓰인다.

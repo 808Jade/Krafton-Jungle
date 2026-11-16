@@ -1088,38 +1088,54 @@ void UEditorEngine::RenderOpaquePass(int32 ViewIndex, const FRenderingInfo& View
 		// Grid 파이프라인이 바꾼 상태를 장면 기준으로 되돌린 뒤 반투명을 먼 것부터 그린다.
 		RenderCommand::SetRasterizerState(SceneRasterizerState);
 		RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		Renderer->RenderTranslucent(ViewProjection);
 
-		// Sprite 파티클.
-		if (ParticleSpriteRenderer &&
-			ParticlePackets.Num() > 0)
-		{
-			// 실제 뷰 카메라를 사용한다.
-			// PIE 카메라 Override도 포함한다.
-			const auto& Camera =
-			    MultipleViewportsAdapter.GetEffectiveCamera(ViewIndex);
+		// 실제 뷰 카메라를 사용한다.
+		// PIE 카메라 Override도 포함한다.
+		const auto& Camera =
+			MultipleViewportsAdapter.GetEffectiveCamera(ViewIndex);
 
-			FParticleSpriteView ParticleView{};
+		FParticleSpriteView ParticleView{};
 
-			ParticleView.ViewProjection = ViewProjection;
-			ParticleView.CameraPosition = Camera.Transform.Location;
+		ParticleView.ViewProjection = ViewProjection;
+		ParticleView.CameraPosition = Camera.Transform.Location;
 
-			ParticleView.CameraRight =
-			    Camera.Transform.Rotation.GetRightVector();
+		ParticleView.CameraRight =
+			Camera.Transform.Rotation.GetRightVector();
 
-			ParticleView.CameraUp =
-			    Camera.Transform.Rotation.GetUpVector();
+		ParticleView.CameraUp =
+			Camera.Transform.Rotation.GetUpVector();
 			
-			ParticleView.CameraForward =
-			    Camera.Transform.Rotation.GetForwardVector();
+		ParticleView.CameraForward =
+			Camera.Transform.Rotation.GetForwardVector();
 	
-			ParticleView.bOrthographic =
-			    Camera.Projection.Mode != EProjectionMode::Perspective;
+		ParticleView.bOrthographic =
+			Camera.Projection.Mode != EProjectionMode::Perspective;
 
-			ParticleSpriteRenderer->OnRender(
-			    ParticlePackets,
-				ParticleView);
-		}
+		Renderer->RenderTranslucent(
+			ViewProjection,
+			ParticleView.CameraPosition,
+			ParticleView.CameraForward,
+			ParticlePackets,
+			[this, &ParticleView](const FRenderPacket& Packet)
+			{
+			    if (!ParticleSpriteRenderer)
+				    return;
+
+				const bool bSuccess =
+			        ParticleSpriteRenderer->Draw(
+			            Packet.SpriteInstances,
+			            Packet.Material,
+			            ParticleView,
+			            Packet.ParticleScreenAlignment,
+			            Packet.ParticleAxisLock);
+
+				if (!bSuccess)
+				{
+				    HTR_LOG(
+				        Error,
+				        "Failed to draw sprite particle batch.");
+				}
+			});
 
 		RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
 		RenderCommand::SetBlendState(EBlendState::Opaque);

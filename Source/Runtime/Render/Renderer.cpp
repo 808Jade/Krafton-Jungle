@@ -26,6 +26,8 @@
 #include <chrono>
 #include <unordered_map>
 #include <bit>
+#include <cmath>
+#include <cassert>
 
 DECLARE_CYCLE_STAT("Draw Render Packets", STAT_DrawRenderPackets);
 DECLARE_CYCLE_STAT("Render Queue Sorting", STAT_RenderQueueSorting);
@@ -574,6 +576,147 @@ void FRenderer::RenderTranslucent(const FMatrix& ViewProjection)
 	StaticGroups.clear();   // 묶음 메모리는 World 것이므로 이번 프레임이 끝나면 놓는다
 }
 
+void FRenderer::RenderTranslucent(
+    const FMatrix& ViewProjection,
+    const FVector& CameraPosition,
+    const FVector& CameraForward,
+    const TArray<FRenderPacket>& ParticlePackets,
+    const FSpritePacketDraw& DrawSpritePacket)
+{
+	// 기존 반투명 패스와 동일한 공통 리소스.
+	RenderCommand::BindConstantBuffer(
+	    4,
+	    LightingCB.get(),
+	    EShaderBindFlagBits::Pixel |
+	        EShaderBindFlagBits::Vertex);
+
+	RenderCommand::BindShaderResource(
+	    10,
+	    LocalLightBuffer.get(),
+	    EShaderBindFlagBits::Pixel |
+	        EShaderBindFlagBits::Vertex);
+
+	RenderCommand::BindShaderResource(
+	    12,
+	    TileIndexBuffer.get(),
+	    EShaderBindFlagBits::Pixel);
+
+	FConstantBuffer* GridCB =
+	    LightCullingMode == ELightCullingMode::Tiled25D
+	        ? GridLightingFallbackCB.get()
+	        : GridLightingCB.get();
+
+	RenderCommand::BindConstantBuffer(
+	    5,
+	    GridCB,
+	    EShaderBindFlagBits::Pixel |
+	        EShaderBindFlagBits::Vertex);
+
+	BindShadowResources();
+
+	struct FTranslucentItem
+	{
+		bool bSprite = false;
+
+		// 메시: SortEntries의 위치.
+		// Sprite: ParticlePackets의 위치.
+		uint32 Index = 0;
+
+		float Depth = 0.0f;
+	};
+
+	TArray<FTranslucentItem> Items;
+
+	Items.Reserve(
+	    static_cast<int32>(SortEntries.Num()) -
+	    static_cast<int32>(FirstTranslucentIndex) +
+	    ParticlePackets.Num());
+
+	const FVector Forward = CameraForward.Normalized();
+
+	// 일반 반투명 메시 패킷 수집.
+	for (uint32 SortedIndex = FirstTranslucentIndex;
+	     SortedIndex < static_cast<uint32>(SortEntries.Num());
+	     ++SortedIndex)
+	{
+		const uint32 PacketIndex =
+		    SortEntries[SortedIndex].PacketIndex;
+
+		const FRenderPacket& Packet =
+		    RenderPackets[PacketIndex];
+
+		const FVector Center =
+		    Packet.Proxy
+		        ? Packet.Proxy->GetLODSphere().Center
+		        : GetPacketWorld(Packet).TransformPosition(
+		              FVector::ZeroVector);
+
+		FTranslucentItem Item{};
+		Item.Index = SortedIndex;
+		Item.Depth = FVector::Dot(
+		    Center - CameraPosition,
+		    Forward);
+
+		assert(std::isfinite(Item.Depth));
+		Items.Add(Item);
+	}
+
+	// Sprite 이미터 패킷 수집.
+	for (int32 PacketIndex = 0;
+	     PacketIndex < ParticlePackets.Num();
+	     ++PacketIndex)
+	{
+		const FRenderPacket& Packet =
+		    ParticlePackets[PacketIndex];
+
+		if (!Packet.Material || !Packet.IsSpriteParticle())
+		{
+			continue;
+		}
+
+		FTranslucentItem Item{};
+		Item.bSprite = true;
+		Item.Index = static_cast<uint32>(PacketIndex);
+
+		Item.Depth = FVector::Dot(
+		    Packet.ParticleSortCenter - CameraPosition,
+		    Forward);
+
+		assert(std::isfinite(Item.Depth));
+		Items.Add(Item);
+	}
+
+	// 메시와 이미터를 공통 뷰 깊이로 정렬.
+	std::stable_sort(
+	    Items.begin(),
+	    Items.end(),
+	    [](const FTranslucentItem& A,
+	       const FTranslucentItem& B)
+	    {
+		    return A.Depth > B.Depth;
+	    });
+
+	// 배열을 다시 묶지 않고 이 순서 그대로 실행.
+	for (const FTranslucentItem& Item : Items)
+	{
+		if (Item.bSprite)
+		{
+			DrawSpritePacket(ParticlePackets[Item.Index]);
+		}
+		else
+		{
+			DrawPackets(
+			    Item.Index,
+			    Item.Index + 1,
+			    ViewProjection);
+		}
+	}
+
+	RenderPackets.Reset();
+	FirstTranslucentIndex = 0;
+	StaticGroups.clear();
+}
+
 // 스태틱 메시 묶음을 정렬 키 순서로 그린다. 바인딩은 묶음마다 한 번, 항목마다는 칸 바인딩과 드로우만 한다.
 void FRenderer::DrawStaticGroups()
 {
@@ -648,7 +791,7 @@ void FRenderer::RenderQueueSorting(FRenderQueue& InQueue, const FViewConstants& 
 		}
 
 		// ② 16B 항목만 정렬
-		std::sort(SortEntries.begin(), SortEntries.end(),
+		std::stable_sort(SortEntries.begin(), SortEntries.end(),
 			[](const FSortEntry& A, const FSortEntry& B) { return A.Key < B.Key; });
 
 		// ③ 반투명 시작 위치 = 최상위 비트가 처음 1인 곳
