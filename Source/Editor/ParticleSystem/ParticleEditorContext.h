@@ -23,6 +23,16 @@ public:
 	// 프리뷰 액터를 지우고 다시 만들어 시뮬레이션을 처음부터 시작한다.
 	void RestartSimulation();
 
+	// 편집 중인 파티클 시스템 에셋을 저장한다. 에셋 모델(UParticleSystem)이 아직 없어 지금은 항상 저장할 대상이 없다.
+	// TODO: 에셋을 열면 그 에셋이 있을 때 true, Save에서 에셋을 직렬화해 파일로 쓴다.
+	bool CanSave() const { return false; }
+	bool Save() { return false; }
+
+	// 지금 파티클이 차지하는 영역을 고정 바운드로 저장하고 고정 바운드를 켠다. 살아 있는 파티클이 없으면 그대로 둔다.
+	void SetFixedBoundsFromCurrent();
+	// 고정 바운드를 끄고 매 프레임 파티클 위치로 바운드를 다시 계산한다.
+	void UseDynamicBounds();
+
 	UWorld* GetPreviewWorld() const { return PreviewScene ? PreviewScene->GetWorld() : nullptr; }
 	UParticleSystemComponent* GetPreviewComponent() const;
 	// 선택 인덱스가 현재 인스턴스 목록 범위를 벗어나면 nullptr이다. (재시작 직후 등)
@@ -31,6 +41,8 @@ public:
 	// --- 패널이 읽고 쓰는 공유 상태 ---
 	int32 SelectedEmitterIndex = INDEX_NONE;
 	bool bSimulationPaused = false;
+	// 툴바에 보이는 현재 LOD 번호. 에셋의 LOD 레벨이 연결되기 전까지 0에 고정된다.
+	int32 CurrentLODIndex = 0;
 
 private:
 	// 소유(합성): 이 에디터만 쓰는 독립 월드. 에디터와 수명이 같다.

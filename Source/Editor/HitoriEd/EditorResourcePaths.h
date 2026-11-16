@@ -18,5 +18,8 @@ namespace EditorResourcePaths
 	constexpr const char* ToolbarPauseIcon = "Resources/Icons/Toolbar/Pause.png";
 	constexpr const char* ToolbarStepIcon = "Resources/Icons/Toolbar/Step.png";
 	constexpr const char* ToolbarStopIcon = "Resources/Icons/Toolbar/Stop.png";
-	constexpr const char* ToolbarRestartIcon = "Resources/Icons/Toolbar/Restart.png";
+	constexpr const char* ToolbarSaveIcon = "Resources/Icons/Toolbar/Save.png";
+
+	// 파티클 시스템 에디터 툴바 아이콘 폴더. 파일 이름은 "<이름>.png"다. (예: RestartSim.png)
+	constexpr const char* ParticleEditorIconFolder = "Resources/Icons/ParticleEditor/";
 }

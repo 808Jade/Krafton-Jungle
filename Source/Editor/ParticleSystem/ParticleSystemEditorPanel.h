@@ -35,6 +35,13 @@ public:
 private:
 	void DrawMenuBar();
 	void DrawToolBar();
+	// 툴바 그룹: Cascade 툴바 순서(에셋·시뮬 / 편집 / 표시 / LOD)를 따른다.
+	void DrawAssetGroup();
+	void DrawEditGroup();
+	void DrawViewGroup();
+	void DrawLODGroup();
+	void DrawSimulationGroup();
+	void LoadToolbarIcons();
 	// 내부 DockSpace의 초기 배치. 저장된 배치가 없거나 Reset Layout을 고르면 실행한다.
 	void BuildDefaultLayout(unsigned int DockSpaceId);
 
@@ -47,9 +54,30 @@ private:
 	FParticleSystemViewportPanel* ViewportPanel = nullptr;
 
 	// 참조(집약): 툴바 아이콘. 텍스처는 UAssetManager가 소유하고 캐시한다.
-	UTexture2D* RestartIcon = nullptr;
-	UTexture2D* PauseIcon = nullptr;
-	UTexture2D* PlayIcon = nullptr;
+	struct FToolbarIcons
+	{
+		UTexture2D* Save = nullptr;
+		UTexture2D* RestartSim = nullptr;
+		UTexture2D* RestartLevel = nullptr;
+		UTexture2D* Undo = nullptr;
+		UTexture2D* Redo = nullptr;
+		UTexture2D* Thumbnail = nullptr;
+		UTexture2D* Bounds = nullptr;
+		UTexture2D* OriginAxis = nullptr;
+		UTexture2D* BackgroundColor = nullptr;
+		UTexture2D* RegenLOD = nullptr;
+		UTexture2D* RegenLODPercent = nullptr;
+		UTexture2D* LowestLOD = nullptr;
+		UTexture2D* LowerLOD = nullptr;
+		UTexture2D* AddLODBefore = nullptr;
+		UTexture2D* AddLODAfter = nullptr;
+		UTexture2D* HigherLOD = nullptr;
+		UTexture2D* HighestLOD = nullptr;
+		UTexture2D* DeleteLOD = nullptr;
+		UTexture2D* Pause = nullptr;
+		UTexture2D* Play = nullptr;
+	};
+	FToolbarIcons Icons;
 
 	bool bHostVisible = false;
 	bool bResetLayout = false;

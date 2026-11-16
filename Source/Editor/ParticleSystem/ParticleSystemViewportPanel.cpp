@@ -126,6 +126,10 @@ bool FParticleSystemViewportPanel::PreparePreviewRender()
 	if (RequestedWidth != TargetWidth || RequestedHeight != TargetHeight)
 		ResizeTargets(RequestedWidth, RequestedHeight);
 
+	// 툴바에서 바꾼 배경색을 매 프레임 지우기 색에 반영한다. 장면 패스가 이 값으로 HDR 타깃을 지운다.
+	if (RenderingInfo.ColorRenderTargets.Num() > 0)
+		RenderingInfo.ColorRenderTargets[0].ClearValue.ColorClearValue = { BackgroundColor[0], BackgroundColor[1], BackgroundColor[2], 1.0f };
+
 	return ColorTarget && DepthTarget && HDRTarget;
 }
 
@@ -157,8 +161,6 @@ void FParticleSystemViewportPanel::ResizeTargets(const uint32 Width, const uint3
 	RenderingInfo.ViewportSetting.Height = Height;
 	FRenderingDesc ColorDesc{};
 	ColorDesc.Texture = ColorTarget.get();
-	// 스카이박스 없이 그리므로 배경은 이 지우기 색이다.
-	ColorDesc.ClearValue.ColorClearValue = { 0.08f, 0.08f, 0.09f, 1.0f };
 	RenderingInfo.ColorRenderTargets.Add(ColorDesc);
 	RenderingInfo.DepthStencil.Texture = DepthTarget.get();
 

@@ -34,6 +34,9 @@ public:
 	FTexture2D* GetHDRTarget() const { return HDRTarget.get(); }
 	FTexture2D* GetFxaaTarget() const { return FxaaTarget.get(); }
 
+	// 프리뷰 배경색(RGB). 툴바의 색 선택기가 직접 고친다. 다음 렌더에서 지우기 색으로 반영된다.
+	float* GetBackgroundColor() { return BackgroundColor; }
+
 private:
 	// 뷰포트 위의 우클릭 드래그·WASD·휠을 View 카메라에 전달한다. 레벨 뷰포트와 같은 조작이다.
 	void UpdateCameraInput();
@@ -51,6 +54,8 @@ private:
 	TUniquePtr<FTexture2D> HDRTarget;
 	TUniquePtr<FTexture2D> FxaaTarget;
 	FRenderingInfo RenderingInfo{};
+	// 스카이박스 없이 그리므로 배경은 이 지우기 색이다.
+	float BackgroundColor[3] = { 0.08f, 0.08f, 0.09f };
 	uint32 TargetWidth = 0;
 	uint32 TargetHeight = 0;
 	// OnRender에서 측정한 영역 크기. 다음 프레임 렌더 전에 타깃 크기로 반영한다.
