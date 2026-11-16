@@ -29,7 +29,9 @@ enum class EPropertyType
 	Transform,
 	Object,
 	UInt32,
-	Name
+	Name,
+	Enum,   // enum / enum class. 기반 정수형으로 직렬화한다.
+	Struct  // operator<<(FStructuredArchiveSlot, T&) 와 operator== 를 직접 제공하는 구조체
 };
 
 template <typename T>
@@ -39,6 +41,10 @@ constexpr EPropertyType GetPropertyType()
         std::is_base_of_v<UObject, std::remove_pointer_t<T>>)
     {
         return EPropertyType::Object;
+    }
+    else if constexpr (std::is_enum_v<T>)
+    {
+        return EPropertyType::Enum;
     }
     else
     {

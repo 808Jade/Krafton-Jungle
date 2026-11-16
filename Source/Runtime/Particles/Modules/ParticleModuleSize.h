@@ -6,6 +6,11 @@
 class UParticleModuleSize : public UParticleModule
 {
 	DECLARE_CLASS(UParticleModuleSize, UParticleModule)
+	REFLECT_START(UParticleModuleSize)
+		PROPERTY(StartSize)
+		PROPERTY(bUseSizeOverLife)
+		PROPERTY(EndSize)
+	REFLECT_END()
 
 public:
 	UParticleModuleSize() = default;

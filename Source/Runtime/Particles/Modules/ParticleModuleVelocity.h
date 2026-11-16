@@ -6,6 +6,9 @@
 class UParticleModuleVelocity : public UParticleModule
 {
 	DECLARE_CLASS(UParticleModuleVelocity, UParticleModule)
+	REFLECT_START(UParticleModuleVelocity)
+		PROPERTY(StartVelocity)
+	REFLECT_END()
 
 public:
 	UParticleModuleVelocity() = default;

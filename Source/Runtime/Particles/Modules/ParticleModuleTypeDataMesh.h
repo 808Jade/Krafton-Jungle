@@ -3,11 +3,17 @@
 #include "Particles/Modules/ParticleModuleTypeDataBase.h"
 #include "Particles/ParticleRange.h"
 
-class UStaticMesh;
+// Mesh 프로퍼티 등록에 완전한 타입이 필요하다.
+#include "Render/Mesh.h"
 
 class UParticleModuleTypeDataMesh : public UParticleModuleTypeDataBase
 {
 	DECLARE_CLASS(UParticleModuleTypeDataMesh, UParticleModuleTypeDataBase)
+	REFLECT_START(UParticleModuleTypeDataMesh)
+		PROPERTY(Mesh)
+		PROPERTY(StartRotation)
+		PROPERTY(RotationRate)
+	REFLECT_END()
 
 public:
 	UParticleModuleTypeDataMesh() = default;

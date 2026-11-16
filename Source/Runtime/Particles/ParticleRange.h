@@ -3,6 +3,9 @@
 #include "Math/Vector.h"
 #include "Math/Color.h"
 #include "Math/Noise.h"
+#include "Serialization/StructuredArchiveSlots.h"
+#include "Serialization/MathSerialization.h"
+#include "UObject/Property.h"
 
 // Min~Max 균일 랜덤 범위. Min == Max이면 상수로 취급한다.
 struct FParticleFloatRange
@@ -60,3 +63,43 @@ struct FParticleColorRange
 		    Min.A + (Max.A - Min.A) * T);
 	}
 };
+
+// ---- 리플렉션 지원 ----
+// UPROPERTY로 등록하려면 동등 비교와 슬롯 직렬화가 필요하다. 저장 형태는 Record {Min, Max}.
+
+inline bool operator==(const FParticleFloatRange& A, const FParticleFloatRange& B)
+{
+	return A.Min == B.Min && A.Max == B.Max;
+}
+
+inline bool operator==(const FParticleVectorRange& A, const FParticleVectorRange& B)
+{
+	return A.Min == B.Min && A.Max == B.Max;
+}
+
+inline bool operator==(const FParticleColorRange& A, const FParticleColorRange& B)
+{
+	return A.Min == B.Min && A.Max == B.Max;
+}
+
+inline void operator<<(FStructuredArchiveSlot Slot, FParticleFloatRange& V)
+{
+	FStructuredArchiveRecord Record = Slot.EnterRecord();
+	Record << SA_VALUE("Min", V.Min) << SA_VALUE("Max", V.Max);
+}
+
+inline void operator<<(FStructuredArchiveSlot Slot, FParticleVectorRange& V)
+{
+	FStructuredArchiveRecord Record = Slot.EnterRecord();
+	Record << SA_VALUE("Min", V.Min) << SA_VALUE("Max", V.Max);
+}
+
+inline void operator<<(FStructuredArchiveSlot Slot, FParticleColorRange& V)
+{
+	FStructuredArchiveRecord Record = Slot.EnterRecord();
+	Record << SA_VALUE("Min", V.Min) << SA_VALUE("Max", V.Max);
+}
+
+DEFINE_PROPERTY_TYPE(FParticleFloatRange, Struct)
+DEFINE_PROPERTY_TYPE(FParticleVectorRange, Struct)
+DEFINE_PROPERTY_TYPE(FParticleColorRange, Struct)

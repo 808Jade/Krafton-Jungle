@@ -6,6 +6,11 @@
 class UParticleModuleColor : public UParticleModule
 {
 	DECLARE_CLASS(UParticleModuleColor, UParticleModule)
+	REFLECT_START(UParticleModuleColor)
+		PROPERTY(StartColor)
+		PROPERTY(bUseColorOverLife)
+		PROPERTY(EndColor)
+	REFLECT_END()
 
 public:
 	UParticleModuleColor() = default;

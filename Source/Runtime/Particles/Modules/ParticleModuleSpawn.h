@@ -22,9 +22,16 @@ struct FParticleSpawnBatch
 class UParticleModuleSpawn : public UParticleModule
 {
 	DECLARE_CLASS(UParticleModuleSpawn, UParticleModule)
+	REFLECT_START(UParticleModuleSpawn)
+		PROPERTY(SpawnRate)
+	REFLECT_END()
 
 public:
 	UParticleModuleSpawn() = default;
+
+	// Bursts는 TArray라 PROPERTY로 등록할 수 없다. 리플렉션 프로퍼티는 Super가 저장하고, 배열은 여기서 직접 저장한다.
+	using Super::Serialize;
+	void Serialize(FStructuredArchive::FRecord Record) override;
 
 	// Rate: 이번 Tick에 파티클 몇 개 만들면 되는지 계산
 	FParticleSpawnBatch GetRateBatch(float DeltaTime, float& InOutSpawnFraction) const;

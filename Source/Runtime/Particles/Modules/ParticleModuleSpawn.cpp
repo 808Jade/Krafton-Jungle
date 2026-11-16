@@ -69,3 +69,40 @@ void UParticleModuleSpawn::GetBurstBatches(float PrevEmitterTime, float CurrEmit
 		}
 	}
 }
+
+namespace
+{
+	// FParticleBurst는 UPROPERTY가 아니라 Serialize에서 직접 저장하므로 슬롯 직렬화만 제공한다.
+	void SerializeBurst(FStructuredArchive::FSlot Slot, FParticleBurst& Burst)
+	{
+		FStructuredArchive::FRecord Record = Slot.EnterRecord();
+		Record << SA_VALUE("Time", Burst.Time) << SA_VALUE("Count", Burst.Count);
+	}
+}
+
+void UParticleModuleSpawn::Serialize(FStructuredArchive::FRecord Record)
+{
+	// ObjectLabel + 리플렉션 프로퍼티(SpawnRate, bEnabled)
+	Super::Serialize(Record);
+
+	// 불러올 때 파일에 Bursts가 없으면 기존 값을 그대로 둔다.
+	TOptional<FStructuredArchive::FSlot> BurstsSlot = Record.TryEnterField("Bursts", true);
+	if (!BurstsSlot.IsSet())
+	{
+		return;
+	}
+
+	const bool bLoading = Record.GetUnderlyingArchive().IsLoading();
+
+	int32 Num = Bursts.Num();
+	FStructuredArchive::FArray BurstArray = BurstsSlot.GetValue().EnterArray(Num);
+	if (bLoading)
+	{
+		Bursts.SetNum(Num);
+	}
+
+	for (int32 Index = 0; Index < Num; ++Index)
+	{
+		SerializeBurst(BurstArray.EnterElement(), Bursts[Index]);
+	}
+}
