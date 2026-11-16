@@ -10,7 +10,7 @@ public:
     explicit FParticleSceneProxy(UParticleSubUVComponent* Component) : FBillboardSceneProxy(Component) {}
 
     bool GatherDynamicRenderPackets(FRenderQueue& RenderQueue, FRenderQueue* IconQueue,
-        const FVector& CameraLocation, FBillboardMatrixBuilder BuildBillboardMatrix, const void* ViewContext,
+        const FRenderViewContext& View, FBillboardMatrixBuilder BuildBillboardMatrix, const void* ViewContext,
         TArray<int32>& SortedParticleIndices, TArray<float>& ParticleDistancesSquared) const override;
 
 protected:

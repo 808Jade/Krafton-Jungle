@@ -375,6 +375,8 @@ void USkeletalMeshComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue)
 		Packet.Material = Material;
 		Packet.StartIndex = Section.StartIndex;
 		Packet.IndexCount = Section.IndexCount;
+
+		Packet.TranslucentSortCenter = Proxy->GetLODSphere().Center;
 	}
 }
 

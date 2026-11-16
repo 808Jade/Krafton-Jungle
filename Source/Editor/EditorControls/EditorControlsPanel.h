@@ -45,13 +45,14 @@ public:
 
 	int32 SelectedIndex = 0;
 
-	const char* Items[19] ={
+	const char* Items[20] ={
 		"Actor",
 		"Box",
 		"Capsule",
 		"DirectionalLight",
 		"ExponentialHeightFog",
 		"Particle",
+		"ParticleSystem",
 		"Player",
 		"PointLight",
 		"RectLight",
@@ -81,6 +82,7 @@ public:
 		ACapsuleActor::StaticClass(),
 		ADirectionalLightActor::StaticClass(),
 		AExponentialHeightFogActor::StaticClass(),
+		AParticleActor::StaticClass(),
 		AParticleSystemActor::StaticClass(),
 		APlayerActor::StaticClass(),
 		APointLightActor::StaticClass(),

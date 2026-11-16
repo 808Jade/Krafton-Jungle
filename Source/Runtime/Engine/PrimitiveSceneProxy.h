@@ -13,6 +13,14 @@ class UMaterial;
 // View의 카메라 형식을 알지 않고 위치와 크기로 Billboard 행렬을 받는다.
 using FBillboardMatrixBuilder = FMatrix(*)(const FVector&, float, float, const void*);
 
+struct FRenderViewContext
+{
+	FVector CameraLocation;
+	FVector CameraForward;
+
+    // 필요에 따라 ViewMatrix, ProjectionMatrix 등 추가 가능
+};
+
 inline static uint64 GlobalShadowVersion = 0u;
 
 class FPrimitiveSceneProxy
@@ -30,9 +38,14 @@ public:
     void PrepareDynamicData();
 
     // 기본 Proxy는 기존 Component 제출 경로를 사용한다.
-    virtual bool GatherDynamicRenderPackets(FRenderQueue& RenderQueue, FRenderQueue* IconQueue,
-        const FVector& CameraLocation, FBillboardMatrixBuilder BuildBillboardMatrix, const void* ViewContext,
-        TArray<int32>& SortedParticleIndices, TArray<float>& ParticleDistancesSquared) const;
+    virtual bool GatherDynamicRenderPackets(
+        FRenderQueue& RenderQueue, 
+        FRenderQueue* IconQueue,
+        const FRenderViewContext& View,
+        FBillboardMatrixBuilder BuildBillboardMatrix, 
+        const void* ViewContext,
+        TArray<int32>& SortedParticleIndices, 
+        TArray<float>& ParticleDistancesSquared) const;
 
     UPrimitiveComponent* GetComponent() const { return Component; }
     const FAABB& GetBounds() const { return Bounds; }
