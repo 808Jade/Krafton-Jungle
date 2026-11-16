@@ -25,6 +25,8 @@ void FParticleEmitterInstance::Tick(float DeltaTime)
 {
 	// 컴포넌트 트랜스폼으로 EmitterToSimulation, SimulationToWorld 갱신
 	UpdateTransforms();
+	// EmitterTime을 진행시키고 루프 수를 세서, 정해진 루프를 다 돌면 스폰 중단
+	TickEmitterTime(DeltaTime);
 	// RelativeTime을 진행시키고 수명(1.0)이 다한 파티클 제거
 	AgeAndKillParticles(DeltaTime);
 	// Velocity, Color, Size, RotationRate를 Base 값으로 되돌림
@@ -36,6 +38,25 @@ void FParticleEmitterInstance::Tick(float DeltaTime)
 	IntegrateParticles(DeltaTime);
 	// 활성 파티클을 감싸는 ParticleBoundingBox 갱신
 	UpdateBoundingBox();
+}
+
+void FParticleEmitterInstance::TickEmitterTime(float DeltaTime)
+{
+	PrevEmitterTime = EmitterTime;
+	EmitterTime += DeltaTime;
+	if (EmitterDuration > 0)
+	{
+		while (EmitterTime >= EmitterDuration)
+		{
+			EmitterTime -= EmitterDuration;
+			LoopCount++;
+		}
+	}
+
+	if (EmitterLoops > 0 && LoopCount >= EmitterLoops)
+	{
+		bEmitterIsDone = true;
+	}
 }
 
 void FParticleEmitterInstance::AgeAndKillParticles(float DeltaTime)
@@ -147,6 +168,11 @@ void FParticleEmitterInstance::UpdateTransforms()
 
 void FParticleEmitterInstance::Spawn(float DeltaTime)
 {
+	if (bEmitterIsDone)
+	{
+		return;
+	}
+
 	// 임시값
 	float Rate = 25.0f;
 	FVector SpawnVelocity = FVector(0.0f, 0.0f, 1.0f);
@@ -343,12 +369,18 @@ void FParticleEmitterInstance::InitParameters(
 	CurrentLODLevelIndex = 0;
 	CurrentLODLevel = InTemplate->LODLevels.IsEmpty() ? nullptr : InTemplate->LODLevels[0];
 	UParticleModuleRequired* Required = CurrentLODLevel ? CurrentLODLevel->RequiredModule : nullptr;
+	EmitterTime = 0;
+	PrevEmitterTime = 0;
+	LoopCount = 0;
+	bEmitterIsDone = false;
 
 	int32 MaxParticles = 100;
 	if (Required)
 	{
 		bUseLocalSpace = Required->bUseLocalSpace;
 		CurrentMaterial = Required->Material;
+		EmitterDuration = Required->EmitterDuration;
+		EmitterLoops = Required->EmitterLoops;
 		if (Required->MaxActiveParticles > 0)
 		{
 			MaxParticles = Required->MaxActiveParticles;

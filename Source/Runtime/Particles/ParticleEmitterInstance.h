@@ -41,6 +41,7 @@ public:
 	void Release();
 
 	void Tick(float DeltaTime);
+	void TickEmitterTime(float DeltaTime);
 	void AgeAndKillParticles(float DeltaTime);
 	void ResetParticleParameters();
 	void IntegrateParticles(float DeltaTime);
@@ -90,8 +91,13 @@ public:
 	float SpawnFraction = 0.0f;
 	FBox ParticleBoundingBox{};
 
-
-
+	// Emitter Time
+	float	EmitterTime = 0.0f; //현재 루프 안에서 지난 시간(0 ~Duration)
+	float	PrevEmitterTime = 0.0f; // 이전 틱의 EmitterTime.나중에 B의 GetBurstBatches(Prev, Curr, Duration)에 그대로 넘김
+	int32	LoopCount = 0; // 끝난 루프 수
+	float	EmitterDuration = 1.0f; // 한 루프 길이(초).Required 값으로 채움
+	int32	EmitterLoops = 0; // 반복 횟수. 0이면 무한.Required 값으로 채움
+	bool	bEmitterIsDone = false; // 정해진 루프를 다 돌았음 → 더 이상 스폰하지 않음
 };
 
 struct FParticleSpriteEmitterInstance : public FParticleEmitterInstance
