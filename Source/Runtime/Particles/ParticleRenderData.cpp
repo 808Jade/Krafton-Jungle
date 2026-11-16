@@ -368,6 +368,7 @@ void FDynamicMeshEmitterData::GatherRenderPackets(
 		assert(ActiveIndex < Instances.Num());
 
 		const FMeshParticleInstanceVertex& Instance = Instances[ActiveIndex];
+		OrderedInstances[SortedIndex] = Instance;
 
 		Center += Instance.Transform.TransformPosition(
 		    FVector::ZeroVector);
@@ -400,7 +401,7 @@ void FDynamicMeshEmitterData::GatherRenderPackets(
 		Packet.StartIndex = StartIndex;
 		Packet.IndexCount = IndexCount;
 
-		Packet.MeshInstances = Instances;
+		Packet.MeshInstances = OrderedInstances;
 		Packet.TranslucentSortCenter = Center;
 
 		RenderQueue.Add(std::move(Packet));
