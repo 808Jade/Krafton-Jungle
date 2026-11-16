@@ -117,7 +117,7 @@ bool UParticleSystemComponent::GetEmitterBoundingBox(FBox& OutBoundingBox) const
 
 void UParticleSystemComponent::InitializeMeshInstancingTest()
 {
-	UStaticMesh* Mesh = UAssetManager::GetAssetByPath<UStaticMesh>("Cube");
+	UStaticMesh* Mesh = UAssetManager::GetAssetByPath<UStaticMesh>("Models/Nijika/Nijika.obj");
 
 	if (!Mesh)
 	{
@@ -130,7 +130,9 @@ void UParticleSystemComponent::InitializeMeshInstancingTest()
 	Emitter->Component = this;
 	Emitter->TestMesh = Mesh;
 	Emitter->bUseLocalSpace = true;
-	Emitter->Init(3, sizeof(FBaseParticle));
+
+	constexpr int32 TestCount = 1000;
+	Emitter->Init(TestCount, sizeof(FBaseParticle));
 
 	if (!Emitter->ParticleData)
 	{
@@ -142,7 +144,7 @@ void UParticleSystemComponent::InitializeMeshInstancingTest()
 
 	// 기존 스폰 함수를 이용해 메모리와 기본 필드를 초기화.
 	Emitter->SpawnParticles(
-	    3,
+	    TestCount,
 	    0.0f,
 	    0.0f,
 	    FVector::ZeroVector,
@@ -166,7 +168,7 @@ void UParticleSystemComponent::InitializeMeshInstancingTest()
 		FLinearColor(0.0f, 0.0f, 1.0f, 1.0f)
 	};
 
-	for (int32 Index = 0; Index < 3; ++Index)
+	for (int32 Index = 0; Index < TestCount; ++Index)
 	{
 		const uint16 Slot = Emitter->ParticleIndices[Index];
 
@@ -174,27 +176,29 @@ void UParticleSystemComponent::InitializeMeshInstancingTest()
 		    Emitter->ParticleData +
 		    Slot * Emitter->ParticleStride);
 
-		Particle->Location = Positions[Index];
-		Particle->OldLocation = Positions[Index];
+		const int32 X = Index % 10;
+		const int32 Y = (Index / 10) % 10;
+		const int32 Z = Index / 100;
 
-		Particle->BaseSize = Sizes[Index];
-		Particle->Size = Sizes[Index];
+		Particle->Location = FVector(
+		    X * 2.0f,
+		    Y * 2.0f,
+		    Z * 2.0f + 2.0f);
 
-		Particle->BaseColor = Colors[Index];
-		Particle->Color = Colors[Index];
+		Particle->OldLocation = Particle->Location;
 
-		Particle->BaseVelocity = FVector::ZeroVector;
-		Particle->Velocity = FVector::ZeroVector;
+		Particle->BaseSize = FVector(0.5f, 0.5f, 0.5f);
+		Particle->Size = Particle->BaseSize;
 
-		// Rotation은 radians.
-		Particle->Rotation =
-		    static_cast<float>(Index) * 0.5f;
+		Particle->Rotation = Index * 0.05f;
 
-		Particle->BaseRotationRate = 0.0f;
-		Particle->RotationRate = 0.0f;
+		Particle->BaseColor = FLinearColor(
+		    X / 9.0f,
+		    Y / 9.0f,
+		    Z / 9.0f,
+		    1.0f);
 
-		Particle->RelativeTime = 0.0f;
-		Particle->OneOverMaxLifetime = 0.0f;
+		Particle->Color = Particle->BaseColor;
 	}
 
 	EmitterInstances.Add(Emitter);
@@ -202,8 +206,8 @@ void UParticleSystemComponent::InitializeMeshInstancingTest()
 	// 초기 테스트는 충분히 큰 고정 Bounds를 사용.
 	bUseFixedRelativeBoundingBox = true;
 	FixedRelativeBoundingBox = FBox{
-		FVector(-20.0f, -20.0f, -20.0f),
-		FVector(20.0f, 20.0f, 20.0f)
+		FVector(-5.0f, -5.0f, -5.0f),
+		FVector(25.0f, 25.0f, 25.0f)
 	};
 
 	OnTransformDirty();
