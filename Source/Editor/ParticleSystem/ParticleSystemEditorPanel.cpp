@@ -19,8 +19,11 @@ namespace
 	constexpr float ToolbarIconSize = 18.0f;
 	constexpr float ToolbarGroupSpacing = 10.0f;
 
-	// 아직 파티클 에셋과 연결되지 않아 동작할 수 없는 버튼의 툴팁 끝에 붙인다.
+	// 아직 동작할 수 없는 버튼의 툴팁 끝에 붙인다.
 	constexpr const char* NeedsAssetNote = "\n(Disabled: needs the particle system asset, not connected yet)";
+	constexpr const char* NeedsSerializationNote = "\n(Disabled: particle system assets cannot be saved yet)";
+	constexpr const char* NeedsLODEditingNote = "\n(Disabled: LOD duplication and runtime LOD switching are not supported yet)";
+	constexpr const char* SingleLODNote = "\n(Disabled: there is no other LOD to move to)";
 
 	// 아이콘과 글자를 한 버튼 안에 그린다. 클릭 영역은 버튼 전체다. (언리얼 툴바 버튼과 같은 모양)
 	// bEnabled가 false면 흐리게 그리고 클릭을 받지 않는다. 툴팁은 비활성일 때도 띄워 이유를 보여 준다.
@@ -64,10 +67,18 @@ namespace
 		return bClicked && bEnabled;
 	}
 
-	// 에셋이 없어 아직 동작하지 않는 버튼. 자리와 모양만 잡아 두고 툴팁으로 이유를 보여 준다.
-	void PlaceholderButton(const char* Id, UTexture2D* Icon, const char* Label, const char* Tooltip)
+	// 아직 동작하지 않는 버튼. 자리와 모양만 잡아 두고 툴팁으로 이유를 보여 준다.
+	void PlaceholderButton(const char* Id, UTexture2D* Icon, const char* Label, const char* Tooltip,
+		const char* Reason = NeedsAssetNote)
 	{
-		IconTextButton(Id, Icon, Label, FString(Tooltip) + NeedsAssetNote, false);
+		IconTextButton(Id, Icon, Label, FString(Tooltip) + Reason, false);
+	}
+
+	// 조건에 따라 켜지는 버튼. 꺼져 있을 때만 툴팁에 이유를 붙인다.
+	bool ConditionalButton(const char* Id, UTexture2D* Icon, const char* Label, const char* Tooltip,
+		const bool bEnabled, const char* DisabledReason)
+	{
+		return IconTextButton(Id, Icon, Label, bEnabled ? FString(Tooltip) : FString(Tooltip) + DisabledReason, bEnabled);
 	}
 
 	// 툴바 그룹 사이의 세로 구분선
@@ -204,11 +215,6 @@ void FParticleSystemEditorPanel::LoadToolbarIcons()
 	Icons.Save = UAssetManager::Get().LoadTexture(EditorResourcePaths::ToolbarSaveIcon);
 	Icons.RestartSim = Load("RestartSim");
 	Icons.RestartLevel = Load("RestartLevel");
-	Icons.Undo = Load("Undo");
-	Icons.Redo = Load("Redo");
-	Icons.Thumbnail = Load("Thumbnail");
-	Icons.Bounds = Load("Bounds");
-	Icons.OriginAxis = Load("OriginAxis");
 	Icons.BackgroundColor = Load("BackgroundColor");
 	Icons.RegenLOD = Load("RegenLOD");
 	Icons.RegenLODPercent = Load("RegenLODPercent");
@@ -234,8 +240,6 @@ void FParticleSystemEditorPanel::DrawToolBar()
 
 	DrawAssetGroup();
 	ToolbarSeparator();
-	DrawEditGroup();
-	ToolbarSeparator();
 	DrawViewGroup();
 	ToolbarSeparator();
 	DrawLODGroup();
@@ -248,10 +252,9 @@ void FParticleSystemEditorPanel::DrawToolBar()
 
 void FParticleSystemEditorPanel::DrawAssetGroup()
 {
-	// 저장할 파티클 시스템 에셋(UParticleSystem)이 아직 없어 비활성이다. 에셋이 생기면 Context가 저장한다.
-	const bool bCanSave = Context.CanSave();
-	if (IconTextButton("##Save", Icons.Save, "Save",
-		bCanSave ? "Save the particle system asset" : FString("Save the particle system asset") + NeedsAssetNote, bCanSave))
+	// 파티클 시스템 에셋을 파일로 쓰는 직렬화가 아직 없어 비활성이다.
+	if (ConditionalButton("##Save", Icons.Save, "Save", "Save the particle system asset",
+		Context.CanSave(), NeedsSerializationNote))
 		Context.Save();
 	ImGui::SameLine(0.0f, ToolbarGroupSpacing);
 
@@ -259,45 +262,15 @@ void FParticleSystemEditorPanel::DrawAssetGroup()
 		Context.RestartSimulation();
 	ImGui::SameLine();
 
-	// 레벨에 놓인 같은 파티클 시스템을 찾으려면 컴포넌트가 어떤 에셋을 쓰는지 알아야 한다.
-	PlaceholderButton("##RestartLevel", Icons.RestartLevel, "Restart Level",
-		"Restart the preview and every instance of this particle system placed in the level");
-}
-
-void FParticleSystemEditorPanel::DrawEditGroup()
-{
-	PlaceholderButton("##Undo", Icons.Undo, "Undo", "Undo the last change to the particle system");
-	ImGui::SameLine();
-	PlaceholderButton("##Redo", Icons.Redo, "Redo", "Redo the last undone change");
+	// 같은 Template을 쓰는 프리뷰·레벨·PIE의 컴포넌트를 모두 다시 시작한다.
+	if (ConditionalButton("##RestartLevel", Icons.RestartLevel, "Restart Level",
+		"Restart the preview and every instance of this particle system placed in the level",
+		Context.GetTemplate() != nullptr, NeedsAssetNote))
+		Context.RestartLevelInstances();
 }
 
 void FParticleSystemEditorPanel::DrawViewGroup()
 {
-	PlaceholderButton("##Thumbnail", Icons.Thumbnail, "Thumbnail",
-		"Save the current preview view as the asset thumbnail in the content drawer");
-	ImGui::SameLine();
-
-	PlaceholderButton("##Bounds", Icons.Bounds, "Bounds", "Show the particle system bounds in the preview");
-	// 바운드 옵션: 지금 컴포넌트로 바로 동작한다. (Cascade의 바운드 옆 드롭다운과 같은 역할)
-	ImGui::SameLine(0.0f, 2.0f);
-	if (ImGui::ArrowButton("##BoundsOptions", ImGuiDir_Down))
-		ImGui::OpenPopup("##BoundsOptionsPopup");
-	if (ImGui::IsItemHovered())
-		ImGui::SetTooltip("Bounds options");
-	if (ImGui::BeginPopup("##BoundsOptionsPopup"))
-	{
-		const UParticleSystemComponent* Component = Context.GetPreviewComponent();
-		if (ImGui::MenuItem("Set Fixed Bounds", nullptr, false, Component != nullptr))
-			Context.SetFixedBoundsFromCurrent();
-		if (ImGui::MenuItem("Use Dynamic Bounds", nullptr, false, Component != nullptr))
-			Context.UseDynamicBounds();
-		ImGui::EndPopup();
-	}
-	ImGui::SameLine();
-
-	PlaceholderButton("##OriginAxis", Icons.OriginAxis, "Origin Axis", "Show the origin axis in the preview");
-	ImGui::SameLine();
-
 	// 배경색은 프리뷰 렌더 타깃의 지우기 색이라 지금 바로 동작한다.
 	if (IconTextButton("##BackgroundColor", Icons.BackgroundColor, "Background Color", "Change the preview background color")
 		&& ViewportPanel)
@@ -312,36 +285,54 @@ void FParticleSystemEditorPanel::DrawViewGroup()
 
 void FParticleSystemEditorPanel::DrawLODGroup()
 {
-	// LOD는 에셋의 이미터마다 LOD 레벨 목록이 있어야 의미가 있다. 모두 에셋 연결 후 동작한다.
-	PlaceholderButton("##RegenLOD", Icons.RegenLOD, "Regen LOD", "Regenerate the lowest LOD by duplicating the highest LOD");
+	// LOD 0이 가장 높은(가장 자세한) LOD다. Lower는 번호가 커지는 쪽, Higher는 작아지는 쪽이다. (Cascade와 같은 규칙)
+	// LOD 레벨 생성·복제는 모듈 깊은 복사와 런타임 LOD 전환이 없어 아직 비활성이다.
+	PlaceholderButton("##RegenLOD", Icons.RegenLOD, "Regen LOD",
+		"Regenerate the lowest LOD by duplicating the highest LOD", NeedsLODEditingNote);
 	ImGui::SameLine();
 	PlaceholderButton("##RegenLODPercent", Icons.RegenLODPercent, "Regen LOD %",
-		"Regenerate the lowest LOD from the highest LOD using percentage scaling");
-	ImGui::SameLine();
-	PlaceholderButton("##LowestLOD", Icons.LowestLOD, "Lowest LOD", "Jump to the lowest LOD");
-	ImGui::SameLine();
-	PlaceholderButton("##LowerLOD", Icons.LowerLOD, "Lower LOD", "Move to the next lower LOD");
-	ImGui::SameLine();
-	PlaceholderButton("##AddLODBefore", Icons.AddLODBefore, "Add LOD", "Add an LOD before the current LOD");
+		"Regenerate the lowest LOD from the highest LOD using percentage scaling", NeedsLODEditingNote);
 	ImGui::SameLine();
 
-	// 현재 LOD 번호. 에셋이 없어 0에 고정된다.
+	// 이동 버튼은 이미터 패널이 보여 줄 LOD 레벨만 바꾼다. 범위 밖이면 비활성이다.
+	const int32 LODCount = Context.GetLODCount();
+	Context.SetCurrentLOD(Context.CurrentLODIndex);	// 에셋의 LOD 수가 줄었을 때 범위를 다시 맞춘다.
+	const int32 LowestIndex = LODCount - 1;
+	const bool bCanGoLower = Context.CurrentLODIndex < LowestIndex;
+	const bool bCanGoHigher = Context.CurrentLODIndex > 0;
+
+	if (ConditionalButton("##LowestLOD", Icons.LowestLOD, "Lowest LOD", "Jump to the lowest LOD", bCanGoLower, SingleLODNote))
+		Context.SetCurrentLOD(LowestIndex);
+	ImGui::SameLine();
+	if (ConditionalButton("##LowerLOD", Icons.LowerLOD, "Lower LOD", "Move to the next lower LOD", bCanGoLower, SingleLODNote))
+		Context.SetCurrentLOD(Context.CurrentLODIndex + 1);
+	ImGui::SameLine();
+	PlaceholderButton("##AddLODBefore", Icons.AddLODBefore, "Add LOD", "Add an LOD before the current LOD", NeedsLODEditingNote);
+	ImGui::SameLine();
+
+	// 현재 LOD 번호. 직접 입력해도 범위 안으로 맞춘다. LOD가 하나뿐이면 바꿀 수 없다.
 	ImGui::AlignTextToFramePadding();
 	ImGui::TextUnformatted("LOD:");
 	ImGui::SameLine();
-	ImGui::BeginDisabled();
+	ImGui::BeginDisabled(LODCount <= 1);
 	ImGui::SetNextItemWidth(32.0f);
-	ImGui::InputInt("##CurrentLOD", &Context.CurrentLODIndex, 0, 0);
+	int32 EditedLOD = Context.CurrentLODIndex;
+	if (ImGui::InputInt("##CurrentLOD", &EditedLOD, 0, 0))
+		Context.SetCurrentLOD(EditedLOD);
 	ImGui::EndDisabled();
+	if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+		ImGui::SetTooltip("Current LOD (0 = highest detail, %d LOD level(s))", LODCount);
 	ImGui::SameLine();
 
-	PlaceholderButton("##AddLODAfter", Icons.AddLODAfter, "Add LOD", "Add an LOD after the current LOD");
+	PlaceholderButton("##AddLODAfter", Icons.AddLODAfter, "Add LOD", "Add an LOD after the current LOD", NeedsLODEditingNote);
 	ImGui::SameLine();
-	PlaceholderButton("##HigherLOD", Icons.HigherLOD, "Higher LOD", "Move to the next higher LOD");
+	if (ConditionalButton("##HigherLOD", Icons.HigherLOD, "Higher LOD", "Move to the next higher LOD", bCanGoHigher, SingleLODNote))
+		Context.SetCurrentLOD(Context.CurrentLODIndex - 1);
 	ImGui::SameLine();
-	PlaceholderButton("##HighestLOD", Icons.HighestLOD, "Highest LOD", "Jump to the highest LOD");
+	if (ConditionalButton("##HighestLOD", Icons.HighestLOD, "Highest LOD", "Jump to the highest LOD", bCanGoHigher, SingleLODNote))
+		Context.SetCurrentLOD(0);
 	ImGui::SameLine();
-	PlaceholderButton("##DeleteLOD", Icons.DeleteLOD, "Delete LOD", "Delete the current LOD");
+	PlaceholderButton("##DeleteLOD", Icons.DeleteLOD, "Delete LOD", "Delete the current LOD", NeedsLODEditingNote);
 }
 
 void FParticleSystemEditorPanel::DrawSimulationGroup()

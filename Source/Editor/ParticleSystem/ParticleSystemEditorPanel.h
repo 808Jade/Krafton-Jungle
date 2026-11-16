@@ -35,9 +35,8 @@ public:
 private:
 	void DrawMenuBar();
 	void DrawToolBar();
-	// 툴바 그룹: Cascade 툴바 순서(에셋·시뮬 / 편집 / 표시 / LOD)를 따른다.
+	// 툴바 그룹: Cascade 툴바 순서(에셋·시뮬 / 표시 / LOD)를 따른다. Undo·Redo, Thumbnail, Origin Axis는 두지 않는다.
 	void DrawAssetGroup();
-	void DrawEditGroup();
 	void DrawViewGroup();
 	void DrawLODGroup();
 	void DrawSimulationGroup();
@@ -59,11 +58,6 @@ private:
 		UTexture2D* Save = nullptr;
 		UTexture2D* RestartSim = nullptr;
 		UTexture2D* RestartLevel = nullptr;
-		UTexture2D* Undo = nullptr;
-		UTexture2D* Redo = nullptr;
-		UTexture2D* Thumbnail = nullptr;
-		UTexture2D* Bounds = nullptr;
-		UTexture2D* OriginAxis = nullptr;
 		UTexture2D* BackgroundColor = nullptr;
 		UTexture2D* RegenLOD = nullptr;
 		UTexture2D* RegenLODPercent = nullptr;

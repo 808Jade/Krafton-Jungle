@@ -1074,14 +1074,10 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 		RenderCommand::SetRasterizerState(SceneRasterizerState);
 		RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		// Sprite 파티클.
-		if (ParticleSpriteRenderer &&
-			ParticlePackets.Num() > 0)
-		{
-			// 실제 뷰 카메라를 사용한다.
-			// PIE 카메라 Override도 포함한다.
-			const auto& Camera =
-			    View.Client->GetEffectiveCamera();
+		// 실제 뷰 카메라를 사용한다.
+		// PIE 카메라 Override도 포함한다.
+		const auto& Camera =
+			View.Client->GetEffectiveCamera();
 
 		FParticleSpriteView ParticleView{};
 
@@ -1568,7 +1564,8 @@ void UEditorEngine::RenderParticlePreview()
 	View.FxaaTarget = Viewport->GetFxaaTarget();
 	// 레벨 View(1~MaxViewCount)와 겹치지 않는 ID다. 프리뷰 월드는 그림자 작업을 만들지 않는다.
 	View.ShadowViewId = static_cast<uint32>(FMultipleViewportsAdapter::MaxViewCount + 1);
-	View.bShowEditorOverlay = true;	// Grid를 그려 공간감을 준다. Gizmo·Outline은 대상 월드가 달라 그려지지 않는다.
+	// 프리뷰에는 Grid·에디터 아이콘(빌보드)·Gizmo·Outline 같은 에디터 표시를 그리지 않는다. 파티클만 보인다.
+	View.bShowEditorOverlay = false;
 	View.bDrawSkybox = false;
 	View.bRenderGameUI = false;
 

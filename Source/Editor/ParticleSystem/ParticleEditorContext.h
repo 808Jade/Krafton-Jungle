@@ -3,6 +3,8 @@
 
 class AParticleSystemActor;
 class UParticleSystemComponent;
+class UParticleSystem;
+class UParticleModule;
 struct FParticleEmitterInstance;
 
 // 파티클 시스템 에디터의 하위 패널들이 공유하는 상태. 패널끼리는 서로를 모르고 이 객체로만 통신한다.
@@ -28,20 +30,31 @@ public:
 	bool CanSave() const { return false; }
 	bool Save() { return false; }
 
-	// 지금 파티클이 차지하는 영역을 고정 바운드로 저장하고 고정 바운드를 켠다. 살아 있는 파티클이 없으면 그대로 둔다.
-	void SetFixedBoundsFromCurrent();
-	// 고정 바운드를 끄고 매 프레임 파티클 위치로 바운드를 다시 계산한다.
-	void UseDynamicBounds();
+	// 같은 Template을 쓰는 모든 컴포넌트(프리뷰 + 레벨·PIE 월드에 놓인 것)를 처음부터 다시 시작한다.
+	// 에셋을 고친 뒤 레벨 쪽에도 반영할 때 쓴다. 다시 시작한 컴포넌트 수를 돌려준다.
+	int32 RestartLevelInstances();
+
+	// --- LOD ---
+	// 이미터들 가운데 가장 많은 LOD 레벨 수. 에셋이 없거나 LOD가 없으면 1이다.
+	int32 GetLODCount() const;
+	// CurrentLODIndex를 0 ~ GetLODCount()-1 안으로 맞춰 설정한다.
+	void SetCurrentLOD(int32 NewLODIndex);
 
 	UWorld* GetPreviewWorld() const { return PreviewScene ? PreviewScene->GetWorld() : nullptr; }
 	UParticleSystemComponent* GetPreviewComponent() const;
+	// 프리뷰 컴포넌트가 재생 중인 파티클 시스템 에셋. 이미터·모듈 구성은 여기서 읽는다.
+	UParticleSystem* GetTemplate() const;
 	// 선택 인덱스가 현재 인스턴스 목록 범위를 벗어나면 nullptr이다. (재시작 직후 등)
 	FParticleEmitterInstance* GetSelectedEmitterInstance() const;
 
 	// --- 패널이 읽고 쓰는 공유 상태 ---
 	int32 SelectedEmitterIndex = INDEX_NONE;
+	// 참조(집약): 이미터 패널에서 고른 모듈. 소유자는 에셋의 UParticleLODLevel이다.
+	// nullptr이면 이미터(또는 시스템) 자체가 선택된 상태다. Template이 바뀌면 함께 비운다.
+	UParticleModule* SelectedModule = nullptr;
 	bool bSimulationPaused = false;
-	// 툴바에 보이는 현재 LOD 번호. 에셋의 LOD 레벨이 연결되기 전까지 0에 고정된다.
+	// 툴바에 보이는 현재 LOD 번호. 이미터 패널이 이 번호의 LOD 레벨 모듈을 보여 준다.
+	// 바꿀 때는 SetCurrentLOD로 범위를 맞춘다. 런타임 시뮬레이션은 아직 LOD 0만 쓴다.
 	int32 CurrentLODIndex = 0;
 
 private:
