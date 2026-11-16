@@ -1,11 +1,20 @@
 #include "EnginePCH.h"
-#include "ParticleEmitterInstance.h"
+
 #include "Core/HAL/UnrealMemory.h"
+
+#include "ParticleEmitterInstance.h"
 #include "ParticleHelper.h"
-#include "Components/ParticleSystemComponent.h"
-#include "Asset/AssetManager.h"
-#include "Math/Transform.h"
 #include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/Modules/ParticleModuleRequired.h"
+#include "Particles/Modules/ParticleModuleTypeDataMesh.h"
+
+#include "Components/ParticleSystemComponent.h"
+
+#include "Asset/AssetManager.h"
+
+#include "Math/Transform.h"
+
 
 FParticleEmitterInstance::~FParticleEmitterInstance()
 {
@@ -289,7 +298,6 @@ bool FParticleEmitterInstance::FillReplayData(
 	OutDynamicEmitterReplayDataBase.ActiveParticleCount = ActiveParticles;
 	OutDynamicEmitterReplayDataBase.ParticleStride = ParticleStride;
 	OutDynamicEmitterReplayDataBase.Scale = Component->GetWorldScale3D();
-	// OutDynamicEmitterReplayDataBase.SortMode =  TODO
 
 	OutDynamicEmitterReplayDataBase.DataContainer.CopyFrom(
 		ParticleData, 
@@ -301,6 +309,14 @@ bool FParticleEmitterInstance::FillReplayData(
 	FDynamicSpriteEmitterReplayDataBase* SpriteReplayDataBase =
 		static_cast<FDynamicSpriteEmitterReplayDataBase*>(&OutDynamicEmitterReplayDataBase);
 	SpriteReplayDataBase->bUseLocalSpace = bUseLocalSpace;
+
+	const UParticleModuleRequired* Required = CurrentLODLevel ? CurrentLODLevel->RequiredModule : nullptr;
+	if (Required)
+	{
+		OutDynamicEmitterReplayDataBase.SortMode = Required->SortMode;
+		SpriteReplayDataBase->ScreenAlignment = Required->ScreenAlignment;
+		SpriteReplayDataBase->AxisLock = Required->LockAxis;
+	}
 
 	return true;
 }
@@ -326,7 +342,19 @@ void FParticleEmitterInstance::InitParameters(
 	Component = InComponent;
 	CurrentLODLevelIndex = 0;
 	CurrentLODLevel = InTemplate->LODLevels.IsEmpty() ? nullptr : InTemplate->LODLevels[0];
-	Init(100, InTemplate->ParticleSize);
+	UParticleModuleRequired* Required = CurrentLODLevel ? CurrentLODLevel->RequiredModule : nullptr;
+
+	int32 MaxParticles = 100;
+	if (Required)
+	{
+		bUseLocalSpace = Required->bUseLocalSpace;
+		CurrentMaterial = Required->Material;
+		if (Required->MaxActiveParticles > 0)
+		{
+			MaxParticles = Required->MaxActiveParticles;
+		}
+	}
+	Init(MaxParticles, InTemplate->ParticleSize);
 }
 
 /*-----------------------------------------------------------------------------
@@ -346,7 +374,6 @@ bool FParticleSpriteEmitterInstance::FillReplayData(
 	FDynamicSpriteEmitterReplayData* SpriteReplayData =
 		static_cast<FDynamicSpriteEmitterReplayData*>(&OutDynamicEmitterReplayDataBase);
 	SpriteReplayData->MaterialInterface = GetCurrentMaterial();
-
 	return true;
 }
 
@@ -376,14 +403,30 @@ bool FParticleMeshEmitterInstance::FillReplayData(
 
 	OutDynamicEmitterReplayDataBase.eEmitterType = EDynamicEmitterType::Mesh;
 
-	 FDynamicMeshEmitterReplayData* MeshReplayData =
-	     static_cast<FDynamicMeshEmitterReplayData*>(&OutDynamicEmitterReplayDataBase);
-	 // TODO: B의 UParticleModuleTypeDataMesh가 생기면 해제
-	 //MeshReplayData->Mesh = MeshTypeData ? MeshTypeData->Mesh : nullptr;
-	 MeshReplayData->MeshRotationPayloadOffset  = MeshRotationOffset;
-	 MeshReplayData->MaterialInterface = nullptr;
+	FDynamicMeshEmitterReplayData* MeshReplayData =
+		static_cast<FDynamicMeshEmitterReplayData*>(&OutDynamicEmitterReplayDataBase);
+	MeshReplayData->Mesh = MeshTypeData ? MeshTypeData->Mesh : nullptr;
+	MeshReplayData->MeshRotationPayloadOffset = MeshRotationOffset;
+	MeshReplayData->MaterialInterface = nullptr;
 
 	return true;
+}
+
+void FParticleMeshEmitterInstance::InitParameters(
+	UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent)
+{
+	FParticleEmitterInstance::InitParameters(InTemplate, InComponent);
+
+	MeshTypeData = CurrentLODLevel ? Cast<UParticleModuleTypeDataMesh>(CurrentLODLevel->TypeDataModule) : nullptr;
+
+	MeshRotationOffset = InvalidPayloadOffset;
+	if (MeshTypeData)
+	{
+		if (const int32* Offset = InTemplate->ModuleOffsetMap.Find(MeshTypeData))
+		{
+			MeshRotationOffset = *Offset;
+		}
+	}
 }
 
 FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData() const

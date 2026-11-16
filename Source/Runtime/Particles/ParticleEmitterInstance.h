@@ -58,9 +58,8 @@ public:
 	int32 CurrentLODLevelIndex = 0;
 	UParticleLODLevel* CurrentLODLevel = nullptr;
 
-	UMaterialInterface* CurrentMaterial = nullptr; // TODO
+	UMaterialInterface* CurrentMaterial = nullptr;
 
-	// TODO: 에셋 연결 시 CurrentLODLevel->RequiredModule->bUseLocalSpace
 	bool bUseLocalSpace = false;
 	FMatrix EmitterToSimulation = FMatrix::Identity;
 	FMatrix SimulationToWorld = FMatrix::Identity;
@@ -108,6 +107,7 @@ struct FParticleMeshEmitterInstance : public FParticleEmitterInstance
 {
 public:
 	virtual FDynamicEmitterDataBase* GetDynamicData() const override;
+	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent) override;
 
 	UParticleModuleTypeDataMesh* MeshTypeData = nullptr;
 	int32 MeshRotationOffset = InvalidPayloadOffset;
