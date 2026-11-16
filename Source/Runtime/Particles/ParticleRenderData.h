@@ -1,6 +1,11 @@
 #pragma once
 
 #include "Particles/ParticleReplayData.h"
+#include "Particles/ParticleVertex.h"
+
+class FParticleSystemSceneProxy;
+class FRenderQueue;
+class UMaterial;
 
 inline constexpr int32 InvalidEmitterIndex = -1;
 
@@ -18,6 +23,16 @@ struct FDynamicEmitterDataBase
 	int32 EmitterIndex = InvalidEmitterIndex;
 
 	virtual const FDynamicEmitterReplayDataBase& GetSource() const = 0;
+
+	// 프레임당 1번
+	virtual void PrepareRenderData(const FParticleSystemSceneProxy& Proxy) {}
+
+	// 뷰마다
+	virtual void GatherRenderPackets(
+		const FParticleSystemSceneProxy& Proxy,
+		FRenderQueue& RenderQueue,
+		const FVector& CameraLocation
+	) const {}
 };
 
 struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
@@ -31,7 +46,7 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	    const FVector& CameraLocation,
 	    const FVector& CameraForward,
 	    const FMatrix& LocalToWorld,
-	    TArray<FParticleOrder>& OutParticleOrder) const;
+	    TArray<FParticleOrder>* OutParticleOrder) const;
 
 	virtual int32 GetDynamicVertexStride() const = 0;
 };
@@ -46,8 +61,16 @@ public:
 
 	int32 GetDynamicVertexStride() const override;
 
+	void PrepareRenderData(const FParticleSystemSceneProxy& Proxy) override;
+	void GatherRenderPackets(
+		const FParticleSystemSceneProxy& Proxy,
+		FRenderQueue& RenderQueue,
+		const FVector& CameraLocation) const override;
+
 private:
 	FDynamicSpriteEmitterReplayData Source;
+	UMaterial* Material = nullptr;
+	TArray<FParticleSpriteInstanceVertex> Instances;
 };
 
 struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
