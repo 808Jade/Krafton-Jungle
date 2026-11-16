@@ -3,10 +3,13 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <utility>
 
+#include "Math/Transform.h"
 #include "ParticleVertex.h"
 #include "Engine/ParticleSystemSceneProxy.h"
+#include "Render/Mesh.h"
 #include "Render/Material.h"
 #include "Render/RenderPacket.h"
 
@@ -49,7 +52,7 @@ int32 FDynamicMeshEmitterData::GetDynamicVertexStride() const
 	    sizeof(FMeshParticleInstanceVertex));
 }
 
-void FDynamicSpriteEmitterDataBase::SortSpriteParticles(
+void FDynamicSpriteEmitterDataBase::SortParticles(
     const FVector& CameraLocation,
     const FVector& CameraForward,
     const FMatrix& LocalToWorld,
@@ -196,7 +199,7 @@ void FDynamicSpriteEmitterData::GatherRenderPackets(
 	// 이 뷰에서만 사용할 정렬 결과.
 	TArray<FParticleOrder> ParticleOrder;
 
-	SortSpriteParticles(
+	SortParticles(
 	    View.CameraLocation,
 	    View.CameraForward,
 	    Proxy.GetLocalToWorld(),
@@ -235,4 +238,207 @@ void FDynamicSpriteEmitterData::GatherRenderPackets(
 
 	// 배열을 포함한 패킷을 이동한다.
 	RenderQueue.Add(std::move(Packet));
+}
+
+void FDynamicMeshEmitterData::PrepareRenderData(
+    const FParticleSystemSceneProxy& Proxy)
+{
+	Instances.Reset();
+
+	if (!Source.Mesh || Source.ActiveParticleCount <= 0)
+		return;
+
+	Instances.SetNum(Source.ActiveParticleCount);
+
+	for (int32 Index = 0;
+	     Index < Source.ActiveParticleCount;
+	     ++Index)
+	{
+		const FBaseParticle& Particle = Source.GetParticle(Index);
+
+		FTransform Transform;
+		Transform.Location = Particle.Location;
+
+		constexpr float RadToDeg = 180.0f / static_cast<float>(PI);
+
+		// payload가 없는 경우의 회전.
+		Transform.Rotation = FRotator(
+		    0.0f, Particle.Rotation * RadToDeg, 0.0f);
+
+		const int32 Offset = Source.MeshRotationPayloadOffset;
+		if (Offset >= static_cast<int32>(sizeof(FBaseParticle)) &&
+			Offset <= Source.ParticleStride - static_cast<int32>(sizeof(FVector)))
+		{
+			FVector RotationRadians;
+			std::memcpy(
+			    &RotationRadians,
+			    Source.GetParticlePayload(Index, Offset),
+			    sizeof(FVector));
+
+			// FRotator 생성자는 Pitch(Y), Yaw(Z), Roll(X) 순서이므로 변환한다.
+			Transform.Rotation = FRotator(
+			    RotationRadians.Y * RadToDeg,
+			    RotationRadians.Z * RadToDeg,
+			    RotationRadians.X * RadToDeg);
+		}
+
+		// Source.Scale에는 이미 Component의 WorldScale이 들어온다.
+		// Local Space는 아래 LocalToWorld에서 스케일을 적용한다.
+		Transform.Scale = Source.bUseLocalSpace
+		                      ? Particle.Size
+		                      : Particle.Size * Source.Scale;
+
+		FMeshParticleInstanceVertex& Instance = Instances[Index];
+
+		const FMatrix ParticleTransform = Transform.GetLocalMatrix();
+
+		// 현재 엔진은 row-vector 규약.
+		Instance.Transform = Source.bUseLocalSpace
+		                         ? ParticleTransform * Proxy.GetLocalToWorld()
+		                         : ParticleTransform;
+
+		const FMatrix& World = Instance.Transform;
+		// 상단 3x3의 determinant.
+		// 스케일 0 등으로 역행렬이 존재하지 않는 경우를 구분한다.
+		const float Determinant =
+		    World.M[0][0] *
+		        (World.M[1][1] * World.M[2][2] -
+		         World.M[1][2] * World.M[2][1]) -
+		    World.M[0][1] *
+		        (World.M[1][0] * World.M[2][2] -
+		         World.M[1][2] * World.M[2][0]) +
+		    World.M[0][2] *
+		        (World.M[1][0] * World.M[2][1] -
+		         World.M[1][1] * World.M[2][0]);
+
+		const FMatrix NormalMatrix =
+		    std::abs(Determinant) > 1e-8f
+		        ? World.Inverse().GetTransposed()
+		        : FMatrix::Identity;
+
+		Instance.NormalRow0 = FVector4(
+		    NormalMatrix.M[0][0],
+		    NormalMatrix.M[0][1],
+		    NormalMatrix.M[0][2],
+		    0.0f);
+
+		Instance.NormalRow1 = FVector4(
+		    NormalMatrix.M[1][0],
+		    NormalMatrix.M[1][1],
+		    NormalMatrix.M[1][2],
+		    0.0f);
+
+		Instance.NormalRow2 = FVector4(
+		    NormalMatrix.M[2][0],
+		    NormalMatrix.M[2][1],
+		    NormalMatrix.M[2][2],
+		    0.0f);
+
+		Instance.Color = FVector4(
+		    Particle.Color.R,
+		    Particle.Color.G,
+		    Particle.Color.B,
+		    Particle.Color.A);
+	}
+}
+
+void FDynamicMeshEmitterData::GatherRenderPackets(
+    const FParticleSystemSceneProxy& Proxy,
+    FRenderQueue& RenderQueue,
+    const FRenderViewContext& View) const
+{
+	if (!Source.Mesh || Instances.Num() == 0)
+		return;
+
+	assert(Instances.Num() == Source.ActiveParticleCount);
+
+	const FStaticMeshData& MeshData = Source.Mesh->GetMeshData(0);
+
+	UMaterial* OverrideMaterial =
+	    Cast<UMaterial>(Source.MaterialInterface);
+
+	// 1. ReplayData의 SortMode에 따라 뷰별 순서를 계산한다.
+	TArray<FParticleOrder> ParticleOrder;
+
+	SortParticles(
+	    View.CameraLocation,
+	    View.CameraForward,
+	    Proxy.GetLocalToWorld(),
+	    &ParticleOrder);
+	
+	// 2. 정렬 결과로 이 뷰에서 사용할 인스턴스 배열을 만든다.
+	// 멤버 Instances는 원래 활성 파티클 순서대로 유지한다.
+	TArray<FMeshParticleInstanceVertex> OrderedInstances;
+	OrderedInstances.SetNum(ParticleOrder.Num());
+
+	FVector Center = FVector::ZeroVector;
+
+	for (int32 SortedIndex = 0;
+		SortedIndex < ParticleOrder.Num();
+		++SortedIndex)
+	{
+		const int32 ActiveIndex =
+		    ParticleOrder[SortedIndex].ActiveIndex;
+
+		assert(ActiveIndex >= 0);
+		assert(ActiveIndex < Instances.Num());
+
+		const FMeshParticleInstanceVertex& Instance = Instances[ActiveIndex];
+		OrderedInstances[SortedIndex] = Instance;
+
+		Center += Instance.Transform.TransformPosition(
+		    FVector::ZeroVector);
+	}
+
+	Center *= 1.0f / static_cast<float>(OrderedInstances.Num());
+
+	// 3. 모든 Section에서 동일한 인스턴스 순서를 사용한다.
+	auto AddSectionPacket =
+	    [&](uint32 StartIndex,
+	        uint32 IndexCount,
+	        uint32 MaterialSlotIndex)
+	{
+		if (IndexCount == 0)
+			return;
+
+		UMaterial* Material = OverrideMaterial
+		                          ? OverrideMaterial
+		                          : Source.Mesh->GetMaterial(MaterialSlotIndex);
+
+		if (!Material)
+			return;
+
+		FRenderPacket Packet{};
+
+		Packet.Proxy = &Proxy;
+		Packet.Mesh = Source.Mesh;
+		Packet.Material = Material;
+		Packet.LODIndex = 0;
+		Packet.StartIndex = StartIndex;
+		Packet.IndexCount = IndexCount;
+
+		Packet.MeshInstances = OrderedInstances;
+		Packet.TranslucentSortCenter = Center;
+
+		RenderQueue.Add(std::move(Packet));
+	};
+
+	// 기본 도형 처럼 Section 배열이 없는 메시도 처리.
+	if (MeshData.Sections.Num() == 0)
+	{
+		AddSectionPacket(
+		    0,
+		    static_cast<uint32>(MeshData.Indices.Num()),
+		    0);
+	}
+	else
+	{
+		for (const FStaticMeshSection& Section : MeshData.Sections)
+		{
+			AddSectionPacket(
+			    Section.StartIndex,
+			    Section.IndexCount,
+			    Section.MaterialSlotIndex);
+		}
+	}
 }

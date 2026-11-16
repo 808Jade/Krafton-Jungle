@@ -234,6 +234,8 @@ class FRenderer
 {
 public:
 	using FSpritePacketDraw = std::function<void(const FRenderPacket&)>;
+	using FMeshParticlePacketDraw =
+		std::function<void(const FRenderPacket&, const FMatrix&, bool /*bDepthOnly*/)>;
 
 public:
 	bool Init();
@@ -250,7 +252,7 @@ public:
 		FConstantBuffer& PreviewLighting, FConstantBuffer& PreviewLightGrid);
 
 	// 큐를 정렬해 불투명 패킷만 그린다. 반투명은 RenderTranslucent 호출 전까지 보관한다.
-	void RenderOpaque(const FMatrix& ViewProjection);
+	void RenderOpaque(const FMatrix& ViewProjection, const FMeshParticlePacketDraw& DrawMeshParticlePacket = {});
 
 	// Gather 전에 World가 불러 가려진 물체를 거른다.
 	FGPUOcclusion& GetGPUOcclusion() { return GPUOcclusion; }
@@ -261,7 +263,10 @@ public:
 	void AddStaticDrawGroup(const FStaticDrawGroup* Group) { StaticGroups.push_back(Group); }
 
 	// RenderOpaque가 보관한 반투명 패킷을 먼 것부터 그린다.
-	void RenderTranslucent(const FMatrix& ViewProjection, const FSpritePacketDraw& DrawSpritePacket = {});
+	void RenderTranslucent(
+		const FMatrix& ViewProjection, 
+		const FSpritePacketDraw& DrawSpritePacket = {},
+	    const FMeshParticlePacketDraw& DrawMeshPacket = {});
 
 	// 큐를 Material, Opaque, Mesh에 따라 정렬한다
 	// CameraWorldPos는 ViewProjection과 함께 b0에 올라가 Specular 계산(V 벡터)에 쓰인다.
@@ -273,7 +278,7 @@ public:
 
 	// Depth Prepass: 불투명만 PS 없이 그려 깊이 버퍼를 채운다. RenderQueueSorting 뒤, RenderOpaque 전에 부른다.
 	// 같은 VS·행렬이라 깊이가 비트 단위로 같으므로 본 패스는 LESS_EQUAL로 통과한다.
-	void RenderDepth(const FMatrix& ViewProjection);
+	void RenderDepth(const FMatrix& ViewProjection, const FMeshParticlePacketDraw& DrawMeshParticlePacket = {});
 
 	// 수집이 끝난 작업 목록을 인수하여 타깃 준비와 그림자 맵 생성을 수행한다.
 	// 목록은 화면 조명·Preview 소비가 끝날 때까지 유지한다.
@@ -343,7 +348,12 @@ public:
 	int32 GetShadowMapResolution() const;
 
 private:
-	void DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProjection, const FSpritePacketDraw& DrawSpritePacket = {});
+	void DrawPackets(
+		uint32 Begin, 
+		uint32 End, 
+		const FMatrix& ViewProjection, 
+		const FSpritePacketDraw& DrawSpritePacket = {},
+		const FMeshParticlePacketDraw& DrawMeshPacket = {});
 	void DrawStaticGroups();
 	// bSkinned면 UberLit의 GPU_SKINNING 변형을 쓴다. 스킨 변형을 쓸 수 없으면 false(그리면 바인드 포즈가 나온다).
 	bool BindMaterial(UMaterial* Material, bool bSkinned = false);
