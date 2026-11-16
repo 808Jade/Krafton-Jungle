@@ -259,12 +259,28 @@ void FDynamicMeshEmitterData::PrepareRenderData(
 		FTransform Transform;
 		Transform.Location = Particle.Location;
 
-		// 임시: Scalar rotation을 z축 yaw로 사용.
-		// 실제로는 rotation payload를 읽어 Transform.Rotation을 채워야 한다.
+		constexpr float RadToDeg = 180.0f / static_cast<float>(PI);
+
+		// payload가 없는 경우의 회전.
 		Transform.Rotation = FRotator(
-		    0.0f,
-		    Particle.Rotation * (180.0f / static_cast<float>(PI)),
-		    0.0f);
+		    0.0f, Particle.Rotation * RadToDeg, 0.0f);
+
+		const int32 Offset = Source.MeshRotationPayloadOffset;
+		if (Offset >= static_cast<int32>(sizeof(FBaseParticle)) &&
+			Offset <= Source.ParticleStride - static_cast<int32>(sizeof(FVector)))
+		{
+			FVector RotationRadians;
+			std::memcpy(
+			    &RotationRadians,
+			    Source.GetParticlePayload(Index, Offset),
+			    sizeof(FVector));
+
+			// FRotator 생성자는 Pitch(Y), Yaw(Z), Roll(X) 순서이므로 변환한다.
+			Transform.Rotation = FRotator(
+			    RotationRadians.Y * RadToDeg,
+			    RotationRadians.Z * RadToDeg,
+			    RotationRadians.X * RadToDeg);
+		}
 
 		// Source.Scale에는 이미 Component의 WorldScale이 들어온다.
 		// Local Space는 아래 LocalToWorld에서 스케일을 적용한다.

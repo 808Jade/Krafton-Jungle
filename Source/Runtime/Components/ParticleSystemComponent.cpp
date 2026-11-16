@@ -118,7 +118,7 @@ bool UParticleSystemComponent::GetEmitterBoundingBox(FBox& OutBoundingBox) const
 
 void UParticleSystemComponent::InitializeMeshInstancingTest()
 {
-	UStaticMesh* Mesh = UAssetManager::GetAssetByPath<UStaticMesh>("Models/Nijika/Nijika.obj");
+	UStaticMesh* Mesh = UAssetManager::GetAssetByPath<UStaticMesh>("Cube");
 
 	if (!Mesh)
 	{
