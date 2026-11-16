@@ -98,7 +98,7 @@ FBox USpriteParticleTestComponent::CalcBounds() const
 			Center - Extent,
 			Center + Extent
 		};
-		
+
 		if (!bInitialized)
 		{
 			Result = ParticleBounds;
@@ -125,7 +125,7 @@ USpriteParticleTestComponent::BuildReplayData() const
 	Replay.MaterialInterface = GetMaterial(0);
 	Replay.bUseLocalSpace = bUseLocalSpace;
 	Replay.Scale = GetParticleRenderScale();
-	Replay.SortMode = EParticleSortMode::DistanceToView;
+	Replay.SortMode = eParticleSortMode;
 	Replay.ScreenAlignment = eParticleScreenAlignment;
 	Replay.AxisLock = eParticleAxisLock;
 
@@ -148,62 +148,64 @@ void USpriteParticleTestComponent::ResetTestParticles(
 {
 	bUseLocalSpace = bInLocalSpace;
 
-	constexpr int32 ParticleCount = 1000;
-	constexpr int32 ColumnCount = 40;
-	constexpr int32 RowCount =
-	    (ParticleCount + ColumnCount - 1) / ColumnCount;
+	constexpr int32 SlotCount = 8;
+	constexpr int32 ActiveCount = 3;
 
-	constexpr float Spacing = 0.15f;
-	constexpr float Pi = 3.14159265358979323846f;
+	TestParticles.SetNum(SlotCount);
+	TestParticleIndices.SetNum(ActiveCount);
 
-	TestParticles.SetNum(ParticleCount);
-	TestParticleIndices.SetNum(ParticleCount);
+	for (int32 Index = 0; Index < SlotCount; ++Index)
+	{
+		TestParticles[Index] = FBaseParticle{};
+	}
+
+	const uint16 Slots[ActiveCount] = { 4, 1, 7 };
+
+	// 컴포넌트의 로컬 X축을 따라 배치.
+	const FVector Positions[ActiveCount] = {
+		FVector(-1.0f, 0.0f, 0.0f),
+		FVector(0.0f, 0.0f, 0.0f),
+		FVector(1.0f, 0.0f, 0.0f)
+	};
+
+	const FLinearColor Colors[ActiveCount] = {
+		FLinearColor(1.0f, 0.0f, 0.0f, 0.5f),
+		FLinearColor(0.0f, 1.0f, 0.0f, 0.5f),
+		FLinearColor(0.0f, 0.0f, 1.0f, 0.5f)
+	};
 
 	const FMatrix LocalToWorld = GetWorldMatrix();
 
-	for (int32 Index = 0; Index < ParticleCount; ++Index)
+	for (int32 ActiveIndex = 0;
+	     ActiveIndex < ActiveCount;
+	     ++ActiveIndex)
 	{
-		FBaseParticle& Particle = TestParticles[Index];
-		Particle = FBaseParticle{};
+		const uint16 Slot = Slots[ActiveIndex];
+		TestParticleIndices[ActiveIndex] = Slot;
 
-		const int32 Column = Index % ColumnCount;
-		const int32 Row = Index / ColumnCount;
+		FBaseParticle& Particle = TestParticles[Slot];
 
-		const float Horizontal =
-		    (Column - (ColumnCount - 1) * 0.5f) * Spacing;
-
-		const float Vertical =
-		    (Row - (RowCount - 1) * 0.5f) * Spacing;
-
-		const FVector LocalPosition(
-		    0.0f, Horizontal, Vertical);
-
-		Particle.Location = bUseLocalSpace
-		                        ? LocalPosition
-		                        : LocalToWorld.TransformPosition(LocalPosition);
+		Particle.Location =
+		    bUseLocalSpace
+		        ? Positions[ActiveIndex]
+		        : LocalToWorld.TransformPosition(
+		              Positions[ActiveIndex]);
 
 		Particle.OldLocation = Particle.Location;
 
-		Particle.Size = FVector(0.1f, 0.06f, 1.0f);
+		// 정면에서 서로 겹치도록 같은 크기로 설정.
+		Particle.Size = FVector(2.0f, 2.0f, 1.0f);
 		Particle.BaseSize = Particle.Size;
 
-		Particle.Rotation =
-		    static_cast<float>(Index % 12) * Pi / 6.0f;
+		Particle.Rotation = 0.0f;
 
-		Particle.Color =
-		    FLinearColor(1.0f, 0.6f, 0.2f, 0.8f);
-
+		Particle.Color = Colors[ActiveIndex];
 		Particle.BaseColor = Particle.Color;
 
-		// Velocity test
-		Particle.Velocity = FVector(0.0f, 1.0f, 1.0f);
+		Particle.Velocity = FVector(0.0f, 0.0f, 0.0f);
 		Particle.BaseVelocity = Particle.Velocity;
-
-		TestParticleIndices[Index] =
-		    static_cast<uint16>(ParticleCount - 1 - Index);
 	}
 
-	// 파티클 변경은 컴포넌트 이동 없이도 Bounds를 변경한다.
 	OnTransformDirty();
 
 	if (FPrimitiveSceneProxy* Proxy = GetSceneProxy())
@@ -235,6 +237,16 @@ void USpriteParticleTestComponent::SetAxisLock(
     EParticleAxisLock InAxisLock)
 {
 	eParticleAxisLock = InAxisLock;
+	if (FPrimitiveSceneProxy* Proxy = GetSceneProxy())
+	{
+		Proxy->InvalidateDynamicData();
+	}
+}
+
+void USpriteParticleTestComponent::SetSortMode(
+    EParticleSortMode InSortMode)
+{
+	eParticleSortMode = InSortMode;
 	if (FPrimitiveSceneProxy* Proxy = GetSceneProxy())
 	{
 		Proxy->InvalidateDynamicData();
