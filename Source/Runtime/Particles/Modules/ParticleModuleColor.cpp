@@ -21,6 +21,8 @@ void UParticleModuleColor::Update(FParticleEmitterInstance& Owner, int32 Payload
 
 		const float T = std::clamp(Particle->RelativeTime, 0.0f, 1.0f);
 		Particle->Color.R = Particle->BaseColor.R + (EndColor.R - Particle->BaseColor.R) * T;
-		// G, B, A도 같은 식
+		Particle->Color.G = Particle->BaseColor.G + (EndColor.G - Particle->BaseColor.G) * T;
+		Particle->Color.B = Particle->BaseColor.B + (EndColor.B - Particle->BaseColor.B) * T;
+		Particle->Color.A = Particle->BaseColor.A + (EndColor.A - Particle->BaseColor.A) * T;
 	}
 }
