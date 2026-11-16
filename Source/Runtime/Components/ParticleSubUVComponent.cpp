@@ -192,7 +192,7 @@ void UParticleSubUVComponent::SubmitToRenderQueue(FRenderQueue& RenderQueue)
 		Packet.MaterialParamData = &Constants.Last();
 		Packet.MaterialParamDataSize = sizeof(FSubUVConstants);
 
-		Packet.CameraToParticleDistance = CameraToParticleDistance;
+		Packet.TranslucentSortCenter = ParticlePos;
 
 		RenderQueue.Add(Packet);
 	}

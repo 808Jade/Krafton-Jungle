@@ -1001,16 +1001,6 @@ void UEditorEngine::RenderOpaquePass(int32 ViewIndex, const FRenderingInfo& View
 	const FMatrix& ViewProjection = ViewConstants.ViewProjection;
 	const FVector& ViewCameraLocation = ViewConstants.CameraWorldPos;
 
-	// RenderQueueSorting() 전에 파티클 패킷을 분리한다.
-	TArray<FRenderPacket> ParticlePackets;
-
-	if (ParticleSpriteRenderer)
-	{
-		ParticleSpriteRenderer->CollectPackets(
-		    RenderQueue,
-		    ParticlePackets);
-	}
-
 	FRenderingInfo HDRInfo = ViewRenderingInfo;
 	HDRInfo.ColorRenderTargets[0].Texture = GetHDRTargetForView(ViewIndex);
 	RenderCommand::BeginRenderPass(HDRInfo);
@@ -1113,9 +1103,6 @@ void UEditorEngine::RenderOpaquePass(int32 ViewIndex, const FRenderingInfo& View
 
 		Renderer->RenderTranslucent(
 			ViewProjection,
-			ParticleView.CameraPosition,
-			ParticleView.CameraForward,
-			ParticlePackets,
 			[this, &ParticleView](const FRenderPacket& Packet)
 			{
 			    if (!ParticleSpriteRenderer)
@@ -1276,11 +1263,11 @@ void UEditorEngine::RenderOverlayPass(const int32 ViewIndex, UWorld& ViewWorld, 
 		RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		// 아이콘 먼저 그리기 (반투명)
-		Renderer->RenderQueueSorting(IconQueue, ViewProjection, ViewCameraLocation);
+		Renderer->RenderQueueSorting(IconQueue, ViewProjection, ViewCameraLocation, ViewCameraForward);
 		Renderer->RenderTranslucent(ViewProjection);
 
 		// 화살표 그리기 (불투명)
-		Renderer->RenderQueueSorting(ArrowQueue, ViewProjection, ViewCameraLocation);
+		Renderer->RenderQueueSorting(ArrowQueue, ViewProjection, ViewCameraLocation, ViewCameraForward);
 		Renderer->RenderOpaque(ViewProjection);
 		Renderer->RenderTranslucent(ViewProjection);	// 패킷 뒷정리
 	}

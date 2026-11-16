@@ -210,6 +210,8 @@ void FDynamicSpriteEmitterData::GatherRenderPackets(
 
 	FVector Center = FVector::ZeroVector;
 
+	Packet.SpriteInstances.SetNum(ParticleOrder.Num());
+
 	for (int32 SortedIndex = 0;
 	     SortedIndex < ParticleOrder.Num();
 	     ++SortedIndex)
@@ -229,9 +231,7 @@ void FDynamicSpriteEmitterData::GatherRenderPackets(
 
 	Center *= 1.0f / static_cast<float>(Packet.SpriteInstances.Num());
 
-	Packet.ParticleSortCenter = Center;
-
-	Packet.CameraToParticleDistance = (Center - View.CameraLocation).SizeSquared();
+	Packet.TranslucentSortCenter = Center;
 
 	// 배열을 포함한 패킷을 이동한다.
 	RenderQueue.Add(std::move(Packet));

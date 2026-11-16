@@ -123,8 +123,7 @@ bool FSpriteParticleSceneProxy::GatherDynamicRenderPackets(
 
 	Center *= 1.0f / static_cast<float>(Packet.SpriteInstances.Num());
 
-	Packet.ParticleSortCenter = Center;
-	Packet.CameraToParticleDistance = (Center - View.CameraLocation).SizeSquared();
+	Packet.TranslucentSortCenter = Center;
 
 	const auto& Source = DynamicData->GetSource();
 	Packet.ParticleScreenAlignment = Source.ScreenAlignment;

@@ -498,6 +498,7 @@ void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContex
 						Packet.LODIndex = static_cast<uint8>(LOD);
 						Packet.Slot = Slot;
 						Packet.bOccludedByGpu = bOccludedByGpu;
+					    Packet.TranslucentSortCenter = Proxy->GetLODSphere().Center;
 					}
 				}
 			});

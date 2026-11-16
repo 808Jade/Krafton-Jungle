@@ -62,7 +62,7 @@ bool FParticleSceneProxy::GatherDynamicRenderPackets(FRenderQueue& RenderQueue, 
         Packet.Material = Material;
         Packet.Model = RenderQueue.StoreWorldMatrix(BuildBillboardMatrix(
             Particle.Location, Particle.Scale, Particle.Scale, ViewContext));
-        Packet.CameraToParticleDistance = ParticleDistancesSquared[Index];
+        Packet.TranslucentSortCenter = Particle.Location;
         Packet.MaterialParamData = &Constants[Index];
         Packet.MaterialParamDataSize = sizeof(FSubUVConstants);
         RenderQueue.Add(Packet);

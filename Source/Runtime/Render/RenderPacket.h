@@ -20,7 +20,6 @@ struct FRenderPacket
     UStaticMesh* Mesh = nullptr;
     UMaterial* Material = nullptr;
     const void* MaterialParamData = nullptr;
-    float CameraToParticleDistance = 0.0f;
     uint32 MaterialParamDataSize = 0;
     uint32 StartIndex = 0;
     uint32 IndexCount = 0; // Zero selects the full index buffer.
@@ -31,9 +30,9 @@ struct FRenderPacket
         EParticleScreenAlignment::Rectangle;
 	EParticleAxisLock ParticleAxisLock = EParticleAxisLock::None;
 
-    // 월드 공간의 이미터 대표 위치
-    // 이미터와 다른 반투명 오브젝트 사이의 정렬에 사용.
-	FVector ParticleSortCenter = FVector::ZeroVector;
+    // 월드 공간의 대표 중심.
+    // 뷰별 정렬 깊이는 RenderQueueSorting에서 계산한다.
+	FVector TranslucentSortCenter = FVector::ZeroVector;
 
     // 스켈레탈 메시와 CPU 스키닝 결과는 StaticMesh 에셋 없이 버퍼를 직접 전달한다.
     FVertexBuffer* VertexBuffer = nullptr;

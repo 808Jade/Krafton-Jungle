@@ -60,12 +60,39 @@ namespace
 		return Packet.Model ? *Packet.Model : FMatrix::Identity;
 	}
 
-	uint64 MakeSortKey(const FRenderPacket& Packet)
+	uint32 FloatToAscendingSortKey(float Value)
+	{
+		assert(std::isfinite(Value));
+
+		// -0을 +0으로 통일.
+		if (Value == 0.0f)
+		{
+			Value = 0.0f;
+		}
+
+		const uint32 Bits = std::bit_cast<uint32>(Value);
+
+		return (Bits & 0x80000000u) 
+			? ~Bits 
+			: (Bits ^ 0x80000000u);
+	}
+
+	uint64 MakeSortKey(
+		const FRenderPacket& Packet,
+		const FVector& CameraPosition,
+		const FVector& CameraForward)
 	{
 		if (Packet.Material->BlendState != EBlendState::Opaque)
 		{
-			const uint32 DistanceBits = std::bit_cast<uint32>(Packet.CameraToParticleDistance);
-			return (1ull << 63) | static_cast<uint64>(~DistanceBits);
+			const float Depth = FVector::Dot(
+			    Packet.TranslucentSortCenter - CameraPosition,
+			    CameraForward);
+
+			const uint32 AscendingDepthKey = FloatToAscendingSortKey(Depth);
+
+			// 전체 키는 오름차순 정렬.
+			// 깊이 키를 반전해 먼 패킷부터 배치한다.
+			return (1ull << 63) | static_cast<uint64>(~AscendingDepthKey);
 		}
 
 		return (static_cast<uint64>(Packet.Material->SortID) << 47)
@@ -161,6 +188,14 @@ void FRenderer::UploadPerObjectConstants()
 	for (uint32 Index = 0; Index < Count; ++Index)
 	{
 		FRenderPacket& P = RenderPackets[Index];
+
+		// 파티클은 인스턴스 버퍼로 그리므로 World를 올리지 않는다. (인스턴스마다 World가 다르다)
+		if (P.IsSpriteParticle())
+		{
+			P.Slot = InvalidObjectSlot;
+			continue;
+		}
+
 		const FMatrix& Model = GetPacketWorld(P);
 		const FMatrix WorldToLocal = P.Proxy ? P.Proxy->GetWorldToLocal() : Model.Inverse();
 		WritePerObjectConstants(Dest + static_cast<size_t>(Index) * ObjectSlotBytes, 
@@ -512,13 +547,17 @@ FTexture2D* FRenderer::GetNormalDBuffer() const
 // 카메라의 ViewProjection을 공통 렌더 경로로 전달한다.
 void FRenderer::RenderAll(FRenderQueue& InQueue, UCameraComponent* CameraComponent)
 {
-	RenderAll(InQueue, CameraComponent->GetViewProjectionMatrix(), CameraComponent->GetWorldLocation());
+	RenderAll(
+		InQueue, 
+		CameraComponent->GetViewProjectionMatrix(), 
+		CameraComponent->GetWorldLocation(), 
+		CameraComponent->GetWorldRotation().Quaternion().GetForwardVector());
 }
 
 // 불투명 우선·반투명 거리순으로 정렬해 View 행렬과 Section 범위로 그린다.
-void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CameraWorldPos)
+void FRenderer::RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CameraWorldPos, const FVector& CameraForward)
 {
-	RenderQueueSorting(InQueue, ViewProjection, CameraWorldPos);
+	RenderQueueSorting(InQueue, ViewProjection, CameraWorldPos, CameraForward);
 	RenderOpaque(ViewProjection);
 	RenderTranslucent(ViewProjection);
 }
@@ -560,7 +599,7 @@ void FRenderer::RenderOpaque(const FMatrix& ViewProjection)
 }
 
 // RenderOpaque가 남긴 반투명 패킷을 먼 것부터 그린다.
-void FRenderer::RenderTranslucent(const FMatrix& ViewProjection)
+void FRenderer::RenderTranslucent(const FMatrix& ViewProjection, const FSpritePacketDraw& DrawSpritePacket)
 {
 	RenderCommand::BindConstantBuffer(4, LightingCB.get(), EShaderBindFlagBits::Pixel | EShaderBindFlagBits::Vertex);
 	RenderCommand::BindShaderResource(10, LocalLightBuffer.get(), EShaderBindFlagBits::Pixel | EShaderBindFlagBits::Vertex);
@@ -570,151 +609,10 @@ void FRenderer::RenderTranslucent(const FMatrix& ViewProjection)
 	RenderCommand::BindConstantBuffer(5, GridCB, EShaderBindFlagBits::Pixel | EShaderBindFlagBits::Vertex);
 
 	BindShadowResources();
-	DrawPackets(FirstTranslucentIndex, SortEntries.Num(), ViewProjection);
+	DrawPackets(FirstTranslucentIndex, SortEntries.Num(), ViewProjection, DrawSpritePacket);
 	RenderPackets.Reset();
 	FirstTranslucentIndex = 0;
 	StaticGroups.clear();   // 묶음 메모리는 World 것이므로 이번 프레임이 끝나면 놓는다
-}
-
-void FRenderer::RenderTranslucent(
-    const FMatrix& ViewProjection,
-    const FVector& CameraPosition,
-    const FVector& CameraForward,
-    const TArray<FRenderPacket>& ParticlePackets,
-    const FSpritePacketDraw& DrawSpritePacket)
-{
-	// 기존 반투명 패스와 동일한 공통 리소스.
-	RenderCommand::BindConstantBuffer(
-	    4,
-	    LightingCB.get(),
-	    EShaderBindFlagBits::Pixel |
-	        EShaderBindFlagBits::Vertex);
-
-	RenderCommand::BindShaderResource(
-	    10,
-	    LocalLightBuffer.get(),
-	    EShaderBindFlagBits::Pixel |
-	        EShaderBindFlagBits::Vertex);
-
-	RenderCommand::BindShaderResource(
-	    12,
-	    TileIndexBuffer.get(),
-	    EShaderBindFlagBits::Pixel);
-
-	FConstantBuffer* GridCB =
-	    LightCullingMode == ELightCullingMode::Tiled25D
-	        ? GridLightingFallbackCB.get()
-	        : GridLightingCB.get();
-
-	RenderCommand::BindConstantBuffer(
-	    5,
-	    GridCB,
-	    EShaderBindFlagBits::Pixel |
-	        EShaderBindFlagBits::Vertex);
-
-	BindShadowResources();
-
-	struct FTranslucentItem
-	{
-		bool bSprite = false;
-
-		// 메시: SortEntries의 위치.
-		// Sprite: ParticlePackets의 위치.
-		uint32 Index = 0;
-
-		float Depth = 0.0f;
-	};
-
-	TArray<FTranslucentItem> Items;
-
-	Items.Reserve(
-	    static_cast<int32>(SortEntries.Num()) -
-	    static_cast<int32>(FirstTranslucentIndex) +
-	    ParticlePackets.Num());
-
-	const FVector Forward = CameraForward.Normalized();
-
-	// 일반 반투명 메시 패킷 수집.
-	for (uint32 SortedIndex = FirstTranslucentIndex;
-	     SortedIndex < static_cast<uint32>(SortEntries.Num());
-	     ++SortedIndex)
-	{
-		const uint32 PacketIndex =
-		    SortEntries[SortedIndex].PacketIndex;
-
-		const FRenderPacket& Packet =
-		    RenderPackets[PacketIndex];
-
-		const FVector Center =
-		    Packet.Proxy
-		        ? Packet.Proxy->GetLODSphere().Center
-		        : GetPacketWorld(Packet).TransformPosition(
-		              FVector::ZeroVector);
-
-		FTranslucentItem Item{};
-		Item.Index = SortedIndex;
-		Item.Depth = FVector::Dot(
-		    Center - CameraPosition,
-		    Forward);
-
-		assert(std::isfinite(Item.Depth));
-		Items.Add(Item);
-	}
-
-	// Sprite 이미터 패킷 수집.
-	for (int32 PacketIndex = 0;
-	     PacketIndex < ParticlePackets.Num();
-	     ++PacketIndex)
-	{
-		const FRenderPacket& Packet =
-		    ParticlePackets[PacketIndex];
-
-		if (!Packet.Material || !Packet.IsSpriteParticle())
-		{
-			continue;
-		}
-
-		FTranslucentItem Item{};
-		Item.bSprite = true;
-		Item.Index = static_cast<uint32>(PacketIndex);
-
-		Item.Depth = FVector::Dot(
-		    Packet.ParticleSortCenter - CameraPosition,
-		    Forward);
-
-		assert(std::isfinite(Item.Depth));
-		Items.Add(Item);
-	}
-
-	// 메시와 이미터를 공통 뷰 깊이로 정렬.
-	std::stable_sort(
-	    Items.begin(),
-	    Items.end(),
-	    [](const FTranslucentItem& A,
-	       const FTranslucentItem& B)
-	    {
-		    return A.Depth > B.Depth;
-	    });
-
-	// 배열을 다시 묶지 않고 이 순서 그대로 실행.
-	for (const FTranslucentItem& Item : Items)
-	{
-		if (Item.bSprite)
-		{
-			DrawSpritePacket(ParticlePackets[Item.Index]);
-		}
-		else
-		{
-			DrawPackets(
-			    Item.Index,
-			    Item.Index + 1,
-			    ViewProjection);
-		}
-	}
-
-	RenderPackets.Reset();
-	FirstTranslucentIndex = 0;
-	StaticGroups.clear();
 }
 
 // 스태틱 메시 묶음을 정렬 키 순서로 그린다. 바인딩은 묶음마다 한 번, 항목마다는 칸 바인딩과 드로우만 한다.
@@ -760,11 +658,12 @@ void FRenderer::DrawStaticGroups()
 }
 
 void FRenderer::RenderQueueSorting(FRenderQueue& InQueue, const FMatrix& ViewProjection,
-	const FVector& CameraWorldPos)
+	const FVector& CameraWorldPos, const FVector& CameraForward)
 {
 	FViewConstants ViewConstants{};
 	ViewConstants.ViewProjection = ViewProjection;
 	ViewConstants.CameraWorldPos = CameraWorldPos;
+	ViewConstants.CameraForward = CameraForward;
 
 	RenderQueueSorting(InQueue, ViewConstants);
 }
@@ -783,11 +682,44 @@ void FRenderer::RenderQueueSorting(FRenderQueue& InQueue, const FViewConstants& 
 		// ① 패킷을 한 번 훑으며 키를 만든다. 그릴 수 없는 패킷은 목록에 넣지 않는다.
 		SortEntries.Reset();
 		SortEntries.Reserve(RenderPackets.Num());
+
+		FVector CameraForward = FVector::ZeroVector;
+		bool bForwardPrepared = false;
+
 		for (uint32 i = 0; i < RenderPackets.Num(); ++i)
 		{
 			const FRenderPacket& P = RenderPackets[i];
-			if (!P.GetVertexBuffer() || !P.GetIndexBuffer() || !P.Material) continue;
-			SortEntries.Add({ MakeSortKey(P), i });
+			if (!P.Material) continue;
+
+			if (P.IsSpriteParticle())
+			{
+				assert(P.Material->BlendState == EBlendState::AlphaBlend ||
+						P.Material->BlendState == EBlendState::Additive);
+			}
+			else
+			{
+				if (!P.GetVertexBuffer() || !P.GetIndexBuffer())
+				{
+					continue;
+				}
+			}
+
+			if (P.Material->BlendState != EBlendState::Opaque &&
+				!bForwardPrepared)
+			{
+				assert(ViewConstants.CameraForward.SizeSquared() > 0.0f);
+
+				CameraForward = ViewConstants.CameraForward.Normalized();
+
+				bForwardPrepared = true;
+			}
+
+			SortEntries.Add({ 
+				MakeSortKey(
+					P, 
+					ViewConstants.CameraWorldPos, 
+					CameraForward), 
+				i });
 		}
 
 		// ② 16B 항목만 정렬
@@ -1113,7 +1045,11 @@ void FRenderer::RenderShadowDepth(FProjectedShadowInfo& ShadowInfo)
 
 	// Caster 큐를 소비하고 라이트 기준 View·Object 상수를 준비한다.
 	const bool bClampShadowNear = LightType == ELightType::Directional;
-	RenderQueueSorting(ShadowInfo.CasterQueue, ShadowInfo.LightViewProjection, ShadowInfo.ShadowViewOrigin);
+	RenderQueueSorting(
+		ShadowInfo.CasterQueue, 
+		ShadowInfo.LightViewProjection, 
+		ShadowInfo.ShadowViewOrigin, 
+		FVector::ZeroVector /* TEMP */);
 
 	// 기존 UberLit의 Unlit VS를 사용해 정점 조명 계산 없이 위치를 변환한다.
 	// 실제 화면 View의 Unlit 여부는 호출자가 판단한다.
@@ -1165,7 +1101,7 @@ void FRenderer::RenderShadowDepth(FProjectedShadowInfo& ShadowInfo)
 }
 
 // 정렬된 패킷 중 [Begin, End) 범위를 View 행렬과 Section 범위로 그린다.
-void FRenderer::DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProjection)
+void FRenderer::DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProjection, const FSpritePacketDraw& DrawSpritePacket)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DrawRenderPackets);
 
@@ -1183,6 +1119,38 @@ void FRenderer::DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProject
 	{
 		const uint32 PacketIndex = SortEntries[k].PacketIndex;
 		const FRenderPacket& RenderPacket = RenderPackets[PacketIndex];
+
+		if (RenderPacket.IsSpriteParticle())
+		{
+			if (DrawSpritePacket)
+			{
+				DrawSpritePacket(RenderPacket);
+			}
+			else
+			{
+				HTR_LOG(
+				    Error,
+				    "Sprite packet had no draw callback.");
+			}
+
+			// Sprite Draw가 변경한 메시 바인딩을 다시 설정하도록 한다.
+			LastMesh = nullptr;
+			LastMaterial = nullptr;
+			LastVertexBuffer = nullptr;
+			LastIndexBuffer = nullptr;
+			bLastSkinned = false;
+			LastSkinMatrices = nullptr;
+
+			// 공통 뷰 상수도 명시적으로 복구
+			RenderCommand::BindConstantBuffer(
+			    0,
+			    ViewCB.get(),
+			    EShaderBindFlagBits::Vertex |
+			        EShaderBindFlagBits::Pixel);
+
+			continue;
+		}
+
 		const bool bSkinned = RenderPacket.IsGPUSkinned();
 		// 같은 머티리얼이라도 GPU 스킨 여부가 바뀌면 셰이더 변형이 달라지므로 다시 바인딩한다.
 		if (RenderPacket.Material != LastMaterial || bSkinned != bLastSkinned) {
