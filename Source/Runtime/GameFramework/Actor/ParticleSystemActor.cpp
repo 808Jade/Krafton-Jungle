@@ -3,10 +3,12 @@
 #include "Components/BillboardComponent.h"
 #include "Asset/AssetManager.h"
 #include "Core/ResourcePaths.h"
+#include "Particles/ParticleSystem.h"
 
 AParticleSystemActor::AParticleSystemActor()
 {
     ParticleSystemComponent = CreateDefaultSubobject<UParticleSystemComponent>("ParticleSystemComponent");
+	ParticleSystemComponent->SetTemplate(UAssetManager::GetAssetByPath<UParticleSystem>("DefaultParticleSystem"));
 	SetupParticleRoot(ParticleSystemComponent, ResourcePaths::ParticleIcon);
 }
 
