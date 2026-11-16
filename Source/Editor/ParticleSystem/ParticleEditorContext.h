@@ -55,6 +55,9 @@ public:
 	bool DeleteModule(int32 EmitterIndex, UParticleModule* Module);
 	// 메시 TypeData를 붙여 메시 이미터로 바꾼다. 기본 메시는 엔진의 "Cube"다. TypeData가 이미 있으면 실패한다.
 	bool AddMeshTypeData(int32 EmitterIndex);
+	// 디테일 패널에서 모듈 값을 고친 뒤 부른다. NeedsUpdate·MaxActiveParticles·Mesh처럼
+	// 이미터 캐시에 들어가는 값이 바뀌었을 수 있으므로 캐시를 다시 만들고 컴포넌트를 다시 시작한다.
+	void NotifyModuleEdited(int32 EmitterIndex) { ApplyEmitterChange(EmitterIndex); }
 
 	UWorld* GetPreviewWorld() const { return PreviewScene ? PreviewScene->GetWorld() : nullptr; }
 	UParticleSystemComponent* GetPreviewComponent() const;
