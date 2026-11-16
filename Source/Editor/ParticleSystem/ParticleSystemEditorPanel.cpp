@@ -4,12 +4,46 @@
 #include "Editor/ParticleSystem/ParticleSystemEmitterPanel.h"
 #include "Editor/ParticleSystem/ParticleSystemDetailsPanel.h"
 
+#include "Editor/HitoriEd/EditorResourcePaths.h"
+#include "Asset/AssetManager.h"
+#include "Render/Texture2D.h"
+
 #include <algorithm>
 
 namespace
 {
 	constexpr const char* InnerDockSpaceName = "ParticleSystemEditorInnerDockSpace";
 	constexpr const char* WindowClassName = "ParticleSystemEditorClass";
+
+	constexpr float ToolbarIconSize = 18.0f;
+
+	// 아이콘과 글자를 한 버튼 안에 그린다. 클릭 영역은 버튼 전체다. (언리얼 툴바 버튼과 같은 모양)
+	bool IconTextButton(const char* Id, UTexture2D* Icon, const char* Label, const char* Tooltip)
+	{
+		const ImGuiStyle& Style = ImGui::GetStyle();
+		const ImVec2 TextSize = ImGui::CalcTextSize(Label);
+		const float IconWidth = Icon ? ToolbarIconSize + Style.ItemInnerSpacing.x : 0.0f;
+		const float Height = std::max(ToolbarIconSize, TextSize.y) + Style.FramePadding.y * 2.0f;
+		const ImVec2 Size(IconWidth + TextSize.x + Style.FramePadding.x * 2.0f, Height);
+
+		const bool bClicked = ImGui::Button(Id, Size);
+		const ImVec2 Min = ImGui::GetItemRectMin();
+		ImDrawList* DrawList = ImGui::GetWindowDrawList();
+
+		float X = Min.x + Style.FramePadding.x;
+		if (Icon)
+		{
+			const float IconY = Min.y + (Height - ToolbarIconSize) * 0.5f;
+			DrawList->AddImage(reinterpret_cast<ImTextureID>(Icon->GetResource()->GetSRV()),
+				ImVec2(X, IconY), ImVec2(X + ToolbarIconSize, IconY + ToolbarIconSize));
+			X += IconWidth;
+		}
+		DrawList->AddText(ImVec2(X, Min.y + (Height - TextSize.y) * 0.5f), ImGui::GetColorU32(ImGuiCol_Text), Label);
+
+		if (Tooltip && ImGui::IsItemHovered())
+			ImGui::SetTooltip("%s", Tooltip);
+		return bClicked;
+	}
 }
 
 FParticleSystemEditorPanel::FParticleSystemEditorPanel() = default;
@@ -23,6 +57,10 @@ bool FParticleSystemEditorPanel::Init()
 {
 	if (!Context.Init())
 		return false;
+
+	RestartIcon = UAssetManager::Get().LoadTexture(EditorResourcePaths::ToolbarRestartIcon);
+	PauseIcon = UAssetManager::Get().LoadTexture(EditorResourcePaths::ToolbarPauseIcon);
+	PlayIcon = UAssetManager::Get().LoadTexture(EditorResourcePaths::ToolbarPlayIcon);
 
 	// 하위 패널은 Context를 참조만 한다. 생성 순서가 곧 그리는 순서다.
 	auto Viewport = MakeUnique<FParticleSystemViewportPanel>(Context);
@@ -124,12 +162,18 @@ void FParticleSystemEditorPanel::DrawMenuBar()
 
 void FParticleSystemEditorPanel::DrawToolBar()
 {
-	if (ImGui::Button("Restart Sim"))
+	if (IconTextButton("##RestartSim", RestartIcon, "Restart Sim", "Restart the particle system in the preview from the beginning"))
 		Context.RestartSimulation();
 	ImGui::SameLine();
-	ImGui::Checkbox("Pause", &Context.bSimulationPaused);
+
+	// 같은 자리에서 일시정지/재개를 바꾼다. 아이콘은 누르면 일어날 동작을 보여 준다.
+	const bool bPaused = Context.bSimulationPaused;
+	if (IconTextButton("##PauseSim", bPaused ? PlayIcon : PauseIcon, bPaused ? "Resume" : "Pause",
+		bPaused ? "Resume the simulation" : "Pause the simulation"))
+		Context.bSimulationPaused = !bPaused;
 	ImGui::SameLine();
-	if (ImGui::Button("Reset Camera") && ViewportPanel)
+
+	if (IconTextButton("##ResetCamera", nullptr, "Reset Camera", "Move the preview camera back to its start position") && ViewportPanel)
 		ViewportPanel->ResetCamera();
 	ImGui::Separator();
 }

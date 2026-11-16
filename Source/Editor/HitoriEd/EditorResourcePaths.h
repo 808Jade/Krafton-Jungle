@@ -18,4 +18,5 @@ namespace EditorResourcePaths
 	constexpr const char* ToolbarPauseIcon = "Resources/Icons/Toolbar/Pause.png";
 	constexpr const char* ToolbarStepIcon = "Resources/Icons/Toolbar/Step.png";
 	constexpr const char* ToolbarStopIcon = "Resources/Icons/Toolbar/Stop.png";
+	constexpr const char* ToolbarRestartIcon = "Resources/Icons/Toolbar/Restart.png";
 }

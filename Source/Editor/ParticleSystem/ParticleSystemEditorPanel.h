@@ -3,6 +3,7 @@
 #include "Editor/ParticleSystem/ParticleEditorContext.h"
 
 class FParticleSystemViewportPanel;
+class UTexture2D;
 
 // 파티클 시스템 에디터의 호스트 창. ① 메뉴바 ② 툴바를 직접 그리고, 내부 DockSpace에
 // ③ 뷰포트 ④ 이미터 ⑤ 디테일 하위 패널을 소유해 루프로 그린다.
@@ -44,6 +45,11 @@ private:
 	TArray<TUniquePtr<IEditorPanel>> SubPanels;
 	// 참조(집약): SubPanels 안의 뷰포트. 엔진 렌더 연결과 툴바의 카메라 리셋에 쓴다.
 	FParticleSystemViewportPanel* ViewportPanel = nullptr;
+
+	// 참조(집약): 툴바 아이콘. 텍스처는 UAssetManager가 소유하고 캐시한다.
+	UTexture2D* RestartIcon = nullptr;
+	UTexture2D* PauseIcon = nullptr;
+	UTexture2D* PlayIcon = nullptr;
 
 	bool bHostVisible = false;
 	bool bResetLayout = false;
