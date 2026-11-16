@@ -88,6 +88,13 @@ public:
 
 	int32 GetDynamicVertexStride() const override;
 
+	void PrepareRenderData(const FParticleSystemSceneProxy& Proxy) override;
+	void GatherRenderPackets(
+	    const FParticleSystemSceneProxy& Proxy,
+	    FRenderQueue& RenderQueue,
+	    const FRenderViewContext& View) const override;
+
 private:
 	FDynamicMeshEmitterReplayData Source;
+	TArray<FMeshParticleInstanceVertex> Instances;
 };

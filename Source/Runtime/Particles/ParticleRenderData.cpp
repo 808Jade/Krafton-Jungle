@@ -5,8 +5,10 @@
 #include <cassert>
 #include <utility>
 
+#include "Math/Transform.h"
 #include "ParticleVertex.h"
 #include "Engine/ParticleSystemSceneProxy.h"
+#include "Render/Mesh.h"
 #include "Render/Material.h"
 #include "Render/RenderPacket.h"
 
@@ -235,4 +237,60 @@ void FDynamicSpriteEmitterData::GatherRenderPackets(
 
 	// 배열을 포함한 패킷을 이동한다.
 	RenderQueue.Add(std::move(Packet));
+}
+
+void FDynamicMeshEmitterData::PrepareRenderData(
+    const FParticleSystemSceneProxy& Proxy)
+{
+	Instances.Reset();
+
+	if (!Source.Mesh || Source.ActiveParticleCount <= 0)
+		return;
+
+	Instances.SetNum(Source.ActiveParticleCount);
+
+	for (int32 Index = 0;
+	     Index < Source.ActiveParticleCount;
+	     ++Index)
+	{
+		const FBaseParticle& Particle = Source.GetParticle(Index);
+
+		FTransform Transform;
+		Transform.Location = Particle.Location;
+
+		// 임시: Scalar rotation을 z축 yaw로 사용.
+		// 실제로는 rotation payload를 읽어 Transform.Rotation을 채워야 한다.
+		Transform.Rotation = FRotator(
+		    0.0f,
+		    Particle.Rotation * (180.0f / static_cast<float>(PI)),
+		    0.0f);
+
+		// Source.Scale에는 이미 Component의 WorldScale이 들어온다.
+		// Local Space는 아래 LocalToWorld에서 스케일을 적용한다.
+		Transform.Scale = Source.bUseLocalSpace
+		                      ? Particle.Size
+		                      : Particle.Size * Source.Scale;
+
+		FMeshParticleInstanceVertex& Instance = Instances[Index];
+
+		const FMatrix ParticleTransform = Transform.GetLocalMatrix();
+
+		// 현재 엔진은 row-vector 규약.
+		Instance.Transform = Source.bUseLocalSpace
+		                         ? ParticleTransform * Proxy.GetLocalToWorld()
+		                         : ParticleTransform;
+
+		Instance.Color = FVector4(
+			Particle.Color.R,
+			Particle.Color.G,
+		    Particle.Color.B,
+		    Particle.Color.A);
+	}
+}
+
+void FDynamicMeshEmitterData::GatherRenderPackets(
+    const FParticleSystemSceneProxy& Proxy,
+    FRenderQueue& RenderQueue,
+    const FRenderViewContext& View) const
+{
 }
