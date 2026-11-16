@@ -369,6 +369,9 @@ bool FParticleMeshEmitterInstance::FillReplayData(
 	MeshReplayData->MeshRotationPayloadOffset = InvalidPayloadOffset;
 	MeshReplayData->MaterialInterface = CurrentMaterial;
 
+	// TEMP: 나중에는 모듈에 설정된 SortMode를 전달한다.
+	MeshReplayData->SortMode = EParticleSortMode::ViewDepth;
+
 	return true;
 }
 

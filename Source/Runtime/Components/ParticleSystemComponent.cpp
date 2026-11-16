@@ -4,6 +4,7 @@
 
 #include "Asset/AssetManager.h"
 #include "Render/Mesh.h"
+#include "Render/Material.h"
 #include "Math/Color.h"
 
 #include <cassert>
@@ -129,6 +130,22 @@ void UParticleSystemComponent::InitializeMeshInstancingTest()
 
 	Emitter->Component = this;
 	Emitter->TestMesh = Mesh;
+
+	UMaterial* BaseMaterial = Mesh->GetMaterial(0);
+
+	if (BaseMaterial)
+	{
+		UMaterial* TestMaterial =
+		    UMaterial::CreateInstance(BaseMaterial);
+
+		TestMaterial->SetBlendState(EBlendState::AlphaBlend);
+
+		// RGB는 기존 색 유지, alpha만 반투명으로 설정.
+		TestMaterial->BaseColor.W = 0.35f;
+
+		Emitter->CurrentMaterial = TestMaterial;
+	}
+
 	Emitter->bUseLocalSpace = true;
 
 	constexpr int32 TestCount = 1000;

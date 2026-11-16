@@ -296,21 +296,48 @@ void FDynamicMeshEmitterData::GatherRenderPackets(
 	if (!Source.Mesh || Instances.Num() == 0)
 		return;
 
+	assert(Instances.Num() == Source.ActiveParticleCount);
+
 	const FStaticMeshData& MeshData = Source.Mesh->GetMeshData(0);
 
 	UMaterial* OverrideMaterial =
 	    Cast<UMaterial>(Source.MaterialInterface);
 
+	// 1. ReplayData의 SortMode에 따라 뷰별 순서를 계산한다.
+	TArray<FParticleOrder> ParticleOrder;
+
+	SortParticles(
+	    View.CameraLocation,
+	    View.CameraForward,
+	    Proxy.GetLocalToWorld(),
+	    &ParticleOrder);
+	
+	// 2. 정렬 결과로 이 뷰에서 사용할 인스턴스 배열을 만든다.
+	// 멤버 Instances는 원래 활성 파티클 순서대로 유지한다.
+	TArray<FMeshParticleInstanceVertex> OrderedInstances;
+	OrderedInstances.SetNum(ParticleOrder.Num());
+
 	FVector Center = FVector::ZeroVector;
 
-	for (const auto& Instance : Instances)
+	for (int32 SortedIndex = 0;
+		SortedIndex < ParticleOrder.Num();
+		++SortedIndex)
 	{
+		const int32 ActiveIndex =
+		    ParticleOrder[SortedIndex].ActiveIndex;
+
+		assert(ActiveIndex >= 0);
+		assert(ActiveIndex < Instances.Num());
+
+		const FMeshParticleInstanceVertex& Instance = Instances[ActiveIndex];
+
 		Center += Instance.Transform.TransformPosition(
 		    FVector::ZeroVector);
 	}
 
-	Center *= 1.0f / static_cast<float>(Instances.Num());
+	Center *= 1.0f / static_cast<float>(OrderedInstances.Num());
 
+	// 3. 모든 Section에서 동일한 인스턴스 순서를 사용한다.
 	auto AddSectionPacket =
 	    [&](uint32 StartIndex,
 	        uint32 IndexCount,
