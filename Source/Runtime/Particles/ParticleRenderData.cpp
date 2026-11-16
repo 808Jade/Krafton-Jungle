@@ -31,8 +31,8 @@ int32 FDynamicSpriteEmitterData::GetDynamicVertexStride() const
 }
 
 FDynamicMeshEmitterData::FDynamicMeshEmitterData(
-	FDynamicMeshEmitterReplayData&& InSource)
-	: Source(std::move(InSource))
+    FDynamicMeshEmitterReplayData&& InSource)
+    : Source(std::move(InSource))
 {
 	Source.eEmitterType = EDynamicEmitterType::Mesh;
 }
@@ -50,10 +50,10 @@ int32 FDynamicMeshEmitterData::GetDynamicVertexStride() const
 }
 
 void FDynamicSpriteEmitterDataBase::SortSpriteParticles(
-	const FVector& CameraLocation,
-	const FVector& CameraForward,
-	const FMatrix& LocalToWorld,
-	TArray<FParticleOrder>* OutParticleOrder) const
+    const FVector& CameraLocation,
+    const FVector& CameraForward,
+    const FMatrix& LocalToWorld,
+    TArray<FParticleOrder>* OutParticleOrder) const
 {
 	assert(OutParticleOrder);
 	TArray<FParticleOrder>& ParticleOrder = *OutParticleOrder;
@@ -66,8 +66,8 @@ void FDynamicSpriteEmitterDataBase::SortSpriteParticles(
 	ParticleOrder.Reserve(Source.ActiveParticleCount);
 
 	for (int32 ActiveIndex = 0;
-		ActiveIndex < Source.ActiveParticleCount;
-		++ActiveIndex)
+	     ActiveIndex < Source.ActiveParticleCount;
+	     ++ActiveIndex)
 	{
 		FParticleOrder Order;
 		Order.ParticleIndex = Source.GetParticleIndex(ActiveIndex);
@@ -107,7 +107,7 @@ void FDynamicSpriteEmitterDataBase::SortSpriteParticles(
 	}
 
 	if (Source.SortMode == EParticleSortMode::None ||
-		ParticleOrder.Num() < 2)
+	    ParticleOrder.Num() < 2)
 	{
 		return;
 	}
@@ -121,7 +121,6 @@ void FDynamicSpriteEmitterDataBase::SortSpriteParticles(
 		    // SortKey가 큰 순서대로 정렬한다. (카메라에서 먼 순서)
 		    return A.SortKey > B.SortKey;
 	    });
-	
 }
 
 void FDynamicSpriteEmitterData::PrepareRenderData(const FParticleSystemSceneProxy& Proxy)
@@ -141,92 +140,98 @@ void FDynamicSpriteEmitterData::PrepareRenderData(const FParticleSystemSceneProx
 	const FMatrix& LocalToWorld = Proxy.GetLocalToWorld();
 
 	for (int32 ActiveIndex = 0;
-		ActiveIndex < Source.ActiveParticleCount;
-		++ActiveIndex)
+	     ActiveIndex < Source.ActiveParticleCount;
+	     ++ActiveIndex)
 	{
 		const FBaseParticle& Particle =
-			Source.GetParticle(ActiveIndex);
+		    Source.GetParticle(ActiveIndex);
 
 		FParticleSpriteInstanceVertex Instance{};
 
 		Instance.Position =
-			Source.bUseLocalSpace
-			? LocalToWorld.TransformPosition(Particle.Location)
-			: Particle.Location;
+		    Source.bUseLocalSpace
+		        ? LocalToWorld.TransformPosition(Particle.Location)
+		        : Particle.Location;
 
 		Instance.Rotation = Particle.Rotation;
 
 		Instance.Size = FVector2(
-			std::abs(Particle.Size.X * Source.Scale.X),
-			std::abs(Particle.Size.Y * Source.Scale.Y));
+		    std::abs(Particle.Size.X * Source.Scale.X),
+		    std::abs(Particle.Size.Y * Source.Scale.Y));
 
 		Instance.Color = FVector4(
-			Particle.Color.R,
-			Particle.Color.G,
-			Particle.Color.B,
-			Particle.Color.A);
+		    Particle.Color.R,
+		    Particle.Color.G,
+		    Particle.Color.B,
+		    Particle.Color.A);
 
 		// 전체 텍스처를 사용.
 		Instance.UVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
 
 		Instance.Velocity =
-			Source.bUseLocalSpace
-			? LocalToWorld.TransformPosition(Particle.Velocity) -
-			LocalToWorld.TransformPosition(FVector::ZeroVector)
-			: Particle.Velocity;
+		    Source.bUseLocalSpace
+		        ? LocalToWorld.TransformPosition(Particle.Velocity) -
+		              LocalToWorld.TransformPosition(FVector::ZeroVector)
+		        : Particle.Velocity;
 
 		Instances[ActiveIndex] = std::move(Instance);
 	}
 }
 
 void FDynamicSpriteEmitterData::GatherRenderPackets(
-	const FParticleSystemSceneProxy& Proxy,
-	FRenderQueue& RenderQueue,
-	const FRenderViewContext& View) const
+    const FParticleSystemSceneProxy& Proxy,
+    FRenderQueue& RenderQueue,
+    const FRenderViewContext& View) const
 {
 	if (!Material || Instances.Num() == 0)
 		return;
 
 	// AlphaBlend/ Additive Sprite를 대상으로 한다.
 	assert(
-		Material->BlendState == EBlendState::AlphaBlend ||
-		Material->BlendState == EBlendState::Additive);
+	    Material->BlendState == EBlendState::AlphaBlend ||
+	    Material->BlendState == EBlendState::Additive);
+
+	assert(Instances.Num() == Source.ActiveParticleCount);
+
+	// 이 뷰에서만 사용할 정렬 결과.
+	TArray<FParticleOrder> ParticleOrder;
+
+	SortSpriteParticles(
+	    View.CameraLocation,
+	    View.CameraForward,
+	    Proxy.GetLocalToWorld(),
+	    &ParticleOrder);
 
 	FRenderPacket Packet{};
 
 	Packet.Material = Material;
-
-	// 뷰별 정렬을 위해 패킷이 독립적인 배열을 소유한다.
-	Packet.SpriteInstances = Instances;
-
-	if (Material->BlendState == EBlendState::AlphaBlend)
-	{
-		std::stable_sort(
-			Packet.SpriteInstances.begin(),
-			Packet.SpriteInstances.end(),
-			[&View](
-				const FParticleSpriteInstanceVertex& A,
-				const FParticleSpriteInstanceVertex& B)
-			{
-				return (A.Position - View.CameraLocation).SizeSquared() >
-					(B.Position - View.CameraLocation).SizeSquared();
-			});
-	}
+	Packet.ParticleScreenAlignment = Source.ScreenAlignment;
+	Packet.ParticleAxisLock = Source.AxisLock;
 
 	FVector Center = FVector::ZeroVector;
 
-	for (const FParticleSpriteInstanceVertex& Instance :
-		Packet.SpriteInstances)
+	for (int32 SortedIndex = 0;
+	     SortedIndex < ParticleOrder.Num();
+	     ++SortedIndex)
 	{
+		const int32 ActiveIndex =
+		    ParticleOrder[SortedIndex].ActiveIndex;
+
+		assert(ActiveIndex >= 0);
+		assert(ActiveIndex < Instances.Num());
+
+		const FParticleSpriteInstanceVertex& Instance =
+		    Instances[ActiveIndex];
+
+		Packet.SpriteInstances[SortedIndex] = Instance;
 		Center += Instance.Position;
 	}
 
 	Center *= 1.0f / static_cast<float>(Packet.SpriteInstances.Num());
 
-	Packet.CameraToParticleDistance = (Center - View.CameraLocation).SizeSquared();
+	Packet.ParticleSortCenter = Center;
 
-	Packet.ParticleScreenAlignment = Source.ScreenAlignment;
-	Packet.ParticleAxisLock = Source.AxisLock;
+	Packet.CameraToParticleDistance = (Center - View.CameraLocation).SizeSquared();
 
 	// 배열을 포함한 패킷을 이동한다.
 	RenderQueue.Add(std::move(Packet));

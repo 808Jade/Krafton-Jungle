@@ -31,6 +31,10 @@ struct FRenderPacket
         EParticleScreenAlignment::Rectangle;
 	EParticleAxisLock ParticleAxisLock = EParticleAxisLock::None;
 
+    // 월드 공간의 이미터 대표 위치
+    // 이미터와 다른 반투명 오브젝트 사이의 정렬에 사용.
+	FVector ParticleSortCenter = FVector::ZeroVector;
+
     // 스켈레탈 메시와 CPU 스키닝 결과는 StaticMesh 에셋 없이 버퍼를 직접 전달한다.
     FVertexBuffer* VertexBuffer = nullptr;
     FIndexBuffer* IndexBuffer = nullptr;
