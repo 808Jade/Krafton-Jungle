@@ -10,6 +10,13 @@ class UParticleModuleSize : public UParticleModule
 public:
 	UParticleModuleSize() = default;
 
+	void Spawn(FParticleEmitterInstance& Owner, int32 PayloadOffset, float SpawnTime, FBaseParticle& Particle) override;
+
+	void Update(FParticleEmitterInstance& Owner, int32 PayloadOffset, float DeltaTime) override;
+
+	bool NeedsSpawn() const override { return true; }
+	bool NeedsUpdate() const override { return bUseSizeOverLife; }
+
 	FParticleVectorRange StartSize = FParticleVectorRange(FVector(1.0f, 1.0f, 1.0f));
 
 	// true이면 수명에 따라 BaseSize에서 EndSize로 선형 보간한다.
