@@ -119,6 +119,14 @@ cbuffer PerObjectConstants : register(b2)
 };
 
 // b3는 쓰지 않는다.
+#if MESH_PARTICLE
+cbuffer MeshParticleBatchConstants : register(b3)
+{
+    uint ParticleReceiveShadow;
+    uint ParticleReceiveDecal;
+    uint2 ParticleBatchPadding;
+};
+#endif
 
 cbuffer Lighting : register(b4)
 {
@@ -198,6 +206,18 @@ struct VS_INPUT
     float4 Tangent : TANGENT;   // w = 바이탄젠트 부호
     float2 UV : TEXCOORD;
     float4 Color : COLOR;
+#if MESH_PARTICLE
+    float4 InstanceTransform0 : INSTANCE_TRANSFORM0;
+    float4 InstanceTransform1 : INSTANCE_TRANSFORM1;
+    float4 InstanceTransform2 : INSTANCE_TRANSFORM2;
+    float4 InstanceTransform3 : INSTANCE_TRANSFORM3;
+
+    float4 InstanceNormal0 : INSTANCE_NORMAL0;
+    float4 InstanceNormal1 : INSTANCE_NORMAL1;
+    float4 InstanceNormal2 : INSTANCE_NORMAL2;
+
+    float4 ParticleColor : INSTANCE_COLOR0;
+#endif
 #if GPU_SKINNING
     // FSkeletalVertex의 BoneIndices / BoneWeights. 바인드 포즈 정점 뒤에 붙는다.
     uint4 BoneIndices : BLENDINDICES;
@@ -868,28 +888,65 @@ VS_OUTPUT mainVS(VS_INPUT Input, uint VertexID : SV_VertexID)
     SkinVertex(Input.BoneIndices, Input.BoneWeights, Input.Position, Input.Normal, SkinnedTangent);
     Input.Tangent.xyz = SkinnedTangent;
 #endif
+#if MESH_PARTICLE
+    float4x4 ObjectWorld = float4x4(
+        Input.InstanceTransform0,
+        Input.InstanceTransform1,
+        Input.InstanceTransform2,
+        Input.InstanceTransform3);
 
-    const float4 WorldPos = mul(float4(Input.Position, 1.0f), World);
+    float3x3 ObjectNormal = float3x3(
+        Input.InstanceNormal0.xyz,
+        Input.InstanceNormal1.xyz,
+        Input.InstanceNormal2.xyz);
+#else
+    float4x4 ObjectWorld = World;
+    float3x3 ObjectNormal = (float3x3) WorldInverseTranspose;
+#endif
+    const float4 WorldPos = mul(float4(Input.Position, 1.0f), ObjectWorld);
     Output.SvPosition = mul(WorldPos, ViewProjection);
     Output.WorldPos = WorldPos.xyz;
 
     // 노멀은 역전치로, 탄젠트는 표면을 따라 놓인 방향이라 World로 변환한다.
     // World가 뒤집혀 있으면(행렬식 < 0) 바이탄젠트 부호도 뒤집는다.
-    Output.Normal = mul(float4(Input.Normal, 0.0f), WorldInverseTranspose).xyz;
-    Output.Tangent = float4(mul(float4(Input.Tangent.xyz, 0.0f), World).xyz, Input.Tangent.w * (determinant((float3x3) World) < 0.0f ? -1.0f : 1.0f));
+    Output.Normal = mul(Input.Normal, ObjectNormal);
+    
+    const float TangentSign =
+        determinant((float3x3) ObjectWorld) < 0.0f
+            ? -1.0f
+            : 1.0f;
+    
+    Output.Tangent = float4(
+        mul(Input.Tangent.xyz, (float3x3)ObjectWorld),
+        Input.Tangent.w * TangentSign);
 
     Output.UV = Input.UV;
-    Output.Color = Input.Color;
     Output.BoneWeight = 0.0f;
+    
+#if MESH_PARTICLE
+    Output.Color = Input.ParticleColor;
+    Output.ReceivesDecal = ParticleReceiveDecal;
+#else
+    Output.Color = Input.Color;
+    Output.ReceivesDecal = ReceiveDecal;
+
     if (BoneWeightHeatmapStatus == BONE_WEIGHT_HEATMAP_ON)
     {
         Output.BoneWeight = BoneWeightHeatmapWeights[VertexID];
     }
-    Output.ReceivesDecal = ReceiveDecal;
+#endif
+    
 #if defined(LIGHTING_MODEL_LAMBERT) || defined(LIGHTING_MODEL_BLINN_PHONG)
+
+#if MESH_PARTICLE
+    Output.ReceivesShadow = ParticleReceiveShadow;
+#else
     // 기존 b2의 VS 전용 바인딩을 유지하면서 PS에 전달한다.
     Output.ReceivesShadow = ReceiveShadow;
 #endif
+
+#endif
+    
 #if LIGHTING_MODEL_GOURAUD
     const float3 V = normalize(CameraWorldPos - Output.WorldPos);
     // Gouraud도 공통 조명 함수의 정점 노멀 인자 규약을 맞춘다.
@@ -902,7 +959,7 @@ VS_OUTPUT mainVS(VS_INPUT Input, uint VertexID : SV_VertexID)
 
 float4 mainPS(VS_OUTPUT Input) : SV_TARGET
 {
-#if !defined(EDITOR_ARROW_SHADER)
+#if !defined(EDITOR_ARROW_SHADER) && !MESH_PARTICLE
     if (BoneWeightHeatmapStatus == BONE_WEIGHT_HEATMAP_ON)
     {
         return float4(GetBoneWeightHeatmapColor(Input.BoneWeight), 1);
@@ -947,6 +1004,11 @@ float4 mainPS(VS_OUTPUT Input) : SV_TARGET
     // 씬은 HDR 타깃에 선형으로 쌓이므로 sRGB로 인코딩된 디퓨즈 텍스처와 BaseColor를 각각 선형으로 바꾼다.
     // 에디터 화살표는 톤 매핑 이후 LDR 타깃에 그려지므로 sRGB 그대로 둔다.
     Albedo.rgb = SRGBToLinear(TexColor.rgb) * SRGBToLinear(BaseColor.rgb);
+
+#if MESH_PARTICLE
+    // Particle.Color는 선형 색이다.
+    Albedo *= Input.Color;
+#endif
     
     if (Input.ReceivesDecal && bOpaque > 0.5f)
     {

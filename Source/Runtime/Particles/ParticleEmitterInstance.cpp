@@ -63,7 +63,7 @@ void FParticleEmitterInstance::TickEmitterTime(float DeltaTime)
 }
 
 void FParticleEmitterInstance::AgeAndKillParticles(float DeltaTime)
-{ 
+{
 	for (int32 Index = ActiveParticles - 1; Index >= 0; Index--)
 	{
 		uint16 NextFreeIndex = ParticleIndices[Index];
@@ -131,8 +131,8 @@ void FParticleEmitterInstance::UpdateBoundingBox()
 		const FVector Extent = (Particle->Size * Scale).GetAbs();
 		const float LocalMax = std::max({ Extent.X, Extent.Y, Extent.Z });
 		const FVector Position = bUseLocalSpace
-			? ComponentToWorld.TransformPosition(Particle->Location)
-			: Particle->Location;
+		                             ? ComponentToWorld.TransformPosition(Particle->Location)
+		                             : Particle->Location;
 
 		MinVal.X = std::min(MinVal.X, Position.X - LocalMax);
 		MinVal.Y = std::min(MinVal.Y, Position.Y - LocalMax);
@@ -156,7 +156,7 @@ void FParticleEmitterInstance::UpdateTransforms()
 	Location = Component->GetWorldLocation();
 
 	const FMatrix ComponentToWorld =
-		FTransform(Component->GetWorldRotation(), Component->GetWorldLocation()).GetLocalMatrix();
+	    FTransform(Component->GetWorldRotation(), Component->GetWorldLocation()).GetLocalMatrix();
 
 	// TODO: RequiredModule에 EmitterOrigin/EmitterRotation이 생기면 EmitterToComponent를 앞에 곱한다.
 	if (bUseLocalSpace)
@@ -208,8 +208,8 @@ void FParticleEmitterInstance::UpdateModules(float DeltaTime)
 	}
 }
 
-void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle, 
-	const FVector& InitialLocation, const FVector& InitialVelocity)
+void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle,
+                                        const FVector& InitialLocation, const FVector& InitialVelocity)
 {
 	FMemory::Memzero(Particle, ParticleSize);
 	Particle->Location = InitialLocation;
@@ -218,8 +218,8 @@ void FParticleEmitterInstance::PreSpawn(FBaseParticle* Particle,
 	Particle->Velocity = InitialVelocity;
 }
 
-void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle, 
-	float InterpolationPercentage, float SpawnTime)
+void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle,
+                                         float InterpolationPercentage, float SpawnTime)
 {
 	if (!bUseLocalSpace)
 	{
@@ -236,8 +236,8 @@ void FParticleEmitterInstance::PostSpawn(FBaseParticle* Particle,
 	Particle->Flags |= STATE_Particle_JustSpawned;
 }
 
-void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, float Increment, 
-	const FVector& InitialLocation, const FVector& InitialVelocity)
+void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, float Increment,
+                                              const FVector& InitialLocation, const FVector& InitialVelocity)
 {
 	float SpawnTime;
 	float InterpolationPercentage = 1.0f;
@@ -309,7 +309,7 @@ void FParticleEmitterInstance::Init(int32 InMaxParticles, int32 InParticleSize)
 	ParticleSize = InParticleSize;
 	ParticleStride = static_cast<int32>(FMemory::QuantizeSize(InParticleSize, 16));
 	int32 BlockSize = MaxActiveParticles * ParticleStride +
-		MaxActiveParticles * sizeof(uint16);
+	                  MaxActiveParticles * sizeof(uint16);
 	ParticleData = (uint8*)FMemory::Malloc(BlockSize);
 	if (!ParticleData)
 	{
@@ -343,7 +343,7 @@ void FParticleEmitterInstance::Release()
 }
 
 bool FParticleEmitterInstance::FillReplayData(
-	FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const
+    FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const
 {
 	if (!ParticleData || ActiveParticles <= 0 || !Component)
 	{
@@ -354,14 +354,13 @@ bool FParticleEmitterInstance::FillReplayData(
 	OutDynamicEmitterReplayDataBase.Scale = Component->GetWorldScale3D();
 
 	OutDynamicEmitterReplayDataBase.DataContainer.CopyFrom(
-		ParticleData, 
-		MaxActiveParticles * ParticleStride, 
-		ParticleIndices, 
-		ActiveParticles
-	);
+	    ParticleData,
+	    MaxActiveParticles * ParticleStride,
+	    ParticleIndices,
+	    ActiveParticles);
 
 	FDynamicSpriteEmitterReplayDataBase* SpriteReplayDataBase =
-		static_cast<FDynamicSpriteEmitterReplayDataBase*>(&OutDynamicEmitterReplayDataBase);
+	    static_cast<FDynamicSpriteEmitterReplayDataBase*>(&OutDynamicEmitterReplayDataBase);
 	SpriteReplayDataBase->bUseLocalSpace = bUseLocalSpace;
 
 	const UParticleModuleRequired* Required = CurrentLODLevel ? CurrentLODLevel->RequiredModule : nullptr;
@@ -414,11 +413,11 @@ void FParticleEmitterInstance::InitParameters(
 }
 
 /*-----------------------------------------------------------------------------
-	FParticleSpriteEmitterInstance
+    FParticleSpriteEmitterInstance
 -----------------------------------------------------------------------------*/
 
 bool FParticleSpriteEmitterInstance::FillReplayData(
-	FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const
+    FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const
 {
 	if (!FParticleEmitterInstance::FillReplayData(OutDynamicEmitterReplayDataBase))
 	{
@@ -428,7 +427,7 @@ bool FParticleSpriteEmitterInstance::FillReplayData(
 	OutDynamicEmitterReplayDataBase.eEmitterType = EDynamicEmitterType::Sprite;
 
 	FDynamicSpriteEmitterReplayData* SpriteReplayData =
-		static_cast<FDynamicSpriteEmitterReplayData*>(&OutDynamicEmitterReplayDataBase);
+	    static_cast<FDynamicSpriteEmitterReplayData*>(&OutDynamicEmitterReplayDataBase);
 	SpriteReplayData->MaterialInterface = GetCurrentMaterial();
 	return true;
 }
@@ -445,13 +444,14 @@ FDynamicEmitterDataBase* FParticleSpriteEmitterInstance::GetDynamicData() const
 }
 
 /*-----------------------------------------------------------------------------
-	FParticleMeshEmitterInstance
+    FParticleMeshEmitterInstance
 -----------------------------------------------------------------------------*/
 
 
 bool FParticleMeshEmitterInstance::FillReplayData(
-	FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const
+    FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const
 {
+
 	if (!FParticleEmitterInstance::FillReplayData(OutDynamicEmitterReplayDataBase))
 	{
 		return false;

@@ -43,9 +43,11 @@ struct FRenderPacket
     FStructuredBuffer* NormalMatrices = nullptr;
 
     TArray<FParticleSpriteInstanceVertex> SpriteInstances;
+	TArray<FMeshParticleInstanceVertex> MeshInstances;
 
     bool IsGPUSkinned() const { return SkinMatrices != nullptr; }
 	bool IsSpriteParticle() const { return SpriteInstances.Num() > 0; }
+	bool IsMeshParticle() const { return MeshInstances.Num() > 0; }
 
     FVertexBuffer* GetVertexBuffer() const
     {

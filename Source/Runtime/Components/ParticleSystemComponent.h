@@ -25,14 +25,20 @@ public:
 	void ResetSystem();
 	bool HasCompleted() const;
 
+private:
+	bool GetEmitterBoundingBox(FBox& OutBoundingBox) const;
+
+	void InitializeMeshInstancingTest();
+
+public:
 	TArray<FParticleEmitterInstance*> EmitterInstances;
 	bool bUseFixedRelativeBoundingBox = false;
 	FBox FixedRelativeBoundingBox{ FVector(-1.0f, -1.0f, -1.0f), FVector(1.0f, 1.0f, 1.0f) };
 	UParticleSystem* Template = nullptr;
 
-	//TArray<FDynamicEmitterDataBase*> EmitterRenderData;
-protected:
+	// 테스트/디버깅 용
+	bool bMeshInstancingTest = true;
 
-private:
-	bool GetEmitterBoundingBox(FBox& OutBoundingBox) const;
+	//TArray<FDynamicEmitterDataBase*> EmitterRenderData;
+
 };

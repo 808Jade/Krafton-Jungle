@@ -10,6 +10,7 @@ class UParticleEmitter;
 class UParticleLODLevel;
 class UParticleModuleTypeDataMesh;
 class UMaterialInterface;
+class UStaticMesh;
 
 struct FParticleEmitterInstance
 {
@@ -124,7 +125,6 @@ public:
 
 	UParticleModuleTypeDataMesh* MeshTypeData = nullptr;
 	int32 MeshRotationOffset = InvalidPayloadOffset;
-
 protected:
 	virtual bool FillReplayData(FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const override;
 };

@@ -198,7 +198,7 @@ const uint8* FDynamicEmitterReplayDataBase::GetParticlePayload(
 
 	const size_t Offset =
 	    static_cast<size_t>(SlotIndex) *
-	    static_cast<size_t>(ParticleStride) *
+	    static_cast<size_t>(ParticleStride) +
 	    static_cast<size_t>(PayloadOffset);
 
 	return Data + Offset;

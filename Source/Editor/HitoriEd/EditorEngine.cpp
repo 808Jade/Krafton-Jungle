@@ -159,6 +159,9 @@ bool UEditorEngine::Init()
 	ParticleSpriteRenderer = MakeUnique<FParticleSpriteRenderer>();
 	ParticleSpriteRenderer->Init();
 
+	ParticleMeshRenderer = MakeUnique<FParticleMeshRenderer>();
+	ParticleMeshRenderer->Init();
+
 	FXAARenderer = MakeUnique<FFXAARenderer>();
 	FXAARenderer->Init();
 
@@ -1007,6 +1010,25 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 	// View별 조명 뷰모드. 불투명·반투명 모두 이 값으로 UberLit 변형을 고른다.
 	Renderer->SetViewMode(View.Client->GetViewMode());
 
+	// 메시 파티클 콜백
+	const FRenderer::FMeshParticlePacketDraw DrawMeshParticle =
+	    [this](
+	        const FRenderPacket& Packet,
+	        const FMatrix& ViewProjection,
+	        bool bDepthOnly)
+	{
+		if (!ParticleMeshRenderer)
+			return;
+
+		if (!ParticleMeshRenderer->Draw(
+		        Packet,
+		        Renderer->GetViewMode(),
+		        bDepthOnly))
+		{
+			HTR_LOG(Error, "Failed to draw mesh particle batch.");
+		}
+	};
+
 	// 렌더 루프 — 반드시 RenderAll보다 먼저
 	// 직교는 시선이 모두 평행해 파노라마의 한 점만 확대되므로 하늘을 그리지 않고 지우기 색을 배경으로 쓴다.
 	if (View.bDrawSkybox && !View.IsOrthographic())
@@ -1027,7 +1049,7 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 		const bool bDepthPrepass = DepthTexture;
 		if (bDepthPrepass)
 		{
-			Renderer->RenderDepth(ViewProjection);
+			Renderer->RenderDepth(ViewProjection, DrawMeshParticle);
 			// DSV로 묶인 텍스처는 SRV로 읽을 수 없으므로 렌더 타깃을 푼다
 			RenderCommand::EndRenderPass(HDRInfo);
 		}
@@ -1061,7 +1083,7 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 			RenderCommand::BeginRenderPass(ResumeInfo);
 		}
 
-		Renderer->RenderOpaque(ViewProjection);
+		Renderer->RenderOpaque(ViewProjection, DrawMeshParticle);
 		// 장면 Wireframe이 Grid·Gizmo·UI로 전파되지 않도록 복원한다.
 		RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
 	}
@@ -1117,7 +1139,8 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 				        Error,
 				        "Failed to draw sprite particle batch.");
 				}
-			});
+			},
+			DrawMeshParticle);
 
 		RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
 		RenderCommand::SetBlendState(EBlendState::Opaque);
@@ -1710,6 +1733,7 @@ void UEditorEngine::PreExit()
 	if (BlendSpaceEditorPanel) BlendSpaceEditorPanel->ReleaseResources();
 	ImGuiRenderer->Shutdown();
 	ParticleSpriteRenderer.reset();
+	ParticleMeshRenderer.reset();
 
 	Super::PreExit();
 }
