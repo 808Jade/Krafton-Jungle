@@ -6,6 +6,9 @@
 class UParticleModuleLocation : public UParticleModule
 {
 	DECLARE_CLASS(UParticleModuleLocation, UParticleModule)
+	REFLECT_START(UParticleModuleLocation)
+		PROPERTY(StartLocation)
+	REFLECT_END()
 
 public:
 	UParticleModuleLocation() = default;

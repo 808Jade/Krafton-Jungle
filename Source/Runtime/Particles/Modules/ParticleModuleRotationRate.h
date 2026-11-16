@@ -8,6 +8,9 @@
 class UParticleModuleRotationRate : public UParticleModule
 {
 	DECLARE_CLASS(UParticleModuleRotationRate, UParticleModule)
+	REFLECT_START(UParticleModuleRotationRate)
+		PROPERTY(StartRotationRate)
+	REFLECT_END()
 
 public:
 	UParticleModuleRotationRate() = default;

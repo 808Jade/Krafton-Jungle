@@ -7,6 +7,9 @@
 class UParticleModuleLifetime : public UParticleModule
 {
 	DECLARE_CLASS(UParticleModuleLifetime, UParticleModule)
+	REFLECT_START(UParticleModuleLifetime)
+		PROPERTY(Lifetime)
+	REFLECT_END()
 
 public:
 	UParticleModuleLifetime() = default;

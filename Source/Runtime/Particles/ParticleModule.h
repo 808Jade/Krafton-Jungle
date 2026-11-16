@@ -12,6 +12,9 @@ struct FParticleEmitterInstance;
 class UParticleModule : public UObject
 {
 	DECLARE_CLASS(UParticleModule, UObject)
+	REFLECT_START(UParticleModule)
+		PROPERTY(bEnabled)
+	REFLECT_END()
 
 public:
 	UParticleModule() = default;

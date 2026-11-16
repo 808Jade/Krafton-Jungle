@@ -2,12 +2,23 @@
 
 #include "Particles/ParticleModule.h"
 
-class UMaterialInterface;
+// Material 프로퍼티 등록에 완전한 타입이 필요하다.
+#include "Render/MaterialInterface.h"
 
 // 에미터 전체에 적용되는 필수 설정. ReplayData를 채울 때 읽는다.
 class UParticleModuleRequired : public UParticleModule
 {
 	DECLARE_CLASS(UParticleModuleRequired, UParticleModule)
+	REFLECT_START(UParticleModuleRequired)
+		PROPERTY(Material)
+		PROPERTY(bUseLocalSpace)
+		PROPERTY(SortMode)
+		PROPERTY(ScreenAlignment)
+		PROPERTY(LockAxis)
+		PROPERTY(EmitterDuration)
+		PROPERTY(EmitterLoops)
+		PROPERTY(MaxActiveParticles)
+	REFLECT_END()
 
 public:
 	UParticleModuleRequired() = default;

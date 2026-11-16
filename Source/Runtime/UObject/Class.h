@@ -104,6 +104,18 @@ public:
 					}
 				}
 			}
+			else if constexpr (std::is_enum_v<T>)
+			{
+				// enum은 기반 정수형으로 저장한다 (JSON에서는 숫자)
+				using FUnderlying = std::underlying_type_t<T>;
+				FUnderlying Underlying = static_cast<FUnderlying>(Value);
+				Slot << Underlying;
+
+				if (Slot.GetUnderlyingArchive().IsLoading())
+				{
+					Value = static_cast<T>(Underlying);
+				}
+			}
 			else
 			{
 				Slot << Value;
