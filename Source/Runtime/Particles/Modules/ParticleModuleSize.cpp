@@ -1,5 +1,7 @@
 #include "EnginePCH.h"
 #include "Particles/Modules/ParticleModuleSize.h"
+#include "Particles/ParticleEmitterInstance.h"
+#include "Particles/ParticleHelper.h"
 
 void UParticleModuleSize::Spawn(FParticleEmitterInstance& Owner, int32 PayloadOffset, float SpawnTime, FBaseParticle& Particle)
 {
