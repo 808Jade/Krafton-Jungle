@@ -63,12 +63,12 @@ enum EParticleStates
 
 struct FBaseParticle
 {
+	float OneOverMaxLifetime;
+	float RelativeTime;
 	FVector Location;
-	float RelativeTime; // 0~1, 1 이상이면 사망
 	FVector OldLocation;
-	float OneOverMaxLifetime; // 1 / Lifetime
 	FVector Velocity;
-	float Rotation; // 라디안
+	float Rotation;
 	FVector BaseVelocity;
 	float RotationRate;
 	FVector Size;
