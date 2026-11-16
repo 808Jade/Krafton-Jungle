@@ -2,6 +2,12 @@
 #include "ParticleSystemComponent.h"
 #include "Engine/ParticleSystemSceneProxy.h"
 
+#include "Asset/AssetManager.h"
+#include "Render/Mesh.h"
+#include "Math/Color.h"
+
+#include <cassert>
+
 UParticleSystemComponent::UParticleSystemComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -19,6 +25,22 @@ UParticleSystemComponent::~UParticleSystemComponent()
 void UParticleSystemComponent::TickComponent(float DeltaTime)
 {
 	Super::TickComponent(DeltaTime);
+
+	if (bMeshInstancingTest)
+	{
+		if (EmitterInstances.IsEmpty())
+		{
+			InitializeMeshInstancingTest();
+		}
+
+		// 일반 Tick의 Spawn/Age/Integrate는 실행하지 않는다.
+		for (auto* Emitter : EmitterInstances)
+		{
+			Emitter->UpdateTransforms();
+		}
+
+		return;
+	}
 
 	if (EmitterInstances.IsEmpty())
 	{
@@ -91,6 +113,100 @@ bool UParticleSystemComponent::GetEmitterBoundingBox(FBox& OutBoundingBox) const
 		}
 	}
 	return bValid;
+}
+
+void UParticleSystemComponent::InitializeMeshInstancingTest()
+{
+	UStaticMesh* Mesh = UAssetManager::GetAssetByPath<UStaticMesh>("Cube");
+
+	if (!Mesh)
+	{
+		assert(false);
+		return;
+	}
+
+	auto* Emitter = new FParticleMeshEmitterInstance();
+
+	Emitter->Component = this;
+	Emitter->TestMesh = Mesh;
+	Emitter->bUseLocalSpace = true;
+	Emitter->Init(3, sizeof(FBaseParticle));
+
+	if (!Emitter->ParticleData)
+	{
+		delete Emitter;
+		return;
+	}
+
+	Emitter->UpdateTransforms();
+
+	// 기존 스폰 함수를 이용해 메모리와 기본 필드를 초기화.
+	Emitter->SpawnParticles(
+	    3,
+	    0.0f,
+	    0.0f,
+	    FVector::ZeroVector,
+	    FVector::ZeroVector);
+
+	const FVector Positions[3] = {
+		FVector(0.0f, -3.0f, 2.0f),
+		FVector(0.0f, 0.0f, 2.0f),
+		FVector(0.0f, 3.0f, 2.0f)
+	};
+
+	const FVector Sizes[3] = {
+		FVector(1.0f, 1.0f, 1.0f),
+		FVector(0.5f, 1.0f, 1.5f),
+		FVector(1.5f, 0.5f, 0.75f)
+	};
+
+	const FLinearColor Colors[3] = {
+		FLinearColor(1.0f, 0.0f, 0.0f, 1.0f),
+		FLinearColor(0.0f, 1.0f, 0.0f, 1.0f),
+		FLinearColor(0.0f, 0.0f, 1.0f, 1.0f)
+	};
+
+	for (int32 Index = 0; Index < 3; ++Index)
+	{
+		const uint16 Slot = Emitter->ParticleIndices[Index];
+
+		auto* Particle = reinterpret_cast<FBaseParticle*>(
+		    Emitter->ParticleData +
+		    Slot * Emitter->ParticleStride);
+
+		Particle->Location = Positions[Index];
+		Particle->OldLocation = Positions[Index];
+
+		Particle->BaseSize = Sizes[Index];
+		Particle->Size = Sizes[Index];
+
+		Particle->BaseColor = Colors[Index];
+		Particle->Color = Colors[Index];
+
+		Particle->BaseVelocity = FVector::ZeroVector;
+		Particle->Velocity = FVector::ZeroVector;
+
+		// Rotation은 radians.
+		Particle->Rotation =
+		    static_cast<float>(Index) * 0.5f;
+
+		Particle->BaseRotationRate = 0.0f;
+		Particle->RotationRate = 0.0f;
+
+		Particle->RelativeTime = 0.0f;
+		Particle->OneOverMaxLifetime = 0.0f;
+	}
+
+	EmitterInstances.Add(Emitter);
+
+	// 초기 테스트는 충분히 큰 고정 Bounds를 사용.
+	bUseFixedRelativeBoundingBox = true;
+	FixedRelativeBoundingBox = FBox{
+		FVector(-20.0f, -20.0f, -20.0f),
+		FVector(20.0f, 20.0f, 20.0f)
+	};
+
+	OnTransformDirty();
 }
 
 FPrimitiveSceneProxy* UParticleSystemComponent::CreateSceneProxy()
