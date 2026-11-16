@@ -16,9 +16,14 @@ public:
 	virtual void TickComponent(float DeltaTime) override;
 	FPrimitiveSceneProxy* CreateSceneProxy() override;
 	FBox CalcBounds() const override;
+	virtual void SetActive(bool bNewActive) override;
 	void InitParticles();
 	void ResetParticles();
 	void SetTemplate(UParticleSystem* InTemplate);
+	void ActivateSystem(bool bReset = false);
+	void DeactivateSystem();
+	void ResetSystem();
+	bool HasCompleted() const;
 
 	TArray<FParticleEmitterInstance*> EmitterInstances;
 	bool bUseFixedRelativeBoundingBox = false;

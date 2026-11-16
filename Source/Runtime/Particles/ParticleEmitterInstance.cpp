@@ -168,7 +168,7 @@ void FParticleEmitterInstance::UpdateTransforms()
 
 void FParticleEmitterInstance::Spawn(float DeltaTime)
 {
-	if (bEmitterIsDone)
+	if (bEmitterIsDone || bHaltSpawning)
 	{
 		return;
 	}
@@ -270,6 +270,25 @@ void FParticleEmitterInstance::KillParticle(int32 Index)
 	ActiveParticles--;
 }
 
+void FParticleEmitterInstance::KillParticlesForced()
+{
+	ActiveParticles = 0;
+}
+
+void FParticleEmitterInstance::Rewind()
+{
+	EmitterTime = 0.0f;
+	PrevEmitterTime = 0.0f;
+	LoopCount = 0;
+	SpawnFraction = 0.0f;
+	bEmitterIsDone = false;
+}
+
+bool FParticleEmitterInstance::HasCompleted() const
+{
+	return (bEmitterIsDone || bHaltSpawning) && ActiveParticles == 0;
+}
+
 void FParticleEmitterInstance::Init(int32 InMaxParticles, int32 InParticleSize)
 {
 	if (ParticleData)
@@ -369,10 +388,8 @@ void FParticleEmitterInstance::InitParameters(
 	CurrentLODLevelIndex = 0;
 	CurrentLODLevel = InTemplate->LODLevels.IsEmpty() ? nullptr : InTemplate->LODLevels[0];
 	UParticleModuleRequired* Required = CurrentLODLevel ? CurrentLODLevel->RequiredModule : nullptr;
-	EmitterTime = 0;
-	PrevEmitterTime = 0;
-	LoopCount = 0;
-	bEmitterIsDone = false;
+	Rewind();
+	bHaltSpawning = false;
 
 	int32 MaxParticles = 100;
 	if (Required)

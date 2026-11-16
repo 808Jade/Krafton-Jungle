@@ -18,7 +18,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 {
 	Super::TickComponent(DeltaTime);
 
-	if (Template && EmitterInstances.IsEmpty())
+	if (IsActive() && Template && EmitterInstances.IsEmpty())
 	{
 		InitParticles();
 	}
@@ -137,4 +137,72 @@ void UParticleSystemComponent::SetTemplate(UParticleSystem* InTemplate)
 {
 	ResetParticles();
 	Template = InTemplate;
+}
+
+void UParticleSystemComponent::SetActive(bool bNewActive)
+{
+	Super::SetActive(bNewActive);
+
+	if (bNewActive)
+	{
+		ActivateSystem();
+	}
+	else
+	{
+		DeactivateSystem();
+	}
+}
+
+void UParticleSystemComponent::ActivateSystem(bool bReset)
+{
+	if (!Template)
+	{
+		return;
+	}
+
+	if (bReset || EmitterInstances.IsEmpty())
+	{
+		InitParticles();
+		return;
+	}
+
+	for (FParticleEmitterInstance* EmitterInstance : EmitterInstances)
+	{
+		EmitterInstance->bHaltSpawning = false;
+	}
+}
+
+void UParticleSystemComponent::DeactivateSystem()
+{
+	for (FParticleEmitterInstance* EmitterInstance : EmitterInstances)
+	{
+		EmitterInstance->bHaltSpawning = true;
+	}
+}
+
+void UParticleSystemComponent::ResetSystem()
+{
+	for (FParticleEmitterInstance* EmitterInstance : EmitterInstances)
+	{
+		EmitterInstance->KillParticlesForced();
+		EmitterInstance->Rewind();
+		EmitterInstance->bHaltSpawning = false;
+	}
+}
+
+bool UParticleSystemComponent::HasCompleted() const
+{
+	if (EmitterInstances.IsEmpty())
+	{
+		return false;
+	}
+
+	for (const FParticleEmitterInstance* EmitterInstance : EmitterInstances)
+	{
+		if (!EmitterInstance->HasCompleted())
+		{
+			return false;
+		}
+	}
+	return true;
 }
