@@ -27,12 +27,17 @@ public:
 
 	// 뷰모드에 맞는 UberLit 변형. bSkinned면 GPU_SKINNING 변형(정점 셰이더에서 스키닝). 컴파일에 실패했으면 nullptr.
 	static FShaderProgram* GetUberLitProgram(EViewMode Mode, bool bSkinned = false);
+
+	static FShaderProgram* GetUberLitMeshParticleProgram(EViewMode Mode);
+
 	// 머티리얼 셰이더가 UberLit(기본 키 또는 변형)인지. 아니면 뷰모드로 바꾸지 않는다.
 	static bool IsUberLitProgram(const FShaderProgram* Program);
 	// GPU_SKINNING=1 한 개짜리 매크로. UberLit 외 셰이더(아웃라인)의 스킨 변형 키로 쓴다.
 	static const D3D_SHADER_MACRO* GetSkinningMacros();
+
 private:
 	void LoadOrCompileShader(const FString& Path, const D3D_SHADER_MACRO* Macro = nullptr);
+
 
 	TMap<FString, TUniquePtr<FVertexShader>> VertexShaderMap;
 	TMap<FString, TUniquePtr<FPixelShader>> PixelShaderMap;
@@ -43,4 +48,5 @@ private:
 	FShaderProgram* UberLitDefault = nullptr;
 	// [0] 일반, [1] GPU_SKINNING 변형
 	FShaderProgram* UberLitPrograms[2][static_cast<int32>(EViewMode::Count)]{};
+	FShaderProgram* UberLitMeshParticlePrograms[static_cast<int32>(EViewMode::Count)]{};
 }; 

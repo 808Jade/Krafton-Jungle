@@ -35,6 +35,11 @@ struct alignas(16) FMeshParticleInstanceVertex
 	// 메시 로컬 좌표를 렌더링 공간으로 변환하는 행렬.
 	FMatrix Transform;
 
+	// Transform의 역전치 행렬에서 상단 3x3을 저장.
+	FVector4 NormalRow0;
+	FVector4 NormalRow1;
+	FVector4 NormalRow2;
+
 	FVector4 Color;
 };
 

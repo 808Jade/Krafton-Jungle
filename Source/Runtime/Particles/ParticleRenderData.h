@@ -47,7 +47,7 @@ struct FDynamicSpriteEmitterDataBase : public FDynamicEmitterDataBase
 	GetSource() const override = 0;
 
 	// 원본 인덱스 배열을 변경하지 않고 뷰별 정렬 순서를 출력.
-	void SortSpriteParticles(
+	void SortParticles(
 	    const FVector& CameraLocation,
 	    const FVector& CameraForward,
 	    const FMatrix& LocalToWorld,
@@ -88,6 +88,13 @@ public:
 
 	int32 GetDynamicVertexStride() const override;
 
+	void PrepareRenderData(const FParticleSystemSceneProxy& Proxy) override;
+	void GatherRenderPackets(
+	    const FParticleSystemSceneProxy& Proxy,
+	    FRenderQueue& RenderQueue,
+	    const FRenderViewContext& View) const override;
+
 private:
 	FDynamicMeshEmitterReplayData Source;
+	TArray<FMeshParticleInstanceVertex> Instances;
 };
