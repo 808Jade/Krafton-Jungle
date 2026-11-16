@@ -281,8 +281,8 @@ void FDynamicMeshEmitterData::PrepareRenderData(
 		                         : ParticleTransform;
 
 		Instance.Color = FVector4(
-			Particle.Color.R,
-			Particle.Color.G,
+		    Particle.Color.R,
+		    Particle.Color.G,
 		    Particle.Color.B,
 		    Particle.Color.A);
 	}
@@ -293,4 +293,70 @@ void FDynamicMeshEmitterData::GatherRenderPackets(
     FRenderQueue& RenderQueue,
     const FRenderViewContext& View) const
 {
+	if (!Source.Mesh || Instances.Num() == 0)
+		return;
+
+	const FStaticMeshData& MeshData = Source.Mesh->GetMeshData(0);
+
+	UMaterial* OverrideMaterial =
+	    Cast<UMaterial>(Source.MaterialInterface);
+
+	FVector Center = FVector::ZeroVector;
+
+	for (const auto& Instance : Instances)
+	{
+		Center += Instance.Transform.TransformPosition(
+		    FVector::ZeroVector);
+	}
+
+	Center *= 1.0f / static_cast<float>(Instances.Num());
+
+	auto AddSectionPacket =
+	    [&](uint32 StartIndex,
+	        uint32 IndexCount,
+	        uint32 MaterialSlotIndex)
+	{
+		if (IndexCount == 0)
+			return;
+
+		UMaterial* Material = OverrideMaterial
+		                          ? OverrideMaterial
+		                          : Source.Mesh->GetMaterial(MaterialSlotIndex);
+
+		if (!Material)
+			return;
+
+		FRenderPacket Packet{};
+
+		Packet.Proxy = &Proxy;
+		Packet.Mesh = Source.Mesh;
+		Packet.Material = Material;
+		Packet.LODIndex = 0;
+		Packet.StartIndex = StartIndex;
+		Packet.IndexCount = IndexCount;
+
+		Packet.MeshInstances = Instances;
+		Packet.TranslucentSortCenter = Center;
+
+		RenderQueue.Add(std::move(Packet));
+	};
+
+	// 기본 도형 처럼 Section 배열이 없는 메시도 처리.
+	if (MeshData.Sections.Num() == 0)
+	{
+		AddSectionPacket(
+		    0,
+		    static_cast<uint32>(MeshData.Indices.Num()),
+		    0);
+	}
+	else
+	{
+		for (const FStaticMeshSection& Section : MeshData.Sections)
+		{
+			AddSectionPacket(
+			    Section.StartIndex,
+			    Section.IndexCount,
+			    Section.MaterialSlotIndex);
+		}
+	}
 }
