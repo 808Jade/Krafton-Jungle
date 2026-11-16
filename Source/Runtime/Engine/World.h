@@ -103,7 +103,7 @@ public:
 	void BeginRenderViews();
 	// 메인 스레드에서 Proxy를 준비하고 World의 작업 버퍼로 동적 패킷을 추가한다.
 	bool GatherDynamicRenderPackets(FPrimitiveSceneProxy& Proxy, FRenderQueue& RenderQueue,
-		const FVector& CameraLocation, FBillboardMatrixBuilder ResolveBillboard,
+		const FRenderViewContext& View, FBillboardMatrixBuilder ResolveBillboard,
 		const void* ViewContext, FRenderQueue* IconQueue = nullptr);
 	// Resolver가 있는 View 호출은 LODView와 사전 BeginRenderViews 호출을 전제로 한다.
 	void GatherRenderPackets(FRenderQueue& RenderArray, const FLODViewContext* LODView = nullptr,
