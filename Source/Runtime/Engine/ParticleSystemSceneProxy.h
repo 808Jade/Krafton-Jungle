@@ -14,7 +14,7 @@ public:
 	bool GatherDynamicRenderPackets(
 	    FRenderQueue& RenderQueue,
 	    FRenderQueue* IconQueue,
-	    const FVector& CameraLocation,
+	    const FRenderViewContext& View,
 	    FBillboardMatrixBuilder BuildBillboardMatrix,
 	    const void* ViewContext,
 	    TArray<int32>& SortedParticleIndices,

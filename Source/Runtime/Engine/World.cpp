@@ -295,11 +295,11 @@ void UWorld::BeginRenderViews()
 
 // Adapter와 World Gather가 같은 Proxy 수집을 사용하며 Queue에는 추가만 한다.
 bool UWorld::GatherDynamicRenderPackets(FPrimitiveSceneProxy& Proxy, FRenderQueue& RenderQueue,
-	const FVector& CameraLocation, FBillboardMatrixBuilder ResolveBillboard,
+	const FRenderViewContext& View, FBillboardMatrixBuilder ResolveBillboard,
 	const void* ViewContext, FRenderQueue* IconQueue)
 {
 	Proxy.PrepareDynamicData();
-	return Proxy.GatherDynamicRenderPackets(RenderQueue, IconQueue, CameraLocation,
+	return Proxy.GatherDynamicRenderPackets(RenderQueue, IconQueue, View,
 		ResolveBillboard, ViewContext, ParticleOrder, ParticleDistances);
 }
 
@@ -500,6 +500,7 @@ void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContex
 						Packet.LODIndex = static_cast<uint8>(LOD);
 						Packet.Slot = Slot;
 						Packet.bOccludedByGpu = bOccludedByGpu;
+					    Packet.TranslucentSortCenter = Proxy->GetLODSphere().Center;
 					}
 				}
 			});
@@ -538,8 +539,14 @@ void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContex
 				const uint32 FirstNew = RenderQueue.Num();
 
 				// 동적 수집은 병렬 정적 경로가 끝난 뒤 메인 스레드에서만 실행한다.
-				const bool bHandled = ResolveBillboard && GatherDynamicRenderPackets(*Proxy,
-					RenderQueue, LODView->CameraPosition, ResolveBillboard, ViewContext, IconQueue);
+				const bool bHandled = ResolveBillboard && 
+					GatherDynamicRenderPackets(
+						*Proxy,
+						RenderQueue, 
+						{ LODView->CameraPosition, LODView->CameraForward },
+						ResolveBillboard, 
+						ViewContext, 
+						IconQueue);
 				if (!bHandled)
 				{
 					// 기본 호출과 미지원 Proxy는 기존 Component 제출 경로를 유지한다.

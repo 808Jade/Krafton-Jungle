@@ -922,7 +922,7 @@ void FSkeletalMeshViewerPanel::AppendStaticPreviewPackets(FRenderQueue& Queue, c
 			Packet.Material = Material;
 			Packet.StartIndex = Section.StartIndex;
 			Packet.IndexCount = Section.IndexCount;
-			Packet.CameraToParticleDistance = CameraDistance;
+			Packet.TranslucentSortCenter = Model->TransformPosition(FVector::ZeroVector);
 		}
 	}
 }
@@ -1029,7 +1029,7 @@ void FSkeletalMeshViewerPanel::RenderPreview()
 					Packet.Material = Material;
 					Packet.StartIndex = PartStartIndex + Section.StartIndex;
 					Packet.IndexCount = Section.IndexCount;
-					Packet.CameraToParticleDistance = (PartWorldOrigin - CachedCameraLocation).Length();
+					Packet.TranslucentSortCenter = PartWorldOrigin;
 				}
 			}
 		}

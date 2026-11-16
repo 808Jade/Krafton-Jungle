@@ -310,7 +310,7 @@ bool FParticleSpriteRenderer::Draw(
 	    Material->BlendState);
 
 	RenderCommand::SetDepthStencilState(
-	    Material->DepthStencilState);
+	    EDepthStencilState::ReadOnly);
 
 	RenderCommand::BindSamplerState(
 	    0,
@@ -381,15 +381,6 @@ void FParticleSpriteRenderer::CollectPackets(
 	InOutRenderQueue.SetNum(
 	    static_cast<int32>(WriteIndex),
 	    false);
-
-	// 이미터 배치 간 거리 정렬.
-	std::stable_sort(
-	    OutParticlePackets.begin(),
-	    OutParticlePackets.end(),
-	    [](const FRenderPacket& A, const FRenderPacket& B)
-	    {
-		    return A.CameraToParticleDistance > B.CameraToParticleDistance;
-	    });
 }
 
 void FParticleSpriteRenderer::OnRender(

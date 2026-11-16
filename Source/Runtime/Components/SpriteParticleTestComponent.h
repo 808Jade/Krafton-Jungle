@@ -25,6 +25,7 @@ public:
 	void ResetTestParticles(bool bInLocalSpace);
 	void SetScreenAlignment(EParticleScreenAlignment InAlignment);
 	void SetAxisLock(EParticleAxisLock InAxisLock);
+	void SetSortMode(EParticleSortMode InSortMode);
 	FVector GetParticleRenderScale() const;
 
 private:
@@ -32,6 +33,7 @@ private:
 
 	EParticleScreenAlignment eParticleScreenAlignment = EParticleScreenAlignment::Rectangle;
 	EParticleAxisLock eParticleAxisLock = EParticleAxisLock::None;
+	EParticleSortMode eParticleSortMode = EParticleSortMode::ViewDepth;
 
 	TArray<FBaseParticle> TestParticles;
 	TArray<uint16> TestParticleIndices;

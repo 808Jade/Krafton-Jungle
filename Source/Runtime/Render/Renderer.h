@@ -12,6 +12,7 @@
 #include "ProjectedShadowInfo.h"
 
 #include <cstddef>
+#include <functional>
 
 constexpr uint32 ObjectSlotBytes = 256;
 
@@ -232,13 +233,16 @@ class FShadowViewRenderer;
 class FRenderer
 {
 public:
+	using FSpritePacketDraw = std::function<void(const FRenderPacket&)>;
+
+public:
 	bool Init();
 
 	// 기존 단일 카메라의 ViewProjection으로 렌더 큐 전체를 그린다.
 	void RenderAll(FRenderQueue& InQueue, UCameraComponent* CameraComponent);
 
 	// Adapter가 계산한 ViewProjection을 직접 받아 View별 렌더 큐를 그린다.
-	void RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CameraWorldPos);
+	void RenderAll(FRenderQueue& InQueue, const FMatrix& ViewProjection, const FVector& CameraWorldPos, const FVector& CameraForward);
 
 	// 에셋 미리보기: 호출자 소유 조명 버퍼로 일반 패킷만 그린다.
 	// 월드의 LightingCB/LocalLightBuffer/그림자 작업은 변경하지 않는다.
@@ -257,12 +261,12 @@ public:
 	void AddStaticDrawGroup(const FStaticDrawGroup* Group) { StaticGroups.push_back(Group); }
 
 	// RenderOpaque가 보관한 반투명 패킷을 먼 것부터 그린다.
-	void RenderTranslucent(const FMatrix& ViewProjection);
+	void RenderTranslucent(const FMatrix& ViewProjection, const FSpritePacketDraw& DrawSpritePacket = {});
 
 	// 큐를 Material, Opaque, Mesh에 따라 정렬한다
 	// CameraWorldPos는 ViewProjection과 함께 b0에 올라가 Specular 계산(V 벡터)에 쓰인다.
 	void RenderQueueSorting(FRenderQueue& InQueue, const FMatrix& ViewProjection,
-		const FVector& CameraWorldPos);
+		const FVector& CameraWorldPos, const FVector& CameraForward);
 	
 	// 호출자가 준비한 View별 GPU 상수를 업로드하고 같은 정렬 경로를 사용한다.
 	void RenderQueueSorting(FRenderQueue& InQueue, const FViewConstants& ViewConstants);
@@ -339,7 +343,7 @@ public:
 	int32 GetShadowMapResolution() const;
 
 private:
-	void DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProjection);
+	void DrawPackets(uint32 Begin, uint32 End, const FMatrix& ViewProjection, const FSpritePacketDraw& DrawSpritePacket = {});
 	void DrawStaticGroups();
 	// bSkinned면 UberLit의 GPU_SKINNING 변형을 쓴다. 스킨 변형을 쓸 수 없으면 false(그리면 바인드 포즈가 나온다).
 	bool BindMaterial(UMaterial* Material, bool bSkinned = false);

@@ -996,16 +996,6 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 	const FMatrix& ViewProjection = ViewConstants.ViewProjection;
 	const FVector& ViewCameraLocation = ViewConstants.CameraWorldPos;
 
-	// RenderQueueSorting() 전에 파티클 패킷을 분리한다.
-	TArray<FRenderPacket> ParticlePackets;
-
-	if (ParticleSpriteRenderer)
-	{
-		ParticleSpriteRenderer->CollectPackets(
-		    RenderQueue,
-		    ParticlePackets);
-	}
-
 	FRenderingInfo HDRInfo = ViewRenderingInfo;
 	HDRInfo.ColorRenderTargets[0].Texture = View.HDRTarget;
 	RenderCommand::BeginRenderPass(HDRInfo);
@@ -1083,7 +1073,6 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 		// Grid 파이프라인이 바꾼 상태를 장면 기준으로 되돌린 뒤 반투명을 먼 것부터 그린다.
 		RenderCommand::SetRasterizerState(SceneRasterizerState);
 		RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		Renderer->RenderTranslucent(ViewProjection);
 
 		// Sprite 파티클.
 		if (ParticleSpriteRenderer &&
@@ -1094,27 +1083,45 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 			const auto& Camera =
 			    View.Client->GetEffectiveCamera();
 
-			FParticleSpriteView ParticleView{};
+		FParticleSpriteView ParticleView{};
 
-			ParticleView.ViewProjection = ViewProjection;
-			ParticleView.CameraPosition = Camera.Transform.Location;
+		ParticleView.ViewProjection = ViewProjection;
+		ParticleView.CameraPosition = Camera.Transform.Location;
 
-			ParticleView.CameraRight =
-			    Camera.Transform.Rotation.GetRightVector();
+		ParticleView.CameraRight =
+			Camera.Transform.Rotation.GetRightVector();
 
-			ParticleView.CameraUp =
-			    Camera.Transform.Rotation.GetUpVector();
+		ParticleView.CameraUp =
+			Camera.Transform.Rotation.GetUpVector();
 			
-			ParticleView.CameraForward =
-			    Camera.Transform.Rotation.GetForwardVector();
+		ParticleView.CameraForward =
+			Camera.Transform.Rotation.GetForwardVector();
 	
-			ParticleView.bOrthographic =
-			    Camera.Projection.Mode != EProjectionMode::Perspective;
+		ParticleView.bOrthographic =
+			Camera.Projection.Mode != EProjectionMode::Perspective;
 
-			ParticleSpriteRenderer->OnRender(
-			    ParticlePackets,
-				ParticleView);
-		}
+		Renderer->RenderTranslucent(
+			ViewProjection,
+			[this, &ParticleView](const FRenderPacket& Packet)
+			{
+			    if (!ParticleSpriteRenderer)
+				    return;
+
+				const bool bSuccess =
+			        ParticleSpriteRenderer->Draw(
+			            Packet.SpriteInstances,
+			            Packet.Material,
+			            ParticleView,
+			            Packet.ParticleScreenAlignment,
+			            Packet.ParticleAxisLock);
+
+				if (!bSuccess)
+				{
+				    HTR_LOG(
+				        Error,
+				        "Failed to draw sprite particle batch.");
+				}
+			});
 
 		RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
 		RenderCommand::SetBlendState(EBlendState::Opaque);
@@ -1255,11 +1262,11 @@ void UEditorEngine::RenderOverlayPass(const FEditorSceneView& View, UWorld& View
 		RenderCommand::SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		// 아이콘 먼저 그리기 (반투명)
-		Renderer->RenderQueueSorting(IconQueue, ViewProjection, ViewCameraLocation);
+		Renderer->RenderQueueSorting(IconQueue, ViewProjection, ViewCameraLocation, ViewCameraForward);
 		Renderer->RenderTranslucent(ViewProjection);
 
 		// 화살표 그리기 (불투명)
-		Renderer->RenderQueueSorting(ArrowQueue, ViewProjection, ViewCameraLocation);
+		Renderer->RenderQueueSorting(ArrowQueue, ViewProjection, ViewCameraLocation, ViewCameraForward);
 		Renderer->RenderOpaque(ViewProjection);
 		Renderer->RenderTranslucent(ViewProjection);	// 패킷 뒷정리
 	}
