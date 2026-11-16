@@ -51,7 +51,7 @@ int32 FDynamicMeshEmitterData::GetDynamicVertexStride() const
 	    sizeof(FMeshParticleInstanceVertex));
 }
 
-void FDynamicSpriteEmitterDataBase::SortSpriteParticles(
+void FDynamicSpriteEmitterDataBase::SortParticles(
     const FVector& CameraLocation,
     const FVector& CameraForward,
     const FMatrix& LocalToWorld,
@@ -198,7 +198,7 @@ void FDynamicSpriteEmitterData::GatherRenderPackets(
 	// 이 뷰에서만 사용할 정렬 결과.
 	TArray<FParticleOrder> ParticleOrder;
 
-	SortSpriteParticles(
+	SortParticles(
 	    View.CameraLocation,
 	    View.CameraForward,
 	    Proxy.GetLocalToWorld(),
