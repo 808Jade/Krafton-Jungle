@@ -18,7 +18,7 @@
                                 "ShapeColor": 4288517599,
                                 "Transform": {
                                     "Location": {
-                                        "X": 0.0,
+                                        "X": -0.6845754384994507,
                                         "Y": 0.0,
                                         "Z": 1.0
                                     },
@@ -52,7 +52,6 @@
                                 "AnimGraphAssetPath": "Assets/NewAnimGraph.animgraph",
                                 "AnimationMode": 4,
                                 "AnimationScriptPath": "Assets/Scripts/Animation/CharacterAnim.lua",
-                                "DebugSpeed": 0.0,
                                 "SkeletalMesh": "Models/UAL1_Standard_RM.fbx",
                                 "StateMachineAssetPath": "Assets/NewStateMachine.animsm",
                                 "Transform": {
@@ -74,8 +73,6 @@
                                 },
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
-                                "bDebugAttack": false,
-                                "bDebugHit": false,
                                 "bGenerateOverlapEvents": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
@@ -349,24 +346,19 @@
                     "RootComponent": "UStaticMeshComponent"
                 },
                 {
-                    "Class": "ASkyLightActor",
+                    "Class": "AParticleSystemActor",
                     "Components": [
                         {
-                            "Class": "USkyLightComponent",
-                            "Name": "USkyLightComponent",
-                            "ObjectLabel": "USkyLightComponent",
+                            "Class": "UParticleSystemComponent",
+                            "Name": "ParticleSystemComponent",
+                            "ObjectLabel": "ParticleSystemComponent",
                             "Parent": "",
                             "Properties": {
-                                "Intensity": 1.0,
-                                "LightColor": 4294967295,
-                                "ShadowBias": 0.0010000000474974513,
-                                "ShadowMapResolution": 1024,
-                                "ShadowPCFKernelSize": 2,
                                 "Transform": {
                                     "Location": {
                                         "X": 0.0,
                                         "Y": 0.0,
-                                        "Z": 10.26054859161377
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
                                         "Pitch": 0.0,
@@ -379,8 +371,11 @@
                                         "Z": 1.0
                                     }
                                 },
-                                "bCastShadows": true,
-                                "bUsePCSS": false,
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         },
@@ -396,12 +391,12 @@
                                         "Z": 1.0
                                     },
                                     "BlendState": "AlphaBlend",
-                                    "ObjectLabel": "",
+                                    "ObjectLabel": "UMaterial_587",
                                     "Properties": {},
                                     "SamplerState": "LinearClamp",
                                     "Shininess": 32.0,
                                     "Textures": [
-                                        "Resources/Icons/Sky.png"
+                                        "Resources/Icons/ParticleSystem.png"
                                     ],
                                     "UVScrollSpeed": [
                                         0.0,
@@ -409,9 +404,9 @@
                                     ]
                                 }
                             },
-                            "Name": "UBillboardComponent",
-                            "ObjectLabel": "UBillboardComponent",
-                            "Parent": "USkyLightComponent",
+                            "Name": "BillboardComponent",
+                            "ObjectLabel": "BillboardComponent",
+                            "Parent": "ParticleSystemComponent",
                             "Properties": {
                                 "Transform": {
                                     "Location": {
@@ -439,10 +434,149 @@
                             }
                         }
                     ],
-                    "Name": "ASkyLightActor_0",
-                    "ObjectLabel": "ASkyLightActor_0",
+                    "Name": "AParticleSystemActor_0",
+                    "ObjectLabel": "AParticleSystemActor_0",
                     "Properties": {},
-                    "RootComponent": "USkyLightComponent"
+                    "RootComponent": "ParticleSystemComponent"
+                },
+                {
+                    "Class": "ADirectionalLightActor",
+                    "Components": [
+                        {
+                            "Class": "UDirectionalLightComponent",
+                            "Name": "UDirectionalLightComponent",
+                            "ObjectLabel": "UDirectionalLightComponent",
+                            "Parent": "",
+                            "Properties": {
+                                "CascadeCount": 4,
+                                "CascadeDistributionExponent": 3.0,
+                                "CascadeTransitionFraction": 0.10000000149011612,
+                                "Intensity": 1.0,
+                                "LightColor": 4294967295,
+                                "ShadowBias": 0.0010000000474974513,
+                                "ShadowDistance": 100.0,
+                                "ShadowMapResolution": 4096,
+                                "ShadowPCFKernelSize": 2,
+                                "SourceAngle": 1.1459156274795532,
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.030444055795669556,
+                                        "Y": 1.8891880512237549,
+                                        "Z": 1.5096253156661987
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 59.158084869384766,
+                                        "Roll": -162.19989013671875,
+                                        "Yaw": 147.19195556640625
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bCastShadows": true,
+                                "bUseCSM": true,
+                                "bUsePCSS": true,
+                                "bVisible": true
+                            }
+                        },
+                        {
+                            "Class": "UBillboardComponent",
+                            "Material": {
+                                "Base": "SubUVMaterial",
+                                "Instance": {
+                                    "BaseColor": {
+                                        "W": 1.0,
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    },
+                                    "BlendState": "AlphaBlend",
+                                    "ObjectLabel": "UMaterial_589",
+                                    "Properties": {},
+                                    "SamplerState": "LinearClamp",
+                                    "Shininess": 32.0,
+                                    "Textures": [
+                                        "Resources/Icons/Directional.png"
+                                    ],
+                                    "UVScrollSpeed": [
+                                        0.0,
+                                        0.0
+                                    ]
+                                }
+                            },
+                            "Name": "UBillboardComponent",
+                            "ObjectLabel": "UBillboardComponent",
+                            "Parent": "UDirectionalLightComponent",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
+                        },
+                        {
+                            "Class": "UStaticMeshComponent",
+                            "Name": "UArrowComponent",
+                            "ObjectLabel": "UArrowComponent",
+                            "OverrideMaterials": [
+                                {
+                                    "Asset": "EditorArrowMaterial"
+                                }
+                            ],
+                            "Parent": "UDirectionalLightComponent",
+                            "Properties": {
+                                "StaticMesh": "Arrow",
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 90.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 0.30000001192092896,
+                                        "Y": 0.30000001192092896,
+                                        "Z": 0.5
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
+                        }
+                    ],
+                    "Name": "ADirectionalLightActor_0",
+                    "ObjectLabel": "ADirectionalLightActor_0",
+                    "Properties": {},
+                    "RootComponent": "UDirectionalLightComponent"
                 }
             ],
             "ObjectLabel": "",
