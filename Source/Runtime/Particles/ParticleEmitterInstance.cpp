@@ -451,8 +451,6 @@ FDynamicEmitterDataBase* FParticleSpriteEmitterInstance::GetDynamicData() const
 bool FParticleMeshEmitterInstance::FillReplayData(
     FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const
 {
-	if (!TestMesh)
-		return false;
 
 	if (!FParticleEmitterInstance::FillReplayData(OutDynamicEmitterReplayDataBase))
 	{

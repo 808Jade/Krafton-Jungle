@@ -125,10 +125,6 @@ public:
 
 	UParticleModuleTypeDataMesh* MeshTypeData = nullptr;
 	int32 MeshRotationOffset = InvalidPayloadOffset;
-
-	// TEMP: TypeData 구현 전 테스트 입력.
-	UStaticMesh* TestMesh = nullptr;
-
 protected:
 	virtual bool FillReplayData(FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const override;
 };

@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <cctype>
 #include "Core/Misc/FileHelper.h"
+#include "Particles/Modules/ParticleModuleTypeDataMesh.h"
 
 
 namespace
@@ -520,7 +521,7 @@ void UAssetManager::CreateDefaultParticleSystem()
 	Required->Material = nullptr;
 	Required->bUseLocalSpace = false;
 	Required->SortMode = EParticleSortMode::None;
-	Required->ScreenAlignment = EParticleScreenAlignment::Rectangle;
+	Required->ScreenAlignment = EParticleScreenAlignment::Velocity;
 	Required->EmitterDuration = 1.0f;
 	Required->EmitterLoops = 0;
 	Required->MaxActiveParticles = 200;
@@ -535,10 +536,10 @@ void UAssetManager::CreateDefaultParticleSystem()
 	Location->StartLocation = FParticleVectorRange(FVector(-0.2f, -0.2f, 0.0f), FVector(0.2f, 0.2f, 0.0f));
 
 	UParticleModuleVelocity* Velocity = NewObject<UParticleModuleVelocity>(LODLevel);
-	Velocity->StartVelocity = FParticleVectorRange(FVector(-0.5f, -0.5f, 1.0f), FVector(0.5f, 0.5f, 2.0f));
+	Velocity->StartVelocity = FParticleVectorRange(FVector(-2.0f, -2.0f, 1.0f), FVector(2.0f, 2.0f, 2.0f));
 
 	UParticleModuleSize* Size = NewObject<UParticleModuleSize>(LODLevel);
-	Size->StartSize = FParticleVectorRange(FVector(0.3f, 0.3f, 0.3f));
+	Size->StartSize = FParticleVectorRange(FVector(0.7f, 0.7f, 0.7f));
 
 	UParticleModuleColor* Color = NewObject<UParticleModuleColor>(LODLevel);
 	Color->StartColor = FParticleColorRange(FLinearColor(1.0f, 0.4f, 0.1f, 1.0f), FLinearColor(1.0f, 0.9f, 0.3f, 1.0f));
@@ -552,7 +553,13 @@ void UAssetManager::CreateDefaultParticleSystem()
 	LODLevel->Modules.Add(Velocity);
 	LODLevel->Modules.Add(Size);
 	LODLevel->Modules.Add(Color);
-	LODLevel->TypeDataModule = nullptr;
+	
+	//Mesh
+	UParticleModuleTypeDataMesh* MeshTypeData = NewObject<UParticleModuleTypeDataMesh>(LODLevel);
+	MeshTypeData->Mesh = GetAssetByPath<UStaticMesh>("Cube");
+	LODLevel->TypeDataModule = MeshTypeData;
+	//Sprite
+	//LODLevel->TypeDataModule = nullptr;
 
 	Emitter->LODLevels.Add(LODLevel);
 	System->Emitters.Add(Emitter);

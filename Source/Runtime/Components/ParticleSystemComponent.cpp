@@ -108,7 +108,6 @@ void UParticleSystemComponent::InitializeMeshInstancingTest()
 	auto* Emitter = new FParticleMeshEmitterInstance();
 
 	Emitter->Component = this;
-	Emitter->TestMesh = Mesh;
 
 	UMaterial* BaseMaterial = Mesh->GetMaterial(0);
 
