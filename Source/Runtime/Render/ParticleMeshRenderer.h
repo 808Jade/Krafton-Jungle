@@ -1,38 +1,40 @@
 #pragma once
 
 #include "Render/Buffer.h"
+#include "Render/ViewMode.h"
 #include "Particles/ParticleVertex.h"
 
 class FShaderProgram;
 struct FRenderPacket;
 
-struct alignas(16) FParticleMeshConstants
+struct alignas(16) FParticleMeshBatchConstants
 {
-	FMatrix ViewProjection;
-	FVector4 BaseColor;
-
-	uint32 bOpaque = 1;
-	uint32 Padding[3] = {};
+	uint32 ReceiveShadow = 0;
+	uint32 ReceiveDecal = 0;
+	uint32 Padding[2] = {};
 };
 
 class FParticleMeshRenderer
 {
 public:
 	bool Init();
-	
+
 	bool Draw(
 	    const FRenderPacket& Packet,
-	    const FMatrix& ViewProjection,
+	    EViewMode ViewMode,
 	    bool bDepthOnly);
 
 private:
 	bool EnsureCapacity(uint32 RequiredCount);
 
 	TUniquePtr<FVertexBuffer> InstanceVB;
-	TUniquePtr<FConstantBuffer> ConstantsCB;
 
-	FShaderProgram* Shader = nullptr;
-	ComPtr<ID3D11InputLayout> InputLayout;
+	// UberLit b1, b3.
+	TUniquePtr<FConstantBuffer> MaterialCB;
+	TUniquePtr<FConstantBuffer> BatchCB;
+
+	ComPtr<ID3D11InputLayout> InputLayouts[
+		static_cast<int32>(EViewMode::Count)];
 
 	uint32 InstanceCapacity = 0;
 };

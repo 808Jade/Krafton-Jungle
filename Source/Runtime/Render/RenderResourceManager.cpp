@@ -105,6 +105,41 @@ void FRenderResourceManager::LoadUberLit(const fs::path& ShaderRoot)
 	Skinned[static_cast<int32>(EViewMode::Lit_BlinnPhong)] = FindProgram(MakeShaderKey(Path, BlinnPhongSkin));
 	Skinned[static_cast<int32>(EViewMode::Unlit)] = FindProgram(MakeShaderKey(Path, UnlitSkin));
 	Skinned[static_cast<int32>(EViewMode::WorldNormal)] = FindProgram(MakeShaderKey(Path, WorldNormalSkin));
+
+	auto LoadMeshParticleVariant =
+	    [&](EViewMode Mode, const char* LightingMacro)
+	{
+		const D3D_SHADER_MACRO Macros[] = {
+			{ LightingMacro, "1" },
+			{ "MESH_PARTICLE", "1" },
+			{ nullptr, nullptr }
+		};
+
+		LoadOrCompileShader(Path, Macros);
+
+		UberLitMeshParticlePrograms[static_cast<int32>(Mode)] =
+		    FindProgram(MakeShaderKey(Path, Macros));
+	};
+
+	LoadMeshParticleVariant(
+	    EViewMode::Unlit,
+	    "LIGHTING_MODEL_UNLIT");
+
+	LoadMeshParticleVariant(
+	    EViewMode::Lit_Gouraud,
+	    "LIGHTING_MODEL_GOURAUD");
+
+	LoadMeshParticleVariant(
+	    EViewMode::Lit_Lambert,
+	    "LIGHTING_MODEL_LAMBERT");
+
+	LoadMeshParticleVariant(
+	    EViewMode::Lit_BlinnPhong,
+	    "LIGHTING_MODEL_BLINN_PHONG");
+
+	LoadMeshParticleVariant(
+	    EViewMode::WorldNormal,
+	    "WORLD_NORMAL");
 }
 
 FShaderProgram* FRenderResourceManager::GetUberLitProgram(EViewMode Mode, bool bSkinned)
@@ -113,6 +148,17 @@ FShaderProgram* FRenderResourceManager::GetUberLitProgram(EViewMode Mode, bool b
 	if (Index < 0 || Index >= static_cast<int32>(EViewMode::Count))
 		return nullptr;
 	return Get().UberLitPrograms[bSkinned ? 1 : 0][Index];
+}
+
+FShaderProgram*
+FRenderResourceManager::GetUberLitMeshParticleProgram(EViewMode Mode)
+{
+	const int32 Index = static_cast<int32>(Mode);
+
+	if (Index < 0 || Index >= static_cast<int32>(EViewMode::Count))
+		return nullptr;
+
+	return Get().UberLitMeshParticlePrograms[Index];
 }
 
 bool FRenderResourceManager::IsUberLitProgram(const FShaderProgram* Program)
@@ -131,6 +177,11 @@ bool FRenderResourceManager::IsUberLitProgram(const FShaderProgram* Program)
 				return true;
 		}
 	}
+	for (const FShaderProgram* Variant : Self.UberLitMeshParticlePrograms)
+	{
+		if (Program == Variant)
+			return true;
+	}
 	return false;
 }
 
@@ -144,6 +195,10 @@ void FRenderResourceManager::Shutdown()
 	for (auto& Variants : Get().UberLitPrograms)
 		for (FShaderProgram*& Program : Variants)
 			Program = nullptr;
+	for (FShaderProgram*& Program : Get().UberLitMeshParticlePrograms)
+	{
+		Program = nullptr;
+	}
 }
 
 FShaderProgram* FRenderResourceManager::GetShaderProgram(const FString& InPath, const D3D_SHADER_MACRO* Macro)

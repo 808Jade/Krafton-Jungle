@@ -1,6 +1,7 @@
 #include "EnginePCH.h"
 #include "ParticleMeshRenderer.h"
 
+#include "Core/EngineTimer.h"
 #include "Asset/AssetManager.h"
 #include "Render/Material.h"
 #include "Render/RenderCommand.h"
@@ -8,6 +9,7 @@
 #include "Render/RenderResourceManager.h"
 #include "Render/Shader.h"
 #include "Render/Vertex.h"
+#include "Engine/PrimitiveSceneProxy.h"
 
 #include <cstddef>
 #include <cstring>
@@ -15,74 +17,104 @@
 
 bool FParticleMeshRenderer::Init()
 {
-	ConstantsCB = RenderCommand::CreateConstantBuffer(
-	    sizeof(FParticleMeshConstants));
+	MaterialCB = RenderCommand::CreateConstantBuffer(
+	    sizeof(FStaticMeshMaterialParams));
 
-	Shader = FRenderResourceManager::GetShaderProgram(
-	    "Resources/Shader/ParticleMeshShader.hlsl");
+	BatchCB = RenderCommand::CreateConstantBuffer(
+	    sizeof(FParticleMeshBatchConstants));
 
-	if (!ConstantsCB || !ConstantsCB->GetBuffer() ||
-	    !Shader ||
-	    !Shader->VertexShader ||
-	    !Shader->VertexShader->IsValid() ||
-	    !Shader->PixelShader ||
-	    !Shader->PixelShader->IsValid())
+	if (!MaterialCB || !MaterialCB->GetBuffer() ||
+	    !BatchCB || !BatchCB->GetBuffer())
 	{
 		return false;
 	}
 
-	const auto& ByteCode = Shader->VertexShader->GetByteCode();
+	const D3D11_INPUT_ELEMENT_DESC Elements[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,
+		  0, static_cast<UINT>(offsetof(FVertex, Position)),
+		  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT,
+		  0, static_cast<UINT>(offsetof(FVertex, Normal)),
+		  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT,
+		  0, static_cast<UINT>(offsetof(FVertex, Tangent)),
+		  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,
+		  0, static_cast<UINT>(offsetof(FVertex, UV)),
+		  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT,
+		  0, static_cast<UINT>(offsetof(FVertex, Color)),
+		  D3D11_INPUT_PER_VERTEX_DATA, 0 },
 
-	if (!ByteCode.IsValid())
-		return false;
+		{ "INSTANCE_TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT,
+		  1, static_cast<UINT>(offsetof(FMeshParticleInstanceVertex, Transform) + 0),
+		  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCE_TRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT,
+		  1, static_cast<UINT>(offsetof(FMeshParticleInstanceVertex, Transform) + 16),
+		  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCE_TRANSFORM", 2, DXGI_FORMAT_R32G32B32A32_FLOAT,
+		  1, static_cast<UINT>(offsetof(FMeshParticleInstanceVertex, Transform) + 32),
+		  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCE_TRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT,
+		  1, static_cast<UINT>(offsetof(FMeshParticleInstanceVertex, Transform) + 48),
+		  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
 
-	D3D11_INPUT_ELEMENT_DESC Elements[7]{};
-
-	Elements[0] = {
-		"POSITION", 0,
-		DXGI_FORMAT_R32G32B32_FLOAT,
-		0, static_cast<UINT>(offsetof(FVertex, Position)),
-		D3D11_INPUT_PER_VERTEX_DATA, 0
+		{ "INSTANCE_NORMAL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT,
+		  1, static_cast<UINT>(offsetof(FMeshParticleInstanceVertex, NormalRow0)),
+		  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCE_NORMAL", 1, DXGI_FORMAT_R32G32B32A32_FLOAT,
+		  1, static_cast<UINT>(offsetof(FMeshParticleInstanceVertex, NormalRow1)),
+		  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCE_NORMAL", 2, DXGI_FORMAT_R32G32B32A32_FLOAT,
+		  1, static_cast<UINT>(offsetof(FMeshParticleInstanceVertex, NormalRow2)),
+		  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCE_COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT,
+		  1, static_cast<UINT>(offsetof(FMeshParticleInstanceVertex, Color)),
+		  D3D11_INPUT_PER_INSTANCE_DATA, 1 }
 	};
 
-	Elements[1] = {
-		"TEXCOORD", 0,
-		DXGI_FORMAT_R32G32_FLOAT,
-		0, static_cast<UINT>(offsetof(FVertex, UV)),
-		D3D11_INPUT_PER_VERTEX_DATA, 0
+	const EViewMode Modes[] = {
+		EViewMode::Unlit,
+		EViewMode::Lit_Gouraud,
+		EViewMode::Lit_Lambert,
+		EViewMode::Lit_BlinnPhong,
+		EViewMode::WorldNormal
 	};
 
-	for (UINT Row = 0; Row < 4; ++Row)
+	for (EViewMode Mode : Modes)
 	{
-		Elements[2 + Row] = {
-			"INSTANCE_TRANSFORM", Row,
-			DXGI_FORMAT_R32G32B32A32_FLOAT,
-			1,
-			static_cast<UINT>(
-			    offsetof(FMeshParticleInstanceVertex, Transform) + sizeof(float) * 4 * Row),
-			D3D11_INPUT_PER_INSTANCE_DATA, 1
-		};
+		FShaderProgram* Program =
+		    FRenderResourceManager::GetUberLitMeshParticleProgram(Mode);
+
+		if (!Program ||
+		    !Program->VertexShader ||
+		    !Program->VertexShader->IsValid() ||
+		    !Program->PixelShader ||
+		    !Program->PixelShader->IsValid())
+		{
+			return false;
+		}
+
+		const auto& ByteCode =
+		    Program->VertexShader->GetByteCode();
+
+		if (!ByteCode.IsValid())
+			return false;
+
+		const int32 Index = static_cast<int32>(Mode);
+
+		const HRESULT Result =
+		    RenderCommand::GetDevice()->CreateInputLayout(
+		        Elements,
+		        static_cast<UINT>(
+		            sizeof(Elements) / sizeof(Elements[0])),
+		        ByteCode.GetData(),
+		        ByteCode.GetSize(),
+		        InputLayouts[Index].GetAddressOf());
+
+		if (FAILED(Result))
+			return false;
 	}
-
-	Elements[6] = {
-		"INSTANCE_COLOR", 0,
-		DXGI_FORMAT_R32G32B32A32_FLOAT,
-		1,
-		static_cast<UINT>(
-		    offsetof(FMeshParticleInstanceVertex, Color)),
-		D3D11_INPUT_PER_INSTANCE_DATA, 1
-	};
-
-	const HRESULT Result =
-	    RenderCommand::GetDevice()->CreateInputLayout(
-	        Elements,
-	        7,
-	        ByteCode.GetData(),
-	        ByteCode.GetSize(),
-	        InputLayout.GetAddressOf());
-
-	if (FAILED(Result))
-		return false;
 
 	return EnsureCapacity(256);
 }
@@ -122,14 +154,14 @@ bool FParticleMeshRenderer::EnsureCapacity(uint32 RequiredCount)
 
 bool FParticleMeshRenderer::Draw(
     const FRenderPacket& Packet,
-    const FMatrix& ViewProjection,
+    EViewMode ViewMode,
     bool bDepthOnly)
 {
 	if (Packet.MeshInstances.Num() == 0)
 		return true;
 
-	auto* VB = Packet.GetVertexBuffer();
-	auto* IB = Packet.GetIndexBuffer();
+	FVertexBuffer* VB = Packet.GetVertexBuffer();
+	FIndexBuffer* IB = Packet.GetIndexBuffer();
 	UMaterial* Material = Packet.Material;
 
 	if (!VB || !VB->GetBuffer() ||
@@ -139,10 +171,53 @@ bool FParticleMeshRenderer::Draw(
 		return false;
 	}
 
-	const uint32 Count =
+	const int32 ModeIndex = static_cast<int32>(ViewMode);
+
+	if (ModeIndex < 0 ||
+	    ModeIndex >= static_cast<int32>(EViewMode::Count))
+	{
+		return false;
+	}
+
+	FShaderProgram* Program =
+	    FRenderResourceManager::GetUberLitMeshParticleProgram(ViewMode);
+
+	if (!Program || !InputLayouts[ModeIndex].Get())
+		return false;
+
+	UTexture2D* DiffuseTexture = nullptr;
+	UTexture2D* NormalTexture = nullptr;
+
+	if (!bDepthOnly)
+	{
+		DiffuseTexture = Material->Textures.Num() > 0
+		                     ? Material->Textures[0]
+		                     : nullptr;
+
+		NormalTexture = Material->Textures.Num() > 1
+		                    ? Material->Textures[1]
+		                    : nullptr;
+
+		if (!DiffuseTexture)
+		{
+			DiffuseTexture =
+			    UAssetManager::GetAssetByPath<UTexture2D>("WhiteTexture");
+		}
+
+		if (!NormalTexture)
+		{
+			NormalTexture =
+			    UAssetManager::GetAssetByPath<UTexture2D>("FlatNormalTexture");
+		}
+
+		if (!DiffuseTexture || !NormalTexture)
+			return false;
+	}
+
+	const uint32 InstanceCount =
 	    static_cast<uint32>(Packet.MeshInstances.Num());
 
-	if (!EnsureCapacity(Count))
+	if (!EnsureCapacity(InstanceCount))
 		return false;
 
 	void* Dest = RenderCommand::MapWriteDiscard(InstanceVB.get());
@@ -153,35 +228,72 @@ bool FParticleMeshRenderer::Draw(
 	std::memcpy(
 	    Dest,
 	    Packet.MeshInstances.GetData(),
-	    Count * sizeof(FMeshParticleInstanceVertex));
+	    InstanceCount * sizeof(FMeshParticleInstanceVertex));
 
 	RenderCommand::Unmap(InstanceVB.get());
 
-	FParticleMeshConstants Constants{};
-	Constants.ViewProjection = ViewProjection;
-	Constants.BaseColor = Material->BaseColor;
-	Constants.bOpaque =
-	    Material->BlendState == EBlendState::Opaque ? 1u : 0u;
+	FParticleMeshBatchConstants Batch{};
+	Batch.ReceiveShadow =
+	    Packet.Proxy && Packet.Proxy->IsShadowReceiver()
+	        ? 1u
+	        : 0u;
+	
+	Batch.ReceiveDecal =
+		Packet.Proxy && Packet.Proxy->IsDecalReceiver()
+	        ? 1u
+	        : 0u;
 
-	RenderCommand::UpdateBufferData(
-	    ConstantsCB.get(), &Constants);
+	RenderCommand::UpdateBufferData(BatchCB.get(), &Batch);
 
 	RenderCommand::BindConstantBuffer(
 	    3,
-	    ConstantsCB.get(),
-	    EShaderBindFlagBits::Vertex |
-	        EShaderBindFlagBits::Pixel);
+	    BatchCB.get(),
+	    EShaderBindFlagBits::Vertex);
+
+	if (!bDepthOnly)
+	{
+		FStaticMeshMaterialParams Params{};
+
+		Params.BaseColor = Material->BaseColor;
+		Params.UVOffset =
+		    Material->UVScrollSpeed * EngineTimer::GetTotalTime();
+
+		Params.bOpaque =
+		    Material->BlendState == EBlendState::Opaque ? 1.0f : 0.0f;
+
+		Params.Shininess = Material->Shininess;
+		Params.WorldUVTileSize = Material->WorldUVTileSize;
+
+		RenderCommand::UpdateBufferData(
+		    MaterialCB.get(), &Params);
+
+		// Gouraud 변형 등 VS에서도 참조할 수 있도록 양쪽에 바인딩.
+		RenderCommand::BindConstantBuffer(
+		    1,
+		    MaterialCB.get(),
+		    EShaderBindFlagBits::Vertex |
+		        EShaderBindFlagBits::Pixel);
+
+		RenderCommand::BindShaderResource(
+		    0, DiffuseTexture, EShaderBindFlagBits::Pixel);
+
+		RenderCommand::BindShaderResource(
+		    1, NormalTexture, EShaderBindFlagBits::Pixel);
+
+		RenderCommand::BindSamplerState(
+		    0, Material->SamplerState, EShaderBindFlagBits::Pixel);
+	}
 
 	ID3D11DeviceContext* Context = RenderCommand::GetContext();
 
 	Context->VSSetShader(
-	    Shader->VertexShader->GetShader(), nullptr, 0);
+	    Program->VertexShader->GetShader(), nullptr, 0);
 
 	Context->PSSetShader(
-	    bDepthOnly ? nullptr : Shader->PixelShader->GetShader(),
+	    bDepthOnly ? nullptr : Program->PixelShader->GetShader(),
 	    nullptr, 0);
 
-	Context->IASetInputLayout(InputLayout.Get());
+	Context->IASetInputLayout(InputLayouts[ModeIndex].Get());
 
 	RenderCommand::SetPrimitiveTopology(
 	    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -203,46 +315,26 @@ bool FParticleMeshRenderer::Draw(
 
 	RenderCommand::BindIndexBuffer(IB);
 
-	const bool bOpaque =
-	    Material->BlendState == EBlendState::Opaque;
+	const bool bTranslucent =
+	    Material->BlendState != EBlendState::Opaque;
 
 	RenderCommand::SetBlendState(
 	    bDepthOnly ? EBlendState::Opaque : Material->BlendState);
 
-	RenderCommand::SetDepthStencilState(
-	    bDepthOnly || bOpaque
+	const EDepthStencilState DepthState =
+	    bDepthOnly
 	        ? EDepthStencilState::Default
-	        : EDepthStencilState::ReadOnly);
+	        : (
+	              bTranslucent &&
+	                      Material->DepthStencilState == EDepthStencilState::Default
+	                  ? EDepthStencilState::ReadOnly
+	                  : Material->DepthStencilState);
 
-	// 호출자가 설정한 SolidBack 또는 WireFrame을 유지하고,
-	// 메시렌더러에서 임의로 변경하지 않는다.
-
-	if (!bDepthOnly)
-	{
-		UTexture2D* Texture =
-		    Material->Textures.Num() > 0
-		        ? Material->Textures[0]
-		        : nullptr;
-
-		if (!Texture)
-		{
-			Texture = UAssetManager::GetAssetByPath<UTexture2D>(
-			    "WhiteTexture");
-		}
-
-		if (!Texture)
-			return false;
-
-		RenderCommand::BindShaderResource(
-		    0, Texture, EShaderBindFlagBits::Pixel);
-
-		RenderCommand::BindSamplerState(
-		    0, Material->SamplerState, EShaderBindFlagBits::Pixel);
-	}
+	RenderCommand::SetDepthStencilState(DepthState);
 
 	RenderCommand::DrawIndexedInstanced(
 	    Packet.IndexCount,
-	    Count,
+	    InstanceCount,
 	    Packet.StartIndex,
 	    0,
 	    0);

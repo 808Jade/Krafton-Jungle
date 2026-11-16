@@ -1027,7 +1027,7 @@ void UEditorEngine::RenderOpaquePass(int32 ViewIndex, const FRenderingInfo& View
 
 		if (!ParticleMeshRenderer->Draw(
 		        Packet,
-		        ViewProjection,
+		        Renderer->GetViewMode(),
 		        bDepthOnly))
 		{
 			HTR_LOG(Error, "Failed to draw mesh particle batch.");

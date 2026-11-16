@@ -138,10 +138,10 @@ void UParticleSystemComponent::InitializeMeshInstancingTest()
 		UMaterial* TestMaterial =
 		    UMaterial::CreateInstance(BaseMaterial);
 
-		TestMaterial->SetBlendState(EBlendState::AlphaBlend);
+		TestMaterial->SetBlendState(EBlendState::Opaque);
 
 		// RGB는 기존 색 유지, alpha만 반투명으로 설정.
-		TestMaterial->BaseColor.W = 0.35f;
+		//TestMaterial->BaseColor.W = 0.35f;
 
 		Emitter->CurrentMaterial = TestMaterial;
 	}
@@ -226,6 +226,10 @@ void UParticleSystemComponent::InitializeMeshInstancingTest()
 		FVector(-5.0f, -5.0f, -5.0f),
 		FVector(25.0f, 25.0f, 25.0f)
 	};
+
+	SetReceiveShadow(true);
+	SetCastShadow(true);
+	SetReceiveDecal(true);
 
 	OnTransformDirty();
 }

@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <utility>
 
 #include "Math/Transform.h"
@@ -279,6 +280,43 @@ void FDynamicMeshEmitterData::PrepareRenderData(
 		Instance.Transform = Source.bUseLocalSpace
 		                         ? ParticleTransform * Proxy.GetLocalToWorld()
 		                         : ParticleTransform;
+
+		const FMatrix& World = Instance.Transform;
+		// 상단 3x3의 determinant.
+		// 스케일 0 등으로 역행렬이 존재하지 않는 경우를 구분한다.
+		const float Determinant =
+		    World.M[0][0] *
+		        (World.M[1][1] * World.M[2][2] -
+		         World.M[1][2] * World.M[2][1]) -
+		    World.M[0][1] *
+		        (World.M[1][0] * World.M[2][2] -
+		         World.M[1][2] * World.M[2][0]) +
+		    World.M[0][2] *
+		        (World.M[1][0] * World.M[2][1] -
+		         World.M[1][1] * World.M[2][0]);
+
+		const FMatrix NormalMatrix =
+		    std::abs(Determinant) > 1e-8f
+		        ? World.Inverse().GetTransposed()
+		        : FMatrix::Identity;
+
+		Instance.NormalRow0 = FVector4(
+		    NormalMatrix.M[0][0],
+		    NormalMatrix.M[0][1],
+		    NormalMatrix.M[0][2],
+		    0.0f);
+
+		Instance.NormalRow1 = FVector4(
+		    NormalMatrix.M[1][0],
+		    NormalMatrix.M[1][1],
+		    NormalMatrix.M[1][2],
+		    0.0f);
+
+		Instance.NormalRow2 = FVector4(
+		    NormalMatrix.M[2][0],
+		    NormalMatrix.M[2][1],
+		    NormalMatrix.M[2][2],
+		    0.0f);
 
 		Instance.Color = FVector4(
 		    Particle.Color.R,
