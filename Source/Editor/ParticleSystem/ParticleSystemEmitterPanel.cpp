@@ -9,6 +9,13 @@
 #include "Particles/ParticleModule.h"
 #include "Particles/Modules/ParticleModuleRequired.h"
 #include "Particles/Modules/ParticleModuleTypeDataBase.h"
+#include "Particles/Modules/ParticleModuleLifetime.h"
+#include "Particles/Modules/ParticleModuleLocation.h"
+#include "Particles/Modules/ParticleModuleVelocity.h"
+#include "Particles/Modules/ParticleModuleSize.h"
+#include "Particles/Modules/ParticleModuleColor.h"
+#include "Particles/Modules/ParticleModuleRotation.h"
+#include "Particles/Modules/ParticleModuleRotationRate.h"
 
 #include <algorithm>
 
@@ -16,6 +23,24 @@ namespace
 {
 	constexpr float EmitterColumnWidth = 200.0f;
 	constexpr float EmitterHeaderHeight = 28.0f;
+
+	// 우클릭 메뉴의 모듈 추가 항목. Cascade처럼 분류 하위 메뉴 아래에 표시 이름으로 나열한다.
+	// Required·Spawn은 이미터마다 하나씩 고정이라 추가 대상이 아니다. 새 모듈 클래스가 생기면 여기에 한 줄 추가한다.
+	struct FAddableModule
+	{
+		const char* Category;
+		const char* DisplayName;
+		UClass* (*GetClass)();
+	};
+	const FAddableModule AddableModules[] = {
+		{ "Color",         "Initial Color",         [] { return UParticleModuleColor::StaticClass(); } },
+		{ "Lifetime",      "Lifetime",              [] { return UParticleModuleLifetime::StaticClass(); } },
+		{ "Location",      "Initial Location",      [] { return UParticleModuleLocation::StaticClass(); } },
+		{ "Rotation",      "Initial Rotation",      [] { return UParticleModuleRotation::StaticClass(); } },
+		{ "Rotation Rate", "Initial Rotation Rate", [] { return UParticleModuleRotationRate::StaticClass(); } },
+		{ "Size",          "Initial Size",          [] { return UParticleModuleSize::StaticClass(); } },
+		{ "Velocity",      "Initial Velocity",      [] { return UParticleModuleVelocity::StaticClass(); } },
+	};
 
 	// 모듈 클래스 이름 → Cascade 표시 이름. 언리얼은 클래스 메타데이터(DisplayName)로 정하는 값이다.
 	// 클래스 이름은 언리얼과 같으므로 표시 이름도 언리얼 것을 그대로 쓴다.
@@ -97,6 +122,7 @@ void FParticleSystemEmitterPanel::OnRender()
 	}
 	ImGui::End();
 
+	ApplyPendingEdit();
 	SetOpen(bOpen);
 }
 
@@ -113,6 +139,11 @@ void FParticleSystemEmitterPanel::DrawEmitterColumn(const int32 EmitterIndex, UP
 	{
 		Context.SelectedEmitterIndex = EmitterIndex;
 		Context.SelectedModule = nullptr;
+	}
+	if (ImGui::BeginPopupContextItem("##EmitterHeaderMenu"))
+	{
+		DrawContextMenu(EmitterIndex, nullptr);
+		ImGui::EndPopup();
 	}
 
 	if (!Emitter)
@@ -158,6 +189,13 @@ void FParticleSystemEmitterPanel::DrawEmitterColumn(const int32 EmitterIndex, UP
 		}
 	}
 
+	// 열의 빈 곳을 우클릭해도 같은 메뉴를 연다. 항목 위 우클릭은 각 항목의 메뉴가 처리한다.
+	if (ImGui::BeginPopupContextWindow("##EmitterColumnMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+	{
+		DrawContextMenu(EmitterIndex, nullptr);
+		ImGui::EndPopup();
+	}
+
 	ImGui::EndChild();
 	ImGui::PopID();
 }
@@ -172,7 +210,8 @@ void FParticleSystemEmitterPanel::DrawModuleRow(const int32 EmitterIndex, UParti
 		ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
 
 	const FString Name = GetModuleDisplayName(Module);
-	if (ImGui::Selectable(Name.c_str(), bSelected))
+	// 우클릭도 언리얼처럼 그 모듈을 먼저 선택한다.
+	if (ImGui::Selectable(Name.c_str(), bSelected) || ImGui::IsItemClicked(ImGuiMouseButton_Right))
 	{
 		Context.SelectedEmitterIndex = EmitterIndex;
 		Context.SelectedModule = Module;
@@ -182,8 +221,87 @@ void FParticleSystemEmitterPanel::DrawModuleRow(const int32 EmitterIndex, UParti
 		ImGui::PopStyleColor();
 
 	// 표시 이름은 언리얼 것이지만 실제 클래스를 확인할 수 있게 툴팁에 남긴다.
-	if (ImGui::IsItemHovered())
+	if (ImGui::IsItemHovered() && !ImGui::IsPopupOpen("##ModuleMenu"))
 		ImGui::SetTooltip("%s", Module->GetClass()->GetName().c_str());
 
+	if (ImGui::BeginPopupContextItem("##ModuleMenu"))
+	{
+		DrawContextMenu(EmitterIndex, Module);
+		ImGui::EndPopup();
+	}
+
 	ImGui::PopID();
+}
+
+void FParticleSystemEmitterPanel::DrawContextMenu(const int32 EmitterIndex, UParticleModule* ClickedModule)
+{
+	const UParticleLODLevel* LODLevel = Context.GetLODLevel(EmitterIndex);
+	if (!LODLevel)
+	{
+		ImGui::TextDisabled("No LOD level to edit.");
+		return;
+	}
+
+	if (ClickedModule)
+	{
+		const bool bCanDelete = FParticleEditorContext::CanDeleteModule(ClickedModule);
+		if (ImGui::MenuItem("Delete Module", nullptr, false, bCanDelete))
+			PendingEdit = { EPendingEdit::DeleteModule, EmitterIndex, nullptr, ClickedModule };
+		if (!bCanDelete && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+			ImGui::SetTooltip("Required and Spawn modules cannot be deleted.");
+		ImGui::Separator();
+	}
+
+	// TypeData는 이미터당 하나다. 있으면 새로 만들 수 없고, 지우면 Sprite 이미터로 돌아간다.
+	if (ImGui::BeginMenu("TypeData"))
+	{
+		if (ImGui::MenuItem("New Mesh Data", nullptr, false, LODLevel->TypeDataModule == nullptr))
+			PendingEdit = { EPendingEdit::AddMeshTypeData, EmitterIndex, nullptr, nullptr };
+		if (ImGui::MenuItem("Remove TypeData", nullptr, false, LODLevel->TypeDataModule != nullptr))
+			PendingEdit = { EPendingEdit::DeleteModule, EmitterIndex, nullptr, LODLevel->TypeDataModule };
+		ImGui::EndMenu();
+	}
+	ImGui::Separator();
+
+	// 분류 하위 메뉴. 표는 분류 순서로 정렬되어 있어 같은 분류끼리 붙어 있다.
+	// 같은 종류의 모듈이 이미 있으면 비활성으로 보여 준다.
+	for (int32 Index = 0; Index < static_cast<int32>(std::size(AddableModules)); ++Index)
+	{
+		const FAddableModule& Entry = AddableModules[Index];
+		if (Index > 0 && strcmp(AddableModules[Index - 1].Category, Entry.Category) == 0)
+			continue;	// 이 분류는 앞에서 이미 열었다.
+
+		if (!ImGui::BeginMenu(Entry.Category))
+			continue;
+		for (int32 Inner = Index; Inner < static_cast<int32>(std::size(AddableModules))
+			&& strcmp(AddableModules[Inner].Category, Entry.Category) == 0; ++Inner)
+		{
+			UClass* ModuleClass = AddableModules[Inner].GetClass();
+			const bool bAlreadyAdded = Context.HasModuleOfClass(EmitterIndex, ModuleClass);
+			if (ImGui::MenuItem(AddableModules[Inner].DisplayName, bAlreadyAdded ? "added" : nullptr, false, !bAlreadyAdded))
+				PendingEdit = { EPendingEdit::AddModule, EmitterIndex, ModuleClass, nullptr };
+		}
+		ImGui::EndMenu();
+	}
+}
+
+void FParticleSystemEmitterPanel::ApplyPendingEdit()
+{
+	const FPendingEdit Edit = PendingEdit;
+	PendingEdit = {};
+
+	switch (Edit.Type)
+	{
+	case EPendingEdit::AddModule:
+		Context.AddModule(Edit.EmitterIndex, Edit.ModuleClass);
+		break;
+	case EPendingEdit::DeleteModule:
+		Context.DeleteModule(Edit.EmitterIndex, Edit.Module);
+		break;
+	case EPendingEdit::AddMeshTypeData:
+		Context.AddMeshTypeData(Edit.EmitterIndex);
+		break;
+	default:
+		break;
+	}
 }

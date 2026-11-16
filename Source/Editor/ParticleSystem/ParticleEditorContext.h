@@ -5,6 +5,8 @@ class AParticleSystemActor;
 class UParticleSystemComponent;
 class UParticleSystem;
 class UParticleModule;
+class UParticleLODLevel;
+class UClass;
 struct FParticleEmitterInstance;
 
 // 파티클 시스템 에디터의 하위 패널들이 공유하는 상태. 패널끼리는 서로를 모르고 이 객체로만 통신한다.
@@ -40,6 +42,20 @@ public:
 	// CurrentLODIndex를 0 ~ GetLODCount()-1 안으로 맞춰 설정한다.
 	void SetCurrentLOD(int32 NewLODIndex);
 
+	// --- 에셋 편집 (이미터 패널 우클릭 메뉴) ---
+	// 편집 대상은 EmitterIndex 이미터의 현재 LOD 레벨이다. 편집이 끝나면 이미터 캐시를 다시 만들고
+	// 같은 Template을 쓰는 컴포넌트를 모두 다시 시작한다. (모듈 Payload 배치가 바뀌기 때문)
+	UParticleLODLevel* GetLODLevel(int32 EmitterIndex) const;
+	bool HasModuleOfClass(int32 EmitterIndex, const UClass* ModuleClass) const;
+	// ModuleClass 모듈을 새로 만들어 모듈 목록 끝에 붙이고 선택한다. 같은 종류가 이미 있으면 실패한다.
+	bool AddModule(int32 EmitterIndex, UClass* ModuleClass);
+	// Required·Spawn은 이미터에 꼭 하나씩 있어야 하므로 지울 수 없다. (언리얼도 같다)
+	static bool CanDeleteModule(const UParticleModule* Module);
+	// 모듈 목록 또는 TypeData에서 Module을 빼고 삭제한다.
+	bool DeleteModule(int32 EmitterIndex, UParticleModule* Module);
+	// 메시 TypeData를 붙여 메시 이미터로 바꾼다. 기본 메시는 엔진의 "Cube"다. TypeData가 이미 있으면 실패한다.
+	bool AddMeshTypeData(int32 EmitterIndex);
+
 	UWorld* GetPreviewWorld() const { return PreviewScene ? PreviewScene->GetWorld() : nullptr; }
 	UParticleSystemComponent* GetPreviewComponent() const;
 	// 프리뷰 컴포넌트가 재생 중인 파티클 시스템 에셋. 이미터·모듈 구성은 여기서 읽는다.
@@ -58,6 +74,9 @@ public:
 	int32 CurrentLODIndex = 0;
 
 private:
+	// 에셋 구성이 바뀐 이미터의 모듈 캐시를 다시 만들고, 이 에셋을 쓰는 컴포넌트를 다시 시작한다.
+	void ApplyEmitterChange(int32 EmitterIndex);
+
 	// 소유(합성): 이 에디터만 쓰는 독립 월드. 에디터와 수명이 같다.
 	TUniquePtr<FPreviewScene> PreviewScene;
 	// 참조(집약): 프리뷰 월드가 소유하고 지우는 액터. 여기서는 가리키기만 한다.
