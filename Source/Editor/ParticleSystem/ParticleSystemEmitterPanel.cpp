@@ -17,11 +17,38 @@ namespace
 	constexpr float EmitterColumnWidth = 200.0f;
 	constexpr float EmitterHeaderHeight = 28.0f;
 
-	// 클래스 이름에서 공통 접두사를 떼어 Cascade처럼 짧게 보여 준다. (UParticleModuleSpawn → Spawn)
+	// 모듈 클래스 이름 → Cascade 표시 이름. 언리얼은 클래스 메타데이터(DisplayName)로 정하는 값이다.
+	// 클래스 이름은 언리얼과 같으므로 표시 이름도 언리얼 것을 그대로 쓴다.
+	struct FModuleDisplayName
+	{
+		const char* ClassName;
+		const char* DisplayName;
+	};
+	constexpr FModuleDisplayName ModuleDisplayNames[] = {
+		{ "UParticleModuleRequired",      "Required" },
+		{ "UParticleModuleSpawn",         "Spawn" },
+		{ "UParticleModuleLifetime",      "Lifetime" },
+		{ "UParticleModuleLocation",      "Initial Location" },
+		{ "UParticleModuleVelocity",      "Initial Velocity" },
+		{ "UParticleModuleSize",          "Initial Size" },
+		{ "UParticleModuleColor",         "Initial Color" },
+		{ "UParticleModuleRotation",      "Initial Rotation" },
+		{ "UParticleModuleRotationRate",  "Initial Rotation Rate" },
+		{ "UParticleModuleTypeDataMesh",  "Mesh Data" },
+	};
+
+	// 표에 없는 새 모듈은 클래스 이름에서 공통 접두사만 떼어 보여 준다. (UParticleModuleDrag → Drag)
 	FString GetModuleDisplayName(const UParticleModule* Module)
 	{
+		const FString ClassName = Module->GetClass()->GetName();
+		for (const FModuleDisplayName& Entry : ModuleDisplayNames)
+		{
+			if (ClassName == Entry.ClassName)
+				return Entry.DisplayName;
+		}
+
 		static const FString Prefix = "UParticleModule";
-		FString Name = Module->GetClass()->GetName();
+		FString Name = ClassName;
 		if (Name.rfind(Prefix, 0) == 0 && Name.size() > Prefix.size())
 			Name.erase(0, Prefix.size());
 		return Name;
@@ -153,6 +180,10 @@ void FParticleSystemEmitterPanel::DrawModuleRow(const int32 EmitterIndex, UParti
 
 	if (!Module->bEnabled)
 		ImGui::PopStyleColor();
+
+	// 표시 이름은 언리얼 것이지만 실제 클래스를 확인할 수 있게 툴팁에 남긴다.
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("%s", Module->GetClass()->GetName().c_str());
 
 	ImGui::PopID();
 }
