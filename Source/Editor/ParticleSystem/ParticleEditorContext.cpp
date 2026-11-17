@@ -13,6 +13,13 @@
 #include "Particles/Modules/ParticleModuleSize.h"
 #include "Particles/Modules/ParticleModuleVelocity.h"
 #include "Particles/Modules/ParticleModuleColor.h"
+#include "Particles/Modules/ParticleModuleTypeDataBase.h"
+#include "Particles/Modules/ParticleModuleTypeDataBeam.h"
+#include "Particles/Modules/ParticleModuleTypeDataRibbon.h"
+#include "Particles/Modules/ParticleModuleBeamSource.h"
+#include "Particles/Modules/ParticleModuleBeamTarget.h"
+#include "Particles/Modules/ParticleModuleBeamNoise.h"
+#include "UObject/Casts.h"
 #include "Asset/AssetManager.h"
 #include "Render/Mesh.h"
 #include "UObject/UObjectIterator.h"
@@ -144,6 +151,11 @@ bool FParticleEditorContext::HasModuleOfClass(const int32 EmitterIndex, const UC
 
 bool FParticleEditorContext::AddModule(const int32 EmitterIndex, UClass* ModuleClass)
 {
+	if (!CanAddModule(EmitterIndex, ModuleClass))
+	{
+		return false;
+	}
+
 	UParticleLODLevel* LODLevel = GetLODLevel(EmitterIndex);
 	if (!LODLevel || !ModuleClass || HasModuleOfClass(EmitterIndex, ModuleClass))
 		return false;
@@ -160,6 +172,50 @@ bool FParticleEditorContext::AddModule(const int32 EmitterIndex, UClass* ModuleC
 	return true;
 }
 
+bool FParticleEditorContext::CanAddModule(
+    const int32 EmitterIndex,
+    UClass* ModuleClass) const
+{
+	const UParticleLODLevel* LODLevel =
+	    GetLODLevel(EmitterIndex);
+
+	if (!LODLevel ||
+	    !ModuleClass ||
+	    !ModuleClass->IsChildOf(UParticleModule::StaticClass()) ||
+	    !ModuleClass->CanCreateInstance() ||
+	    HasModuleOfClass(EmitterIndex, ModuleClass))
+	{
+		return false;
+	}
+
+	// 별도 필드나 별도 생성 경로로 관리하는 모듈.
+	if (ModuleClass->IsChildOf(
+	        UParticleModuleTypeDataBase::StaticClass()) ||
+	    ModuleClass->IsChildOf(
+	        UParticleModuleRequired::StaticClass()) ||
+	    ModuleClass->IsChildOf(
+	        UParticleModuleSpawn::StaticClass()))
+	{
+		return false;
+	}
+
+	const bool bBeamModule =
+	    ModuleClass->IsChildOf(
+	        UParticleModuleBeamSource::StaticClass()) ||
+	    ModuleClass->IsChildOf(
+	        UParticleModuleBeamTarget::StaticClass()) ||
+	    ModuleClass->IsChildOf(
+	        UParticleModuleBeamNoise::StaticClass());
+
+	if (bBeamModule)
+	{
+		return Cast<UParticleModuleTypeDataBeam>(
+		           LODLevel->TypeDataModule) != nullptr;
+	}
+
+	return true;
+}
+
 bool FParticleEditorContext::CanDeleteModule(const UParticleModule* Module)
 {
 	return Module && !Cast<UParticleModuleRequired>(const_cast<UParticleModule*>(Module))
@@ -171,6 +227,20 @@ bool FParticleEditorContext::DeleteModule(const int32 EmitterIndex, UParticleMod
 	UParticleLODLevel* LODLevel = GetLODLevel(EmitterIndex);
 	if (!LODLevel || !CanDeleteModule(Module))
 		return false;
+
+	if (LODLevel->TypeDataModule == Module &&
+	    Cast<UParticleModuleTypeDataBeam>(Module))
+	{
+		for (UParticleModule* Existing : LODLevel->Modules)
+		{
+			if (Cast<UParticleModuleBeamSource>(Existing) ||
+			    Cast<UParticleModuleBeamTarget>(Existing) ||
+			    Cast<UParticleModuleBeamNoise>(Existing))
+			{
+				return false;
+			}
+		}
+	}
 
 	if (LODLevel->TypeDataModule == Module)
 	{
@@ -209,6 +279,106 @@ bool FParticleEditorContext::AddMeshTypeData(const int32 EmitterIndex)
 	ApplyEmitterChange(EmitterIndex);
 	SelectedEmitterIndex = EmitterIndex;
 	SelectedModule = MeshData;
+	return true;
+}
+
+bool FParticleEditorContext::AddBeamTypeData(
+    const int32 EmitterIndex)
+{
+	UParticleLODLevel* LODLevel = GetLODLevel(EmitterIndex);
+
+	if (!LODLevel ||
+	    !LODLevel->RequiredModule ||
+	    LODLevel->TypeDataModule)
+	{
+		return false;
+	}
+
+	UParticleModuleTypeDataBeam* BeamData =
+	    NewObject<UParticleModuleTypeDataBeam>(LODLevel);
+
+	if (!BeamData)
+	{
+		return false;
+	}
+
+	BeamData->MaxBeamCount = 1;
+	BeamData->SegmentCount = 32;
+	BeamData->TextureTileDistance = 0.0f;
+
+	LODLevel->TypeDataModule = BeamData;
+
+	// 처음 전환한 직후에도 Source/Target을 편집할 수 있게 구성.
+	// Context.AddModule()을 사용하면 중간마다 재시작하므로,
+	// 여기서는 직접 추가하고 마지막에 한 번만 재시작한다.
+	if (!HasModuleOfClass(
+	        EmitterIndex,
+	        UParticleModuleBeamSource::StaticClass()))
+	{
+		auto* Source =
+		    NewObject<UParticleModuleBeamSource>(LODLevel);
+
+		Source->SourcePosition = FVector(0.0f, 0.0f, 0.0f);
+		Source->bLockOnSpawn = false;
+
+		LODLevel->Modules.Add(Source);
+	}
+
+	if (!HasModuleOfClass(
+	        EmitterIndex,
+	        UParticleModuleBeamTarget::StaticClass()))
+	{
+		auto* Target =
+		    NewObject<UParticleModuleBeamTarget>(LODLevel);
+
+		Target->TargetPosition = FVector(5.0f, 0.0f, 0.0f);
+		Target->bLockOnSpawn = false;
+
+		LODLevel->Modules.Add(Target);
+	}
+
+	ApplyEmitterChange(EmitterIndex);
+
+	SelectedEmitterIndex = EmitterIndex;
+	SelectedModule = BeamData;
+	return true;
+}
+
+bool FParticleEditorContext::AddRibbonTypeData(
+    const int32 EmitterIndex)
+{
+	UParticleLODLevel* LODLevel = GetLODLevel(EmitterIndex);
+
+	if (!LODLevel ||
+	    !LODLevel->RequiredModule ||
+	    LODLevel->TypeDataModule)
+	{
+		return false;
+	}
+
+	auto* RibbonData =
+	    NewObject<UParticleModuleTypeDataRibbon>(LODLevel);
+
+	if (!RibbonData)
+	{
+		return false;
+	}
+
+	RibbonData->MaxTrailCount = 1;
+	RibbonData->MaxPointsPerTrail = 128;
+	RibbonData->MinSpawnDistance = 0.1f;
+	RibbonData->TextureTileDistance = 0.0f;
+	RibbonData->bClipSourceSegment = false;
+
+	// 현재 Ribbon 구현의 필수 조건.
+	LODLevel->RequiredModule->bUseLocalSpace = false;
+
+	LODLevel->TypeDataModule = RibbonData;
+
+	ApplyEmitterChange(EmitterIndex);
+
+	SelectedEmitterIndex = EmitterIndex;
+	SelectedModule = RibbonData;
 	return true;
 }
 

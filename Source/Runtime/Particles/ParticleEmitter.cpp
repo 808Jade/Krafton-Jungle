@@ -5,6 +5,7 @@
 #include "Particles/ParticleModule.h"
 #include "Particles/Modules/ParticleModuleTypeDataBase.h"
 #include "Particles/Modules/ParticleModuleTypeDataBeam.h"
+#include "Particles/Modules/ParticleModuleTypeDataRibbon.h"
 #include "Particles/Modules/ParticleModuleRequired.h"
 #include "Particles/Modules/ParticleModuleSpawn.h"
 #include "Particles/Modules/ParticleModuleLifetime.h"
@@ -178,5 +179,25 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 		}
 
 		MaxActiveParticles = BeamCapacity;
+	}
+
+	if (const auto* RibbonTypeData =
+	        Cast<UParticleModuleTypeDataRibbon>(
+	            LODLevel->TypeDataModule))
+	{
+		int32 Capacity = std::clamp(
+		    RibbonTypeData->MaxPointsPerTrail,
+		    2,
+		    MaxParticleSlots);
+
+		if (LODLevel->RequiredModule &&
+		    LODLevel->RequiredModule->MaxActiveParticles > 0)
+		{
+			Capacity = std::min(
+			    Capacity,
+			    LODLevel->RequiredModule->MaxActiveParticles);
+		}
+
+		MaxActiveParticles = Capacity;
 	}
 }

@@ -84,9 +84,9 @@ bool FParticleStripRenderer::EnsureCapacity(
 		return true;
 	}
 
-	// 첫 구현의 명시적인 용량 제한.
+	// 실제 파티클 최대 개수 + 렌더링용 Source 점 하나.
 	// Index Buffer 자체는 uint32 인덱스를 사용한다.
-	constexpr uint32 MaxPoints = 65535;
+	constexpr uint32 MaxPoints = 65536;
 
 	if (RequiredPointCount > MaxPoints)
 	{
@@ -293,7 +293,7 @@ bool FParticleStripRenderer::Draw(
 		return false;
 	}
 
-	if (Points.Num() > 65535)
+	if (Points.Num() > 65536)
 	{
 		return false;
 	}
