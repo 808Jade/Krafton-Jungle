@@ -38,7 +38,7 @@ public:
 	void SetGridRenderer(FGridRenderer* InGridRenderer) { GridRenderer = InGridRenderer; }
 	void SetGizmoRenderer(FGizmoRenderer* InGizmoRenderer) { GizmoRenderer = InGizmoRenderer; }
 	void SetToneMapRenderer(FToneMapRenderer* InToneMapRenderer) { ToneMapRenderer = InToneMapRenderer; }
-
+	//테스트
 	virtual bool Init() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void OnRender() override;

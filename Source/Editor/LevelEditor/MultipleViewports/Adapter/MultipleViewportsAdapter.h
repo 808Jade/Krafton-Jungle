@@ -127,6 +127,15 @@ public:
     // View 입력을 준비하고 컬링·LOD·패킷 수집은 World에 맡긴다.
     void BuildRenderQueue(UWorld& World, int32 ViewIndex, FRenderQueue& OutQueue,
         FRenderQueue& OutIconQueue, FRenderQueue& OutArrowQueue);
+    // Adapter가 관리하지 않는 View(애셋 에디터 프리뷰 등)도 같은 수집 경로를 쓰도록 카메라와 영역만 받는다.
+    static void BuildRenderQueue(UWorld& World, const FViewCamera& ViewCamera, const FRect& Rect,
+        FRenderQueue& OutQueue, FRenderQueue& OutIconQueue, FRenderQueue& OutArrowQueue);
+    // RenderFrame에 넘길 View 상태. 패널 View와 외부 PIE View 모두 대상이다.
+    const FEditorViewportClient& GetViewportClient(int32 ViewIndex) const
+    {
+        assert(IsViewIndex(ViewIndex));
+        return ViewportClients[ViewIndex];
+    }
 
     // 외부에서 읽은 Split 비율의 검증과 저장은 Layout이 담당한다.
     void SetSplitRatio(const FSplitRatio& Value) { Layout.SetSplitRatio(Value); }

@@ -10,6 +10,7 @@ extern UClass* GetEngineClass();
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+
 	FWindowCrashHandler::Install();
 	FEngineLoop EngineLoop;
 	

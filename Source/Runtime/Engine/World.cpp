@@ -154,8 +154,10 @@ void UWorld::Tick(float DeltaTime) {
 		}
 
 		// 액터 수와 관계없이 게임 월드 프레임마다 한 번만 갱신한다.
-		if (FLuaVM* LuaVM = GEngine ? GEngine->GetLuaVM() : nullptr)
-			LuaVM->UpdateCoroutine(DeltaTime);
+		// LuaVM은 전역 하나라 프리뷰 월드까지 갱신하면 게임 코루틴이 한 프레임에 두 번 진행된다.
+		if (WorldType != EWorldType::EditorPreview)
+			if (FLuaVM* LuaVM = GEngine ? GEngine->GetLuaVM() : nullptr)
+				LuaVM->UpdateCoroutine(DeltaTime);
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_ActorTick);
