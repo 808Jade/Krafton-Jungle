@@ -128,6 +128,39 @@
                                 "mOrthoWidth": 16.0,
                                 "mWheelSpeed": 0.10000000149011612
                             }
+                        },
+                        {
+                            "Class": "UParticleSystemComponent",
+                            "Name": "UParticleSystemComponent_0",
+                            "ObjectLabel": "UParticleSystemComponent_0",
+                            "Parent": "CapsuleComponent",
+                            "Properties": {
+                                "CustomTimeDilation": 1.0,
+                                "Template": "DefaultRibbonParticleSystem",
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
                         }
                     ],
                     "Name": "ACharacter_0",
