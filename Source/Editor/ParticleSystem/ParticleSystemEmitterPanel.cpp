@@ -19,6 +19,7 @@
 #include "Particles/Modules/ParticleModuleAccelerationConstant.h"
 #include "Particles/Modules/ParticleModuleCollision.h"
 #include "Particles/Modules/ParticleModuleAttractorPoint.h"
+#include "Particles/Modules/ParticleModuleSizeScaleBySpeed.h"
 
 #include <algorithm>
 
@@ -45,6 +46,7 @@ namespace
 		{ "Rotation",      "Initial Rotation",      [] { return UParticleModuleRotation::StaticClass(); } },
 		{ "Rotation Rate", "Initial Rotation Rate", [] { return UParticleModuleRotationRate::StaticClass(); } },
 		{ "Size",          "Initial Size",          [] { return UParticleModuleSize::StaticClass(); } },
+		{ "Size",          "Size By Speed",         [] { return UParticleModuleSizeScaleBySpeed::StaticClass(); } },
 		{ "Velocity",      "Initial Velocity",      [] { return UParticleModuleVelocity::StaticClass(); } },
 	};
 
@@ -68,6 +70,7 @@ namespace
 		{ "UParticleModuleTypeDataMesh",  "Mesh Data" },
 		{ "UParticleModuleAccelerationConstant", "Const Acceleration" },
 		{ "UParticleModuleAttractorPoint", "Point Attractor" },
+		{ "UParticleModuleSizeScaleBySpeed", "Size By Speed" },
 	};
 
 	// 표에 없는 새 모듈은 클래스 이름에서 공통 접두사만 떼어 보여 준다. (UParticleModuleDrag → Drag)
