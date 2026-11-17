@@ -141,6 +141,12 @@ void FParticleEmitterInstance::SetCurrentLODIndex(int32 LODIndex)
 		EmitterLoops = Required->EmitterLoops;
 	}
 
+	if (EmitterDuration > 0.0f && EmitterTime >= EmitterDuration)
+	{
+		EmitterTime = std::fmod(EmitterTime, EmitterDuration);
+		PrevEmitterTime = EmitterTime;
+	}
+
 	if (!CurrentLODLevel->bEnabled)
 	{
 		KillParticlesForced();

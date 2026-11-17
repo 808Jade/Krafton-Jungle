@@ -536,6 +536,7 @@ UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
 	Emitter->LODLevels.Add(BuildDefaultParticleLODLevel(Emitter, 1, bMesh, 5.0f,
 		FLinearColor(0.1f, 0.4f, 1.0f, 1.0f), FLinearColor(0.3f, 0.9f, 1.0f, 1.0f)));
 	System->Emitters.Add(Emitter);
+	System->LODDistances = { 0.0f, 25.0f };
 
 	return System;
 }

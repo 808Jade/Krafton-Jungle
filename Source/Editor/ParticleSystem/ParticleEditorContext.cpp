@@ -119,6 +119,8 @@ void FParticleEditorContext::SetCurrentLOD(const int32 NewLODIndex)
 	UParticleSystemComponent* ParticleSystemComponent = GetPreviewComponent();
 	if (ParticleSystemComponent)
 	{
+		ParticleSystemComponent->bOverrideLODMethod = true;
+		ParticleSystemComponent->LODMethod = EParticleSystemLODMethod::DirectSet;
 		ParticleSystemComponent->SetLODLevel(CurrentLODIndex);
 	}
 }

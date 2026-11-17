@@ -25,9 +25,13 @@ public:
 	bool HasCompleted() const;
 	void PostApplyProperties(const FProperty* ChangedProperty = nullptr) override;
 	void SetLODLevel(int32 InLODLevel);
+	int32 GetLODLevel() const { return LODLevel; }
+	int32 DetermineLODLevelForLocation(const FVector& EffectLocation);
+	EParticleSystemLODMethod GetCurrentLODMethod() const;
 
 private:
 	bool GetEmitterBoundingBox(FBox& OutBoundingBox) const;
+	int32 ClampLODLevel(int32 InLODLevel) const;
 
 	void InitializeMeshInstancingTest();
 
@@ -40,6 +44,9 @@ public:
 	float CustomTimeDilation = 1.0f;
 
 	int32	LODLevel = 0;
+	float	AccumLODDistanceCheckTime = 0.0f;
+	bool	bOverrideLODMethod = false;
+	EParticleSystemLODMethod LODMethod = EParticleSystemLODMethod::Automatic;
 
 	// 테스트/디버깅 용
 	bool	bMeshInstancingTest = true;
