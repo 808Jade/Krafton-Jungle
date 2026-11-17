@@ -119,9 +119,9 @@ FParticleEditorContext::~FParticleEditorContext()
 	Release();
 }
 
-bool FParticleEditorContext::Init()
+bool FParticleEditorContext::Init(const FName WorldName)
 {
-	PreviewScene = MakeUnique<FPreviewScene>("ParticlePreviewWorld");
+	PreviewScene = MakeUnique<FPreviewScene>(WorldName);
 	if (!PreviewScene->GetWorld())
 		return false;
 
@@ -594,7 +594,7 @@ int32 FParticleEditorContext::AddSpriteEmitter()
 	UParticleModuleColor* Color = NewObject<UParticleModuleColor>(LODLevel);
 	Color->StartColor = FParticleColorRange(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
 	Color->bUseColorOverLife = true;
-	Color->EndColor = FLinearColor(1.0f, 1.0f, 1.0f, 0.0f);
+	Color->SetFadeOut();
 
 	LODLevel->RequiredModule = Required;
 	LODLevel->Modules.Add(Spawn);

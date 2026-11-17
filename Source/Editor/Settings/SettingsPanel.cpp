@@ -1,6 +1,6 @@
 #include "EnginePCH.h"
 #include "Editor/Settings/SettingsPanel.h"
-#include "Editor/LevelEditor/MultipleViewports/Adapter/MultipleViewportsAdapter.h"
+#include "Editor/Viewports/ViewportsPanel.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "Render/Renderer.h"
@@ -14,7 +14,7 @@
 FSettingsPanel::~FSettingsPanel()
 {
 	// 종료 시 다른 객체를 참조하지 않고 보존한 설정만 저장한다.
-	ViewportAdapter = nullptr;
+	LevelViewports = nullptr;
 	SaveSettings();
 }
 
@@ -318,9 +318,9 @@ bool FSettingsPanel::LoadSettings()
 }
 
 // 초기화된 카메라에 파일 설정을 적용하고 미저장 값은 초기 설정으로 채운다.
-void FSettingsPanel::SetViewportAdapter(FMultipleViewportsAdapter* Value)
+void FSettingsPanel::SetViewportsPanel(FViewportsPanel* Value)
 {
-    ViewportAdapter = Value;
+    LevelViewports = Value;
     ApplyViewportSettings();
     CaptureViewportSettings();
 }
@@ -328,17 +328,17 @@ void FSettingsPanel::SetViewportAdapter(FMultipleViewportsAdapter* Value)
 // Transform·투영·표시·레이아웃을 저장용 설정에 복사한다.
 void FSettingsPanel::ReadViewportSettings(FEditorSettings& Out) const
 {
-    if (!ViewportAdapter) return;
-    Out.MultipleViewportsHorizontal = ViewportAdapter->GetSplitRatio().Horizontal;
-    Out.MultipleViewportsVertical = ViewportAdapter->GetSplitRatio().Vertical;
-    Out.bMultipleViewportsSingle = ViewportAdapter->GetLayoutMode() == ELayoutMode::Single;
-    Out.MultipleViewportsSingleViewIndex = ViewportAdapter->GetSingleViewIndex();
+    if (!LevelViewports) return;
+    Out.MultipleViewportsHorizontal = LevelViewports->GetSplitRatio().Horizontal;
+    Out.MultipleViewportsVertical = LevelViewports->GetSplitRatio().Vertical;
+    Out.bMultipleViewportsSingle = LevelViewports->GetLayoutMode() == ELayoutMode::Single;
+    Out.MultipleViewportsSingleViewIndex = LevelViewports->GetSingleViewIndex();
     for (int32 Index = 0; Index < 4; ++Index)
     {
-        const auto& Camera = ViewportAdapter->GetViewCamera(Index);
+        const auto& Camera = LevelViewports->GetViewCamera(Index);
         Out.ViewFov[Index] = Camera.Projection.FovDegrees;
         Out.ViewOrthoWidth[Index] = Camera.Projection.OrthoWidth;
-        Out.ViewPreset[Index] = static_cast<int32>(ViewportAdapter->GetCameraPreset(Index));
+        Out.ViewPreset[Index] = static_cast<int32>(LevelViewports->GetCameraPreset(Index));
         Out.ViewLocation[Index] = Camera.Transform.Location;
         Out.ViewRotation[Index] = Camera.Transform.Rotation;
         Out.bViewLocationSaved[Index] = true;
@@ -352,19 +352,19 @@ void FSettingsPanel::CaptureViewportSettings() { ReadViewportSettings(Settings);
 // 저장 프리셋·투영·표시를 슬롯별로 복원하며 구형 ini는 초기값과 공통 Wireframe을 사용한다.
 void FSettingsPanel::ApplyViewportSettings()
 {
-    if (!ViewportAdapter) return;
-    ViewportAdapter->SetSplitRatio({Settings.MultipleViewportsHorizontal, Settings.MultipleViewportsVertical});
-    ViewportAdapter->SetSingleViewIndex(Settings.MultipleViewportsSingleViewIndex);
-    ViewportAdapter->SetLayoutMode(Settings.bMultipleViewportsSingle ? ELayoutMode::Single : ELayoutMode::QuadSplit);
+    if (!LevelViewports) return;
+    LevelViewports->SetSplitRatio({Settings.MultipleViewportsHorizontal, Settings.MultipleViewportsVertical});
+    LevelViewports->SetSingleViewIndex(Settings.MultipleViewportsSingleViewIndex);
+    LevelViewports->SetLayoutMode(Settings.bMultipleViewportsSingle ? ELayoutMode::Single : ELayoutMode::QuadSplit);
     for (int32 Index = 0; Index < 4; ++Index)
     {
         if (Settings.ViewPreset[Index] >= 0 && Settings.ViewPreset[Index] <= 7)
-            ViewportAdapter->ApplyCameraPreset(Index, static_cast<EMultipleViewportsCameraPreset>(Settings.ViewPreset[Index]));
-        FViewCamera Camera = ViewportAdapter->GetViewCamera(Index);
+            LevelViewports->ApplyCameraPreset(Index, static_cast<EMultipleViewportsCameraPreset>(Settings.ViewPreset[Index]));
+        FViewCamera Camera = LevelViewports->GetViewCamera(Index);
         if (Settings.ViewFov[Index] > 0) Camera.Projection.FovDegrees = Settings.ViewFov[Index];
         if (Settings.ViewOrthoWidth[Index] > 0) Camera.Projection.OrthoWidth = Settings.ViewOrthoWidth[Index];
         if (Settings.bViewLocationSaved[Index]) Camera.Transform.Location = Settings.ViewLocation[Index];
         if (Settings.bViewRotationSaved[Index]) Camera.Transform.Rotation = Settings.ViewRotation[Index];
-        ViewportAdapter->ApplyCameraProperties(Index, Camera, false);
+        LevelViewports->ApplyCameraProperties(Index, Camera, false);
     }
 }

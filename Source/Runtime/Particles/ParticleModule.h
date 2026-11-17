@@ -3,6 +3,7 @@
 #include "UObject/Object.h"
 #include "UObject/Class.h"
 #include "Particles/ParticleTypes.h"
+#include "Particles/ParticleCurve.h"
 
 struct FParticleEmitterInstance;
 
@@ -59,6 +60,9 @@ public:
 	{
 		return true;
 	}
+
+	// 커브 에디터에서 편집할 커브를 내놓는다. 커브가 없는 모듈은 아무것도 넣지 않는다.
+	virtual void GetCurves(TArray<FParticleCurveRef>& OutCurves) {}
 
 	bool bEnabled = true;
 };

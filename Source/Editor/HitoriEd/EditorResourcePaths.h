@@ -22,4 +22,7 @@ namespace EditorResourcePaths
 
 	// 파티클 시스템 에디터 툴바 아이콘 폴더. 파일 이름은 "<이름>.png"다. (예: RestartSim.png)
 	constexpr const char* ParticleEditorIconFolder = "Resources/Icons/ParticleEditor/";
+
+	// 커브 에디터 툴바 아이콘 폴더. 파일 이름은 "<이름>.png"다. (예: FitHorizontal.png)
+	constexpr const char* CurveEditorIconFolder = "Resources/Icons/CurveEditor/";
 }

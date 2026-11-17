@@ -9,6 +9,7 @@
 #include "Render/Swapchain.h"
 #include "Editor/EditorUI/ImGuiRenderer.h"
 #include "Editor/Rendering/GridRenderer.h"
+#include "Editor/Rendering/SkeletonRenderer.h"
 #include "Editor/Gizmo/GizmoRenderer.h"
 #include "Render/LineBatcher.h"
 #include "Render/FogRenderer.h"
@@ -29,7 +30,7 @@
 #include "Editor/EditorControls/EditorControlsPanel.h"
 #include "Editor/Settings/SettingsPanel.h"
 #include "Editor/Viewports/ViewportsPanel.h"
-#include "Editor/LevelEditor/MultipleViewports/Adapter/MultipleViewportsAdapter.h"
+#include "Editor/SkeletalMeshViewer/SkeletalMeshViewerTab.h"
 #include "Editor/HitoriEd/EditorSceneView.h"
 #include "Editor/ContentDrawer/ContentDrawerPanel.h"
 
@@ -48,11 +49,12 @@
 #include "Text/Font.h"
 #include "Text/TextRenderer.h"
 
-class FSkeletalMeshViewerPanel;
+class FSkeletalMeshViewerTab;
+class USkeletalMesh;
 class FBlendSpaceEditorPanel;
 class FStateMachineEditorPanel;
 class FAnimGraphEditorPanel;
-class FParticleSystemEditorPanel;
+class UParticleSystem;
 
 class UEditorEngine : public UEngine
 {
@@ -102,13 +104,17 @@ private:
 	bool ExecShadowResolutionCommand(const FString& CommandLine, FString& OutMessage);
 	// 이번 프레임 DeltaTime을 패널에 전달하고 에디터 단축키를 처리한다.
 	void BeginFrame(float DeltaTime);
-	// 패널 요청과 입력을 Core Adapter에 전달해 레이아웃·카메라 상태를 갱신한다.
+	// 패널의 레이아웃·Preset 요청과 카메라 입력을 레벨 View에 반영한다.
 	void UpdateMultipleViewportState(float DeltaTime);
 	// 월드를 정확히 한 번 Tick·Capture한 뒤 에디터 상호작용을 갱신한다.
 	void TickWorldAndEditor(float DeltaTime);
-	// 한 번 캡처한 월드 결과를 재사용해 현재 레이아웃의 각 View를 렌더한다.
-	void RenderMultipleViewports();
-	// PIE View가 PlayWorld 메인 카메라로 보이도록 Adapter Override를 갱신하고 게임 카메라 입력을 켜고 끈다.
+	// 보이는 탭이 내놓은 화면(레벨 View·에셋 에디터 프리뷰)과 별도 PIE 창을 한 경로로 그린다.
+	void RenderAllViews();
+	// 레벨 View 하나를 RenderAllViews의 입력 형식으로 만든다.
+	FEditorTabView MakeLevelTabView(const FViewport& Viewport) const;
+	// 레벨 탭의 CollectViews가 부른다. 그릴 수 있는 패널 View만 넣는다.
+	void CollectLevelViews(TArray<FEditorTabView>& OutViews) const;
+	// PIE View가 PlayWorld 메인 카메라로 보이도록 카메라 Override를 갱신하고 게임 카메라 입력을 켜고 끈다.
 	void UpdatePIEViewCamera();
 
 	// 별도 PIE 창(New Editor Window)을 만들고 정리한다.
@@ -119,10 +125,6 @@ private:
 	// PIE 창의 오프스크린 결과를 백버퍼로 복사한다. Present는 EndFrame에서 한다.
 	void CopyPIEWindowToBackbuffer();
 	bool IsPIEInWindow() const { return PIEWindow != nullptr; }
-	// View별 FXAA 임시 텍스처. 외부 View는 PIE 창 타깃을 쓴다.
-	FTexture2D* GetFxaaTargetForView(int32 ViewIndex) const;
-	// View별 HDR 임시 텍스처. 외부 View는 PIE 창 타깃을 쓴다.
-	FTexture2D* GetHDRTargetForView(int32 ViewIndex) const;
 	// 화면 합성과 View 설정 보관으로 프레임을 마무리한다.
 	void EndFrame();
 
@@ -141,10 +143,22 @@ private:
 	//ToneMap Pass
 	void RenderToneMapPass(const FEditorSceneView& View, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo);
 
-	// 패널 View(0~3)와 외부 PIE View의 상태를 Adapter에서 모아 RenderFrame 입력으로 만든다.
-	FEditorSceneView MakeLevelSceneView(int32 ViewIndex) const;
-	// 파티클 에디터의 프리뷰 월드를 패널 소유 타깃에 그린다. 레벨 View와 같은 RenderFrame을 쓴다.
-	void RenderParticlePreview();
+	// 레벨 View(패널 넷과 별도 PIE 창)의 상태와 타깃을 RenderFrame 입력 하나로 묶는다.
+	FEditorSceneView MakeLevelSceneView(const FViewport& Viewport) const;
+	// 그림자 View ID로 레벨 View(패널 넷과 별도 PIE 창)를 찾는다. 없으면 nullptr이다.
+	FViewport* FindLevelViewportByShadowId(uint32 ShadowViewId);
+	// 이번 프레임에 그릴 수 있는 레벨 View인가. 별도 PIE 창 View는 게임 카메라가 있어야 한다.
+	bool IsLevelViewRenderable(const FViewport& Viewport) const;
+
+	// 파티클 에디터 탭을 연다. 같은 에셋을 편집 중인 탭이 있으면 새로 만들지 않고 그 탭을 앞으로 가져온다.
+	void OpenParticleSystemEditor(UParticleSystem* Asset);
+	// 콘텐츠 드로어의 .particle 더블클릭. 파일을 불러온 뒤 OpenParticleSystemEditor로 넘긴다.
+	void OpenParticleSystemFile(const FString& Path);
+	// 스켈레탈 메시 뷰어 탭을 연다. 같은 메시를 보고 있는 탭이 있으면 그 탭을 띄운다. Mesh가 nullptr이면 빈 뷰어 탭을 연다.
+	void OpenSkeletalMeshViewer(USkeletalMesh* Mesh);
+	// 콘텐츠 드로어의 FBX 더블클릭. 스켈레탈 메시가 있으면 그 탭을 연다.
+	void OpenSkeletalMeshFile(const FString& Path);
+	// 공유 뷰어(State Machine 미리보기)를 보여 주는 Animation Preview 탭을 연다.
 
 	//Icon Pass
 	void RenderIconPass(int32 ViewIndex, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward, FRenderQueue& RenderIconQueue, FRenderQueue& ArrowQueue);
@@ -153,9 +167,9 @@ private:
 	FWorldContext* GetPIEWorldContext(int32 WorldPIEInstance = 0);
 	UWorld* GetActiveWorld() const { return PlayWorld ? PlayWorld : EditorWorld; }
 	// PIE를 시작한 View만 PlayWorld를, 나머지 View는 EditorWorld를 그린다.
-	UWorld* GetWorldForView(int32 ViewIndex) const { return PlayWorld && ViewIndex == PIEViewIndex ? PlayWorld : EditorWorld; }
+	UWorld* GetWorldForView(const FViewport* Viewport) const { return PlayWorld && Viewport && Viewport == PIEViewport ? PlayWorld : EditorWorld; }
 	// PIE 중이고 일시정지가 아닌 View는 Gizmo·Picking 등 에디터 상호작용을 하지 않는다.
-	bool IsPlayingView(int32 ViewIndex) const { return PlayWorld && ViewIndex == PIEViewIndex && !bIsPaused; }
+	bool IsPlayingView(const FViewport* Viewport) const { return PlayWorld && Viewport && Viewport == PIEViewport && !bIsPaused; }
 
 	// FEngineLoop 소유. OnInit에서 받아 둔다.
 	FWindow* MainWindow = nullptr;
@@ -167,6 +181,8 @@ private:
 	TUniquePtr<FImGuiRenderer> ImGuiRenderer;
 	TUniquePtr<FGridRenderer> GridRenderer;
 	TUniquePtr<FGizmoRenderer> GizmoRenderer;
+	// 소유(합성): 스켈레탈 프리뷰 View의 본을 그린다. (예전에는 스켈레탈 뷰어가 직접 그렸다)
+	TUniquePtr<FSkeletonRenderer> SkeletonRenderer;
 	TUniquePtr<FTextRenderer> TextRenderer;
 	TUniquePtr<FFogRenderer> FogRenderer;
 	TUniquePtr<FDecalRenderer> DecalRenderer;
@@ -192,7 +208,8 @@ private:
 	FEditorControlsPanel* EditorControlsPanel = nullptr;
 	FSettingsPanel* SettingsPanel = nullptr;
 	FViewportsPanel* ViewportsPanel = nullptr;
-	FMultipleViewportsAdapter MultipleViewportsAdapter;
+	// 소유(합성): 별도 PIE 창의 View. 타깃은 PIE 창 쪽(PIEColorTarget 등)을 빌려 쓴다.
+	FViewport ExternalPIEViewport{ ExternalPIEShadowViewId };
 	FRenderQueue RenderQueue;
 	FRenderQueue IconQueue;		// Light Icon Queue
 	FRenderQueue ArrowQueue;
@@ -201,13 +218,13 @@ private:
 	FBlendSpaceEditorPanel* BlendSpaceEditorPanel = nullptr;
  FAnimGraphEditorPanel* AnimGraphEditorPanel = nullptr;
  FStateMachineEditorPanel* StateMachineEditorPanel = nullptr;
-	FSkeletalMeshViewerPanel* SkeletalMeshViewerPanel = nullptr;
-	FParticleSystemEditorPanel* ParticleSystemEditorPanel = nullptr;
+	// 참조(집약): State Machine·AnimGraph 에디터가 쓰는 애니메이션 미리보기 탭. EditorUI가 소유하고, 닫아도 숨기기만 한다.
+	FSkeletalMeshViewerTab* AnimationPreviewTab = nullptr;
 
 	UWorld* EditorWorld = nullptr;
 	UWorld* PlayWorld = nullptr;
-	// PIE 시작 시점의 편집 View. 별도 창이면 Adapter의 ExternalViewIndex다. PIE가 아니면 InvalidViewIndex다.
-	int32 PIEViewIndex = InvalidViewIndex;
+	// 참조(집약): PlayWorld를 그리는 View. 패널 View 하나이거나 ExternalPIEViewport다. PIE가 아니면 nullptr이다.
+	FViewport* PIEViewport = nullptr;
 
 	// Play 버튼이 다음 세션을 띄울 위치
 	EPlayModeType PlayMode = EPlayModeType::InViewport;
