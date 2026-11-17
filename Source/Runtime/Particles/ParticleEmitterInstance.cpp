@@ -174,7 +174,7 @@ void FParticleEmitterInstance::UpdateTransforms()
 
 void FParticleEmitterInstance::Spawn(float DeltaTime)
 {
-	const UParticleModuleSpawn* SpawnModule = SpriteTemplate ? SpriteTemplate->SpawnModule : nullptr;
+	const UParticleModuleSpawn* SpawnModule = CurrentLODLevel ? CurrentLODLevel->SpawnModule : nullptr;
 	if (bEmitterIsDone || bHaltSpawning || !SpawnModule || !SpawnModule->bEnabled)
 	{
 		return;
@@ -197,7 +197,11 @@ void FParticleEmitterInstance::Spawn(float DeltaTime)
 
 void FParticleEmitterInstance::UpdateModules(float DeltaTime)
 {
-	for (UParticleModule* UpdateModule : SpriteTemplate->UpdateModules)
+	if (!CurrentLODLevel)
+	{
+		return;
+	}
+	for (UParticleModule* UpdateModule : CurrentLODLevel->UpdateModules)
 	{
 		if (!UpdateModule || !UpdateModule->bEnabled)
 		{
@@ -253,14 +257,17 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
 		SpawnTime = StartTime - Increment * Index;
 		PreSpawn(Particle, InitialLocation, InitialVelocity);
 
-		for (UParticleModule* SpawnModule : SpriteTemplate->SpawnModules)
+		if (CurrentLODLevel)
 		{
-			if (!SpawnModule || !SpawnModule->bEnabled)
+			for (UParticleModule* SpawnModule : CurrentLODLevel->SpawnModules)
 			{
-				continue;
+				if (!SpawnModule || !SpawnModule->bEnabled)
+				{
+					continue;
+				}
+				const int32* Offset = SpriteTemplate->ModuleOffsetMap.Find(SpawnModule);
+				SpawnModule->Spawn(*this, Offset ? *Offset : 0, SpawnTime, *Particle);
 			}
-			const int32* Offset = SpriteTemplate->ModuleOffsetMap.Find(SpawnModule);
-			SpawnModule->Spawn(*this, Offset ? *Offset : 0, SpawnTime, *Particle);
 		}
 		
 		PostSpawn(Particle, InterpolationPercentage, SpawnTime);

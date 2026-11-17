@@ -6,6 +6,7 @@
 class UParticleModule;
 class UParticleModuleRequired;
 class UParticleModuleTypeDataBase;
+class UParticleModuleSpawn;
 
 // 에미터의 LOD 한 단계. 현재는 Level 0만 실제로 사용한다.
 class UParticleLODLevel : public UObject
@@ -15,6 +16,8 @@ class UParticleLODLevel : public UObject
 public:
 	UParticleLODLevel() = default;
 	~UParticleLODLevel() override = default;
+
+	int32 CalculateMaxActiveParticleCount() const;
 
 	int32 Level = 0;
 	bool bEnabled = true;
@@ -27,4 +30,9 @@ public:
 
 	// 없으면 Sprite 에미터.
 	UParticleModuleTypeDataBase* TypeDataModule = nullptr;
+
+	TArray<UParticleModule*>	SpawnModules;
+	TArray<UParticleModule*>	UpdateModules;
+	UParticleModuleSpawn*		SpawnModule = nullptr;
+	bool						bModuleLayoutValid = false;
 };
