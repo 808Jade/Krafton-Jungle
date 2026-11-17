@@ -2,9 +2,8 @@
 
 #include "PrimitiveComponent.h"
 #include "Particles/ParticleEmitterInstance.h"
+#include "Particles/ParticleSystem.h"
 #include "ParticleSystemComponent.generated.h"
-
-class UParticleSystem;
 
  UCLASS()
 class UParticleSystemComponent : public UPrimitiveComponent
@@ -24,6 +23,7 @@ public:
 	void DeactivateSystem();
 	void ResetSystem();
 	bool HasCompleted() const;
+	void PostApplyProperties(const FProperty* ChangedProperty = nullptr) override;
 
 private:
 	bool GetEmitterBoundingBox(FBox& OutBoundingBox) const;
@@ -32,9 +32,11 @@ private:
 
 public:
 	TArray<FParticleEmitterInstance*> EmitterInstances;
-	bool bUseFixedRelativeBoundingBox = false;
-	FBox FixedRelativeBoundingBox{ FVector(-1.0f, -1.0f, -1.0f), FVector(1.0f, 1.0f, 1.0f) };
+	UPROPERTY(EditAnywhere)
 	UParticleSystem* Template = nullptr;
+
+	UPROPERTY(EditAnywhere)
+	float CustomTimeDilation = 1.0f;
 
 	// 테스트/디버깅 용
 	bool bMeshInstancingTest = true;

@@ -10,6 +10,7 @@
 
 class UStaticMesh;
 class USkeletalMesh;
+class UParticleSystem;
 class FShader;
 class UAnimSequence;
 class UBlendSpace1D;
@@ -57,6 +58,7 @@ public:
 	void CreateDefaultMaterial();
 	void CreateDefaultParticleMaterial();
 	void CreateDefaultParticleSystem();
+	UParticleSystem* BuildDefaultParticleSystem(bool bMesh);
 	void CreateParticleMaterial();
 	void CreateEditorArrowMaterial();
 

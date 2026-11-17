@@ -513,6 +513,12 @@ void UAssetManager::CreateDefaultParticleMaterial()
 
 void UAssetManager::CreateDefaultParticleSystem()
 {
+	RegisterAsset("DefaultParticleSystem", BuildDefaultParticleSystem(false));
+	RegisterAsset("DefaultMeshParticleSystem", BuildDefaultParticleSystem(true));
+}
+
+UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
+{
 	UParticleSystem* System = NewObject<UParticleSystem>();
 	UParticleEmitter* Emitter = NewObject<UParticleEmitter>(System);
 	UParticleLODLevel* LODLevel = NewObject<UParticleLODLevel>(Emitter);
@@ -521,10 +527,10 @@ void UAssetManager::CreateDefaultParticleSystem()
 	Required->Material = nullptr;
 	Required->bUseLocalSpace = false;
 	Required->SortMode = EParticleSortMode::None;
-	Required->ScreenAlignment = EParticleScreenAlignment::Velocity;
 	Required->EmitterDuration = 1.0f;
 	Required->EmitterLoops = 0;
 	Required->MaxActiveParticles = 200;
+	Required->ScreenAlignment = EParticleScreenAlignment::Velocity;
 
 	UParticleModuleSpawn* Spawn = NewObject<UParticleModuleSpawn>(LODLevel);
 	Spawn->SpawnRate = 20.0f;
@@ -554,17 +560,17 @@ void UAssetManager::CreateDefaultParticleSystem()
 	LODLevel->Modules.Add(Size);
 	LODLevel->Modules.Add(Color);
 	
-	//Mesh
-	UParticleModuleTypeDataMesh* MeshTypeData = NewObject<UParticleModuleTypeDataMesh>(LODLevel);
-	MeshTypeData->Mesh = GetAssetByPath<UStaticMesh>("Cube");
-	LODLevel->TypeDataModule = MeshTypeData;
-	//Sprite
-	//LODLevel->TypeDataModule = nullptr;
+	if (bMesh)
+	{
+		UParticleModuleTypeDataMesh* MeshTypeData = NewObject<UParticleModuleTypeDataMesh>(LODLevel);
+		MeshTypeData->Mesh = GetAssetByPath<UStaticMesh>("Cube");
+		LODLevel->TypeDataModule = MeshTypeData;
+	}
 
 	Emitter->LODLevels.Add(LODLevel);
 	System->Emitters.Add(Emitter);
 
-	RegisterAsset("DefaultParticleSystem", System);
+	return System;
 }
 
 void UAssetManager::CreateParticleMaterial()

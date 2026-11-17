@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Asset/RenderAsset.h"
+#include "Math/Box.h"
 
 class UParticleEmitter;
 
@@ -14,4 +15,6 @@ public:
 	~UParticleSystem() override = default;
 
 	TArray<UParticleEmitter*> Emitters;
+	bool bUseFixedRelativeBoundingBox = false;
+	FBox FixedRelativeBoundingBox{ FVector(-1.0f, -1.0f, -1.0f), FVector(1.0f, 1.0f, 1.0f) };
 };

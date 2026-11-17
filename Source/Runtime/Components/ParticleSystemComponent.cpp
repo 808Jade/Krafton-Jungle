@@ -25,6 +25,8 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 {
 	Super::TickComponent(DeltaTime);
 
+	DeltaTime *= CustomTimeDilation;
+
 	if (IsActive() && Template && EmitterInstances.IsEmpty())
 	{
 		InitParticles();
@@ -37,7 +39,8 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 
 	FPrimitiveSceneProxy* Proxy = GetSceneProxy();
 	FBox NewBox{};
-	if (!bUseFixedRelativeBoundingBox && Proxy && GetEmitterBoundingBox(NewBox))
+	const bool bUseFixedBounds = Template && Template->bUseFixedRelativeBoundingBox;
+	if (!bUseFixedBounds && Proxy && GetEmitterBoundingBox(NewBox))
 	{
 		const FAABB& Current = Proxy->GetBounds();
 		const FVector CurrentMin = Current.Center - Current.Extent;
@@ -56,9 +59,9 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 
 FBox UParticleSystemComponent::CalcBounds() const
 {
-	if (bUseFixedRelativeBoundingBox)
+	if (Template && Template->bUseFixedRelativeBoundingBox)
 	{
-		return FixedRelativeBoundingBox.GetWorldAABB(GetWorldMatrix());
+		return Template->FixedRelativeBoundingBox.GetWorldAABB(GetWorldMatrix());
 	}
 
 	FBox BoundingBox{};
@@ -198,13 +201,6 @@ void UParticleSystemComponent::InitializeMeshInstancingTest()
 
 	EmitterInstances.Add(Emitter);
 
-	// 초기 테스트는 충분히 큰 고정 Bounds를 사용.
-	bUseFixedRelativeBoundingBox = true;
-	FixedRelativeBoundingBox = FBox{
-		FVector(-5.0f, -5.0f, -5.0f),
-		FVector(25.0f, 25.0f, 25.0f)
-	};
-
 	SetReceiveShadow(true);
 	SetCastShadow(true);
 	SetReceiveDecal(true);
@@ -261,6 +257,21 @@ void UParticleSystemComponent::SetTemplate(UParticleSystem* InTemplate)
 {
 	ResetParticles();
 	Template = InTemplate;
+}
+
+void UParticleSystemComponent::PostApplyProperties(const FProperty* ChangedProperty)
+{
+	Super::PostApplyProperties(ChangedProperty);
+
+	if (ChangedProperty && ChangedProperty->Name == FName("Template"))
+	{
+		ResetParticles();
+		if (IsActive() && Template)
+		{
+			InitParticles();
+		}
+		OnTransformDirty();
+	}
 }
 
 void UParticleSystemComponent::SetActive(bool bNewActive)

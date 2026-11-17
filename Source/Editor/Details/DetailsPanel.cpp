@@ -31,6 +31,7 @@
 #include "Render/Renderer.h"
 #include "Render/ShadowSettings.h"
 #include "Text/Font.h"
+#include "Particles/ParticleSystem.h"
 #include "UObject/UObjectIterator.h"
 #include "GameFramework/Actor.h"
 #include "Core/EngineLog.h"
@@ -344,6 +345,58 @@ namespace
 		}
 		if (Items.IsEmpty()) ImGui::TextDisabled("No skeletal meshes loaded");
 		ImGui::EndCombo();
+	}
+
+	bool DrawParticleSystemSlot(UParticleSystem*& InOutValue)
+	{
+		UParticleSystem* Current = InOutValue;
+		const FString CurrentPath = Current ? Current->GetPath() : "";
+		const FString CurrentName = Current ? GetAssetDisplayName(CurrentPath) : "None";
+		ImGui::SetNextItemWidth(-1.0f);
+		const bool bOpen = ImGui::BeginCombo("##ParticleSystem", CurrentName.c_str());
+		if (ImGui::IsItemHovered() && Current)
+			ImGui::SetTooltip("%s", CurrentPath.c_str());
+		if (!bOpen) return false;
+
+		bool bChanged = false;
+		if (ImGui::Selectable("None", Current == nullptr) && Current)
+		{
+			InOutValue = nullptr;
+			bChanged = true;
+		}
+
+		struct FParticleSystemItem
+		{
+			FString DisplayName;
+			FString Path;
+			UParticleSystem* System;
+		};
+		TArray<FParticleSystemItem> Items;
+		for (TObjectIterator<UParticleSystem> Itr; Itr; ++Itr)
+		{
+			const FString Path = Itr->GetPath();
+			if (!Path.empty()) Items.Add({ GetAssetDisplayName(Path), Path, *Itr });
+		}
+		std::sort(Items.begin(), Items.end(), [](const FParticleSystemItem& A, const FParticleSystemItem& B)
+		{
+			return _stricmp(A.DisplayName.c_str(), B.DisplayName.c_str()) < 0;
+		});
+		for (const FParticleSystemItem& Item : Items)
+		{
+			ImGui::PushID(Item.System);
+			const bool bSelected = Item.System == Current;
+			if (ImGui::Selectable(Item.DisplayName.c_str(), bSelected) && !bSelected)
+			{
+				InOutValue = Item.System;
+				bChanged = true;
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", Item.Path.c_str());
+			if (bSelected) ImGui::SetItemDefaultFocus();
+			ImGui::PopID();
+		}
+		if (Items.IsEmpty()) ImGui::TextDisabled("No particle systems loaded");
+		ImGui::EndCombo();
+		return bChanged;
 	}
 
 	void DrawScriptComponentActions(UScriptComponent& ScriptComponent)
@@ -1243,6 +1296,14 @@ void FDetailsPanel::DrawProperty(UObject* Object, const FProperty& Property, ImF
 		else if (Property.Class == USkeletalMesh::StaticClass())
 		{
 			DrawSkeletalMeshSlot(Object, static_cast<USkeletalMesh**>(ValuePtr));
+		}
+		else if (Property.Class == UParticleSystem::StaticClass())
+		{
+			UParticleSystem* Value = static_cast<UParticleSystem*>(Property.GetObjectPropertyValue(ValuePtr));
+			if (DrawParticleSystemSlot(Value))
+			{
+				Object->ApplyObjectPropertyValue(Property.Name, Value);
+			}
 		}
 		break;
 
