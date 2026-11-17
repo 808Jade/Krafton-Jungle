@@ -25,6 +25,8 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 {
 	Super::TickComponent(DeltaTime);
 
+	DeltaTime *= CustomTimeDilation;
+
 	if (IsActive() && Template && EmitterInstances.IsEmpty())
 	{
 		InitParticles();
@@ -261,6 +263,21 @@ void UParticleSystemComponent::SetTemplate(UParticleSystem* InTemplate)
 {
 	ResetParticles();
 	Template = InTemplate;
+}
+
+void UParticleSystemComponent::PostApplyProperties(const FProperty* ChangedProperty)
+{
+	Super::PostApplyProperties(ChangedProperty);
+
+	if (ChangedProperty && ChangedProperty->Name == FName("Template"))
+	{
+		ResetParticles();
+		if (IsActive() && Template)
+		{
+			InitParticles();
+		}
+		OnTransformDirty();
+	}
 }
 
 void UParticleSystemComponent::SetActive(bool bNewActive)
