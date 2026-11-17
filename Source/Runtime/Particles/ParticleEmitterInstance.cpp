@@ -30,9 +30,35 @@
 
 namespace
 {
+	FVector GetTimedNoiseOffset(
+	    const FBeamNoisePayload& Noise,
+	    int32 Index,
+	    float UpdateInterval)
+	{
+		if (UpdateInterval <= 0.0f)
+		{
+			return Noise.FromOffsets[Index];
+		}
+
+		const float Interval =
+		    std::max(UpdateInterval, 0.01f);
+
+		float Alpha = std::clamp(
+		    Noise.Elapsed / Interval,
+		    0.0f,
+		    1.0f);
+
+		// Smoothstep: 시간 구간 경계에서 변화 속도를 부드럽게.
+		Alpha = Alpha * Alpha * (3.0f - 2.0f * Alpha);
+
+		return Noise.FromOffsets[Index] * (1.0f - Alpha) +
+		       Noise.ToOffsets[Index] * Alpha;
+	}
+
 	FVector SampleBeamNoise(
 	    const FBeamNoisePayload& Noise,
-	    float T)
+	    float T,
+	    float UpdateInterval)
 	{
 		const int32 Count = Noise.SegmentCount;
 
@@ -46,8 +72,13 @@ namespace
 
 		const float Alpha = X - static_cast<float>(Index);
 
-		return Noise.FromOffsets[Index] * (1.0f - Alpha) +
-		       Noise.FromOffsets[Index + 1] * Alpha;
+		const FVector A =
+		    GetTimedNoiseOffset(Noise, Index, UpdateInterval);
+
+		const FVector B =
+		    GetTimedNoiseOffset(Noise, Index + 1, UpdateInterval);
+
+		return A * (1.0f - Alpha) + B * Alpha;
 	}
 }
 
@@ -839,7 +870,7 @@ void FParticleBeamEmitterInstance::BuildBeamPoints(
 		// 끝점을 정확히 유지한다.
 		if (bUseNoise && Index > 0 && Index < SegmentCount)
 		{
-			const FVector Offset = SampleBeamNoise(Noise, T);
+			const FVector Offset = SampleBeamNoise(Noise, T, NoiseModule->UpdateInterval);
 
 			Position +=
 			    (AxisU * Offset.X + AxisV * Offset.Y) *

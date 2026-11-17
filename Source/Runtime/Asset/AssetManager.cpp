@@ -35,6 +35,7 @@
 #include "Particles/Modules/ParticleModuleTypeDataBeam.h"
 #include "Particles/Modules/ParticleModuleBeamSource.h"
 #include "Particles/Modules/ParticleModuleBeamTarget.h"
+#include "Particles/Modules/ParticleModuleBeamNoise.h"
 
 #include "Render/ImageLoader.h"
 #include "Core/ResourcePaths.h"
@@ -608,14 +609,14 @@ UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
 
 	Required->bUseLocalSpace = true;
 	Required->SortMode = EParticleSortMode::None;
-	Required->EmitterDuration = 4.0f;
+	Required->EmitterDuration = 0.5f;
 	Required->EmitterLoops = 0;
-	Required->MaxActiveParticles = 1;
+	Required->MaxActiveParticles = 3;
 
 	UParticleModuleTypeDataBeam* BeamTypeData =
 	    NewObject<UParticleModuleTypeDataBeam>(LODLevel);
 
-	BeamTypeData->MaxBeamCount = 1;
+	BeamTypeData->MaxBeamCount = 3;
 	BeamTypeData->SegmentCount = 8;
 	BeamTypeData->TextureTileDistance = 0.0f;
 
@@ -631,6 +632,14 @@ UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
 	Target->TargetPosition = FVector(5.0f, 0.0f, 2.0f);
 	Target->bLockOnSpawn = true;
 
+	UParticleModuleBeamNoise* Noise =
+	    NewObject<UParticleModuleBeamNoise>(LODLevel);
+
+	Noise->Amplitude = 0.2f;
+	Noise->NoiseSegmentCount = 8;
+	Noise->UpdateInterval = 0.0f;
+	Noise->RandomSeed = 12345;
+
 	UParticleModuleSpawn* Spawn =
 	    NewObject<UParticleModuleSpawn>(LODLevel);
 
@@ -638,19 +647,19 @@ UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
 
 	FParticleBurst Burst{};
 	Burst.Time = 0.0f;
-	Burst.Count = 1;
+	Burst.Count = 3;
 	Spawn->Bursts.Add(Burst);
 
 	UParticleModuleLifetime* Lifetime =
 	    NewObject<UParticleModuleLifetime>(LODLevel);
 
-	Lifetime->Lifetime = FParticleFloatRange(2.0f, 2.0f);
+	Lifetime->Lifetime = FParticleFloatRange(0.4f, 0.4f);
 
 	UParticleModuleSize* Size =
 	    NewObject<UParticleModuleSize>(LODLevel);
 
 	Size->StartSize =
-	    FParticleVectorRange(FVector(0.3f, 0.3f, 0.3f));
+	    FParticleVectorRange(FVector(0.08f, 0.08f, 0.08f));
 
 	UParticleModuleColor* Color =
 	    NewObject<UParticleModuleColor>(LODLevel);
@@ -661,9 +670,9 @@ UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
 	Color->StartColor =
 	    FParticleColorRange(StartColor, StartColor);
 
-	Color->bUseColorOverLife = true;
-	Color->EndColor =
-	    FLinearColor(0.1f, 0.7f, 1.0f, 0.0f);
+	Color->bUseColorOverLife = false;
+	//Color->EndColor =
+	//    FLinearColor(0.1f, 0.7f, 1.0f, 0.0f);
 
 	LODLevel->Level = 0;
 	LODLevel->RequiredModule = Required;
@@ -675,6 +684,7 @@ UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
 	LODLevel->Modules.Add(Color);
 	LODLevel->Modules.Add(Source);
 	LODLevel->Modules.Add(Target);
+	LODLevel->Modules.Add(Noise);
 
 	Emitter->LODLevels.Add(LODLevel);
 	System->Emitters.Add(Emitter);
