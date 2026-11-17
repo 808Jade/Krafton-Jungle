@@ -106,3 +106,24 @@ void UParticleModuleSpawn::Serialize(FStructuredArchive::FRecord Record)
 		SerializeBurst(BurstArray.EnterElement(), Bursts[Index]);
 	}
 }
+
+bool UParticleModuleSpawn::GenerateLODModuleValues(const UParticleModule* SourceModule, float Percentage)
+{
+	const UParticleModuleSpawn* Source = Cast<UParticleModuleSpawn>(const_cast<UParticleModule*>(SourceModule));
+	if (!Source)
+		return (false);
+
+	const float Multiplier = Percentage / 100.0f;
+	SpawnRate = Source->SpawnRate * Multiplier;
+
+	const int32 Count = std::min(Bursts.Num(), Source->Bursts.Num());
+	for (int32 Index = 0; Index < Count; ++Index)
+	{
+		Bursts[Index].Time = Source->Bursts[Index].Time;
+		if (Source->Bursts[Index].Count > 0)
+		{
+			Bursts[Index].Count = std::max(1, static_cast<int32>(Source->Bursts[Index].Count * Multiplier));
+		}
+	}
+	return (true);
+}

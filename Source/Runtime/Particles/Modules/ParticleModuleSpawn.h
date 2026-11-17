@@ -29,6 +29,8 @@ class UParticleModuleSpawn : public UParticleModule
 public:
 	UParticleModuleSpawn() = default;
 
+	bool GenerateLODModuleValues(const UParticleModule* SourceModule, float Percentage);
+
 	// Bursts는 TArray라 PROPERTY로 등록할 수 없다. 리플렉션 프로퍼티는 Super가 저장하고, 배열은 여기서 직접 저장한다.
 	using Super::Serialize;
 	void Serialize(FStructuredArchive::FRecord Record) override;
@@ -38,6 +40,7 @@ public:
 
 	// Burst: 이번 Tick에 터질 시간이 된 폭죽이 있는지 확인해서, 있으면 목록에 담아 알려주는 함수
 	void GetBurstBatches(float PrevEmitterTime, float CurrEmitterTime, float Duration, TArray<FParticleSpawnBatch>& Out) const;
+
 
 	// 초당 스폰 개수
 	float SpawnRate = 10.0f;
