@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Particles/ParticleTypes.h"
+#include "Particles/ParticleStripData.h"
 
 inline constexpr int32 InvalidPayloadOffset = -1;
 
@@ -107,4 +108,37 @@ struct FDynamicMeshEmitterReplayData
 
 	UStaticMesh* Mesh = nullptr;
 	int32 MeshRotationPayloadOffset = InvalidPayloadOffset;
+};
+
+// Beam과 Ribbon의 공통 렌더링 스냅샷
+struct FDynamicStripEmitterReplayDataBase
+	: public FDynamicEmitterReplayDataBase
+{
+	UMaterialInterface* MaterialInterface = nullptr;
+
+	bool bUseLocalSpace = false;
+
+	// 이미 연결 순서가 확정된 중심점 목록.
+	TArray<FParticleStripPoint> Points;
+
+	// Beam 또는 Ribbon 하나당 Range 하나.
+	TArray<FParticleStripRange> Strips;
+};
+
+struct FDynamicBeamEmitterReplayData
+    : public FDynamicStripEmitterReplayDataBase
+{
+	FDynamicBeamEmitterReplayData()
+	{
+		eEmitterType = EDynamicEmitterType::Beam;
+	}
+};
+
+struct FDynamicRibbonEmitterReplayData
+    : public FDynamicStripEmitterReplayDataBase
+{
+	FDynamicRibbonEmitterReplayData()
+	{
+		eEmitterType = EDynamicEmitterType::Ribbon;
+	}
 };
