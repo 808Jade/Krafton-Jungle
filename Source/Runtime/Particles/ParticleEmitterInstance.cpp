@@ -201,6 +201,49 @@ void FParticleEmitterInstance::IntegrateParticles(float DeltaTime)
 	}
 }
 
+void FParticleEmitterInstance::SetCurrentLODIndex(int32 LODIndex)
+{
+	if (!SpriteTemplate || SpriteTemplate->LODLevels.IsEmpty())
+	{
+		return;
+	}
+	LODIndex = std::clamp(LODIndex, 0, SpriteTemplate->LODLevels.Num() - 1);
+
+	const UParticleLODLevel* RequestedLODLevel = SpriteTemplate->LODLevels[LODIndex];
+	if (!RequestedLODLevel || !RequestedLODLevel->bModuleLayoutValid)
+	{
+		LODIndex = 0;
+	}
+
+	UParticleLODLevel* NewLODLevel = SpriteTemplate->LODLevels[LODIndex];
+	if (!NewLODLevel)
+	{
+		return;
+	}
+
+	CurrentLODLevelIndex = LODIndex;
+	CurrentLODLevel = NewLODLevel;
+
+	UParticleModuleRequired* Required = CurrentLODLevel->RequiredModule;
+	if (Required)
+	{
+		CurrentMaterial = Required->Material;
+		EmitterDuration = Required->EmitterDuration;
+		EmitterLoops = Required->EmitterLoops;
+	}
+
+	if (EmitterDuration > 0.0f && EmitterTime >= EmitterDuration)
+	{
+		EmitterTime = std::fmod(EmitterTime, EmitterDuration);
+		PrevEmitterTime = EmitterTime;
+	}
+
+	if (!CurrentLODLevel->bEnabled)
+	{
+		KillParticlesForced();
+	}
+}
+
 void FParticleEmitterInstance::UpdateBoundingBox()
 {
 	if (!Component || (Component->Template && Component->Template->bUseFixedRelativeBoundingBox) || ActiveParticles <= 0)
@@ -264,8 +307,8 @@ void FParticleEmitterInstance::UpdateTransforms()
 
 void FParticleEmitterInstance::Spawn(float DeltaTime)
 {
-	const UParticleModuleSpawn* SpawnModule = SpriteTemplate ? SpriteTemplate->SpawnModule : nullptr;
-	if (bEmitterIsDone || bHaltSpawning || !SpawnModule || !SpawnModule->bEnabled)
+	const UParticleModuleSpawn* SpawnModule = CurrentLODLevel ? CurrentLODLevel->SpawnModule : nullptr;
+	if (bEmitterIsDone || bHaltSpawning || !SpawnModule || !SpawnModule->bEnabled || !CurrentLODLevel || !CurrentLODLevel->bEnabled)
 	{
 		return;
 	}
@@ -287,7 +330,11 @@ void FParticleEmitterInstance::Spawn(float DeltaTime)
 
 void FParticleEmitterInstance::UpdateModules(float DeltaTime)
 {
-	for (UParticleModule* UpdateModule : SpriteTemplate->UpdateModules)
+	if (!CurrentLODLevel)
+	{
+		return;
+	}
+	for (UParticleModule* UpdateModule : CurrentLODLevel->UpdateModules)
 	{
 		if (!UpdateModule || !UpdateModule->bEnabled)
 		{
@@ -343,14 +390,17 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
 		SpawnTime = StartTime - Increment * Index;
 		PreSpawn(Particle, InitialLocation, InitialVelocity);
 
-		for (UParticleModule* SpawnModule : SpriteTemplate->SpawnModules)
+		if (CurrentLODLevel)
 		{
-			if (!SpawnModule || !SpawnModule->bEnabled)
+			for (UParticleModule* SpawnModule : CurrentLODLevel->SpawnModules)
 			{
-				continue;
+				if (!SpawnModule || !SpawnModule->bEnabled)
+				{
+					continue;
+				}
+				const int32* Offset = SpriteTemplate->ModuleOffsetMap.Find(SpawnModule);
+				SpawnModule->Spawn(*this, Offset ? *Offset : 0, SpawnTime, *Particle);
 			}
-			const int32* Offset = SpriteTemplate->ModuleOffsetMap.Find(SpawnModule);
-			SpawnModule->Spawn(*this, Offset ? *Offset : 0, SpawnTime, *Particle);
 		}
 
 		PostSpawn(Particle, InterpolationPercentage, SpawnTime);
@@ -435,7 +485,7 @@ void FParticleEmitterInstance::Release()
 bool FParticleEmitterInstance::FillReplayData(
     FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const
 {
-	if (!ParticleData || ActiveParticles <= 0 || !Component)
+	if (!ParticleData || ActiveParticles <= 0 || !Component || !CurrentLODLevel || !CurrentLODLevel->bEnabled)
 	{
 		return false;
 	}
@@ -589,6 +639,13 @@ void FParticleMeshEmitterInstance::InitParameters(
 	}
 }
 
+void FParticleMeshEmitterInstance::SetCurrentLODIndex(int32 LODIndex)
+{
+	FParticleEmitterInstance::SetCurrentLODIndex(LODIndex);
+
+	MeshTypeData = CurrentLODLevel ? Cast<UParticleModuleTypeDataMesh>(CurrentLODLevel->TypeDataModule) : nullptr;
+}
+
 FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData() const
 {
 	FDynamicMeshEmitterReplayData ReplayData;
@@ -608,6 +665,28 @@ void FParticleBeamEmitterInstance::InitParameters(
 	    InTemplate,
 	    InComponent);
 
+	CacheBeamModules();
+
+	if (!HasValidBeamSetup())
+	{
+		bHaltSpawning = true;
+
+		HTR_LOG(
+		    Error,
+		    "Beam emitter requires enabled TypeData, Source, "
+		    "Target modules and a valid payload.");
+	}
+}
+
+void FParticleBeamEmitterInstance::SetCurrentLODIndex(int32 LODIndex)
+{
+	FParticleEmitterInstance::SetCurrentLODIndex(LODIndex);
+
+	CacheBeamModules();
+}
+
+void FParticleBeamEmitterInstance::CacheBeamModules()
+{
 	BeamTypeData = CurrentLODLevel
 	                   ? Cast<UParticleModuleTypeDataBeam>(
 	                         CurrentLODLevel->TypeDataModule)
@@ -619,10 +698,15 @@ void FParticleBeamEmitterInstance::InitParameters(
 	BeamPayloadOffset = InvalidPayloadOffset;
 	NoisePayloadOffset = InvalidPayloadOffset;
 
+	if (!SpriteTemplate)
+	{
+		return;
+	}
+
 	if (BeamTypeData)
 	{
 		if (const int32* Offset =
-		        InTemplate->ModuleOffsetMap.Find(BeamTypeData))
+		        SpriteTemplate->ModuleOffsetMap.Find(BeamTypeData))
 		{
 			BeamPayloadOffset = *Offset;
 		}
@@ -661,20 +745,10 @@ void FParticleBeamEmitterInstance::InitParameters(
 	if (NoiseModule)
 	{
 		if (const int32* Offset =
-		        InTemplate->ModuleOffsetMap.Find(NoiseModule))
+		        SpriteTemplate->ModuleOffsetMap.Find(NoiseModule))
 		{
 			NoisePayloadOffset = *Offset;
 		}
-	}
-
-	if (!HasValidBeamSetup())
-	{
-		bHaltSpawning = true;
-
-		HTR_LOG(
-		    Error,
-		    "Beam emitter requires enabled TypeData, Source, "
-		    "Target modules and a valid payload.");
 	}
 }
 

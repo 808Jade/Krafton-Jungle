@@ -11,6 +11,9 @@
 class UStaticMesh;
 class USkeletalMesh;
 class UParticleSystem;
+class UParticleEmitter;
+class UParticleLODLevel;
+struct FLinearColor;
 class FShader;
 class UAnimSequence;
 class UBlendSpace1D;
@@ -59,6 +62,8 @@ public:
 	void CreateDefaultParticleMaterial();
 	void CreateDefaultParticleSystem();
 	UParticleSystem* BuildDefaultParticleSystem(bool bMesh);
+	UParticleLODLevel* BuildDefaultParticleLODLevel(UParticleEmitter* Emitter, int32 Level, bool bMesh,
+		float SpawnRate, const FLinearColor& StartColorMin, const FLinearColor& StartColorMax);
 	UParticleSystem* BuildDefaultBeamParticleSystem();
 	UParticleSystem* BuildDefaultRibbonParticleSystem();
 	void CreateParticleMaterial();

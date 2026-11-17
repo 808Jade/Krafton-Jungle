@@ -8,6 +8,9 @@
 #include "Render/Mesh.h"
 #include "Render/Material.h"
 #include "Math/Color.h"
+#include "Engine/World.h"
+#include "Camera/PlayerCameraManager.h"
+#include "Camera/MinimalViewInfo.h"
 
 #include <cassert>
 
@@ -24,6 +27,16 @@ UParticleSystemComponent::~UParticleSystemComponent()
 void UParticleSystemComponent::TickComponent(float DeltaTime)
 {
 	Super::TickComponent(DeltaTime);
+
+	if (Template && GetCurrentLODMethod() == EParticleSystemLODMethod::Automatic)
+	{
+		AccumLODDistanceCheckTime += DeltaTime;
+		if (AccumLODDistanceCheckTime > Template->LODDistanceCheckTime)
+		{
+			AccumLODDistanceCheckTime = 0.0f;
+			SetLODLevel(DetermineLODLevelForLocation(GetWorldLocation()));
+		}
+	}
 
 	DeltaTime *= CustomTimeDilation;
 
@@ -221,6 +234,7 @@ void UParticleSystemComponent::InitParticles()
 	}
 
 	ResetParticles();
+	LODLevel = ClampLODLevel(LODLevel);
 
 	for (auto* Emitter : Template->Emitters)
 	{
@@ -259,6 +273,7 @@ void UParticleSystemComponent::InitParticles()
 		}
 
 		ParticleEmitterInstance->InitParameters(Emitter, this);
+		ParticleEmitterInstance->SetCurrentLODIndex(LODLevel);
 		EmitterInstances.Add(ParticleEmitterInstance);
 	}
 }
@@ -314,6 +329,11 @@ void UParticleSystemComponent::ActivateSystem(bool bReset)
 		return;
 	}
 
+	if (GetCurrentLODMethod() == EParticleSystemLODMethod::ActivateAutomatic)
+	{
+		SetLODLevel(DetermineLODLevelForLocation(GetWorldLocation()));
+	}
+
 	if (bReset || EmitterInstances.IsEmpty())
 	{
 		InitParticles();
@@ -359,4 +379,86 @@ bool UParticleSystemComponent::HasCompleted() const
 		}
 	}
 	return true;
+}
+
+void UParticleSystemComponent::SetLODLevel(int32 InLODLevel)
+{
+	InLODLevel = ClampLODLevel(InLODLevel);
+	if (LODLevel == InLODLevel)
+	{
+		return;
+	}
+
+	LODLevel = InLODLevel;
+	for (FParticleEmitterInstance* EmitterInstance : EmitterInstances)
+	{
+		EmitterInstance->SetCurrentLODIndex(LODLevel);
+	}
+}
+
+int32 UParticleSystemComponent::DetermineLODLevelForLocation(const FVector& EffectLocation)
+{
+	if (!Template || Template->GetLODLevelCount() <= 1 || GetCurrentLODMethod() == EParticleSystemLODMethod::DirectSet)
+	{
+		return 0;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return LODLevel;
+	}
+
+	TArray<FVector> ViewLocations;
+	APlayerCameraManager* CameraManager = World->GetPlayerCameraManager();
+	if (CameraManager && CameraManager->HasValidCameraView())
+	{
+		ViewLocations.Add(CameraManager->GetCameraView().GetLocation());
+	}
+	else if (const TArray<FVector>* RenderedLocations = World->GetViewLocationsRenderedLastFrame())
+	{
+		ViewLocations = *RenderedLocations;
+	}
+
+	if (ViewLocations.IsEmpty())
+	{
+		return LODLevel;
+	}
+
+	float ClosestDistanceSquared = FLT_MAX;
+	for (const FVector& ViewLocation : ViewLocations)
+	{
+		ClosestDistanceSquared = std::min(ClosestDistanceSquared, (ViewLocation - EffectLocation).SizeSquared());
+	}
+
+	int32 Result = 0;
+	for (int32 LODIndex = 1; LODIndex < Template->GetLODLevelCount(); ++LODIndex)
+	{
+		const float LODDistance = Template->LODDistances[LODIndex];
+		if (ClosestDistanceSquared < LODDistance * LODDistance)
+		{
+			break;
+		}
+		Result = LODIndex;
+	}
+	return Result;
+}
+
+EParticleSystemLODMethod UParticleSystemComponent::GetCurrentLODMethod() const
+{
+	if (bOverrideLODMethod)
+	{
+		return LODMethod;
+	}
+	return Template ? Template->LODMethod : EParticleSystemLODMethod::DirectSet;
+}
+
+int32 UParticleSystemComponent::ClampLODLevel(int32 InLODLevel) const
+{
+	const int32 LODCount = Template ? Template->GetLODLevelCount() : 0;
+	if (LODCount <= 1)
+	{
+		return 0;
+	}
+	return std::clamp(InLODLevel, 0, LODCount - 1);
 }

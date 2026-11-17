@@ -59,6 +59,8 @@ public:
 	void ResetParticleParameters();
 	virtual void IntegrateParticles(float DeltaTime);
 
+	virtual void SetCurrentLODIndex(int32 LODIndex);
+
 	void UpdateTransforms();
 
 	virtual void UpdateBoundingBox();
@@ -130,6 +132,7 @@ struct FParticleMeshEmitterInstance : public FParticleEmitterInstance
 public:
 	virtual FDynamicEmitterDataBase* GetDynamicData() const override;
 	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent) override;
+	virtual void SetCurrentLODIndex(int32 LODIndex) override;
 
 	UParticleModuleTypeDataMesh* MeshTypeData = nullptr;
 	int32 MeshRotationOffset = InvalidPayloadOffset;
@@ -145,6 +148,7 @@ public:
 	void InitParameters(
 	    UParticleEmitter* InTemplate,
 	    UParticleSystemComponent* InComponent) override;
+	void SetCurrentLODIndex(int32 LODIndex) override;
 
 	void IntegrateParticles(float DeltaTime) override;
 	void UpdateBoundingBox() override;
@@ -166,6 +170,7 @@ protected:
 	    float SpawnTime) override;
 
 private:
+	void CacheBeamModules();
 	bool HasValidBeamSetup() const;
 	bool HasValidNoiseSetup() const;
 
@@ -191,6 +196,7 @@ public:
 	void InitParameters(
 	    UParticleEmitter* InTemplate,
 	    UParticleSystemComponent* InComponent) override;
+	void SetCurrentLODIndex(int32 LODIndex) override;
 
 	void Spawn(float DeltaTime) override;
 	void IntegrateParticles(float DeltaTime) override;

@@ -537,6 +537,20 @@ UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
 {
 	UParticleSystem* System = NewObject<UParticleSystem>();
 	UParticleEmitter* Emitter = NewObject<UParticleEmitter>(System);
+
+	Emitter->LODLevels.Add(BuildDefaultParticleLODLevel(Emitter, 0, bMesh, 20.0f,
+		FLinearColor(1.0f, 0.4f, 0.1f, 1.0f), FLinearColor(1.0f, 0.9f, 0.3f, 1.0f)));
+	Emitter->LODLevels.Add(BuildDefaultParticleLODLevel(Emitter, 1, bMesh, 5.0f,
+		FLinearColor(0.1f, 0.4f, 1.0f, 1.0f), FLinearColor(0.3f, 0.9f, 1.0f, 1.0f)));
+	System->Emitters.Add(Emitter);
+	System->LODDistances = { 0.0f, 25.0f };
+
+	return System;
+}
+
+UParticleLODLevel* UAssetManager::BuildDefaultParticleLODLevel(UParticleEmitter* Emitter, int32 Level, bool bMesh,
+	float SpawnRate, const FLinearColor& StartColorMin, const FLinearColor& StartColorMax)
+{
 	UParticleLODLevel* LODLevel = NewObject<UParticleLODLevel>(Emitter);
 
 	UParticleModuleRequired* Required = NewObject<UParticleModuleRequired>(LODLevel);
@@ -549,7 +563,7 @@ UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
 	Required->ScreenAlignment = EParticleScreenAlignment::Velocity;
 
 	UParticleModuleSpawn* Spawn = NewObject<UParticleModuleSpawn>(LODLevel);
-	Spawn->SpawnRate = 20.0f;
+	Spawn->SpawnRate = SpawnRate;
 
 	UParticleModuleLifetime* Lifetime = NewObject<UParticleModuleLifetime>(LODLevel);
 	Lifetime->Lifetime = FParticleFloatRange(1.0f, 2.0f);
@@ -564,10 +578,10 @@ UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
 	Size->StartSize = FParticleVectorRange(FVector(0.7f, 0.7f, 0.7f));
 
 	UParticleModuleColor* Color = NewObject<UParticleModuleColor>(LODLevel);
-	Color->StartColor = FParticleColorRange(FLinearColor(1.0f, 0.4f, 0.1f, 1.0f), FLinearColor(1.0f, 0.9f, 0.3f, 1.0f));
+	Color->StartColor = FParticleColorRange(StartColorMin, StartColorMax);
 	Color->bUseColorOverLife = true;
 
-	LODLevel->Level = 0;
+	LODLevel->Level = Level;
 	LODLevel->RequiredModule = Required;
 	LODLevel->Modules.Add(Spawn);
 	LODLevel->Modules.Add(Lifetime);
@@ -583,10 +597,7 @@ UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
 		LODLevel->TypeDataModule = MeshTypeData;
 	}
 
-	Emitter->LODLevels.Add(LODLevel);
-	System->Emitters.Add(Emitter);
-
-	return System;
+	return LODLevel;
 }
 
 UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()

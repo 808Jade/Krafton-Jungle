@@ -1629,6 +1629,11 @@ void UEditorEngine::RenderFrame(const FEditorSceneView& View, UWorld& ViewWorld,
 	const FVector ViewCameraLocation = ViewCamera.Transform.Location;
 	const FVector ViewCameraForward = FEditorViewportClient::NormalizedOrZero(ViewCamera.Transform.Rotation.GetForwardVector());
 
+	if (!View.IsOrthographic() && &ViewWorld == GetActiveWorld() && !bIsPaused)
+	{
+		ViewWorld.AddViewLocationRendered(ViewCameraLocation);
+	}
+
 	const FEngineShowFlags& ShowFlags = SettingsPanel->GetSettings().ShowFlags;
 
 	// GPU의 int4·float4와 Component의 분할 상한이 일치해야 한다.

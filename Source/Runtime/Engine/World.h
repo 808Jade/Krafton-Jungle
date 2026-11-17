@@ -97,6 +97,9 @@ public:
 	float GetDeltaSeconds() const { return GameTime.GetDeltaWorldTimeSeconds(); }
 	float GetUnscaledDeltaTime() const { return GameTime.GetDeltaRealTimeSeconds(); }
 
+	void AddViewLocationRendered(const FVector& Location);
+	const TArray<FVector>* GetViewLocationsRenderedLastFrame() const;
+
 	void ClearWorld();
 	void CleanupWorld();
 	// 캡처 구간을 시작하고 첫 가시 View에서 동적 렌더 스냅샷을 준비하게 한다.
@@ -276,6 +279,7 @@ private:
 	TArray<float> ParticleDistances;
 	TArray<FOverlapInfo> OverlapInfo;
 	TArray<FOverlapInfo> LastFrameOverlapInfo;
+	TArray<FVector> ViewLocationsRenderedLastFrame;
 
 	FRenderStats RenderStats;
 
