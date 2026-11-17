@@ -16,6 +16,8 @@
 #include "Particles/Modules/ParticleModuleColor.h"
 #include "Particles/Modules/ParticleModuleRotation.h"
 #include "Particles/Modules/ParticleModuleRotationRate.h"
+#include "Particles/Modules/ParticleModuleAccelerationConstant.h"
+#include "Particles/Modules/ParticleModuleCollision.h"
 
 #include <algorithm>
 
@@ -33,6 +35,8 @@ namespace
 		UClass* (*GetClass)();
 	};
 	const FAddableModule AddableModules[] = {
+		{ "Acceleration",  "Const Acceleration",    [] { return UParticleModuleAccelerationConstant::StaticClass(); } },
+		{ "Collision",     "Collision",             [] { return UParticleModuleCollision::StaticClass(); } },
 		{ "Color",         "Initial Color",         [] { return UParticleModuleColor::StaticClass(); } },
 		{ "Lifetime",      "Lifetime",              [] { return UParticleModuleLifetime::StaticClass(); } },
 		{ "Location",      "Initial Location",      [] { return UParticleModuleLocation::StaticClass(); } },
@@ -60,6 +64,7 @@ namespace
 		{ "UParticleModuleRotation",      "Initial Rotation" },
 		{ "UParticleModuleRotationRate",  "Initial Rotation Rate" },
 		{ "UParticleModuleTypeDataMesh",  "Mesh Data" },
+		{ "UParticleModuleAccelerationConstant", "Const Acceleration" },
 	};
 
 	// 표에 없는 새 모듈은 클래스 이름에서 공통 접두사만 떼어 보여 준다. (UParticleModuleDrag → Drag)

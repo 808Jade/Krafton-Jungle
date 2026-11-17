@@ -1,0 +1,245 @@
+{
+    "System": {
+        "Emitters": [
+            {
+                "LODLevels": [
+                    {
+                        "Level": 0,
+                        "Modules": [
+                            {
+                                "Class": "UParticleModuleSpawn",
+                                "Data": {
+                                    "Bursts": [],
+                                    "ObjectLabel": "UParticleModuleSpawn_0",
+                                    "Properties": {
+                                        "SpawnRate": 20.0,
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLifetime",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLifetime_0",
+                                    "Properties": {
+                                        "Lifetime": {
+                                            "Max": 2.0,
+                                            "Min": 1.0
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLocation",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLocation_0",
+                                    "Properties": {
+                                        "StartLocation": {
+                                            "Max": {
+                                                "X": 0.20000000298023224,
+                                                "Y": 0.20000000298023224,
+                                                "Z": 0.0
+                                            },
+                                            "Min": {
+                                                "X": -0.20000000298023224,
+                                                "Y": -0.20000000298023224,
+                                                "Z": 0.0
+                                            }
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleVelocity",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleVelocity_0",
+                                    "Properties": {
+                                        "StartVelocity": {
+                                            "Max": {
+                                                "X": 2.0,
+                                                "Y": 2.0,
+                                                "Z": 2.0
+                                            },
+                                            "Min": {
+                                                "X": -2.0,
+                                                "Y": -2.0,
+                                                "Z": 1.0
+                                            }
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSize",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSize_0",
+                                    "Properties": {
+                                        "EndSize": {
+                                            "X": 1.0,
+                                            "Y": 1.0,
+                                            "Z": 1.0
+                                        },
+                                        "StartSize": {
+                                            "Max": {
+                                                "X": 0.699999988079071,
+                                                "Y": 0.699999988079071,
+                                                "Z": 0.699999988079071
+                                            },
+                                            "Min": {
+                                                "X": 0.699999988079071,
+                                                "Y": 0.699999988079071,
+                                                "Z": 0.699999988079071
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseSizeOverLife": false
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleColor",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleColor_0",
+                                    "Properties": {
+                                        "EndColor": {
+                                            "A": 0.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "StartColor": {
+                                            "Max": {
+                                                "A": 1.0,
+                                                "B": 0.30000001192092896,
+                                                "G": 0.8999999761581421,
+                                                "R": 1.0
+                                            },
+                                            "Min": {
+                                                "A": 1.0,
+                                                "B": 0.10000000149011612,
+                                                "G": 0.4000000059604645,
+                                                "R": 1.0
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseColorOverLife": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleAccelerationConstant",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleAccelerationConstant_0",
+                                    "Properties": {
+                                        "Acceleration": {
+                                            "X": 0.0,
+                                            "Y": 0.0,
+                                            "Z": -9.8100004196167
+                                        },
+                                        "bAlwaysInWorldSpace": false,
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleRotation",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleRotation_0",
+                                    "Properties": {
+                                        "StartRotation": {
+                                            "Max": 179.14999389648438,
+                                            "Min": 101.75
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleCollision",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleCollision_0",
+                                    "Properties": {
+                                        "CollisionCompletionOption": 0,
+                                        "DampingFactor": 0.5,
+                                        "MaxCollisions": 5,
+                                        "ParticleRadiusScale": 1.0,
+                                        "bEnabled": true
+                                    }
+                                }
+                            }
+                        ],
+                        "ObjectLabel": "UParticleLODLevel_0",
+                        "Properties": {},
+                        "Required": {
+                            "Class": "UParticleModuleRequired",
+                            "Data": {
+                                "ObjectLabel": "UParticleModuleRequired_0",
+                                "Properties": {
+                                    "EmitterDuration": 1.0,
+                                    "EmitterLoops": 0,
+                                    "LockAxis": 0,
+                                    "Material": null,
+                                    "MaxActiveParticles": 200,
+                                    "ScreenAlignment": 3,
+                                    "SortMode": 0,
+                                    "bEnabled": true,
+                                    "bUseLocalSpace": false
+                                }
+                            }
+                        },
+                        "TypeData": {
+                            "Class": "UParticleModuleTypeDataMesh",
+                            "Data": {
+                                "ObjectLabel": "UParticleModuleTypeDataMesh_1",
+                                "Properties": {
+                                    "Mesh": "Models/BittenApple/BittenApple.obj",
+                                    "RotationRate": {
+                                        "X": 0.0,
+                                        "Y": 4.599999904632568,
+                                        "Z": 0.0
+                                    },
+                                    "StartRotation": {
+                                        "Max": {
+                                            "X": 48.0,
+                                            "Y": 33.400001525878906,
+                                            "Z": 53.70000076293945
+                                        },
+                                        "Min": {
+                                            "X": 12.300000190734863,
+                                            "Y": 17.850000381469727,
+                                            "Z": 9.75
+                                        }
+                                    },
+                                    "bEnabled": true
+                                }
+                            }
+                        },
+                        "bEnabled": true
+                    }
+                ],
+                "ObjectLabel": "UParticleEmitter_0",
+                "Properties": {}
+            }
+        ],
+        "FixedRelativeBoundingBox": {
+            "Max": {
+                "X": 1.0,
+                "Y": 1.0,
+                "Z": 1.0
+            },
+            "Min": {
+                "X": -1.0,
+                "Y": -1.0,
+                "Z": -1.0
+            }
+        },
+        "ObjectLabel": "UParticleSystem_0",
+        "Properties": {},
+        "bUseFixedRelativeBoundingBox": false
+    },
+    "Type": "ParticleSystem",
+    "Version": 1
+}

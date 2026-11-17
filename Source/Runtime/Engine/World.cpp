@@ -1040,7 +1040,13 @@ void UWorld::InitializePlayCamera() {
 				mPlayCameraComponent->SetFarZ(DefaultCamera->GetFarZ());
 				mPlayCameraComponent->SetIsOrthogonal(DefaultCamera->GetIsOrthogonal());
 				mPlayCameraComponent->SetOrthoWidth(DefaultCamera->GetOrthoWidth());
+				// 에디터 카메라와 같은 조작감으로 움직이게 속도 설정도 이어받는다.
+				mPlayCameraComponent->SetMoveSpeed(DefaultCamera->GetMoveSpeed());
+				mPlayCameraComponent->SetMouseSensitivity(DefaultCamera->GetMouseSensitivity());
+				mPlayCameraComponent->SetWheelSpeed(DefaultCamera->GetWheelSpeed());
 			}
+			// 씬에 카메라가 없을 때 PIE가 만든 카메라만 직접 움직일 수 있게 한다. 에디터가 PIE View 선택 여부로 입력을 켜고 끈다.
+			mPlayCameraComponent->SetFreeFlyInPlay(true);
 			mPlayCameraComponent->SetExternalInputManaged(true);
 		}
 	}
@@ -1169,10 +1175,10 @@ bool UWorld::DestroyActorNow(AActor* Actor) {
 }
 
 // 다른 World의 객체를 제외하고 Component 교차 중 최근접 결과를 선택한다.
-bool UWorld::LineTraceSingle(const FRay& WorldRay, FHitResult& OutHit, FBillboardTraceTransform ResolveBillboard, const void* ViewContext, const AActor* IgnoreActor) {
+bool UWorld::LineTraceSingle(const FRay& WorldRay, FHitResult& OutHit, FBillboardTraceTransform ResolveBillboard, const void* ViewContext, const AActor* IgnoreActor, float MaxT, bool bStaticMeshOnly) {
 	SCOPE_CYCLE_COUNTER_ALWAYS(EditorStats::STAT_PickingTime_Name);
 	OutHit = FHitResult();
-	float NearestT = std::numeric_limits<float>::max();
+	float NearestT = MaxT;
 
 	const auto TraceComponent = [&](FPrimitiveSceneProxy* Proxy, float& InOutNearestT)
 		{
@@ -1196,15 +1202,21 @@ bool UWorld::LineTraceSingle(const FRay& WorldRay, FHitResult& OutHit, FBillboar
 				};
 
 				float T = InOutNearestT;
-				if (!RayIntersectsMesh(LocalRay, Mesh->GetMeshData(), T))
+				FVector LocalNormal;
+				if (!RayIntersectsMesh(LocalRay, Mesh->GetMeshData(), T, &LocalNormal))
 					return false;
 
 				OutHit.HitComponent = Proxy->GetComponent();
 				OutHit.Distance = T;
 				OutHit.ImpactPoint = WorldRay.Origin + WorldRay.Direction * T;
+				OutHit.ImpactNormal = LocalNormalToWorld(WorldToLocal, LocalNormal);
+				OutHit.Normal = OutHit.ImpactNormal;
 				InOutNearestT = T;
 				return true;
 			}
+
+			if (bStaticMeshOnly)
+				return false;
 
 			UPrimitiveComponent* Component = Proxy ? Proxy->GetComponent() : nullptr;
 
@@ -1271,6 +1283,34 @@ bool UWorld::LineTraceSingle(const FRay& WorldRay, FHitResult& OutHit, FBillboar
 		NearestT);
 
 	return OutHit.HitComponent != nullptr;
+}
+
+bool UWorld::LineTraceSegment(const FVector& Start, const FVector& End, FHitResult& OutHit, const AActor* IgnoreActor)
+{
+	OutHit = FHitResult();
+
+	const FVector Delta = End - Start;
+	const float Length = Delta.Length();
+	if (Length < 1e-6f)
+	{
+		return false;
+	}
+
+	// 방향을 정규화하지 않으므로 T가 0~1 비율이 된다. MaxT=1이 선분의 끝이다.
+	const FRay Ray{ .Origin = Start, .Direction = Delta };
+	if (!LineTraceSingle(Ray, OutHit, nullptr, nullptr, IgnoreActor, 1.0f, true))
+	{
+		return false;
+	}
+
+	const float Fraction = OutHit.Distance;
+	OutHit.Time = Fraction;
+	OutHit.Distance = Fraction * Length;
+	OutHit.Location = OutHit.ImpactPoint;
+	OutHit.TraceStart = Start;
+	OutHit.TraceEnd = End;
+	OutHit.bBlockingHit = true;
+	return true;
 }
 
 void UWorld::BeginPlay()

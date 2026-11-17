@@ -133,6 +133,11 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 		}
 	}
 
+	// 5-1. Update 순서를 모듈이 정한 값으로 고정한다. 사용자가 충돌 모듈을 먼저 추가해도
+	//      가속·속도 모듈이 먼저 돌아야 이번 틱의 이동 구간을 정확히 검사한다. 같은 값은 기존 순서를 유지한다.
+	std::stable_sort(UpdateModules.begin(), UpdateModules.end(),
+		[](const UParticleModule* A, const UParticleModule* B) { return A->GetUpdateOrder() < B->GetUpdateOrder(); });
+
 	// 6. 슬롯 하나의 최종 크기 = FBaseParticle + 모든 payload
 	ParticleSize = Offset;
 

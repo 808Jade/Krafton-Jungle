@@ -72,6 +72,12 @@ public:
 	void SetExternalInputManaged(bool InValue);
 	bool IsExternalInputManaged() const;
 
+	// PIE에서도 WASD·우클릭 회전·휠로 직접 움직이는 카메라인지 정한다. 기본은 꺼져 있다.
+	// 씬에 카메라가 없어 PIE가 대신 만든 카메라에만 켠다. 씬의 게임 카메라는 게임 로직이 움직이므로 건드리지 않는다.
+	// 실제 입력은 SetExternalInputManaged(false)일 때만 처리한다. (에디터가 PIE View 선택 여부로 바꾼다)
+	void SetFreeFlyInPlay(bool InValue) { mFreeFlyInPlay = InValue; }
+	bool IsFreeFlyInPlay() const { return mFreeFlyInPlay; }
+
 	// 마우스 조작 업데이트
 	void UpdateMovement(float DeltaTime); // 마우스 이동
 	void UpdateRotation(float DeltaTime); // 마우스 우클릭 회전
@@ -93,6 +99,7 @@ private:
 	float mMouseSensitivity{ 0.05f };
 	float mWheelSpeed{ 0.1f };
 	bool mExternalInputManaged{};
+	bool mFreeFlyInPlay{};
 
 };
 
