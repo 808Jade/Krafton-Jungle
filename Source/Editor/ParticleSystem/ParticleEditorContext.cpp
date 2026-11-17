@@ -24,9 +24,9 @@ FParticleEditorContext::~FParticleEditorContext()
 	Release();
 }
 
-bool FParticleEditorContext::Init()
+bool FParticleEditorContext::Init(const FName WorldName)
 {
-	PreviewScene = MakeUnique<FPreviewScene>("ParticlePreviewWorld");
+	PreviewScene = MakeUnique<FPreviewScene>(WorldName);
 	if (!PreviewScene->GetWorld())
 		return false;
 

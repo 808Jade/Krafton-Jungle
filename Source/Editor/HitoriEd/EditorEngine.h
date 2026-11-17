@@ -51,7 +51,7 @@ class FSkeletalMeshViewerPanel;
 class FBlendSpaceEditorPanel;
 class FStateMachineEditorPanel;
 class FAnimGraphEditorPanel;
-class FParticleSystemEditorPanel;
+class UParticleSystem;
 
 class UEditorEngine : public UEngine
 {
@@ -142,8 +142,13 @@ private:
 
 	// 패널 View(0~3)와 외부 PIE View의 상태를 Adapter에서 모아 RenderFrame 입력으로 만든다.
 	FEditorSceneView MakeLevelSceneView(int32 ViewIndex) const;
-	// 파티클 에디터의 프리뷰 월드를 패널 소유 타깃에 그린다. 레벨 View와 같은 RenderFrame을 쓴다.
-	void RenderParticlePreview();
+	// 보이는 에셋 에디터 탭의 프리뷰 월드를 탭 소유 타깃에 그린다. 레벨 View와 같은 RenderFrame을 쓴다.
+	void RenderTabPreviews();
+
+	// 파티클 에디터 탭을 연다. 같은 에셋을 편집 중인 탭이 있으면 새로 만들지 않고 그 탭을 앞으로 가져온다.
+	void OpenParticleSystemEditor(UParticleSystem* Asset);
+	// 콘텐츠 드로어의 .particle 더블클릭. 파일을 불러온 뒤 OpenParticleSystemEditor로 넘긴다.
+	void OpenParticleSystemFile(const FString& Path);
 
 	//Icon Pass
 	void RenderIconPass(int32 ViewIndex, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward, FRenderQueue& RenderIconQueue, FRenderQueue& ArrowQueue);
@@ -200,7 +205,6 @@ private:
  FAnimGraphEditorPanel* AnimGraphEditorPanel = nullptr;
  FStateMachineEditorPanel* StateMachineEditorPanel = nullptr;
 	FSkeletalMeshViewerPanel* SkeletalMeshViewerPanel = nullptr;
-	FParticleSystemEditorPanel* ParticleSystemEditorPanel = nullptr;
 
 	UWorld* EditorWorld = nullptr;
 	UWorld* PlayWorld = nullptr;

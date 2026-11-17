@@ -20,6 +20,58 @@ void FEditorUI::Tick(float DeltaTime)
 	{
 		Panel->Tick(DeltaTime);
 	}
+	for (auto& Tab : Tabs)
+	{
+		Tab->Tick(DeltaTime);
+	}
+}
+
+bool FEditorUI::IsAnyTabHoveredOrInteracting() const
+{
+	for (const auto& Tab : Tabs)
+	{
+		if (Tab->IsVisible() && Tab->IsHoveredOrInteracting())
+			return true;
+	}
+	return false;
+}
+
+void FEditorUI::CollectTabViews(TArray<FEditorTabView>& OutViews) const
+{
+	for (const auto& Tab : Tabs)
+	{
+		if (Tab->IsVisible())
+			Tab->CollectViews(OutViews);
+	}
+}
+
+void FEditorUI::ReleaseTabResources()
+{
+	for (auto& Tab : Tabs)
+		Tab->ReleaseResources();
+	Tabs.Empty();
+}
+
+void FEditorUI::RenderTabs(const ImGuiID RootWorkspaceDockId)
+{
+	// 처음 뜨는 탭은 레벨 에디터와 같은 탭 묶음에 붙인다. 이후 위치는 imgui.ini가 기억한다.
+	const ImGuiWindow* LevelWindow = ImGui::FindWindowByName("Level Editor");
+	const ImGuiID DefaultDockId = LevelWindow && LevelWindow->DockId ? LevelWindow->DockId : RootWorkspaceDockId;
+
+	// 탭 안의 메뉴(File > Open 등)가 그리는 도중에 AddTab으로 새 탭을 붙일 수 있다.
+	// 배열이 재할당되면 범위 기반 for의 반복자가 무효가 되므로 인덱스로 돈다.
+	// 탭 객체 자체는 힙에 있어 재할당 뒤에도 그대로이고, 새로 붙은 탭은 같은 프레임에 이어서 그려진다.
+	for (int32 Index = 0; Index < Tabs.Num(); ++Index)
+		Tabs[Index]->Render(DefaultDockId);
+
+	// 닫힌 탭은 그리기가 끝난 뒤에 지운다. 프리뷰 월드·GPU 타깃을 먼저 놓는다.
+	for (int32 Index = Tabs.Num() - 1; Index >= 0; --Index)
+	{
+		if (Tabs[Index]->IsOpen())
+			continue;
+		Tabs[Index]->ReleaseResources();
+		Tabs.RemoveAt(Index);
+	}
 }
 
 void FEditorUI::OnRender()
@@ -85,7 +137,6 @@ void FEditorUI::OnRender()
 				ImGui::DockBuilderDockWindow("Blend Space Editor", rootDockId);
 				ImGui::DockBuilderDockWindow("State Machine Editor", rootDockId);
                 ImGui::DockBuilderDockWindow("AnimGraph Editor", rootDockId);
-				ImGui::DockBuilderDockWindow("Particle System Editor", rootDockId);
 				ImGui::DockBuilderFinish(rootDockId);
 			}
 
@@ -154,15 +205,6 @@ void FEditorUI::OnRender()
 		{
 			ImGui::SetNextWindowClass(&LevelViewportClass);
 		}
-		else if (strcmp(Name, "Particle System Editor") == 0)
-		{
-			// 애셋 에디터이므로 Level Editor 창에 가두지 않는다. 저장된 위치가 없는 첫 실행에만
-			// Level Editor와 같은 루트 탭 묶음에 붙인다.
-			const ImGuiWindow* LevelWindow = ImGui::FindWindowByName("Level Editor");
-			const ImGuiID Target = LevelWindow && LevelWindow->DockId ? LevelWindow->DockId : RootWorkspaceDockId;
-			if (Target)
-				ImGui::SetNextWindowDockID(Target, ImGuiCond_FirstUseEver);
-		}
 		else if (!bIsSkelViewer && strcmp(Name, "Blend Space Editor") != 0)
 		{
 			// 레벨 에디터 서브 패널들은 LevelEditorClass를 적용하여 오직 Level Editor 창 안에만 도킹됨!
@@ -171,6 +213,9 @@ void FEditorUI::OnRender()
 
 		Panel->OnRender();
 	}
+
+	// 4. 에셋 에디터 탭
+	RenderTabs(RootWorkspaceDockId);
 }
 
 void FEditorUI::DrawLevelEditorWorkspace(const ImGuiWindowClass& WindowClass)
@@ -268,6 +313,29 @@ void FEditorUI::DrawMainMenuBar()
 				if (ImGui::MenuItem(Name, nullptr, bOpen))
 				{
 					Panel->SetOpen(!bOpen);
+				}
+			}
+
+			// 열려 있는 에셋 에디터 탭. 누르면 그 탭을 앞으로 가져온다.
+			if (!Tabs.IsEmpty())
+			{
+				ImGui::Separator();
+				for (auto& Tab : Tabs)
+				{
+					ImGui::PushID(Tab->GetId().c_str());
+					if (ImGui::MenuItem(Tab->GetTitle().c_str()))
+						Tab->RequestFocus();
+					ImGui::PopID();
+				}
+			}
+
+			if (!WindowMenuCommands.IsEmpty())
+			{
+				ImGui::Separator();
+				for (const FWindowMenuCommand& Entry : WindowMenuCommands)
+				{
+					if (ImGui::MenuItem(Entry.Label.c_str()) && Entry.Command)
+						Entry.Command();
 				}
 			}
 

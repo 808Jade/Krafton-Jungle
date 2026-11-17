@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Editor/EditorUI/EditorPanel.h"
+#include "Editor/EditorUI/EditorTab.h"
 #include "Editor/LevelEditor/LevelEditorToolbar.h"
 #include <functional>
 
@@ -22,6 +23,33 @@ public:
 		return Ret;
 	}
 
+	// 에셋 에디터 탭을 추가하고 앞으로 가져온다. Init이 실패하면 추가하지 않고 nullptr을 돌려준다.
+	template <typename T, typename... TArgs>
+	T* AddTab(TArgs&&... Args)
+	{
+		TUniquePtr<T> NewTab = MakeUnique<T>(std::forward<TArgs>(Args)...);
+		if (!NewTab->Init())
+		{
+			NewTab->ReleaseResources();
+			return nullptr;
+		}
+		T* Ret = NewTab.get();
+		Ret->RequestFocus();
+		Tabs.Add(std::move(NewTab));
+		return Ret;
+	}
+	const TArray<TUniquePtr<FEditorTab>>& GetTabs() const { return Tabs; }
+	bool IsAnyTabHoveredOrInteracting() const;
+	void CollectTabViews(TArray<FEditorTabView>& OutViews) const;
+	// 엔진 종료 시 UObject 일괄 삭제와 Device 종료 전에 부른다.
+	void ReleaseTabResources();
+
+	// Window 메뉴 맨 아래에 붙는 항목. 에셋 에디터 탭을 새로 여는 명령 등을 엔진이 등록한다.
+	void AddWindowMenuCommand(FString Label, std::function<void()> Command)
+	{
+		WindowMenuCommands.Add({ std::move(Label), std::move(Command) });
+	}
+
 	FLevelEditorToolbar* GetToolbar() const { return Toolbar.get(); }
 
 	void SetNewSceneCallback(std::function<void()> InCallback) { OnNewScene = InCallback; }
@@ -32,6 +60,8 @@ public:
 private:
 	void DrawMainMenuBar();
 	void DrawLevelEditorWorkspace(const struct ImGuiWindowClass& WindowClass);
+	// 탭을 그리고, 닫힌 탭의 자원을 놓은 뒤 지운다.
+	void RenderTabs(ImGuiID RootWorkspaceDockId);
 
 private:
 	bool bUseDockSpace = true;
@@ -41,6 +71,14 @@ private:
 	bool bResetLevelLayout = false;
 
 	TArray<TUniquePtr<IEditorPanel>> Panels;
+	// 소유(합성): 에셋 에디터 탭. 탭을 닫으면 여기서 지운다.
+	TArray<TUniquePtr<FEditorTab>> Tabs;
+	struct FWindowMenuCommand
+	{
+		FString Label;
+		std::function<void()> Command;
+	};
+	TArray<FWindowMenuCommand> WindowMenuCommands;
 	TUniquePtr<FLevelEditorToolbar> Toolbar;
 
 	std::function<void()> OnNewScene;

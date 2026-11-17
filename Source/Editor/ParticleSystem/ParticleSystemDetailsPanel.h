@@ -9,13 +9,14 @@ struct FProperty;
 class FParticleSystemDetailsPanel : public IEditorPanel
 {
 public:
-	explicit FParticleSystemDetailsPanel(FParticleEditorContext& InContext) : Context(InContext) {}
+	// InTabId: 소속 탭의 ID. 레벨 에디터의 "Details" 창, 다른 파티클 탭의 디테일 창과 창 ID가 겹치지 않게 한다.
+	FParticleSystemDetailsPanel(FParticleEditorContext& InContext, const FString& InTabId)
+		: Context(InContext), PanelName("Details###Details_" + InTabId) {}
 
 	bool Init() override { return true; }
 	void Tick(float DeltaTime) override {}
 	void OnRender() override;
-	// ##Particle: 레벨 에디터의 "Details" 창과 구분한다.
-	const char* GetPanelName() const override { return "Details##Particle"; }
+	const char* GetPanelName() const override { return PanelName.c_str(); }
 
 private:
 	void DrawParticleSystemProperties();
@@ -27,4 +28,5 @@ private:
 
 	// 참조(집약): 호스트가 소유하는 공유 상태
 	FParticleEditorContext& Context;
+	FString PanelName;
 };

@@ -32,8 +32,9 @@
 #include "Editor/Outliner/OutlinerPanel.h"
 #include "Editor/Sequence/SequencePanel.h"
 #include "Editor/SkeletalMeshViewer/SkeletalMeshViewerPanel.h"
-#include "Editor/ParticleSystem/ParticleSystemEditorPanel.h"
-#include "Editor/ParticleSystem/ParticleSystemViewportPanel.h"
+#include "Editor/ParticleSystem/ParticleSystemEditorTab.h"
+#include "Particles/ParticleSystem.h"
+
 #include "Editor/BlendSpaceEditor/BlendSpaceEditorPanel.h"
 #include "Editor/StateMachineEditor/StateMachineEditorPanel.h"
 #include "Editor/AnimGraphEditor/AnimGraphEditorPanel.h"
@@ -244,14 +245,12 @@ bool UEditorEngine::Init()
  ContentDrawerPanel->SetOpenStateMachineCallback([this](const FString &P) { AnimGraphEditorPanel->OpenAsset(P); });
  ContentDrawerPanel->SetCreateStateMachineCallback([this](const FString& P){AnimGraphEditorPanel->NewStateMachine(P);});
 	ContentDrawerPanel->SetOpenBlendSpaceCallback([this](const FString& Path) { BlendSpaceEditorPanel->OpenAsset(Path); });
-	// 패널은 아래에서 만든다. 람다는 더블클릭 시점에 멤버를 읽으므로 생성 순서와 무관하다.
-	ContentDrawerPanel->SetOpenParticleSystemCallback([this](const FString& Path)
+	// 파티클 에디터는 에셋마다 탭 하나다. 렌더러는 알지 못하고, 프리뷰 렌더는 RenderTabPreviews가 맡는다.
+	ContentDrawerPanel->SetOpenParticleSystemCallback([this](const FString& Path) { OpenParticleSystemFile(Path); });
+	EditorUI->AddWindowMenuCommand("Open Particle System Editor", [this]()
 	{
-		if (ParticleSystemEditorPanel)
-			ParticleSystemEditorPanel->OpenAssetFile(Path);
+		OpenParticleSystemEditor(UAssetManager::GetAssetByPath<UParticleSystem>("DefaultParticleSystem"));
 	});
-	// 파티클 에디터는 렌더러를 알지 못한다. 프리뷰 렌더는 RenderParticlePreview가 맡는다.
-	ParticleSystemEditorPanel = EditorUI->AddEditorPanel<FParticleSystemEditorPanel>();
 	SkeletalMeshViewerPanel = EditorUI->AddEditorPanel<FSkeletalMeshViewerPanel>();
  StateMachineEditorPanel->SetViewer(SkeletalMeshViewerPanel);
  AnimGraphEditorPanel->SetViewer(SkeletalMeshViewerPanel);
@@ -500,7 +499,7 @@ void UEditorEngine::Tick(const float DeltaTime)
 			SceneTransitions->ProcessPendingTransition();
 	}
 	RenderMultipleViewports();
-	RenderParticlePreview();
+	RenderTabPreviews();
 	SkeletalMeshViewerPanel->RenderPreview();
     AnimGraphEditorPanel->RenderPreview();
 	EndFrame();
@@ -671,7 +670,7 @@ void UEditorEngine::UpdateMultipleViewportState(const float DeltaTime)
 
 	if (SkeletalMeshViewerPanel->IsOpen() && SkeletalMeshViewerPanel->IsHoveredOrInteracting())
 		return;
-	if (ParticleSystemEditorPanel && ParticleSystemEditorPanel->IsHoveredOrInteracting())
+	if (EditorUI->IsAnyTabHoveredOrInteracting())
 		return;
 
 	MultipleViewportsAdapter.UpdateInput(
@@ -1485,7 +1484,7 @@ void UEditorEngine::UpdateGizmoAndPicking()
 {
 	if (SkeletalMeshViewerPanel->IsOpen() && SkeletalMeshViewerPanel->IsHoveredOrInteracting())
 		return;
-	if (ParticleSystemEditorPanel && ParticleSystemEditorPanel->IsHoveredOrInteracting())
+	if (EditorUI->IsAnyTabHoveredOrInteracting())
 		return;
 
 	// Delete는 BeginFrame에서 한 번만 처리하고 여기서는 View 입력만 다룬다.
@@ -1564,41 +1563,74 @@ FEditorSceneView UEditorEngine::MakeLevelSceneView(const int32 ViewIndex) const
 	return View;
 }
 
-// 파티클 에디터의 프리뷰 월드를 패널 소유 타깃에 그린다.
+// 보이는 에셋 에디터 탭의 프리뷰 월드를 탭 소유 타깃에 그린다.
 // 레벨 View와 다른 점은 월드·View 상태·타깃의 출처뿐이고, 수집과 패스는 같은 경로를 쓴다.
-void UEditorEngine::RenderParticlePreview()
+// 가려진 탭은 CollectTabViews가 건너뛰므로, 탭을 여러 개 열어도 보이는 탭만큼만 그린다.
+void UEditorEngine::RenderTabPreviews()
 {
-	if (!ParticleSystemEditorPanel)
+	TArray<FEditorTabView> TabViews;
+	EditorUI->CollectTabViews(TabViews);
+
+	for (FEditorTabView& TabView : TabViews)
+	{
+		if (!TabView.World || !TabView.RenderingInfo || !TabView.View.Client)
+			continue;
+		UWorld& PreviewWorld = *TabView.World;
+
+		// 레벨 View의 PrepareView와 같은 준비 단계다. Transform·동적 데이터와 라이트 버퍼를 이 월드 기준으로 맞춘다.
+		PreviewWorld.BeginRenderViews();
+		PreviewWorld.GetScene().UpdateLights(Renderer);
+
+		FMultipleViewportsAdapter::BuildRenderQueue(PreviewWorld, TabView.View.Client->GetEffectiveCamera(), TabView.View.Rect,
+			RenderQueue, IconQueue, ArrowQueue);
+
+		// 레벨 View(1~MaxViewCount)와 겹치지 않는 ID다. 프리뷰 월드는 그림자 작업을 만들지 않으므로 탭끼리 같은 ID를 써도 된다.
+		TabView.View.ShadowViewId = static_cast<uint32>(FMultipleViewportsAdapter::MaxViewCount + 1);
+
+		RenderFrame(TabView.View, PreviewWorld, *TabView.RenderingInfo, RenderQueue, IconQueue, ArrowQueue);
+	}
+}
+
+void UEditorEngine::OpenParticleSystemEditor(UParticleSystem* Asset)
+{
+	if (!Asset)
 		return;
-	// 월드는 에디터 Context가, View 상태와 타깃은 뷰포트 하위 패널이 소유한다.
-	FParticleSystemViewportPanel* Viewport = ParticleSystemEditorPanel->GetViewportPanel();
-	UWorld* PreviewWorld = ParticleSystemEditorPanel->GetPreviewWorld();
-	if (!Viewport || !PreviewWorld || !Viewport->PreparePreviewRender())
+
+	// 같은 에셋을 편집 중인 탭이 있으면 그 탭을 띄운다. (탭 두 개가 한 에셋을 동시에 고치지 않게)
+	TArray<int32> UsedSlots;
+	for (const TUniquePtr<FEditorTab>& Tab : EditorUI->GetTabs())
+	{
+		auto* ParticleTab = dynamic_cast<FParticleSystemEditorTab*>(Tab.get());
+		if (!ParticleTab)
+			continue;
+		if (ParticleTab->GetEditingAsset() == Asset)
+		{
+			ParticleTab->RequestFocus();
+			return;
+		}
+		UsedSlots.Add(ParticleTab->GetSlot());
+	}
+
+	// 가장 작은 빈 번호를 쓴다. 닫았던 번호를 다시 쓰면 imgui.ini에 남은 그 탭의 패널 배치를 재사용한다.
+	int32 Slot = 0;
+	while (UsedSlots.Find(Slot) != INDEX_NONE)
+		++Slot;
+
+	if (!EditorUI->AddTab<FParticleSystemEditorTab>(Slot, Asset, [this](UParticleSystem* Requested) { OpenParticleSystemEditor(Requested); }))
+		HTR_LOG(Error, "Failed to create particle system editor tab.");
+}
+
+void UEditorEngine::OpenParticleSystemFile(const FString& Path)
+{
+	// 경로 → 에셋 키 변환과 "이미 불러왔으면 그 객체를 돌려주기"는 LoadParticleSystem이 맡는다.
+	FString Error;
+	UParticleSystem* Asset = UAssetManager::Get().LoadParticleSystem(Path, Error);
+	if (!Asset)
+	{
+		HTR_LOG(Error, "Failed to open particle system '{}': {}", Path, Error);
 		return;
-
-	const FEditorViewportClient& Client = Viewport->GetViewportClient();
-	const FRect Rect = Viewport->GetViewRect();
-
-	// 레벨 View의 PrepareView와 같은 준비 단계다. Transform·동적 데이터와 라이트 버퍼를 이 월드 기준으로 맞춘다.
-	PreviewWorld->BeginRenderViews();
-	PreviewWorld->GetScene().UpdateLights(Renderer);
-
-	FMultipleViewportsAdapter::BuildRenderQueue(*PreviewWorld, Client.GetEffectiveCamera(), Rect,
-		RenderQueue, IconQueue, ArrowQueue);
-
-	FEditorSceneView View;
-	View.Client = &Client;
-	View.Rect = Rect;
-	View.HDRTarget = Viewport->GetHDRTarget();
-	View.FxaaTarget = Viewport->GetFxaaTarget();
-	// 레벨 View(1~MaxViewCount)와 겹치지 않는 ID다. 프리뷰 월드는 그림자 작업을 만들지 않는다.
-	View.ShadowViewId = static_cast<uint32>(FMultipleViewportsAdapter::MaxViewCount + 1);
-	// 프리뷰에는 Grid·에디터 아이콘(빌보드)·Gizmo·Outline 같은 에디터 표시를 그리지 않는다. 파티클만 보인다.
-	View.bShowEditorOverlay = false;
-	View.bDrawSkybox = false;
-	View.bRenderGameUI = false;
-
-	RenderFrame(View, *PreviewWorld, Viewport->GetRenderingInfo(), RenderQueue, IconQueue, ArrowQueue);
+	}
+	OpenParticleSystemEditor(Asset);
 }
 
 // View 행렬로 Scene·Grid·Gizmo·텍스트·Outline을 렌더한다.
@@ -1733,7 +1765,7 @@ void UEditorEngine::PreExit()
 	if (StateMachineEditorPanel) StateMachineEditorPanel->ReleaseResources();
 	SkeletalMeshViewerPanel->ReleaseResources();
 	// 프리뷰 월드는 전역 UObject 일괄 삭제 전에, 타깃은 Device 종료 전에 해제한다.
-	if (ParticleSystemEditorPanel) ParticleSystemEditorPanel->ReleaseResources();
+	EditorUI->ReleaseTabResources();
 	// Panels outlive the global UObject sweep. Release the owned draft first
 	// so its unique_ptr cannot delete an already-destroyed UObject later.
 	if (BlendSpaceEditorPanel) BlendSpaceEditorPanel->ReleaseResources();

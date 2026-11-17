@@ -19,7 +19,8 @@ public:
 	FParticleEditorContext(const FParticleEditorContext&) = delete;
 	FParticleEditorContext& operator=(const FParticleEditorContext&) = delete;
 
-	bool Init();
+	// WorldName: 탭마다 다른 이름을 주어 프리뷰 월드끼리 구분한다.
+	bool Init(FName WorldName = FName("ParticlePreviewWorld"));
 	// 프리뷰 월드를 해제한다. 전역 UObject 일괄 삭제 전에 호스트가 호출한다. 여러 번 호출해도 안전하다.
 	void Release();
 	// 일시정지 중에도 Transform 갱신과 삭제 대기 처리를 위해 0초로 Tick한다.
