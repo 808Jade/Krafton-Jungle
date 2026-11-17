@@ -31,13 +31,14 @@
 #include "Particles/Modules/ParticleModuleVelocity.h"
 #include "Particles/Modules/ParticleModuleSize.h"
 #include "Particles/Modules/ParticleModuleColor.h"
+#include "Particles/Modules/ParticleModuleTypeDataMesh.h"
+#include "Particles/Modules/ParticleModuleTypeDataBeam.h"
 
 #include "Render/ImageLoader.h"
 #include "Core/ResourcePaths.h"
 #include <algorithm>
 #include <cctype>
 #include "Core/Misc/FileHelper.h"
-#include "Particles/Modules/ParticleModuleTypeDataMesh.h"
 
 
 namespace
@@ -524,6 +525,7 @@ void UAssetManager::CreateDefaultParticleSystem()
 {
 	RegisterAsset("DefaultParticleSystem", BuildDefaultParticleSystem(false));
 	RegisterAsset("DefaultMeshParticleSystem", BuildDefaultParticleSystem(true));
+	RegisterAsset("DefaultBeamParticleSystem", BuildDefaultBeamParticleSystem());
 }
 
 UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
@@ -578,6 +580,45 @@ UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
 
 	Emitter->LODLevels.Add(LODLevel);
 	System->Emitters.Add(Emitter);
+
+	return System;
+}
+
+UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
+{
+	UParticleSystem* System = NewObject<UParticleSystem>();
+	UParticleEmitter* Emitter = NewObject<UParticleEmitter>(System);
+	UParticleLODLevel* LODLevel = NewObject<UParticleLODLevel>(Emitter);
+
+	UParticleModuleRequired* Required = NewObject<UParticleModuleRequired>(LODLevel);
+	Required->Material = GetAssetByPath<UMaterial>("DefaultParticleMaterial");
+	Required->bUseLocalSpace = true;
+	Required->SortMode = EParticleSortMode::None;
+	Required->EmitterDuration = 1.0f;
+	Required->EmitterLoops = 0;
+	Required->MaxActiveParticles = 1;
+
+	// Beam TypeData
+	UParticleModuleTypeDataBeam* BeamTypeData =
+	    NewObject<UParticleModuleTypeDataBeam>(LODLevel);
+
+	BeamTypeData->MaxBeamCount = 1;
+	BeamTypeData->SegmentCount = 1;
+	BeamTypeData->TextureTileDistance = 0.0f;
+
+	LODLevel->Level = 0;
+	LODLevel->RequiredModule = Required;
+	LODLevel->TypeDataModule = BeamTypeData;
+
+	Emitter->LODLevels.Add(LODLevel);
+	System->Emitters.Add(Emitter);
+
+	// 가짜 Beam의 로컬 공간 영역을 포함하는 Bounds.
+	System->bUseFixedRelativeBoundingBox = true;
+	System->FixedRelativeBoundingBox = FBox{
+		FVector(-1.0f, -1.0f, 1.0f),
+		FVector(6.0f, 1.0f, 3.0f)
+	};
 
 	return System;
 }

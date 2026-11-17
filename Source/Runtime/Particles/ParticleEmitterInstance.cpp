@@ -539,3 +539,42 @@ void FParticleRibbonEmitterInstance::InitParameters(
 	                           CurrentLODLevel->TypeDataModule)
 	                     : nullptr;
 }
+
+FDynamicEmitterDataBase*
+FParticleBeamEmitterInstance::GetDynamicData() const
+{
+	if (!Component || !BeamTypeData)
+	{
+		return nullptr;
+	}
+
+	FDynamicBeamEmitterReplayData Replay;
+
+	Replay.MaterialInterface = GetCurrentMaterial();
+	Replay.bUseLocalSpace = true;
+
+	// 실제 시뮬레이션 파티클은 아직 생성하지 않는다.
+	// 렌더링은 Points / Strips의 개수를 기준으로 한다.
+	Replay.ActiveParticleCount = 0;
+
+	FParticleStripPoint Source{};
+	Source.Position = FVector(0.0f, 0.0f, 2.0f);
+	Source.Width = 0.3f;
+	Source.Color = FLinearColor(0.1f, 0.7f, 1.0f, 0.8f);
+	Source.U = 0.0f;
+
+	FParticleStripPoint Target = Source;
+	Target.Position = FVector(5.0f, 0.0f, 2.0f);
+	Target.U = 1.0f;
+
+	Replay.Points.Add(Source);
+	Replay.Points.Add(Target);
+
+	FParticleStripRange Range{};
+	Range.FirstPoint = 0;
+	Range.PointCount = 2;
+
+	Replay.Strips.Add(Range);
+
+	return new FDynamicBeamEmitterData(std::move(Replay));
+}

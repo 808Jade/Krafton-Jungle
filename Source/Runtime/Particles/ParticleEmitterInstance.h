@@ -140,11 +140,7 @@ public:
 	    UParticleEmitter* InTemplate,
 	    UParticleSystemComponent* InComponent) override;
 
-	FDynamicEmitterDataBase* GetDynamicData() const override
-	{
-		// 다음 단계에서 Beam ReplayData를 생성한다.
-		return nullptr;
-	}
+	FDynamicEmitterDataBase* GetDynamicData() const override;
 
 	UParticleModuleTypeDataBeam* BeamTypeData = nullptr;
 };
