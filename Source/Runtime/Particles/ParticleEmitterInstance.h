@@ -147,6 +147,7 @@ public:
 	void InitParameters(
 	    UParticleEmitter* InTemplate,
 	    UParticleSystemComponent* InComponent) override;
+	void SetCurrentLODIndex(int32 LODIndex) override;
 
 	void IntegrateParticles(float DeltaTime) override;
 	void UpdateBoundingBox() override;
@@ -168,6 +169,7 @@ protected:
 	    float SpawnTime) override;
 
 private:
+	void CacheBeamModules();
 	bool HasValidBeamSetup() const;
 	bool HasValidNoiseSetup() const;
 
@@ -193,6 +195,7 @@ public:
 	void InitParameters(
 	    UParticleEmitter* InTemplate,
 	    UParticleSystemComponent* InComponent) override;
+	void SetCurrentLODIndex(int32 LODIndex) override;
 
 	FDynamicEmitterDataBase* GetDynamicData() const override
 	{

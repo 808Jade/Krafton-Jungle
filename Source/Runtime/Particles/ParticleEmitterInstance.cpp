@@ -666,6 +666,28 @@ void FParticleBeamEmitterInstance::InitParameters(
 	    InTemplate,
 	    InComponent);
 
+	CacheBeamModules();
+
+	if (!HasValidBeamSetup())
+	{
+		bHaltSpawning = true;
+
+		HTR_LOG(
+		    Error,
+		    "Beam emitter requires enabled TypeData, Source, "
+		    "Target modules and a valid payload.");
+	}
+}
+
+void FParticleBeamEmitterInstance::SetCurrentLODIndex(int32 LODIndex)
+{
+	FParticleEmitterInstance::SetCurrentLODIndex(LODIndex);
+
+	CacheBeamModules();
+}
+
+void FParticleBeamEmitterInstance::CacheBeamModules()
+{
 	BeamTypeData = CurrentLODLevel
 	                   ? Cast<UParticleModuleTypeDataBeam>(
 	                         CurrentLODLevel->TypeDataModule)
@@ -677,10 +699,15 @@ void FParticleBeamEmitterInstance::InitParameters(
 	BeamPayloadOffset = InvalidPayloadOffset;
 	NoisePayloadOffset = InvalidPayloadOffset;
 
+	if (!SpriteTemplate)
+	{
+		return;
+	}
+
 	if (BeamTypeData)
 	{
 		if (const int32* Offset =
-		        InTemplate->ModuleOffsetMap.Find(BeamTypeData))
+		        SpriteTemplate->ModuleOffsetMap.Find(BeamTypeData))
 		{
 			BeamPayloadOffset = *Offset;
 		}
@@ -719,20 +746,10 @@ void FParticleBeamEmitterInstance::InitParameters(
 	if (NoiseModule)
 	{
 		if (const int32* Offset =
-		        InTemplate->ModuleOffsetMap.Find(NoiseModule))
+		        SpriteTemplate->ModuleOffsetMap.Find(NoiseModule))
 		{
 			NoisePayloadOffset = *Offset;
 		}
-	}
-
-	if (!HasValidBeamSetup())
-	{
-		bHaltSpawning = true;
-
-		HTR_LOG(
-		    Error,
-		    "Beam emitter requires enabled TypeData, Source, "
-		    "Target modules and a valid payload.");
 	}
 }
 
@@ -1050,6 +1067,16 @@ void FParticleRibbonEmitterInstance::InitParameters(
 	FParticleEmitterInstance::InitParameters(
 	    InTemplate,
 	    InComponent);
+
+	RibbonTypeData = CurrentLODLevel
+	                     ? Cast<UParticleModuleTypeDataRibbon>(
+	                           CurrentLODLevel->TypeDataModule)
+	                     : nullptr;
+}
+
+void FParticleRibbonEmitterInstance::SetCurrentLODIndex(int32 LODIndex)
+{
+	FParticleEmitterInstance::SetCurrentLODIndex(LODIndex);
 
 	RibbonTypeData = CurrentLODLevel
 	                     ? Cast<UParticleModuleTypeDataRibbon>(
