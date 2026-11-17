@@ -23,6 +23,14 @@ public:
 	void DeactivateSystem();
 	void ResetSystem();
 	bool HasCompleted() const;
+	// Component-local positions; EmitterIndex indexes Template->Emitters (zero-based).
+	// Overrides survive ResetSystem; SetTemplate clears them. LockOnSpawn is respected.
+	bool SetBeamSourcePoint(int32 EmitterIndex, const FVector& Position);
+	bool SetBeamTargetPoint(int32 EmitterIndex, const FVector& Position);
+	bool ClearBeamSourcePoint(int32 EmitterIndex);
+	bool ClearBeamTargetPoint(int32 EmitterIndex);
+	FVector ResolveBeamSourcePoint(UParticleEmitter* Emitter, const FVector& DefaultPosition) const;
+	FVector ResolveBeamTargetPoint(UParticleEmitter* Emitter, const FVector& DefaultPosition) const;
 	void PostApplyProperties(const FProperty* ChangedProperty = nullptr) override;
 	void SetLODLevel(int32 InLODLevel);
 	int32 GetLODLevel() const { return LODLevel; }
@@ -30,6 +38,10 @@ public:
 	EParticleSystemLODMethod GetCurrentLODMethod() const;
 
 private:
+	UParticleEmitter* GetBeamEmitterTemplate(int32 EmitterIndex) const;
+	TMap<UParticleEmitter*, FVector> BeamSourceOverrides;
+	TMap<UParticleEmitter*, FVector> BeamTargetOverrides;
+
 	bool GetEmitterBoundingBox(FBox& OutBoundingBox) const;
 	int32 ClampLODLevel(int32 InLODLevel) const;
 

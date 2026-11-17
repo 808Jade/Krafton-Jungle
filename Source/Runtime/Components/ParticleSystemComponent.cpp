@@ -13,6 +13,67 @@
 #include "Camera/MinimalViewInfo.h"
 
 #include <cassert>
+#include <cmath>
+
+UParticleEmitter* UParticleSystemComponent::GetBeamEmitterTemplate(int32 EmitterIndex) const
+{
+	if (!Template || EmitterIndex < 0 || EmitterIndex >= Template->Emitters.Num())
+	{
+		return nullptr;
+	}
+	UParticleEmitter* Emitter = Template->Emitters[EmitterIndex];
+	return Emitter && Emitter->EmitterType == EDynamicEmitterType::Beam ? Emitter : nullptr;
+}
+
+bool UParticleSystemComponent::SetBeamSourcePoint(int32 EmitterIndex, const FVector& Position)
+{
+	UParticleEmitter* Emitter = GetBeamEmitterTemplate(EmitterIndex);
+	if (!Emitter || !std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z))
+	{
+		return false;
+	}
+	BeamSourceOverrides.Add(Emitter, Position);
+	return true;
+}
+
+bool UParticleSystemComponent::SetBeamTargetPoint(int32 EmitterIndex, const FVector& Position)
+{
+	UParticleEmitter* Emitter = GetBeamEmitterTemplate(EmitterIndex);
+	if (!Emitter || !std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z))
+	{
+		return false;
+	}
+	BeamTargetOverrides.Add(Emitter, Position);
+	return true;
+}
+
+bool UParticleSystemComponent::ClearBeamSourcePoint(int32 EmitterIndex)
+{
+	UParticleEmitter* Emitter = GetBeamEmitterTemplate(EmitterIndex);
+	if (!Emitter) return false;
+	BeamSourceOverrides.Remove(Emitter);
+	return true;
+}
+
+bool UParticleSystemComponent::ClearBeamTargetPoint(int32 EmitterIndex)
+{
+	UParticleEmitter* Emitter = GetBeamEmitterTemplate(EmitterIndex);
+	if (!Emitter) return false;
+	BeamTargetOverrides.Remove(Emitter);
+	return true;
+}
+
+FVector UParticleSystemComponent::ResolveBeamSourcePoint(UParticleEmitter* Emitter, const FVector& DefaultPosition) const
+{
+	const FVector* Position = BeamSourceOverrides.Find(Emitter);
+	return Position ? *Position : DefaultPosition;
+}
+
+FVector UParticleSystemComponent::ResolveBeamTargetPoint(UParticleEmitter* Emitter, const FVector& DefaultPosition) const
+{
+	const FVector* Position = BeamTargetOverrides.Find(Emitter);
+	return Position ? *Position : DefaultPosition;
+}
 
 UParticleSystemComponent::UParticleSystemComponent()
 {
@@ -290,6 +351,8 @@ void UParticleSystemComponent::ResetParticles()
 void UParticleSystemComponent::SetTemplate(UParticleSystem* InTemplate)
 {
 	ResetParticles();
+	BeamSourceOverrides.Empty();
+	BeamTargetOverrides.Empty();
 	Template = InTemplate;
 }
 
@@ -299,6 +362,8 @@ void UParticleSystemComponent::PostApplyProperties(const FProperty* ChangedPrope
 
 	if (ChangedProperty && ChangedProperty->Name == FName("Template"))
 	{
+		BeamSourceOverrides.Empty();
+		BeamTargetOverrides.Empty();
 		ResetParticles();
 		if (IsActive() && Template)
 		{

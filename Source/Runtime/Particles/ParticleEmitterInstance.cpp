@@ -774,10 +774,10 @@ void FParticleBeamEmitterInstance::PostSpawn(
 	FBeamParticlePayload Payload;
 
 	Payload.SourcePosition = ToSimulationPosition(
-	    SourceModule->SourcePosition);
+	    Component->ResolveBeamSourcePoint(SpriteTemplate, SourceModule->SourcePosition));
 
 	Payload.TargetPosition = ToSimulationPosition(
-	    TargetModule->TargetPosition);
+	    Component->ResolveBeamTargetPoint(SpriteTemplate, TargetModule->TargetPosition));
 
 	WriteBeamPayload(*Particle, Payload);
 
@@ -831,13 +831,13 @@ void FParticleBeamEmitterInstance::IntegrateParticles(
 			if (!SourceModule->bLockOnSpawn)
 			{
 				Payload.SourcePosition = ToSimulationPosition(
-				    SourceModule->SourcePosition);
+				    Component->ResolveBeamSourcePoint(SpriteTemplate, SourceModule->SourcePosition));
 			}
 
 			if (!TargetModule->bLockOnSpawn)
 			{
 				Payload.TargetPosition = ToSimulationPosition(
-				    TargetModule->TargetPosition);
+				    Component->ResolveBeamTargetPoint(SpriteTemplate, TargetModule->TargetPosition));
 			}
 		}
 

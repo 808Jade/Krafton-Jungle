@@ -8,6 +8,7 @@
 #include "GameFramework/Actor.h"
 #include "Components/SceneComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/ParticleSystemComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Components/SpotLightComponent.h"
 #include "Camera/CameraComponent.h"
@@ -701,6 +702,18 @@ namespace
 			sol::no_constructor,
 			"GetNavigationExtent", &GetActorNavigationExtent,
 			"GetPointLight", &GetActorPointLight,
+			"GetParticleSystemComponent", [](const AActor& Actor) -> UParticleSystemComponent*
+			{
+				for (UActorComponent* Component : Actor.GetComponents())
+				{
+					if (auto* Particles = Cast<UParticleSystemComponent>(Component)) return Particles;
+				}
+				return nullptr;
+			},
+			"FindParticleSystemComponentByName", [](const AActor& Actor, const FString& Name) -> UParticleSystemComponent*
+			{
+				return Cast<UParticleSystemComponent>(Actor.FindComponentByName(FName(Name.c_str())));
+			},
 		    "FindSceneComponentByName",
 		    [](const AActor& Actor, const FString& Name) -> USceneComponent*
 		    {
@@ -965,6 +978,13 @@ void FLuaVM::BindEngineAPI()
 	);
 	BindLightAPI(*State);
 	BindCameraAPI(*State);
+	State->new_usertype<UParticleSystemComponent>(
+	    "UParticleSystemComponent", sol::no_constructor,
+	    sol::base_classes, sol::bases<USceneComponent>(),
+	    "SetBeamSourcePoint", &UParticleSystemComponent::SetBeamSourcePoint,
+	    "SetBeamTargetPoint", &UParticleSystemComponent::SetBeamTargetPoint,
+	    "ClearBeamSourcePoint", &UParticleSystemComponent::ClearBeamSourcePoint,
+	    "ClearBeamTargetPoint", &UParticleSystemComponent::ClearBeamTargetPoint);
 	BindAnimationAPI(*State);
 	BindActorAPI(*State);
 	BindMovementAPI(*State);
