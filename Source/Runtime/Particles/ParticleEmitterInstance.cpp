@@ -953,14 +953,7 @@ FParticleBeamEmitterInstance::GetDynamicData() const
 	Replay.bUseLocalSpace = bUseLocalSpace;
 	Replay.ActiveParticleCount = ActiveParticles;
 
-	// Strip 렌더러가 허용하는 점 개수 이내로 제한.
-	const int32 SegmentCount = std::clamp(
-	    BeamTypeData->SegmentCount,
-	    1,
-	    65534);
-
-	const float TileDistance =
-	    BeamTypeData->TextureTileDistance;
+	TArray<FParticleStripPoint> BeamPoints;
 
 	for (int32 Index = 0; Index < ActiveParticles; ++Index)
 	{
@@ -970,53 +963,19 @@ FParticleBeamEmitterInstance::GetDynamicData() const
 		    reinterpret_cast<const FBaseParticle*>(
 		        ParticleData + Slot * ParticleStride);
 
-		// 긴 프레임에서 생성 시점부터 수명이 끝난 경우도 제외.
-		if (Particle->RelativeTime >= 1.0f)
+		BuildBeamPoints(*Particle, BeamPoints);
+
+		if (BeamPoints.Num() < 2)
 		{
 			continue;
 		}
-
-		const FBeamParticlePayload Payload =
-		    ReadBeamPayload(*Particle);
-
-		const FVector Delta =
-		    Payload.TargetPosition - Payload.SourcePosition;
-
-		const float LengthSquared = Delta.SizeSquared();
-		const float Width = std::abs(Particle->Size.X);
-
-		if (LengthSquared <= 1.0e-8f || Width <= 0.0f)
-		{
-			continue;
-		}
-
-		const float Length = std::sqrt(LengthSquared);
 
 		FParticleStripRange Range{};
 		Range.FirstPoint = Replay.Points.Num();
-		Range.PointCount = SegmentCount + 1;
+		Range.PointCount = BeamPoints.Num();
 
-		for (int32 PointIndex = 0;
-		     PointIndex <= SegmentCount;
-		     ++PointIndex)
+		for (const FParticleStripPoint& Point : BeamPoints)
 		{
-			const float T =
-			    static_cast<float>(PointIndex) /
-			    static_cast<float>(SegmentCount);
-
-			FParticleStripPoint Point{};
-
-			Point.Position =
-			    Payload.SourcePosition + Delta * T;
-
-			Point.Width = Width;
-			Point.Color = Particle->Color;
-
-			// 거리 값은 Payload와 같은 시뮬레이션 공간 기준.
-			Point.U = TileDistance > 0.0f
-			              ? (Length * T) / TileDistance
-			              : T;
-
 			Replay.Points.Add(Point);
 		}
 
@@ -1051,20 +1010,7 @@ void FParticleBeamEmitterInstance::UpdateBoundingBox()
 	FVector MaxValue(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
 	bool bHasBounds = false;
-
-	auto IncludePoint =
-	    [&](const FVector& Position, float Radius)
-	{
-		MinValue.X = std::min(MinValue.X, Position.X - Radius);
-		MinValue.Y = std::min(MinValue.Y, Position.Y - Radius);
-		MinValue.Z = std::min(MinValue.Z, Position.Z - Radius);
-
-		MaxValue.X = std::max(MaxValue.X, Position.X + Radius);
-		MaxValue.Y = std::max(MaxValue.Y, Position.Y + Radius);
-		MaxValue.Z = std::max(MaxValue.Z, Position.Z + Radius);
-
-		bHasBounds = true;
-	};
+	TArray<FParticleStripPoint> BeamPoints;
 
 	for (int32 Index = 0; Index < ActiveParticles; ++Index)
 	{
@@ -1074,30 +1020,32 @@ void FParticleBeamEmitterInstance::UpdateBoundingBox()
 		    reinterpret_cast<const FBaseParticle*>(
 		        ParticleData + Slot * ParticleStride);
 
-		if (Particle->RelativeTime >= 1.0f)
+		BuildBeamPoints(*Particle, BeamPoints);
+
+		for (const FParticleStripPoint& Point : BeamPoints)
 		{
-			continue;
+			const FVector WorldPosition = bUseLocalSpace
+			                                  ? LocalToWorld.TransformPosition(Point.Position)
+			                                  : Point.Position;
+
+			const float Radius = Point.Width * 0.5f;
+
+			MinValue.X = std::min(
+			    MinValue.X, WorldPosition.X - Radius);
+			MinValue.Y = std::min(
+			    MinValue.Y, WorldPosition.Y - Radius);
+			MinValue.Z = std::min(
+			    MinValue.Z, WorldPosition.Z - Radius);
+
+			MaxValue.X = std::max(
+			    MaxValue.X, WorldPosition.X + Radius);
+			MaxValue.Y = std::max(
+			    MaxValue.Y, WorldPosition.Y + Radius);
+			MaxValue.Z = std::max(
+			    MaxValue.Z, WorldPosition.Z + Radius);
+
+			bHasBounds = true;
 		}
-
-		const FBeamParticlePayload Payload =
-		    ReadBeamPayload(*Particle);
-
-		const FVector SourceWorld = bUseLocalSpace
-		                                ? LocalToWorld.TransformPosition(
-		                                      Payload.SourcePosition)
-		                                : Payload.SourcePosition;
-
-		const FVector TargetWorld = bUseLocalSpace
-		                                ? LocalToWorld.TransformPosition(
-		                                      Payload.TargetPosition)
-		                                : Payload.TargetPosition;
-
-		// Strip 렌더러와 동일하게 Width는 월드 단위.
-		const float Radius =
-		    std::abs(Particle->Size.X) * 0.5f;
-
-		IncludePoint(SourceWorld, Radius);
-		IncludePoint(TargetWorld, Radius);
 	}
 
 	if (bHasBounds)
