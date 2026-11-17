@@ -267,7 +267,7 @@ void FDynamicMeshEmitterData::PrepareRenderData(
 
 		const int32 Offset = Source.MeshRotationPayloadOffset;
 		if (Offset >= static_cast<int32>(sizeof(FBaseParticle)) &&
-			Offset <= Source.ParticleStride - static_cast<int32>(sizeof(FVector)))
+		    Offset <= Source.ParticleStride - static_cast<int32>(sizeof(FVector)))
 		{
 			FVector RotationRadians;
 			std::memcpy(
@@ -365,7 +365,7 @@ void FDynamicMeshEmitterData::GatherRenderPackets(
 	    View.CameraForward,
 	    Proxy.GetLocalToWorld(),
 	    &ParticleOrder);
-	
+
 	// 2. 정렬 결과로 이 뷰에서 사용할 인스턴스 배열을 만든다.
 	// 멤버 Instances는 원래 활성 파티클 순서대로 유지한다.
 	TArray<FMeshParticleInstanceVertex> OrderedInstances;
@@ -374,8 +374,8 @@ void FDynamicMeshEmitterData::GatherRenderPackets(
 	FVector Center = FVector::ZeroVector;
 
 	for (int32 SortedIndex = 0;
-		SortedIndex < ParticleOrder.Num();
-		++SortedIndex)
+	     SortedIndex < ParticleOrder.Num();
+	     ++SortedIndex)
 	{
 		const int32 ActiveIndex =
 		    ParticleOrder[SortedIndex].ActiveIndex;
@@ -440,5 +440,73 @@ void FDynamicMeshEmitterData::GatherRenderPackets(
 			    Section.IndexCount,
 			    Section.MaterialSlotIndex);
 		}
+	}
+}
+
+void FDynamicStripEmitterDataBase::PrepareRenderData(
+    const FParticleSystemSceneProxy& Proxy)
+{
+	Material = Cast<UMaterial>(GetSource().MaterialInterface);
+}
+
+void FDynamicStripEmitterDataBase::GatherRenderPackets(
+    const FParticleSystemSceneProxy& Proxy,
+    FRenderQueue& RenderQueue,
+    const FRenderViewContext& View) const
+{
+	if (!Material)
+		return;
+
+	if (Material->BlendState != EBlendState::AlphaBlend &&
+	    Material->BlendState != EBlendState::Additive)
+	{
+		return;
+	}
+
+	const FDynamicStripEmitterReplayDataBase& Source =
+	    GetSource();
+
+	const FMatrix& LocalToWorld = Proxy.GetLocalToWorld();
+
+	for (const FParticleStripRange& Range : Source.Strips)
+	{
+		// 덧셈 overflow 없이 범위를 검사한다.
+		if (Range.FirstPoint < 0 ||
+		    Range.PointCount < 2 ||
+		    Range.FirstPoint > Source.Points.Num() ||
+		    Range.PointCount >
+		        Source.Points.Num() - Range.FirstPoint)
+		{
+			continue;
+		}
+
+		FRenderPacket Packet{};
+		Packet.Material = Material;
+		Packet.StripPoints.Reserve(Range.PointCount);
+
+		FVector Center = FVector::ZeroVector;
+
+		for (int32 Index = 0; Index < Range.PointCount; ++Index)
+		{
+			FParticleStripPoint Point =
+			    Source.Points[Range.FirstPoint + Index];
+
+			if (Source.bUseLocalSpace)
+			{
+				Point.Position =
+				    LocalToWorld.TransformPosition(Point.Position);
+			}
+
+			// 이번 단계의 Width는 월드 단위 폭으로 취급한다.
+			Point.Width = std::abs(Point.Width);
+
+			Center += Point.Position;
+			Packet.StripPoints.Add(Point);
+		}
+
+		Packet.TranslucentSortCenter =
+		    Center / static_cast<float>(Range.PointCount);
+
+		RenderQueue.Add(std::move(Packet));
 	}
 }

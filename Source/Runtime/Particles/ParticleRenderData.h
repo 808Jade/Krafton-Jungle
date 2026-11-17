@@ -4,6 +4,8 @@
 #include "Particles/ParticleVertex.h"
 #include "Engine/PrimitiveSceneProxy.h"
 
+#include <utility>
+
 class FParticleSystemSceneProxy;
 class FRenderQueue;
 class UMaterial;
@@ -97,4 +99,62 @@ public:
 private:
 	FDynamicMeshEmitterReplayData Source;
 	TArray<FMeshParticleInstanceVertex> Instances;
+};
+
+struct FDynamicStripEmitterDataBase
+    : public FDynamicEmitterDataBase
+{
+	virtual const FDynamicStripEmitterReplayDataBase&
+	GetSource() const override = 0;
+
+	void PrepareRenderData(
+	    const FParticleSystemSceneProxy& Proxy) override;
+
+	void GatherRenderPackets(
+	    const FParticleSystemSceneProxy& Proxy,
+	    FRenderQueue& RenderQueue,
+	    const FRenderViewContext& View) const override;
+
+private:
+	UMaterial* Material = nullptr;
+};
+
+struct FDynamicBeamEmitterData
+    : public FDynamicStripEmitterDataBase
+{
+public:
+	explicit FDynamicBeamEmitterData(
+	    FDynamicBeamEmitterReplayData&& InSource)
+	    : Source(std::move(InSource))
+	{
+	}
+
+	const FDynamicBeamEmitterReplayData&
+	GetSource() const override
+	{
+		return Source;
+	}
+
+private:
+	FDynamicBeamEmitterReplayData Source;
+};
+
+struct FDynamicRibbonEmitterData
+    : public FDynamicStripEmitterDataBase
+{
+public:
+	explicit FDynamicRibbonEmitterData(
+	    FDynamicRibbonEmitterReplayData&& InSource)
+	    : Source(std::move(InSource))
+	{
+	}
+
+	const FDynamicRibbonEmitterReplayData&
+	GetSource() const override
+	{
+		return Source;
+	}
+
+private:
+	FDynamicRibbonEmitterReplayData Source;
 };

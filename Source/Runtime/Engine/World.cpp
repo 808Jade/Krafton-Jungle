@@ -568,7 +568,7 @@ void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContex
 					FRenderPacket& Packet = RenderQueue[p];
 
 					// Sprite는 인스턴스 데이터와 뷰 상수만 사용한다.
-					if (Packet.IsSpriteParticle())
+					if (Packet.IsSpriteParticle() || Packet.IsStripParticle())
 					{
 						continue;
 					}

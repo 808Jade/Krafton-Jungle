@@ -20,6 +20,7 @@
 #include "Render/DecalRenderer.h"
 #include "Render/ParticleSpriteRenderer.h"
 #include "Render/ParticleMeshRenderer.h"
+#include "Render/ParticleStripRenderer.h"
 
 
 #include "Editor/EditorUI/EditorUI.h"
@@ -181,6 +182,7 @@ private:
 	TUniquePtr<FUIRenderer> UIRenderer;
 	TUniquePtr<FParticleSpriteRenderer> ParticleSpriteRenderer;
 	TUniquePtr<FParticleMeshRenderer> ParticleMeshRenderer;
+	TUniquePtr<FParticleStripRenderer> ParticleStripRenderer;
 
 	UFont* SystemFont;
 

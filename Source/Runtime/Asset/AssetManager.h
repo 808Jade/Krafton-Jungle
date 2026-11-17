@@ -59,6 +59,7 @@ public:
 	void CreateDefaultParticleMaterial();
 	void CreateDefaultParticleSystem();
 	UParticleSystem* BuildDefaultParticleSystem(bool bMesh);
+	UParticleSystem* BuildDefaultBeamParticleSystem();
 	void CreateParticleMaterial();
 	void CreateEditorArrowMaterial();
 

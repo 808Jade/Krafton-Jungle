@@ -236,6 +236,8 @@ public:
 	using FSpritePacketDraw = std::function<void(const FRenderPacket&)>;
 	using FMeshParticlePacketDraw =
 		std::function<void(const FRenderPacket&, const FMatrix&, bool /*bDepthOnly*/)>;
+	using FStripPacketDraw =
+	    std::function<void(const FRenderPacket&)>;
 
 public:
 	bool Init();
@@ -266,7 +268,8 @@ public:
 	void RenderTranslucent(
 		const FMatrix& ViewProjection, 
 		const FSpritePacketDraw& DrawSpritePacket = {},
-	    const FMeshParticlePacketDraw& DrawMeshPacket = {});
+	    const FMeshParticlePacketDraw& DrawMeshPacket = {},
+	    const FStripPacketDraw& DrawStripPacket = {});
 
 	// 큐를 Material, Opaque, Mesh에 따라 정렬한다
 	// CameraWorldPos는 ViewProjection과 함께 b0에 올라가 Specular 계산(V 벡터)에 쓰인다.
@@ -353,7 +356,8 @@ private:
 		uint32 End, 
 		const FMatrix& ViewProjection, 
 		const FSpritePacketDraw& DrawSpritePacket = {},
-		const FMeshParticlePacketDraw& DrawMeshPacket = {});
+		const FMeshParticlePacketDraw& DrawMeshPacket = {},
+		const FStripPacketDraw& DrawStripPacket = {});
 	void DrawStaticGroups();
 	// bSkinned면 UberLit의 GPU_SKINNING 변형을 쓴다. 스킨 변형을 쓸 수 없으면 false(그리면 바인드 포즈가 나온다).
 	bool BindMaterial(UMaterial* Material, bool bSkinned = false);

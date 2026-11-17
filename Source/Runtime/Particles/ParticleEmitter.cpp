@@ -4,6 +4,7 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModule.h"
 #include "Particles/Modules/ParticleModuleTypeDataBase.h"
+#include "Particles/Modules/ParticleModuleTypeDataBeam.h"
 #include "Particles/Modules/ParticleModuleRequired.h"
 #include "Particles/Modules/ParticleModuleSpawn.h"
 #include "Particles/Modules/ParticleModuleLifetime.h"
@@ -154,4 +155,23 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 		Slots = std::min(Slots, LODLevel->RequiredModule->MaxActiveParticles);
 	}
 	MaxActiveParticles = std::clamp(Slots, MinParticleSlots, MaxParticleSlots);
+
+	if (const auto& BeamTypeData =
+	        Cast<UParticleModuleTypeDataBeam>(LODLevel->TypeDataModule))
+	{
+		int32 BeamCapacity = std::clamp(
+		    BeamTypeData->MaxBeamCount,
+		    MinParticleSlots,
+		    MaxParticleSlots);
+
+		if (LODLevel->RequiredModule &&
+			LODLevel->RequiredModule->MaxActiveParticles > 0)
+		{
+			BeamCapacity = std::min(
+			    BeamCapacity,
+			    LODLevel->RequiredModule->MaxActiveParticles);
+		}
+
+		MaxActiveParticles = BeamCapacity;
+	}
 }
