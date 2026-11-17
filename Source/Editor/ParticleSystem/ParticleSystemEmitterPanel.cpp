@@ -20,6 +20,8 @@
 #include "Particles/Modules/ParticleModuleCollision.h"
 #include "Particles/Modules/ParticleModuleAttractorPoint.h"
 #include "Particles/Modules/ParticleModuleSizeScaleBySpeed.h"
+#include "Particles/Modules/ParticleModuleSubUV.h"
+#include "Particles/Modules/ParticleModuleSubUVMovie.h"
 
 #include <algorithm>
 
@@ -47,6 +49,8 @@ namespace
 		{ "Rotation Rate", "Initial Rotation Rate", [] { return UParticleModuleRotationRate::StaticClass(); } },
 		{ "Size",          "Initial Size",          [] { return UParticleModuleSize::StaticClass(); } },
 		{ "Size",          "Size By Speed",         [] { return UParticleModuleSizeScaleBySpeed::StaticClass(); } },
+		{ "SubUV",         "SubImage Index",        [] { return UParticleModuleSubUV::StaticClass(); } },
+		{ "SubUV",         "SubUV Movie",           [] { return UParticleModuleSubUVMovie::StaticClass(); } },
 		{ "Velocity",      "Initial Velocity",      [] { return UParticleModuleVelocity::StaticClass(); } },
 	};
 
@@ -71,6 +75,8 @@ namespace
 		{ "UParticleModuleAccelerationConstant", "Const Acceleration" },
 		{ "UParticleModuleAttractorPoint", "Point Attractor" },
 		{ "UParticleModuleSizeScaleBySpeed", "Size By Speed" },
+		{ "UParticleModuleSubUV", "SubImage Index" },
+		{ "UParticleModuleSubUVMovie", "SubUV Movie" },
 	};
 
 	// 표에 없는 새 모듈은 클래스 이름에서 공통 접두사만 떼어 보여 준다. (UParticleModuleDrag → Drag)

@@ -10,6 +10,10 @@ class UMaterial;
 
 inline constexpr int32 InvalidEmitterIndex = -1;
 
+// 스프라이트 시트(Columns x Rows)에서 Frame번 칸의 UV 사각형(xy = 시작, zw = 크기)을 만든다.
+// Frame은 0~(칸 수-1)로 잘리고, 왼쪽→오른쪽, 위→아래로 센다.
+FVector4 MakeSubUVRect(int32 Frame, int32 Columns, int32 Rows);
+
 struct FParticleOrder
 {
 	// PartilceData 내 실제 저장 슬롯 번호.

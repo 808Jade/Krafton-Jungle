@@ -9,6 +9,7 @@
 #include "Particles/ParticleModule.h"
 #include "Particles/Modules/ParticleModuleRequired.h"
 #include "Particles/Modules/ParticleModuleSpawn.h"
+#include "Particles/Modules/ParticleModuleSubUVBase.h"
 #include "Particles/Modules/ParticleModuleTypeDataMesh.h"
 
 #include "Components/ParticleSystemComponent.h"
@@ -369,6 +370,25 @@ bool FParticleEmitterInstance::FillReplayData(
 		OutDynamicEmitterReplayDataBase.SortMode = Required->SortMode;
 		SpriteReplayDataBase->ScreenAlignment = Required->ScreenAlignment;
 		SpriteReplayDataBase->AxisLock = Required->LockAxis;
+		SpriteReplayDataBase->SubImagesHorizontal = std::max(Required->SubImagesHorizontal, 1);
+		SpriteReplayDataBase->SubImagesVertical = std::max(Required->SubImagesVertical, 1);
+	}
+
+	// SubUV 모듈이 있으면 그 payload 위치를 렌더러에 알려 준다. 없으면 시트의 0번 칸을 그린다.
+	SpriteReplayDataBase->SubUVPayloadOffset = InvalidPayloadOffset;
+	if (SpriteTemplate)
+	{
+		for (UParticleModule* Module : SpriteTemplate->UpdateModules)
+		{
+			if (Cast<UParticleModuleSubUVBase>(Module))
+			{
+				if (const int32* Offset = SpriteTemplate->ModuleOffsetMap.Find(Module))
+				{
+					SpriteReplayDataBase->SubUVPayloadOffset = *Offset;
+				}
+				break;
+			}
+		}
 	}
 
 	return true;
