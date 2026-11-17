@@ -5,6 +5,7 @@
 #include "Particles/ParticleModule.h"
 #include "Particles/ParticleReplayData.h"
 #include "Particles/Modules/ParticleModuleTypeDataBase.h"
+#include "Particles/Modules/ParticleModuleTypeDataBeam.h"
 #include "Particles/Modules/ParticleModuleRequired.h"
 #include "Particles/Modules/ParticleModuleSpawn.h"
 #include "UObject/Casts.h"
@@ -189,6 +190,9 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 			}
 		}
 
+		std::stable_sort(LODLevel->UpdateModules.begin(), LODLevel->UpdateModules.end(),
+			[](const UParticleModule* A, const UParticleModule* B) { return A->GetUpdateOrder() < B->GetUpdateOrder(); });
+
 		if (LODLevel->bEnabled)
 		{
 			Slots = std::max(Slots, LODLevel->CalculateMaxActiveParticleCount());
@@ -196,4 +200,23 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 	}
 
 	MaxActiveParticles = std::clamp(Slots, MinParticleSlots, MaxParticleSlots);
+
+	if (const auto& BeamTypeData =
+	        Cast<UParticleModuleTypeDataBeam>(HighestLODLevel->TypeDataModule))
+	{
+		int32 BeamCapacity = std::clamp(
+		    BeamTypeData->MaxBeamCount,
+		    MinParticleSlots,
+		    MaxParticleSlots);
+
+		if (HighestLODLevel->RequiredModule &&
+			HighestLODLevel->RequiredModule->MaxActiveParticles > 0)
+		{
+			BeamCapacity = std::min(
+			    BeamCapacity,
+			    HighestLODLevel->RequiredModule->MaxActiveParticles);
+		}
+
+		MaxActiveParticles = BeamCapacity;
+	}
 }

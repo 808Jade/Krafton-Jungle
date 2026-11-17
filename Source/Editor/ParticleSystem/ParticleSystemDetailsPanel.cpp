@@ -31,6 +31,7 @@ namespace
 		{ "SortMode",        "None\0Distance To View\0View Depth\0" },
 		{ "ScreenAlignment", "Facing Camera Position\0Square\0Rectangle\0Velocity\0" },
 		{ "LockAxis",        "None\0X\0Y\0Z\0" },
+		{ "CollisionCompletionOption", "Kill\0Freeze\0Halt Collisions\0" },
 	};
 
 	const char* FindEnumItems(const FString& PropertyName)

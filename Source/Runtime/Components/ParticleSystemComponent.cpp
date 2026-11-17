@@ -44,7 +44,7 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 	{
 		InitParticles();
 	}
-	
+
 	for (auto* EmitterInstance : EmitterInstances)
 	{
 		EmitterInstance->Tick(DeltaTime);
@@ -60,8 +60,8 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 		const FVector CurrentMax = Current.Center + Current.Extent;
 
 		const bool bInside =
-			NewBox.Min.X >= CurrentMin.X && NewBox.Min.Y >= CurrentMin.Y && NewBox.Min.Z >= CurrentMin.Z &&
-			NewBox.Max.X <= CurrentMax.X && NewBox.Max.Y <= CurrentMax.Y && NewBox.Max.Z <= CurrentMax.Z;
+		    NewBox.Min.X >= CurrentMin.X && NewBox.Min.Y >= CurrentMin.Y && NewBox.Min.Z >= CurrentMin.Z &&
+		    NewBox.Max.X <= CurrentMax.X && NewBox.Max.Y <= CurrentMax.Y && NewBox.Max.Z <= CurrentMax.Z;
 
 		if (!bInside)
 		{
@@ -135,7 +135,7 @@ void UParticleSystemComponent::InitializeMeshInstancingTest()
 		TestMaterial->SetBlendState(EBlendState::Opaque);
 
 		// RGB는 기존 색 유지, alpha만 반투명으로 설정.
-		//TestMaterial->BaseColor.W = 0.35f;
+		// TestMaterial->BaseColor.W = 0.35f;
 
 		Emitter->CurrentMaterial = TestMaterial;
 	}
@@ -245,14 +245,33 @@ void UParticleSystemComponent::InitParticles()
 		Emitter->CacheEmitterModuleInfo();
 
 		FParticleEmitterInstance* ParticleEmitterInstance = nullptr;
-		if (Emitter->EmitterType == EDynamicEmitterType::Mesh)
+
+		switch (Emitter->EmitterType)
 		{
-			ParticleEmitterInstance = new FParticleMeshEmitterInstance();
+		case EDynamicEmitterType::Sprite:
+			ParticleEmitterInstance =
+			    new FParticleSpriteEmitterInstance();
+			break;
+
+		case EDynamicEmitterType::Mesh:
+			ParticleEmitterInstance =
+			    new FParticleMeshEmitterInstance();
+			break;
+
+		case EDynamicEmitterType::Beam:
+			ParticleEmitterInstance =
+			    new FParticleBeamEmitterInstance();
+			break;
+
+		case EDynamicEmitterType::Ribbon:
+			ParticleEmitterInstance =
+			    new FParticleRibbonEmitterInstance();
+			break;
+
+		default:
+			continue;
 		}
-		else
-		{
-			ParticleEmitterInstance = new FParticleSpriteEmitterInstance();
-		}
+
 		ParticleEmitterInstance->InitParameters(Emitter, this);
 		ParticleEmitterInstance->SetCurrentLODIndex(LODLevel);
 		EmitterInstances.Add(ParticleEmitterInstance);

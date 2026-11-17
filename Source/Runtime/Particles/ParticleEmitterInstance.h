@@ -2,6 +2,7 @@
 #include "ParticleTypes.h"
 #include "ParticleReplayData.h"
 #include "ParticleRenderData.h"
+#include "ParticleBeamData.h"
 #include "Math/Box.h"
 #include "Math/Matrix.h"
 
@@ -9,6 +10,11 @@ class UParticleSystemComponent;
 class UParticleEmitter;
 class UParticleLODLevel;
 class UParticleModuleTypeDataMesh;
+class UParticleModuleTypeDataBeam;
+class UParticleModuleTypeDataRibbon;
+class UParticleModuleBeamTarget;
+class UParticleModuleBeamSource;
+class UParticleModuleBeamNoise;
 class UMaterialInterface;
 class UStaticMesh;
 
@@ -16,17 +22,18 @@ struct FParticleEmitterInstance
 {
 protected:
 	void PreSpawn(FBaseParticle* Particle, const FVector& InitialLocation, const FVector& InitialVelocity);
-	void PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime);
+	virtual void PostSpawn(FBaseParticle* Particle, float InterpolationPercentage, float SpawnTime);
 
 	/** 모든 이미터 타입에 공통인 ReplayData 필드를 채운다. 파생 클래스의 override에서 먼저 호출 */
 	virtual bool FillReplayData(FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const;
+	void FillSpriteReplaySettings(FDynamicSpriteEmitterReplayDataBase& OutData) const;
 
 	UMaterialInterface* GetCurrentMaterial() const;
 
 public:
 	FParticleEmitterInstance() = default;
 	FParticleEmitterInstance(const FParticleEmitterInstance&) = delete;
-	FParticleEmitterInstance& operator= (const FParticleEmitterInstance&) = delete;
+	FParticleEmitterInstance& operator=(const FParticleEmitterInstance&) = delete;
 
 	virtual ~FParticleEmitterInstance();
 	/** 이미터 타입에 맞는 DynamicEmitterData를 생성해 반환. 호출자가 delete 책임. 베이스는 nullptr */
@@ -35,7 +42,7 @@ public:
 
 	void Spawn(float DeltaTime);
 	void SpawnParticles(int32 Count, float StartTime, float Increment, const FVector& InitialLocation,
-		const FVector& InitialVelocity);
+	                    const FVector& InitialVelocity);
 
 	void KillParticle(int32 Index);
 	void KillParticlesForced();
@@ -49,16 +56,16 @@ public:
 	void TickEmitterTime(float DeltaTime);
 	void AgeAndKillParticles(float DeltaTime);
 	void ResetParticleParameters();
-	void IntegrateParticles(float DeltaTime);
+	virtual void IntegrateParticles(float DeltaTime);
 
 	virtual void SetCurrentLODIndex(int32 LODIndex);
 
 	void UpdateTransforms();
 
-	void UpdateBoundingBox();
+	virtual void UpdateBoundingBox();
 	const FBox& GetBoundingBox() const { return ParticleBoundingBox; }
 
-	//Asset
+	// Asset
 	UParticleEmitter* SpriteTemplate = nullptr;
 
 	// Owner
@@ -75,7 +82,7 @@ public:
 	FVector OldLocation = FVector(0.0f, 0.0f, 0.0f);
 
 
-	//Particle
+	// Particle
 	/** 파티클 데이터 배열(메모리 블록 시작 주소). 해제할 대상은 이 포인터 하나 */
 	uint8* ParticleData = nullptr;
 	/** 파티클 인덱스 배열. 살아 있는 파티클의 슬롯 번호 명단 (블록 끝부분, 따로 할당하지 않음) */
@@ -101,13 +108,13 @@ public:
 	FBox ParticleBoundingBox{};
 
 	// Emitter Time
-	float	EmitterTime = 0.0f; //현재 루프 안에서 지난 시간(0 ~Duration)
-	float	PrevEmitterTime = 0.0f; // 이전 틱의 EmitterTime.나중에 B의 GetBurstBatches(Prev, Curr, Duration)에 그대로 넘김
-	int32	LoopCount = 0; // 끝난 루프 수
-	float	EmitterDuration = 1.0f; // 한 루프 길이(초).Required 값으로 채움
-	int32	EmitterLoops = 0; // 반복 횟수. 0이면 무한.Required 값으로 채움
-	bool	bEmitterIsDone = false; // 정해진 루프를 다 돌았음 → 더 이상 스폰하지 않음
-	bool	bHaltSpawning = false; //스폰만 멈춤.
+	float EmitterTime = 0.0f;     // 현재 루프 안에서 지난 시간(0 ~Duration)
+	float PrevEmitterTime = 0.0f; // 이전 틱의 EmitterTime.나중에 B의 GetBurstBatches(Prev, Curr, Duration)에 그대로 넘김
+	int32 LoopCount = 0;          // 끝난 루프 수
+	float EmitterDuration = 1.0f; // 한 루프 길이(초).Required 값으로 채움
+	int32 EmitterLoops = 0;       // 반복 횟수. 0이면 무한.Required 값으로 채움
+	bool bEmitterIsDone = false;  // 정해진 루프를 다 돌았음 → 더 이상 스폰하지 않음
+	bool bHaltSpawning = false;   // 스폰만 멈춤.
 };
 
 struct FParticleSpriteEmitterInstance : public FParticleEmitterInstance
@@ -128,6 +135,70 @@ public:
 
 	UParticleModuleTypeDataMesh* MeshTypeData = nullptr;
 	int32 MeshRotationOffset = InvalidPayloadOffset;
+
 protected:
 	virtual bool FillReplayData(FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const override;
+};
+
+struct FParticleBeamEmitterInstance
+    : public FParticleEmitterInstance
+{
+public:
+	void InitParameters(
+	    UParticleEmitter* InTemplate,
+	    UParticleSystemComponent* InComponent) override;
+
+	void IntegrateParticles(float DeltaTime) override;
+	void UpdateBoundingBox() override;
+
+	FDynamicEmitterDataBase* GetDynamicData() const override;
+
+	UParticleModuleTypeDataBeam* BeamTypeData = nullptr;
+	UParticleModuleBeamSource* SourceModule = nullptr;
+	UParticleModuleBeamTarget* TargetModule = nullptr;
+	UParticleModuleBeamNoise* NoiseModule = nullptr;
+
+	int32 BeamPayloadOffset = InvalidPayloadOffset;
+	int32 NoisePayloadOffset = InvalidPayloadOffset;
+
+protected:
+	void PostSpawn(
+	    FBaseParticle* Particle,
+	    float InterpolationPercentage,
+	    float SpawnTime) override;
+
+private:
+	bool HasValidBeamSetup() const;
+	bool HasValidNoiseSetup() const;
+
+	void BuildBeamPoints(
+	    const FBaseParticle& Particle,
+	    TArray<FParticleStripPoint>& OutPoints) const;
+
+	FVector ToSimulationPosition(
+	    const FVector& ComponentLocalPosition) const;
+
+	FBeamParticlePayload ReadBeamPayload(
+	    const FBaseParticle& Particle) const;
+
+	void WriteBeamPayload(
+	    FBaseParticle& Particle,
+	    const FBeamParticlePayload& Payload) const;
+};
+
+struct FParticleRibbonEmitterInstance
+    : public FParticleEmitterInstance
+{
+public:
+	void InitParameters(
+	    UParticleEmitter* InTemplate,
+	    UParticleSystemComponent* InComponent) override;
+
+	FDynamicEmitterDataBase* GetDynamicData() const override
+	{
+		// 다음 단계에서 Ribbon ReplayData를 생성한다.
+		return nullptr;
+	}
+
+	UParticleModuleTypeDataRibbon* RibbonTypeData = nullptr;
 };

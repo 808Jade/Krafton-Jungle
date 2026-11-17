@@ -9,6 +9,7 @@
 
 #include "Particles/ParticleVertex.h"
 #include "Particles/ParticleTypes.h"
+#include "Particles/ParticleStripData.h"
 
 class FPrimitiveSceneProxy;
 inline constexpr uint32 InvalidObjectSlot = ~0u;
@@ -44,10 +45,12 @@ struct FRenderPacket
 
     TArray<FParticleSpriteInstanceVertex> SpriteInstances;
 	TArray<FMeshParticleInstanceVertex> MeshInstances;
+	TArray<FParticleStripPoint> StripPoints;
 
     bool IsGPUSkinned() const { return SkinMatrices != nullptr; }
 	bool IsSpriteParticle() const { return SpriteInstances.Num() > 0; }
 	bool IsMeshParticle() const { return MeshInstances.Num() > 0; }
+	bool IsStripParticle() const { return StripPoints.Num() >= 2; }
 
     FVertexBuffer* GetVertexBuffer() const
     {

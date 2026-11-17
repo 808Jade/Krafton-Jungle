@@ -48,5 +48,12 @@ public:
 		return false;
 	}
 
+	// Update 순서. 작은 값이 먼저 돈다. 같은 값이면 모듈 목록의 순서를 따른다.
+	// 가속·속도를 바꾸는 모듈은 0, 그 결과로 위치를 판정하는 충돌은 뒤(1000)에 둔다.
+	virtual int32 GetUpdateOrder() const
+	{
+		return 0;
+	}
+
 	bool bEnabled = true;
 };

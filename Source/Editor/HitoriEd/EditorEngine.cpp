@@ -162,6 +162,9 @@ bool UEditorEngine::Init()
 	ParticleMeshRenderer = MakeUnique<FParticleMeshRenderer>();
 	ParticleMeshRenderer->Init();
 
+	ParticleStripRenderer = MakeUnique<FParticleStripRenderer>();
+	ParticleStripRenderer->Init();
+
 	FXAARenderer = MakeUnique<FFXAARenderer>();
 	FXAARenderer->Init();
 
@@ -1126,7 +1129,7 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 
 		Renderer->RenderTranslucent(
 			ViewProjection,
-			[this, &ParticleView](const FRenderPacket& Packet)
+		    [this, &ParticleView](const FRenderPacket& Packet) // DrawSpriteParticle
 			{
 			    if (!ParticleSpriteRenderer)
 				    return;
@@ -1146,7 +1149,22 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 				        "Failed to draw sprite particle batch.");
 				}
 			},
-			DrawMeshParticle);
+			DrawMeshParticle,
+			[this, &ParticleView](const FRenderPacket& Packet) // DrawStripParticle
+			{
+			    if (!ParticleStripRenderer)
+				    return;
+
+				if (!ParticleStripRenderer->Draw(
+					Packet.StripPoints,
+					Packet.Material,
+					ParticleView))
+				{
+					HTR_LOG(
+				        Error,
+				        "Failed to draw strip particle batch.");
+				}
+			});
 
 		RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
 		RenderCommand::SetBlendState(EBlendState::Opaque);
@@ -1745,6 +1763,7 @@ void UEditorEngine::PreExit()
 	ImGuiRenderer->Shutdown();
 	ParticleSpriteRenderer.reset();
 	ParticleMeshRenderer.reset();
+	ParticleStripRenderer.reset();
 
 	Super::PreExit();
 }

@@ -31,13 +31,17 @@
 #include "Particles/Modules/ParticleModuleVelocity.h"
 #include "Particles/Modules/ParticleModuleSize.h"
 #include "Particles/Modules/ParticleModuleColor.h"
+#include "Particles/Modules/ParticleModuleTypeDataMesh.h"
+#include "Particles/Modules/ParticleModuleTypeDataBeam.h"
+#include "Particles/Modules/ParticleModuleBeamSource.h"
+#include "Particles/Modules/ParticleModuleBeamTarget.h"
+#include "Particles/Modules/ParticleModuleBeamNoise.h"
 
 #include "Render/ImageLoader.h"
 #include "Core/ResourcePaths.h"
 #include <algorithm>
 #include <cctype>
 #include "Core/Misc/FileHelper.h"
-#include "Particles/Modules/ParticleModuleTypeDataMesh.h"
 
 
 namespace
@@ -524,6 +528,7 @@ void UAssetManager::CreateDefaultParticleSystem()
 {
 	RegisterAsset("DefaultParticleSystem", BuildDefaultParticleSystem(false));
 	RegisterAsset("DefaultMeshParticleSystem", BuildDefaultParticleSystem(true));
+	RegisterAsset("DefaultBeamParticleSystem", BuildDefaultBeamParticleSystem());
 }
 
 UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
@@ -591,6 +596,112 @@ UParticleLODLevel* UAssetManager::BuildDefaultParticleLODLevel(UParticleEmitter*
 	}
 
 	return LODLevel;
+}
+
+UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
+{
+	UParticleSystem* System =
+	    NewObject<UParticleSystem>();
+
+	// 이제 BeamEmitterInstance가 동적 Bounds를 계산한다.
+	System->bUseFixedRelativeBoundingBox = false;
+
+	UParticleEmitter* Emitter =
+	    NewObject<UParticleEmitter>(System);
+
+	UParticleLODLevel* LODLevel =
+	    NewObject<UParticleLODLevel>(Emitter);
+
+	UParticleModuleRequired* Required =
+	    NewObject<UParticleModuleRequired>(LODLevel);
+
+	Required->Material =
+	    GetAssetByPath<UMaterial>("DefaultParticleMaterial");
+
+	Required->bUseLocalSpace = true;
+	Required->SortMode = EParticleSortMode::None;
+	Required->EmitterDuration = 05.5f;
+	Required->EmitterLoops = 0;
+	Required->MaxActiveParticles = 3;
+
+	UParticleModuleTypeDataBeam* BeamTypeData =
+	    NewObject<UParticleModuleTypeDataBeam>(LODLevel);
+
+	BeamTypeData->MaxBeamCount = 1;
+	BeamTypeData->SegmentCount = 64;
+	BeamTypeData->TextureTileDistance = 0.0f;
+
+	UParticleModuleBeamSource* Source =
+	    NewObject<UParticleModuleBeamSource>(LODLevel);
+
+	Source->SourcePosition = FVector(0.0f, 0.0f, 2.0f);
+	Source->bLockOnSpawn = true;
+
+	UParticleModuleBeamTarget* Target =
+	    NewObject<UParticleModuleBeamTarget>(LODLevel);
+
+	Target->TargetPosition = FVector(5.0f, 0.0f, 2.0f);
+	Target->bLockOnSpawn = true;
+
+	UParticleModuleBeamNoise* Noise =
+	    NewObject<UParticleModuleBeamNoise>(LODLevel);
+
+	Noise->Amplitude = 0.2f;
+	Noise->NoiseSegmentCount = 8;
+	Noise->UpdateInterval = 0.0f;
+	Noise->RandomSeed = 12345;
+	Noise->bSmoothNoise = true;
+
+	UParticleModuleSpawn* Spawn =
+	    NewObject<UParticleModuleSpawn>(LODLevel);
+
+	Spawn->SpawnRate = 0.0f;
+
+	FParticleBurst Burst{};
+	Burst.Time = 0.0f;
+	Burst.Count = 3;
+	Spawn->Bursts.Add(Burst);
+
+	UParticleModuleLifetime* Lifetime =
+	    NewObject<UParticleModuleLifetime>(LODLevel);
+
+	Lifetime->Lifetime = FParticleFloatRange(05.4f, 05.4f);
+
+	UParticleModuleSize* Size =
+	    NewObject<UParticleModuleSize>(LODLevel);
+
+	Size->StartSize =
+	    FParticleVectorRange(FVector(0.08f, 0.08f, 0.08f));
+
+	UParticleModuleColor* Color =
+	    NewObject<UParticleModuleColor>(LODLevel);
+
+	const FLinearColor StartColor(
+	    0.1f, 0.7f, 1.0f, 0.8f);
+
+	Color->StartColor =
+	    FParticleColorRange(StartColor, StartColor);
+
+	Color->bUseColorOverLife = false;
+	//Color->EndColor =
+	//    FLinearColor(0.1f, 0.7f, 1.0f, 0.0f);
+
+	LODLevel->Level = 0;
+	LODLevel->RequiredModule = Required;
+	LODLevel->TypeDataModule = BeamTypeData;
+
+	LODLevel->Modules.Add(Spawn);
+	LODLevel->Modules.Add(Lifetime);
+	LODLevel->Modules.Add(Size);
+	LODLevel->Modules.Add(Color);
+	LODLevel->Modules.Add(Source);
+	LODLevel->Modules.Add(Target);
+	LODLevel->Modules.Add(Noise);
+
+	Emitter->LODLevels.Add(LODLevel);
+	System->Emitters.Add(Emitter);
+
+	return System;
 }
 
 void UAssetManager::CreateParticleMaterial()
