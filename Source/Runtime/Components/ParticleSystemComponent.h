@@ -32,8 +32,6 @@ private:
 
 public:
 	TArray<FParticleEmitterInstance*> EmitterInstances;
-	bool bUseFixedRelativeBoundingBox = false;
-	FBox FixedRelativeBoundingBox{ FVector(-1.0f, -1.0f, -1.0f), FVector(1.0f, 1.0f, 1.0f) };
 	UPROPERTY(EditAnywhere)
 	UParticleSystem* Template = nullptr;
 

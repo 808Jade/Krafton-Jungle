@@ -113,7 +113,7 @@ void FParticleEmitterInstance::IntegrateParticles(float DeltaTime)
 
 void FParticleEmitterInstance::UpdateBoundingBox()
 {
-	if (!Component || Component->bUseFixedRelativeBoundingBox || ActiveParticles <= 0)
+	if (!Component || (Component->Template && Component->Template->bUseFixedRelativeBoundingBox) || ActiveParticles <= 0)
 	{
 		return;
 	}
