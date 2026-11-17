@@ -21,6 +21,10 @@ public:
 	void OnRender() override;
 	const char* GetPanelName() const override { return "Particle System Editor"; }
 
+	// 콘텐츠 드로어에서 .particle을 더블클릭하면 부른다. 에디터 창을 열고 앞으로 가져온 뒤 그 에셋을 프리뷰한다.
+	// 이미 불러온 에셋이면 메모리의 것을 그대로 쓴다. (저장하지 않은 수정도 유지된다)
+	void OpenAssetFile(const FString& Path);
+
 	// 프리뷰 월드와 GPU 타깃을 해제한다. 전역 UObject 일괄 삭제와 Device 종료 전에 엔진이 호출한다.
 	void ReleaseResources();
 
@@ -80,6 +84,8 @@ private:
 
 	bool bHostVisible = false;
 	bool bResetLayout = false;
+	// OpenAssetFile 다음 프레임에 호스트 창을 앞으로 가져온다. (다른 탭 뒤에 도킹돼 있어도 보이게)
+	bool bFocusNextFrame = false;
 
 	// Save As 모달 상태
 	bool bOpenSaveAsPopup = false;

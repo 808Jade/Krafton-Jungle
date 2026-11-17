@@ -136,12 +136,33 @@ void FParticleSystemEditorPanel::Tick(float DeltaTime)
 		Panel->Tick(DeltaTime);
 }
 
+void FParticleSystemEditorPanel::OpenAssetFile(const FString& Path)
+{
+	// 경로 → 에셋 키 변환과 "이미 불러왔으면 그 객체를 돌려주기"는 LoadParticleSystem이 맡는다.
+	FString Error;
+	UParticleSystem* Asset = UAssetManager::Get().LoadParticleSystem(Path, Error);
+	if (!Asset)
+	{
+		HTR_LOG(Error, "Failed to open particle system '{}': {}", Path, Error);
+		return;
+	}
+
+	SetOpen(true);
+	bFocusNextFrame = true;
+	Context.OpenAsset(Asset);
+}
+
 void FParticleSystemEditorPanel::OnRender()
 {
 	bool bOpen = IsOpen();
 	ImGui::SetNextWindowSize(ImVec2(1280, 800), ImGuiCond_FirstUseEver);
 	// 저장하지 않은 수정이 있으면 탭 제목에 점이 붙는다. (블렌드스페이스 에디터와 같은 표시)
 	const ImGuiWindowFlags HostFlags = ImGuiWindowFlags_MenuBar | (Context.IsDirty() ? ImGuiWindowFlags_UnsavedDocument : ImGuiWindowFlags_None);
+	if (bFocusNextFrame)
+	{
+		ImGui::SetNextWindowFocus();
+		bFocusNextFrame = false;
+	}
 	bHostVisible = ImGui::Begin(GetPanelName(), &bOpen, HostFlags);
 
 	if (bHostVisible)

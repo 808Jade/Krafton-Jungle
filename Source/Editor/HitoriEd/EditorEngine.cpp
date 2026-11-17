@@ -244,6 +244,12 @@ bool UEditorEngine::Init()
  ContentDrawerPanel->SetOpenStateMachineCallback([this](const FString &P) { AnimGraphEditorPanel->OpenAsset(P); });
  ContentDrawerPanel->SetCreateStateMachineCallback([this](const FString& P){AnimGraphEditorPanel->NewStateMachine(P);});
 	ContentDrawerPanel->SetOpenBlendSpaceCallback([this](const FString& Path) { BlendSpaceEditorPanel->OpenAsset(Path); });
+	// 패널은 아래에서 만든다. 람다는 더블클릭 시점에 멤버를 읽으므로 생성 순서와 무관하다.
+	ContentDrawerPanel->SetOpenParticleSystemCallback([this](const FString& Path)
+	{
+		if (ParticleSystemEditorPanel)
+			ParticleSystemEditorPanel->OpenAssetFile(Path);
+	});
 	// 파티클 에디터는 렌더러를 알지 못한다. 프리뷰 렌더는 RenderParticlePreview가 맡는다.
 	ParticleSystemEditorPanel = EditorUI->AddEditorPanel<FParticleSystemEditorPanel>();
 	SkeletalMeshViewerPanel = EditorUI->AddEditorPanel<FSkeletalMeshViewerPanel>();
