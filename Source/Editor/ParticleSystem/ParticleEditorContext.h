@@ -67,11 +67,14 @@ public:
 	// ModuleClass 모듈을 새로 만들어 모듈 목록 끝에 붙이고 선택한다. 같은 종류가 이미 있으면 실패한다.
 	bool AddModule(int32 EmitterIndex, UClass* ModuleClass);
 	// Required·Spawn은 이미터에 꼭 하나씩 있어야 하므로 지울 수 없다. (언리얼도 같다)
+	bool CanAddModule(int32 EmitterIndex, UClass* ModuleClass) const;
 	static bool CanDeleteModule(const UParticleModule* Module);
 	// 모듈 목록 또는 TypeData에서 Module을 빼고 삭제한다.
 	bool DeleteModule(int32 EmitterIndex, UParticleModule* Module);
 	// 메시 TypeData를 붙여 메시 이미터로 바꾼다. 기본 메시는 엔진의 "Cube"다. TypeData가 이미 있으면 실패한다.
 	bool AddMeshTypeData(int32 EmitterIndex);
+	bool AddBeamTypeData(int32 EmitterIndex);
+	bool AddRibbonTypeData(int32 EmitterIndex);
 	// Cascade의 "New Particle Sprite Emitter". 기본 모듈 구성(Required·Spawn·Lifetime·Initial Size·
 	// Initial Velocity·Initial Color)을 가진 스프라이트 이미터를 Emitters 끝에 붙이고 선택한다.
 	// 새 이미터의 인덱스를 돌려준다. 에셋이 없으면 INDEX_NONE이다.

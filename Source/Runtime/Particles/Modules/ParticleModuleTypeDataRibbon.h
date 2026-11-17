@@ -21,23 +21,23 @@ public:
 		return static_cast<int32>(sizeof(FRibbonParticlePayload));
 	}
 	
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere)
 	// 서로 독립적인 Ribbon 경로 개수.
 	int32 MaxTrailCount = 1;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	// 경로 하나가 유지할 최대 점 개수.
 	int32 MaxPointsPerTrail = 128;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	// 새 점을 추가하기 위한 최소 이동 거리.
 	float MinSpawnDistance = 0.1f;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	// 0이면 현재 Ribbon 전체에 U = 0~1을 적용.
 	float TextureTileDistance = 0.0f;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	// true이면 마지막 파티클과 Source 사이의 구간을 그리지 않는다.
 	bool bClipSourceSegment = false;
 };

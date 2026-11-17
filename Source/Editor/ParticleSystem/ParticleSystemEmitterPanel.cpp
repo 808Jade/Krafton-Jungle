@@ -16,6 +16,12 @@
 #include "Particles/Modules/ParticleModuleColor.h"
 #include "Particles/Modules/ParticleModuleRotation.h"
 #include "Particles/Modules/ParticleModuleRotationRate.h"
+#include "Particles/Modules/ParticleModuleTypeDataBeam.h"
+#include "Particles/Modules/ParticleModuleTypeDataRibbon.h"
+#include "Particles/Modules/ParticleModuleBeamSource.h"
+#include "Particles/Modules/ParticleModuleBeamTarget.h"
+#include "Particles/Modules/ParticleModuleBeamNoise.h"
+#include "UObject/Casts.h"
 #include "Particles/Modules/ParticleModuleAccelerationConstant.h"
 #include "Particles/Modules/ParticleModuleCollision.h"
 
@@ -44,6 +50,17 @@ namespace
 		{ "Rotation Rate", "Initial Rotation Rate", [] { return UParticleModuleRotationRate::StaticClass(); } },
 		{ "Size",          "Initial Size",          [] { return UParticleModuleSize::StaticClass(); } },
 		{ "Velocity",      "Initial Velocity",      [] { return UParticleModuleVelocity::StaticClass(); } },
+		{ "Beam", "Source",
+		  []
+		  { return UParticleModuleBeamSource::StaticClass(); } },
+
+		{ "Beam", "Target",
+		  []
+		  { return UParticleModuleBeamTarget::StaticClass(); } },
+
+		{ "Beam", "Noise",
+		  []
+		  { return UParticleModuleBeamNoise::StaticClass(); } },
 	};
 
 	// 모듈 클래스 이름 → Cascade 표시 이름. 언리얼은 클래스 메타데이터(DisplayName)로 정하는 값이다.
@@ -54,16 +71,21 @@ namespace
 		const char* DisplayName;
 	};
 	constexpr FModuleDisplayName ModuleDisplayNames[] = {
-		{ "UParticleModuleRequired",      "Required" },
-		{ "UParticleModuleSpawn",         "Spawn" },
-		{ "UParticleModuleLifetime",      "Lifetime" },
-		{ "UParticleModuleLocation",      "Initial Location" },
-		{ "UParticleModuleVelocity",      "Initial Velocity" },
-		{ "UParticleModuleSize",          "Initial Size" },
-		{ "UParticleModuleColor",         "Initial Color" },
-		{ "UParticleModuleRotation",      "Initial Rotation" },
-		{ "UParticleModuleRotationRate",  "Initial Rotation Rate" },
-		{ "UParticleModuleTypeDataMesh",  "Mesh Data" },
+		{ "UParticleModuleRequired",		"Required" },
+		{ "UParticleModuleSpawn",			"Spawn" },
+		{ "UParticleModuleLifetime",		"Lifetime" },
+		{ "UParticleModuleLocation",		"Initial Location" },
+		{ "UParticleModuleVelocity",		"Initial Velocity" },
+		{ "UParticleModuleSize",			"Initial Size" },
+		{ "UParticleModuleColor",			"Initial Color" },
+		{ "UParticleModuleRotation",		"Initial Rotation" },
+		{ "UParticleModuleRotationRate",	"Initial Rotation Rate" },
+		{ "UParticleModuleTypeDataMesh",	"Mesh Data" },
+		{ "UParticleModuleTypeDataBeam",	"Beam Data" },
+		{ "UParticleModuleTypeDataRibbon",	"Ribbon Data" },
+		{ "UParticleModuleBeamSource",		"Beam Source" },
+		{ "UParticleModuleBeamTarget",		"Beam Target" },
+		{ "UParticleModuleBeamNoise",		"Beam Noise" },
 		{ "UParticleModuleAccelerationConstant", "Const Acceleration" },
 	};
 
@@ -274,23 +296,99 @@ void FParticleSystemEmitterPanel::DrawContextMenu(const int32 EmitterIndex, UPar
 		return;
 	}
 
+	bool bCanRemoveTypeData = LODLevel->TypeDataModule != nullptr;
+
+	if (Cast<UParticleModuleTypeDataBeam>(
+	        LODLevel->TypeDataModule))
+	{
+		for (UParticleModule* Module : LODLevel->Modules)
+		{
+			if (Cast<UParticleModuleBeamSource>(Module) ||
+			    Cast<UParticleModuleBeamTarget>(Module) ||
+			    Cast<UParticleModuleBeamNoise>(Module))
+			{
+				bCanRemoveTypeData = false;
+				break;
+			}
+		}
+	}
+
 	if (ClickedModule)
 	{
-		const bool bCanDelete = FParticleEditorContext::CanDeleteModule(ClickedModule);
+		const bool bCanDelete = 
+			FParticleEditorContext::CanDeleteModule(ClickedModule) &&
+			(ClickedModule != LODLevel->TypeDataModule || bCanRemoveTypeData);
 		if (ImGui::MenuItem("Delete Module", nullptr, false, bCanDelete))
 			PendingEdit = { EPendingEdit::DeleteModule, EmitterIndex, nullptr, ClickedModule };
-		if (!bCanDelete && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-			ImGui::SetTooltip("Required and Spawn modules cannot be deleted.");
+		if (!bCanDelete &&
+		    ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+		{
+			if (ClickedModule == LODLevel->TypeDataModule)
+			{
+				ImGui::SetTooltip(
+				    "Remove Beam Source, Target and Noise modules first.");
+			}
+			else
+			{
+				ImGui::SetTooltip(
+				    "Required and Spawn modules cannot be deleted.");
+			}
+		}
 		ImGui::Separator();
 	}
 
 	// TypeData는 이미터당 하나다. 있으면 새로 만들 수 없고, 지우면 Sprite 이미터로 돌아간다.
 	if (ImGui::BeginMenu("TypeData"))
 	{
-		if (ImGui::MenuItem("New Mesh Data", nullptr, false, LODLevel->TypeDataModule == nullptr))
-			PendingEdit = { EPendingEdit::AddMeshTypeData, EmitterIndex, nullptr, nullptr };
-		if (ImGui::MenuItem("Remove TypeData", nullptr, false, LODLevel->TypeDataModule != nullptr))
-			PendingEdit = { EPendingEdit::DeleteModule, EmitterIndex, nullptr, LODLevel->TypeDataModule };
+		const bool bCanAddTypeData =
+		    LODLevel->TypeDataModule == nullptr;
+
+		if (ImGui::MenuItem(
+		        "New Mesh Data", nullptr, false, bCanAddTypeData))
+		{
+			PendingEdit = {
+				EPendingEdit::AddMeshTypeData,
+				EmitterIndex, nullptr, nullptr
+			};
+		}
+
+		if (ImGui::MenuItem(
+		        "New Beam Data", nullptr, false, bCanAddTypeData))
+		{
+			PendingEdit = {
+				EPendingEdit::AddBeamTypeData,
+				EmitterIndex, nullptr, nullptr
+			};
+		}
+
+		if (ImGui::MenuItem(
+		        "New Ribbon Data", nullptr, false, bCanAddTypeData))
+		{
+			PendingEdit = {
+				EPendingEdit::AddRibbonTypeData,
+				EmitterIndex, nullptr, nullptr
+			};
+		}
+
+		if (ImGui::MenuItem(
+		        "Remove TypeData", nullptr, false,
+		        bCanRemoveTypeData))
+		{
+			PendingEdit = {
+				EPendingEdit::DeleteModule,
+				EmitterIndex, nullptr, LODLevel->TypeDataModule
+			};
+		}
+
+		if (LODLevel->TypeDataModule &&
+		    !bCanRemoveTypeData &&
+		    ImGui::IsItemHovered(
+		        ImGuiHoveredFlags_AllowWhenDisabled))
+		{
+			ImGui::SetTooltip(
+			    "Remove Beam Source, Target and Noise modules first.");
+		}
+
 		ImGui::EndMenu();
 	}
 	ImGui::Separator();
@@ -309,9 +407,24 @@ void FParticleSystemEmitterPanel::DrawContextMenu(const int32 EmitterIndex, UPar
 			&& strcmp(AddableModules[Inner].Category, Entry.Category) == 0; ++Inner)
 		{
 			UClass* ModuleClass = AddableModules[Inner].GetClass();
-			const bool bAlreadyAdded = Context.HasModuleOfClass(EmitterIndex, ModuleClass);
-			if (ImGui::MenuItem(AddableModules[Inner].DisplayName, bAlreadyAdded ? "added" : nullptr, false, !bAlreadyAdded))
-				PendingEdit = { EPendingEdit::AddModule, EmitterIndex, ModuleClass, nullptr };
+
+			const bool bAlreadyAdded =
+			    Context.HasModuleOfClass(EmitterIndex, ModuleClass);
+
+			const bool bCanAdd =
+			    Context.CanAddModule(EmitterIndex, ModuleClass);
+
+			if (ImGui::MenuItem(
+			        AddableModules[Inner].DisplayName,
+			        bAlreadyAdded ? "added" : nullptr,
+			        false,
+			        bCanAdd))
+			{
+				PendingEdit = {
+					EPendingEdit::AddModule,
+					EmitterIndex, ModuleClass, nullptr
+				};
+			}
 		}
 		ImGui::EndMenu();
 	}
@@ -338,6 +451,12 @@ void FParticleSystemEmitterPanel::ApplyPendingEdit()
 		break;
 	case EPendingEdit::DeleteEmitter:
 		Context.DeleteEmitter(Edit.EmitterIndex);
+		break;
+	case EPendingEdit::AddBeamTypeData:
+		Context.AddBeamTypeData(Edit.EmitterIndex);
+		break;
+	case EPendingEdit::AddRibbonTypeData:
+		Context.AddRibbonTypeData(Edit.EmitterIndex);
 		break;
 	default:
 		break;

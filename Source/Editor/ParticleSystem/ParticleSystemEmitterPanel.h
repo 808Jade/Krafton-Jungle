@@ -35,7 +35,11 @@ private:
 		None,
 		AddModule,
 		DeleteModule,
+
 		AddMeshTypeData,
+		AddBeamTypeData,
+		AddRibbonTypeData,
+
 		AddEmitter,
 		DeleteEmitter,
 	};
