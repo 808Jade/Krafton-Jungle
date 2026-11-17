@@ -121,7 +121,7 @@ void FAnimGraphEditorPanel::Tick(float Delta)
         else D->Preview.Hide();
     }
 }
-void FAnimGraphEditorPanel::RenderPreview() { if(IsOpen() && Visible) if(auto* D=Current()) D->Preview.Render(); }
+void FAnimGraphEditorPanel::CollectPreviewViews(TArray<FEditorTabView>& OutViews) { if(IsOpen() && Visible) if(auto* D=Current()) D->Preview.CollectViews(OutViews); }
 void FAnimGraphEditorPanel::SetOpen(bool Open)
 {
     if(!Open)

@@ -24,7 +24,7 @@
 #include "GameFramework/Actor/ParticleSystemActor.h"
 #include "Sequence/SequenceActor.h"
 
-class FMultipleViewportsAdapter;
+class FViewportsPanel;
 
 // 액터 생성과 카메라·기즈모 편집에 필요한 패널 상태를 보관한다.
 class FEditorControlsPanel : public IEditorPanel
@@ -99,14 +99,14 @@ public:
 		ACharacter::StaticClass(),
 	};
 
-    void SetViewportAdapter(FMultipleViewportsAdapter* InAdapter) { ViewportAdapter = InAdapter; }
+    void SetViewportsPanel(FViewportsPanel* InViewportsPanel) { LevelViewports = InViewportsPanel; }
 
 private:
 	static constexpr float SectionGap = 10.0f;
 	static constexpr float SubsectionGap = 4.0f;
 	bool CanPlaceActorClass(const UClass* Class) const;
     void DrawCameraProperties();
-    FMultipleViewportsAdapter* ViewportAdapter = nullptr;
+    FViewportsPanel* LevelViewports = nullptr;
 	std::function<bool()> IsPlayingQuery;
 
 };

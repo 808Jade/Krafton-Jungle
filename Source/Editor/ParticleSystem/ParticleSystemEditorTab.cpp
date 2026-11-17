@@ -1,5 +1,5 @@
 #include "EnginePCH.h"
-#include "Editor/ParticleSystem/ParticleSystemEditorPanel.h"
+#include "Editor/ParticleSystem/ParticleSystemEditorTab.h"
 #include "Editor/ParticleSystem/ParticleSystemViewportPanel.h"
 #include "Editor/ParticleSystem/ParticleSystemEmitterPanel.h"
 #include "Editor/ParticleSystem/ParticleSystemDetailsPanel.h"
@@ -14,9 +14,6 @@
 
 namespace
 {
-	constexpr const char* InnerDockSpaceName = "ParticleSystemEditorInnerDockSpace";
-	constexpr const char* WindowClassName = "ParticleSystemEditorClass";
-
 	constexpr float ToolbarIconSize = 18.0f;
 	constexpr float ToolbarGroupSpacing = 10.0f;
 
@@ -98,121 +95,86 @@ namespace
 	}
 }
 
-FParticleSystemEditorPanel::FParticleSystemEditorPanel() = default;
+FString FParticleSystemEditorTab::MakeTabId(const int32 InSlot)
+{
+	return "ParticleSystemEditor_" + std::to_string(InSlot);
+}
 
-FParticleSystemEditorPanel::~FParticleSystemEditorPanel()
+FParticleSystemEditorTab::FParticleSystemEditorTab(const int32 InSlot, UParticleSystem* InAsset, FOpenAssetRequest InOpenAssetRequest)
+	: FEditorTab({ "Particle System", MakeTabId(InSlot), true })
+	, Slot(InSlot)
+	, InitialAsset(InAsset)
+	, OpenAssetRequest(std::move(InOpenAssetRequest))
+{
+}
+
+FParticleSystemEditorTab::~FParticleSystemEditorTab()
 {
 	ReleaseResources();
 }
 
-bool FParticleSystemEditorPanel::Init()
+bool FParticleSystemEditorTab::Init()
 {
-	if (!Context.Init())
+	// 프리뷰 월드 이름도 탭마다 다르게 준다.
+	if (!Context.Init(FName(GetId())))
 		return false;
+	if (InitialAsset)
+		Context.OpenAsset(InitialAsset);
 
 	LoadToolbarIcons();
 
-	// 하위 패널은 Context를 참조만 한다. 생성 순서가 곧 그리는 순서다.
-	auto Viewport = MakeUnique<FParticleSystemViewportPanel>(Context);
-	ViewportPanel = Viewport.get();
-	SubPanels.Add(std::move(Viewport));
-	SubPanels.Add(MakeUnique<FParticleSystemEmitterPanel>(Context));
-	SubPanels.Add(MakeUnique<FParticleSystemDetailsPanel>(Context));
+	// 하위 패널은 Context를 참조만 한다. 추가 순서가 곧 그리는 순서다. (AddPanel이 Init까지 부른다)
+	ViewportPanel = AddPanel<FParticleSystemViewportPanel>(Context, GetId());
+	EmitterPanel = AddPanel<FParticleSystemEmitterPanel>(Context, GetId());
+	DetailsPanel = AddPanel<FParticleSystemDetailsPanel>(Context, GetId());
 
-	bool bAllInitialized = true;
-	for (auto& Panel : SubPanels)
-		bAllInitialized &= Panel->Init();
-	return bAllInitialized;
+	RefreshTitle();
+	return true;
 }
 
-void FParticleSystemEditorPanel::Tick(float DeltaTime)
+void FParticleSystemEditorTab::Tick(const float DeltaTime)
 {
-	// 닫혀 있거나 다른 탭에 가려진 동안에는 시뮬레이션과 하위 패널을 진행하지 않는다.
-	if (!IsOpen() || !bHostVisible)
+	RefreshTitle();
+
+	// 다른 탭에 가려진 동안에는 시뮬레이션과 하위 패널을 진행하지 않는다.
+	if (!IsVisible())
 		return;
 
 	Context.Tick(DeltaTime);
-	for (auto& Panel : SubPanels)
-		Panel->Tick(DeltaTime);
+	FEditorTab::Tick(DeltaTime);
 }
 
-void FParticleSystemEditorPanel::OpenAssetFile(const FString& Path)
+void FParticleSystemEditorTab::RefreshTitle()
 {
-	// 경로 → 에셋 키 변환과 "이미 불러왔으면 그 객체를 돌려주기"는 LoadParticleSystem이 맡는다.
-	FString Error;
-	UParticleSystem* Asset = UAssetManager::Get().LoadParticleSystem(Path, Error);
-	if (!Asset)
-	{
-		HTR_LOG(Error, "Failed to open particle system '{}': {}", Path, Error);
-		return;
-	}
-
-	SetOpen(true);
-	bFocusNextFrame = true;
-	Context.OpenAsset(Asset);
+	// 경로(Particles/Fire.particle)에서 파일 이름만 보여 준다. 코드로 만든 기본 에셋은 등록 이름 그대로다.
+	const FString Label = Context.GetAssetLabel();
+	SetTitle(Label.empty() ? FString("Particle System") : fs::path(Label).stem().string());
 }
 
-void FParticleSystemEditorPanel::OnRender()
+const UObject* FParticleSystemEditorTab::GetEditingAsset() const
 {
-	bool bOpen = IsOpen();
-	ImGui::SetNextWindowSize(ImVec2(1280, 800), ImGuiCond_FirstUseEver);
+	return Context.GetTemplate();
+}
+
+ImGuiWindowFlags FParticleSystemEditorTab::GetHostWindowFlags() const
+{
 	// 저장하지 않은 수정이 있으면 탭 제목에 점이 붙는다. (블렌드스페이스 에디터와 같은 표시)
-	const ImGuiWindowFlags HostFlags = ImGuiWindowFlags_MenuBar | (Context.IsDirty() ? ImGuiWindowFlags_UnsavedDocument : ImGuiWindowFlags_None);
-	if (bFocusNextFrame)
-	{
-		ImGui::SetNextWindowFocus();
-		bFocusNextFrame = false;
-	}
-	bHostVisible = ImGui::Begin(GetPanelName(), &bOpen, HostFlags);
+	return ImGuiWindowFlags_MenuBar | (Context.IsDirty() ? ImGuiWindowFlags_UnsavedDocument : ImGuiWindowFlags_None);
+}
 
-	if (bHostVisible)
-	{
-		DrawMenuBar();	// ①
-		DrawToolBar();	// ②
-		DrawSaveAsPopup();
-	}
-
-	// 에디터 전용 WindowClass. 하위 패널은 이 DockSpace에만 붙고, 레벨 에디터 창과 섞이지 않는다.
-	ImGuiWindowClass EditorClass;
-	EditorClass.ClassId = ImHashStr(WindowClassName);
-	EditorClass.DockingAllowUnclassed = false;
-
-	const ImGuiID DockSpaceId = ImGui::GetID(InnerDockSpaceName);
-	const ImGuiDockNode* Node = ImGui::DockBuilderGetNode(DockSpaceId);
-	if (Node == nullptr || bResetLayout || (Node->IsLeafNode() && Node->Windows.Size == 0))
-	{
-		bResetLayout = false;
-		BuildDefaultLayout(DockSpaceId);
-	}
-
-	// 탭이 가려져도 DockSpace는 매 프레임 제출해야 하위 패널이 도킹에서 풀리지 않는다.
-	const ImGuiDockNodeFlags DockFlags = (bHostVisible && bOpen) ? ImGuiDockNodeFlags_None : ImGuiDockNodeFlags_KeepAliveOnly;
-	ImGui::DockSpace(DockSpaceId, ImVec2(0.0f, 0.0f), DockFlags, &EditorClass);
+void FParticleSystemEditorTab::DrawHostContents()
+{
+	DrawMenuBar();	// ①
+	DrawToolBar();	// ②
+	DrawSaveAsPopup();
 
 	// Ctrl+S: 하위 패널(뷰포트·이미터·디테일)이 포커스를 가진 때도 저장한다. 우클릭 카메라 이동(S키) 중에는 무시한다.
-	if (bHostVisible && bOpen && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows | ImGuiFocusedFlags_DockHierarchy)
+	if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows | ImGuiFocusedFlags_DockHierarchy)
 		&& ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false) && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
 		RequestSave();
-	ImGui::End();
-
-	// ③④⑤ 하위 패널. 도킹 클래스는 여기서 정해 주므로 패널은 자기가 어느 에디터 안에 있는지 모른다.
-	if (bHostVisible && bOpen)
-	{
-		for (auto& Panel : SubPanels)
-		{
-			if (!Panel->IsOpen())
-				continue;
-			ImGui::SetNextWindowClass(&EditorClass);
-			Panel->OnRender();
-		}
-	}
-
-	SetOpen(bOpen);
-	if (!bOpen)
-		bHostVisible = false;
 }
 
-void FParticleSystemEditorPanel::DrawMenuBar()
+void FParticleSystemEditorTab::DrawMenuBar()
 {
 	if (!ImGui::BeginMenuBar())
 		return;
@@ -224,14 +186,14 @@ void FParticleSystemEditorPanel::DrawMenuBar()
 		if (ImGui::MenuItem("Save As...", nullptr, false, Context.CanSave()))
 			RequestSaveAs();
 
-		// 저장한 파일과 기본 에셋 중 하나를 골라 프리뷰에서 편집한다.
+		// 저장한 파일과 기본 에셋 중 하나를 고른다. 이미 열린 에셋이면 그 탭을, 아니면 새 탭을 연다. (엔진이 처리)
 		if (ImGui::BeginMenu("Open"))
 		{
 			const UParticleSystem* Current = Context.GetTemplate();
 			for (UParticleSystem* Asset : UAssetManager::Get().GetParticleSystemAssets())
 			{
-				if (ImGui::MenuItem(Asset->GetPath().c_str(), nullptr, Asset == Current))
-					Context.OpenAsset(Asset);
+				if (ImGui::MenuItem(Asset->GetPath().c_str(), nullptr, Asset == Current) && Asset != Current && OpenAssetRequest)
+					OpenAssetRequest(Asset);
 			}
 			ImGui::EndMenu();
 		}
@@ -240,9 +202,9 @@ void FParticleSystemEditorPanel::DrawMenuBar()
 
 	if (ImGui::BeginMenu("Window"))
 	{
-		for (auto& Panel : SubPanels)
+		for (auto& Panel : Panels)
 		{
-			// "Details##Particle"처럼 ## 뒤는 ID용이므로 메뉴에는 앞부분만 보인다.
+			// "Details###Details_탭ID"처럼 ### 뒤는 창 ID이므로 메뉴에는 앞부분만 보인다.
 			const bool bPanelOpen = Panel->IsOpen();
 			if (ImGui::MenuItem(Panel->GetPanelName(), nullptr, bPanelOpen))
 				Panel->SetOpen(!bPanelOpen);
@@ -250,9 +212,9 @@ void FParticleSystemEditorPanel::DrawMenuBar()
 		ImGui::Separator();
 		if (ImGui::MenuItem("Reset Layout"))
 		{
-			for (auto& Panel : SubPanels)
+			for (auto& Panel : Panels)
 				Panel->SetOpen(true);
-			bResetLayout = true;
+			RequestLayoutReset();
 		}
 		ImGui::EndMenu();
 	}
@@ -273,7 +235,7 @@ void FParticleSystemEditorPanel::DrawMenuBar()
 	ImGui::EndMenuBar();
 }
 
-void FParticleSystemEditorPanel::RequestSave()
+void FParticleSystemEditorTab::RequestSave()
 {
 	if (!Context.CanSave())
 		return;
@@ -285,7 +247,7 @@ void FParticleSystemEditorPanel::RequestSave()
 		RequestSaveAs();
 }
 
-void FParticleSystemEditorPanel::RequestSaveAs()
+void FParticleSystemEditorTab::RequestSaveAs()
 {
 	// 파일이 있는 에셋을 다른 이름으로 저장할 때는 원래 이름 뒤에 _Copy를 붙여 제안한다.
 	FString Suggested = NewAssetDefaultName;
@@ -297,7 +259,7 @@ void FParticleSystemEditorPanel::RequestSaveAs()
 	bOpenSaveAsPopup = true;
 }
 
-void FParticleSystemEditorPanel::DrawSaveAsPopup()
+void FParticleSystemEditorTab::DrawSaveAsPopup()
 {
 	// 메뉴·단축키는 요청만 남기고, 팝업은 호스트 창의 ID 스택에서 여기서 연다.
 	if (bOpenSaveAsPopup)
@@ -342,7 +304,7 @@ void FParticleSystemEditorPanel::DrawSaveAsPopup()
 	ImGui::EndPopup();
 }
 
-void FParticleSystemEditorPanel::LoadToolbarIcons()
+void FParticleSystemEditorTab::LoadToolbarIcons()
 {
 	const auto Load = [](const char* Name)
 	{
@@ -366,7 +328,7 @@ void FParticleSystemEditorPanel::LoadToolbarIcons()
 	Icons.Play = UAssetManager::Get().LoadTexture(EditorResourcePaths::ToolbarPlayIcon);
 }
 
-void FParticleSystemEditorPanel::DrawToolBar()
+void FParticleSystemEditorTab::DrawToolBar()
 {
 	// 버튼이 많아 창이 좁으면 넘친다. 툴바만 가로로 스크롤되게 자식 창 안에 그린다.
 	const ImGuiStyle& Style = ImGui::GetStyle();
@@ -387,7 +349,7 @@ void FParticleSystemEditorPanel::DrawToolBar()
 	ImGui::Separator();
 }
 
-void FParticleSystemEditorPanel::DrawAssetGroup()
+void FParticleSystemEditorTab::DrawAssetGroup()
 {
 	// 파일이 있는 에셋은 바로 저장하고, 코드로 만든 기본 에셋은 이름을 묻는 Save As 창이 뜬다.
 	if (ConditionalButton("##Save", Icons.Save, "Save",
@@ -407,7 +369,7 @@ void FParticleSystemEditorPanel::DrawAssetGroup()
 		Context.RestartLevelInstances();
 }
 
-void FParticleSystemEditorPanel::DrawViewGroup()
+void FParticleSystemEditorTab::DrawViewGroup()
 {
 	// 배경색은 프리뷰 렌더 타깃의 지우기 색이라 지금 바로 동작한다.
 	if (IconTextButton("##BackgroundColor", Icons.BackgroundColor, "Background Color", "Change the preview background color")
@@ -421,7 +383,7 @@ void FParticleSystemEditorPanel::DrawViewGroup()
 	}
 }
 
-void FParticleSystemEditorPanel::DrawLODGroup()
+void FParticleSystemEditorTab::DrawLODGroup()
 {
 	// LOD 0이 가장 높은(가장 자세한) LOD다. Lower는 번호가 커지는 쪽, Higher는 작아지는 쪽이다. (Cascade와 같은 규칙)
 	// LOD 레벨 생성·복제는 모듈 깊은 복사와 런타임 LOD 전환이 없어 아직 비활성이다.
@@ -473,7 +435,7 @@ void FParticleSystemEditorPanel::DrawLODGroup()
 	PlaceholderButton("##DeleteLOD", Icons.DeleteLOD, "Delete LOD", "Delete the current LOD", NeedsLODEditingNote);
 }
 
-void FParticleSystemEditorPanel::DrawSimulationGroup()
+void FParticleSystemEditorTab::DrawSimulationGroup()
 {
 	// Cascade 툴바에는 없지만 프리뷰 확인에 필요해 끝에 둔다. 같은 자리에서 일시정지/재개를 바꾼다.
 	const bool bPaused = Context.bSimulationPaused;
@@ -486,43 +448,48 @@ void FParticleSystemEditorPanel::DrawSimulationGroup()
 		ViewportPanel->ResetCamera();
 }
 
-void FParticleSystemEditorPanel::BuildDefaultLayout(const unsigned int DockSpaceId)
+void FParticleSystemEditorTab::BuildDefaultLayout(const ImGuiID DockSpaceId)
 {
-	// Cascade 배치: 왼쪽 위 뷰포트, 왼쪽 아래 디테일, 오른쪽 이미터
-	const ImVec2 Available = ImGui::GetContentRegionAvail();
-	const ImVec2 DockSize(std::max(Available.x, 800.0f), std::max(Available.y, 600.0f));
-
-	ImGui::DockBuilderRemoveNode(DockSpaceId);
-	ImGui::DockBuilderAddNode(DockSpaceId, ImGuiDockNodeFlags_DockSpace);
-	ImGui::DockBuilderSetNodeSize(DockSpaceId, DockSize);
-
 	ImGuiID LeftNode = DockSpaceId;
 	const ImGuiID RightNode = ImGui::DockBuilderSplitNode(LeftNode, ImGuiDir_Right, 0.60f, nullptr, &LeftNode);
 	const ImGuiID LeftBottomNode = ImGui::DockBuilderSplitNode(LeftNode, ImGuiDir_Down, 0.45f, nullptr, &LeftNode);
 
-	for (auto& Panel : SubPanels)
-	{
-		const char* Name = Panel->GetPanelName();
-		const ImGuiID Target = Panel.get() == ViewportPanel ? LeftNode
-			: strcmp(Name, "Details##Particle") == 0 ? LeftBottomNode : RightNode;
-		ImGui::DockBuilderDockWindow(Name, Target);
-	}
-	ImGui::DockBuilderFinish(DockSpaceId);
+	if (ViewportPanel)
+		ImGui::DockBuilderDockWindow(ViewportPanel->GetPanelName(), LeftNode);
+	if (DetailsPanel)
+		ImGui::DockBuilderDockWindow(DetailsPanel->GetPanelName(), LeftBottomNode);
+	if (EmitterPanel)
+		ImGui::DockBuilderDockWindow(EmitterPanel->GetPanelName(), RightNode);
 }
 
-bool FParticleSystemEditorPanel::IsHoveredOrInteracting() const
+bool FParticleSystemEditorTab::IsHoveredOrInteracting() const
 {
-	return IsOpen() && bHostVisible && ViewportPanel && ViewportPanel->IsOpen() && ViewportPanel->IsHoveredOrInteracting();
+	return ViewportPanel && ViewportPanel->IsOpen() && ViewportPanel->IsHoveredOrInteracting();
 }
 
-FParticleSystemViewportPanel* FParticleSystemEditorPanel::GetViewportPanel() const
+void FParticleSystemEditorTab::CollectViews(TArray<FEditorTabView>& OutViews)
 {
-	return IsOpen() && bHostVisible ? ViewportPanel : nullptr;
+	// 월드는 Context가, View 상태와 타깃은 뷰포트 하위 패널이 소유한다.
+	UWorld* PreviewWorld = Context.GetPreviewWorld();
+	if (!ViewportPanel || !PreviewWorld || !ViewportPanel->PreparePreviewRender())
+		return;
+
+	FEditorTabView TabView;
+	TabView.World = PreviewWorld;
+	TabView.RenderingInfo = &ViewportPanel->GetRenderingInfo();
+	TabView.View.Client = &ViewportPanel->GetViewportClient();
+	TabView.View.Rect = ViewportPanel->GetViewRect();
+	TabView.View.HDRTarget = ViewportPanel->GetHDRTarget();
+	TabView.View.FxaaTarget = ViewportPanel->GetFxaaTarget();
+	// 프리뷰에는 Grid·에디터 아이콘(빌보드)·Gizmo·Outline 같은 에디터 표시를 그리지 않는다. 파티클만 보인다.
+	TabView.View.bShowEditorOverlay = false;
+	TabView.View.bDrawSkybox = false;
+	TabView.View.bRenderGameUI = false;
+	OutViews.Add(TabView);
 }
 
-void FParticleSystemEditorPanel::ReleaseResources()
+void FParticleSystemEditorTab::ReleaseResources()
 {
-	// 타깃은 Device 종료 전에, 프리뷰 월드는 전역 UObject 일괄 삭제 전에 놓는다.
 	if (ViewportPanel)
 		ViewportPanel->ReleaseResources();
 	Context.Release();

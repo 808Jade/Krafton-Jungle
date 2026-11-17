@@ -12,12 +12,14 @@ class UClass;
 class FParticleSystemEmitterPanel : public IEditorPanel
 {
 public:
-	explicit FParticleSystemEmitterPanel(FParticleEditorContext& InContext) : Context(InContext) {}
+	// InTabId: 소속 탭의 ID. 같은 에디터 탭이 여러 개 열려도 창 ID가 겹치지 않게 이름 뒤에 붙인다.
+	FParticleSystemEmitterPanel(FParticleEditorContext& InContext, const FString& InTabId)
+		: PanelName("Emitters###Emitters_" + InTabId), Context(InContext) {}
 
 	bool Init() override { return true; }
 	void Tick(float DeltaTime) override {}
 	void OnRender() override;
-	const char* GetPanelName() const override { return "Emitters##Particle"; }
+	const char* GetPanelName() const override { return PanelName.c_str(); }
 
 private:
 	void DrawEmitterColumn(int32 EmitterIndex, UParticleEmitter* Emitter);
@@ -52,6 +54,8 @@ private:
 	};
 	// 소유(값): 한 프레임 동안만 유지되는 편집 요청
 	FPendingEdit PendingEdit;
+
+	FString PanelName;
 
 	// 참조(집약): 호스트가 소유하는 공유 상태
 	FParticleEditorContext& Context;

@@ -3,7 +3,8 @@
 #include "AnimPoseGraphEditor.h"
 #include <memory>
 #include <vector>
-class FSkeletalMeshViewerPanel;
+class FSkeletalPreviewTabBase;
+struct FEditorTabView;
 class FStateMachineEditorPanel;
 class FAnimGraphEditorPanel : public IEditorPanel
 {
@@ -12,14 +13,15 @@ public:
     ~FAnimGraphEditorPanel() override;
     bool Init() override;
     void Tick(float DeltaSeconds) override;
-    void RenderPreview();
+    // 보이는 문서의 미리보기 View를 엔진에 넘긴다.
+    void CollectPreviewViews(TArray<FEditorTabView>& OutViews);
     void OnRender() override;
     const char* GetPanelName() const override { return "AnimGraph Editor"; }
     void SetOpen(bool Open) override;
     void OpenAsset(const FString& Path);
     void NewAsset(const FString& Folder);
     void NewStateMachine(const FString& Folder);
-    void SetViewer(FSkeletalMeshViewerPanel* V) { Viewer=V; }
+    void SetViewer(FSkeletalPreviewTabBase* V) { Viewer=V; }
     void SetStateMachineTemplate(FStateMachineEditorPanel* V) { StateTemplate=V; }
     bool IsKeyboardFocused() const { return IsOpen() && Focused; }
     void ReleaseResources();
@@ -56,7 +58,7 @@ private:
     int PendingParent=0;
     bool PaneOpen[6]={true,true,true,true,true,true};
     int LocationIndex=-1, Active=0, NextDocument=1, SelectTab=0, CloseDocument=0;
-    FSkeletalMeshViewerPanel* Viewer=nullptr;
+    FSkeletalPreviewTabBase* Viewer=nullptr;
     FStateMachineEditorPanel* StateTemplate=nullptr;
     FString PendingPath, PendingFolder, Error;
     bool NewMachine=false, Focused=false, Visible=false, ResetLayout=false, CloseAll=false;

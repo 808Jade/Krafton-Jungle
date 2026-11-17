@@ -1,7 +1,9 @@
 #include "EnginePCH.h"
 #include "Editor/Viewports/ViewportsPanel.h"
-#include "Editor/LevelEditor/MultipleViewports/Adapter/MultipleViewportsAdapter.h"
 
+#include "Camera/CameraComponent.h"
+#include "Engine/World.h"
+#include "Input/InputSystem.h"
 #include "Core/StatOverlay.h"
 #include "Core/Stats/LightweightStats.h"
 #include "Render/RenderCommand.h"
@@ -32,53 +34,180 @@ constexpr ImU32 TitleColor = IM_COL32(255, 210, 60, 255);
 constexpr ImU32 ValueColor = IM_COL32(235, 235, 235, 255);
 }
 
-// 네 View의 렌더 타깃을 최소 크기로 초기화한다.
+FViewportsPanel::FViewportsPanel()
+{
+	// 그림자 View ID 0은 World 공유 작업용이므로 1부터 준다. 레벨 View는 렌더 타깃을 직접 가진다.
+	for (int32 ViewIndex = 0; ViewIndex < ViewCount; ++ViewIndex)
+	{
+		Viewports[ViewIndex].SetShadowViewId(static_cast<uint32>(ViewIndex + 1));
+		Viewports[ViewIndex].SetOwnsRenderTargets(true);
+	}
+}
+
 bool FViewportsPanel::Init()
 {
-	for (FViewSlot& Slot : Slots)
-		ResizeSlot(Slot, 1, 1);
 	return true;
 }
 
-// 패널의 프레임 갱신 인터페이스이며 별도 계산은 하지 않는다.
 void FViewportsPanel::Tick(float DeltaTime)
 {
 	(void)DeltaTime;
 }
 
-// Core Rect에 맞춰 View 활성 상태와 타깃 크기를 갱신한다.
-void FViewportsPanel::SetView(const int32 ViewIndex, const FRect& Rect, const bool bActive)
+FViewport& FViewportsPanel::GetViewport(const int32 ViewIndex)
 {
-	assert(ViewIndex >= 0 && ViewIndex < 4);
-	FViewSlot& Slot = Slots[ViewIndex];
-	Slot.Rect = Rect;
-	Slot.bActive = bActive && Rect.Width > 0.0f && Rect.Height > 0.0f;
-	if (!Slot.bActive)
+	assert(ViewIndex >= 0 && ViewIndex < ViewCount);
+	return Viewports[ViewIndex];
+}
+
+const FViewport& FViewportsPanel::GetViewport(const int32 ViewIndex) const
+{
+	assert(ViewIndex >= 0 && ViewIndex < ViewCount);
+	return Viewports[ViewIndex];
+}
+
+FViewport* FViewportsPanel::GetActiveViewport()
+{
+	return IsViewActive(ActiveViewIndex) ? &Viewports[ActiveViewIndex] : nullptr;
+}
+
+FViewport* FViewportsPanel::GetEditorViewport()
+{
+	const int32 Index = GetEditorViewIndex();
+	return Index >= 0 && Index < ViewCount ? &Viewports[Index] : nullptr;
+}
+
+FViewport* FViewportsPanel::FindViewportByShadowId(const uint32 ShadowViewId)
+{
+	for (FViewport& Viewport : Viewports)
+	{
+		if (Viewport.GetShadowViewId() == ShadowViewId)
+			return &Viewport;
+	}
+	return nullptr;
+}
+
+// 메인 카메라 투영값을 공유하고 네 View의 기본 프리셋 상태를 만든다.
+void FViewportsPanel::InitializeFromWorld(UWorld& World)
+{
+	UCameraComponent* MainCamera{ World.GetMainCameraComponent() };
+	assert(MainCamera != nullptr);
+
+	const FCameraProjection Perspective{
+		EProjectionMode::Perspective,
+		MainCamera->GetFieldOfView(),
+		MainCamera->GetOrthoWidth(),
+		MainCamera->GetNearZ(),
+		MainCamera->GetFarZ() };
+	Layout.SetLayoutMode(ELayoutMode::QuadSplit);
+	// 화면 정면은 +X, 화면 오른쪽은 +Y가 되도록 시작한다.
+	const FViewCamera InitialCamera{ {{-11.665390f, 6.117728f, 9.921079f},
+		{0.081251f, 0.256328f, -0.291035f, 0.918146f}}, Perspective };
+	for (int32 ViewIndex = 0; ViewIndex < ViewCount; ++ViewIndex)
+		Viewports[ViewIndex].GetClient().SetCamera(InitialCamera, Layout.GetViewRect(ViewIndex));
+	Viewports[1].GetClient().ApplyCameraPreset(EMultipleViewportsCameraPreset::Top, Layout.GetViewRect(1));
+	Viewports[2].GetClient().ApplyCameraPreset(EMultipleViewportsCameraPreset::Front, Layout.GetViewRect(2));
+	Viewports[3].GetClient().ApplyCameraPreset(EMultipleViewportsCameraPreset::Left, Layout.GetViewRect(3));
+}
+
+void FViewportsPanel::ApplyCameraProperties(const int32 ViewIndex, const FViewCamera& Camera, const bool bRotationChanged)
+{
+	GetViewport(ViewIndex).GetClient().ApplyCameraProperties(Camera, bRotationChanged, Layout.GetViewRect(ViewIndex));
+}
+
+void FViewportsPanel::ApplyCameraPreset(const int32 ViewIndex, const EMultipleViewportsCameraPreset Preset)
+{
+	GetViewport(ViewIndex).GetClient().ApplyCameraPreset(Preset, Layout.GetViewRect(ViewIndex));
+}
+
+// 배치는 Layout에 맡기고, 각 View에 영역을 넘긴 뒤 입력 대상 유지 규칙을 적용한다.
+void FViewportsPanel::UpdateLayout(const FVector2 WindowSize)
+{
+	Layout.Update(WindowSize, SplitterThickness);
+	for (int32 ViewIndex = 0; ViewIndex < ViewCount; ++ViewIndex)
+		Viewports[ViewIndex].SetRect(Layout.GetViewRect(ViewIndex), Layout.IsViewActive(ViewIndex));
+
+	// Hover 추적은 비활성화한다. 클릭 위치 판정 함수는 입력 전환에서 계속 사용한다.
+	InputState.HoveredViewIndex = InvalidViewIndex;
+	if (InputState.CapturedViewIndex != InvalidViewIndex && !IsViewActive(InputState.CapturedViewIndex))
+		InputState = EndCapture(InputState);
+	// Capture가 없으면 마지막 선택을 유지하고, 숨겨진 View만 레이아웃에 맞게 보정한다.
+	if (InputState.CapturedViewIndex != InvalidViewIndex)
+		ActiveViewIndex = InputState.CapturedViewIndex;
+	if (!IsViewActive(ActiveViewIndex))
+	{
+		const int32 SingleViewIndex = Layout.GetSingleViewIndex();
+		ActiveViewIndex = Layout.GetLayoutMode() == ELayoutMode::Single && IsViewActive(SingleViewIndex)
+			? SingleViewIndex : InvalidViewIndex;
+	}
+}
+
+// Capture와 입력 대상을 결정하고 키·마우스·휠 입력을 해당 View의 Client에 전달한다.
+void FViewportsPanel::UpdateInput(const float DeltaTime, const FVector2 LocalMousePosition,
+	const float MoveSpeed, const float MouseSensitivity)
+{
+	const int WheelDelta = FInputSystem::GetWheelDelta(); // 이 Hook은 프레임마다 정확히 한 번만 호출한다.
+	if (ImGui::IsKeyReleased(ImGuiKey_MouseRight))
+		InputState = EndCapture(InputState);
+	const int32 PointerViewIndex = Layout.FindViewAt(LocalMousePosition);
+	// 우클릭 시작 위치를 Capture하고, Capture 밖에서는 좌클릭으로만 선택을 바꾼다.
+	if (InputState.CapturedViewIndex == InvalidViewIndex && IsViewActive(PointerViewIndex))
+	{
+		if (FInputSystem::IsMousePressed(EMouseButton::Right))
+			InputState = BeginCapture(InputState, PointerViewIndex);
+		else if (FInputSystem::IsMousePressed(EMouseButton::Left))
+			ActiveViewIndex = PointerViewIndex;
+	}
+	if (InputState.CapturedViewIndex != InvalidViewIndex)
+		ActiveViewIndex = InputState.CapturedViewIndex;
+	if (!IsViewActive(ActiveViewIndex))
 		return;
 
-	const uint32 Width = static_cast<uint32>(std::max(1.0f, Rect.Width));
-	const uint32 Height = static_cast<uint32>(std::max(1.0f, Rect.Height));
-	if (Width != Slot.Width || Height != Slot.Height)
-		ResizeSlot(Slot, Width, Height);
+	// 키와 마우스 드래그는 우클릭으로 캡처한 View에만 전달한다.
+	const bool bCameraCaptured = FInputSystem::IsMouseDown(EMouseButton::Right)
+		&& InputState.CapturedViewIndex == ActiveViewIndex;
+	FCameraMoveInput RawInput{};
+	if (bCameraCaptured)
+	{
+		const auto AxisValue = [](EKeyCode Positive, EKeyCode Negative)
+		{
+			return (FInputSystem::IsKeyDown(Positive) ? 1.0f : 0.0f)
+				- (FInputSystem::IsKeyDown(Negative) ? 1.0f : 0.0f);
+		};
+		RawInput.MoveAxis = {
+			AxisValue(EKeyCode::W, EKeyCode::S),
+			AxisValue(EKeyCode::D, EKeyCode::A),
+			AxisValue(EKeyCode::E, EKeyCode::Q)
+		};
+		RawInput.MouseDelta = {
+			static_cast<float>(FInputSystem::GetMouseDeltaX()),
+			static_cast<float>(FInputSystem::GetMouseDeltaY())
+		};
+	}
+
+	// 이미 한 번 읽은 휠 값을 대상 View에만 전달한다.
+	RawInput.ZoomDelta = bCameraCaptured || PointerViewIndex == ActiveViewIndex
+		? static_cast<float>(WheelDelta) : 0.0f;
+	FViewport& Target = Viewports[ActiveViewIndex];
+	Target.GetClient().UpdateCamera(DeltaTime, RawInput, Target.GetRect(), MoveSpeed, MouseSensitivity, bCameraCaptured);
 }
 
-// 인덱스를 검사해 해당 View의 렌더 정보를 반환한다.
-const FRenderingInfo& FViewportsPanel::GetRenderingInfo(const int32 ViewIndex) const
+bool FViewportsPanel::TryGetActiveViewRay(const FVector2 LocalMousePosition, FRay& OutRay) const
 {
-	assert(ViewIndex >= 0 && ViewIndex < 4);
-	return Slots[ViewIndex].RenderingInfo;
+	if (!IsViewActive(ActiveViewIndex))
+		return false;
+	// Splitter gutter나 다른 View 위의 좌표를 이전 Active View의 Ray로 잘못 해석하지 않는다.
+	if (Layout.FindViewAt(LocalMousePosition) != ActiveViewIndex)
+		return false;
+	const FViewport& Viewport = Viewports[ActiveViewIndex];
+	OutRay = Viewport.Deproject(Viewport.ToViewLocal(LocalMousePosition));
+	return true;
 }
 
-FTexture2D* FViewportsPanel::GetFxaaTarget(const int32 ViewIndex) const
+void FViewportsPanel::ReleaseRenderTargets()
 {
-	assert(ViewIndex >= 0 && ViewIndex < 4);
-	return Slots[ViewIndex].FxaaTarget.get();
-}
-
-FTexture2D* FViewportsPanel::GetHDRTarget(const int32 ViewIndex) const
-{
-	assert(ViewIndex >= 0 && ViewIndex < 4);
-	return Slots[ViewIndex].HDRTarget.get();
+	for (FViewport& Viewport : Viewports)
+		Viewport.ReleaseRenderTargets();
 }
 
 // 마우스 위치에서 패널 원점을 빼 로컬 좌표로 바꾼다.
@@ -102,7 +231,6 @@ bool FViewportsPanel::IsHovered() const
 	return bHovered;
 }
 
-// 누적 가로 Splitter 이동량을 반환하고 초기화한다.
 float FViewportsPanel::ConsumeHorizontalDrag()
 {
 	const float Result = PendingHorizontalDrag;
@@ -110,7 +238,6 @@ float FViewportsPanel::ConsumeHorizontalDrag()
 	return Result;
 }
 
-// 누적 세로 Splitter 이동량을 반환하고 초기화한다.
 float FViewportsPanel::ConsumeVerticalDrag()
 {
 	const float Result = PendingVerticalDrag;
@@ -118,16 +245,6 @@ float FViewportsPanel::ConsumeVerticalDrag()
 	return Result;
 }
 
-// Layout·Single 대상·Preset을 UI 표시와 동기화한다.
-void FViewportsPanel::SetControlState(const ELayoutMode LayoutMode, const int32 SingleViewIndex, const EMultipleViewportsCameraPreset CameraPresets[4])
-{
-	CurrentLayoutMode = LayoutMode;
-	CurrentSingleViewIndex = SingleViewIndex;
-	for (int32 Index = 0; Index < 4; ++Index)
-		CurrentCameraPresets[Index] = CameraPresets[Index];
-}
-
-// 대기 Layout 요청을 한 번 반환하고 플래그를 지운다.
 bool FViewportsPanel::ConsumeLayoutRequest(ELayoutMode& OutMode, int32& OutSingleViewIndex)
 {
 	if (!bHasLayoutRequest)
@@ -138,7 +255,6 @@ bool FViewportsPanel::ConsumeLayoutRequest(ELayoutMode& OutMode, int32& OutSingl
 	return true;
 }
 
-// 대기 Preset 요청을 한 번 반환하고 지운다.
 bool FViewportsPanel::ConsumeCameraPresetRequest(int32& OutViewIndex, EMultipleViewportsCameraPreset& OutPreset)
 {
 	if (PendingCameraPresetViewIndex == InvalidViewIndex)
@@ -149,7 +265,6 @@ bool FViewportsPanel::ConsumeCameraPresetRequest(int32& OutViewIndex, EMultipleV
 	return true;
 }
 
-// View Texture와 Splitter·Layout·Preset UI를 그리고 요청을 기록한다.
 void FViewportsPanel::OnRender()
 {
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{0.0f, 0.0f});
@@ -181,21 +296,21 @@ void FViewportsPanel::OnRender()
 		{ContentOrigin.x + ContentSize.x, ContentOrigin.y + ContentSize.y}, true);
 	for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
 	{
-		const FViewSlot& Slot = Slots[ViewIndex];
-		if (!Slot.bActive || !Slot.ColorTarget)
+		const FViewport& Slot = Viewports[ViewIndex];
+		if (!Slot.IsActive() || !Slot.GetColorTarget())
 			continue;
 
-		const ImVec2 ViewMin{ContentOrigin.x + Slot.Rect.X, ContentOrigin.y + Slot.Rect.Y};
-		const ImVec2 ViewMax{ViewMin.x + Slot.Rect.Width, ViewMin.y + Slot.Rect.Height};
-		DrawList->AddImage(Slot.ColorTarget->GetSRV(), ViewMin, ViewMax);
+		const ImVec2 ViewMin{ContentOrigin.x + Slot.GetRect().X, ContentOrigin.y + Slot.GetRect().Y};
+		const ImVec2 ViewMax{ViewMin.x + Slot.GetRect().Width, ViewMin.y + Slot.GetRect().Height};
+		DrawList->AddImage(Slot.GetColorTarget()->GetSRV(), ViewMin, ViewMax);
 	}
 	DrawList->PopClipRect();
 
-	if (Slots[1].bActive || Slots[2].bActive || Slots[3].bActive)
+	if (Viewports[1].IsActive() || Viewports[2].IsActive() || Viewports[3].IsActive())
 	{
 		// View Rect 사이에 비워 둔 gutter의 중앙에 Splitter 버튼을 배치한다.
-		const float SplitX = (Slots[0].Rect.X + Slots[0].Rect.Width + Slots[1].Rect.X) * 0.5f;
-		const float SplitY = (Slots[0].Rect.Y + Slots[0].Rect.Height + Slots[2].Rect.Y) * 0.5f;
+		const float SplitX = (Viewports[0].GetRect().X + Viewports[0].GetRect().Width + Viewports[1].GetRect().X) * 0.5f;
+		const float SplitY = (Viewports[0].GetRect().Y + Viewports[0].GetRect().Height + Viewports[2].GetRect().Y) * 0.5f;
 
 		const ImVec2 VerticalMin{ContentOrigin.x + SplitX - SplitterThickness * 0.5f, ContentOrigin.y};
 		const ImVec2 VerticalMax{VerticalMin.x + SplitterThickness, ContentOrigin.y + ContentSize.y};
@@ -250,14 +365,14 @@ void FViewportsPanel::OnRender()
 
 	for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
 	{
-		if (!Slots[ViewIndex].bActive)
+		if (!Viewports[ViewIndex].IsActive())
 			continue;
 
-		const FViewSlot& Slot = Slots[ViewIndex];
+		const FViewport& Slot = Viewports[ViewIndex];
 
-		const float Left = ContentOrigin.x + Slot.Rect.X + 8.0f;
-		const float Top = ContentOrigin.y + Slot.Rect.Y + 8.0f;
-		const float Width = std::max(1.0f, Slot.Rect.Width - 16.0f);
+		const float Left = ContentOrigin.x + Slot.GetRect().X + 8.0f;
+		const float Top = ContentOrigin.y + Slot.GetRect().Y + 8.0f;
+		const float Width = std::max(1.0f, Slot.GetRect().Width - 16.0f);
 
 		ImVec2 Cursor{ Left, Top };
 
@@ -290,7 +405,7 @@ void FViewportsPanel::OnRender()
 		ImGui::PushID(100 + ViewIndex);
 
 		// Camera Preset
-		int SelectedPreset = static_cast<int>(CurrentCameraPresets[ViewIndex]);
+		int SelectedPreset = static_cast<int>(GetCameraPreset(ViewIndex));
 		ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Ortho (Current)")));
 		if (ImGui::Combo("##CameraPreset", &SelectedPreset, CameraPresetLabels, IM_ARRAYSIZE(CameraPresetLabels)))
 		{
@@ -298,22 +413,21 @@ void FViewportsPanel::OnRender()
 			PendingCameraPreset = static_cast<EMultipleViewportsCameraPreset>(SelectedPreset);
 		}
 
-		if (ViewportAdapter)
 		{
-			FEngineShowFlags Flags = ViewportAdapter->GetViewShowFlags(ViewIndex);
+			FEngineShowFlags Flags = Viewports[ViewIndex].GetClient().GetShowFlags();
 			ImGui::SetNextItemWidth(PlaceToolbarItem(ComboWidth("Show Flags")));
 
 			if (ImGui::BeginCombo("##ViewShowFlags", "Show Flags"))
 			{
 				if (ShowFlagUI::DrawFlags(Flags, EShowFlagScope::View, EShowFlagGroup::Viewport))
 				{
-					ViewportAdapter->SetViewShowFlags(ViewIndex, Flags);
+					Viewports[ViewIndex].GetClient().SetShowFlags(Flags);
 				}
 				ImGui::EndCombo();
 			}
 
 			// 뷰모드. 고른 값은 렌더 직전에 Renderer로 넘어가 UberLit 변형을 고른다.
-			const EViewMode CurrentViewMode = ViewportAdapter->GetViewMode(ViewIndex);
+			const EViewMode CurrentViewMode = Viewports[ViewIndex].GetClient().GetViewMode();
 
 			// 가장 긴 뷰모드 이름 기준으로 Combo 폭을 잡는다.
 			const char* LongestViewModeName = GetViewModeName(CurrentViewMode);
@@ -332,7 +446,7 @@ void FViewportsPanel::OnRender()
 					const EViewMode Candidate = static_cast<EViewMode>(ModeIndex);
 					const bool bSelected = Candidate == CurrentViewMode;
 					if (ImGui::Selectable(GetViewModeName(Candidate), bSelected))
-						ViewportAdapter->SetViewMode(ViewIndex, Candidate);
+						Viewports[ViewIndex].GetClient().SetViewMode(Candidate);
 					if (bSelected)
 						ImGui::SetItemDefaultFocus();
 				}
@@ -341,7 +455,7 @@ void FViewportsPanel::OnRender()
 		}
 
 		// Single / Quad
-		if (CurrentLayoutMode == ELayoutMode::QuadSplit)
+		if (Layout.GetLayoutMode() == ELayoutMode::QuadSplit)
 		{
 			PlaceToolbarItem(SmallButtonWidth("Single"));
 			if (ImGui::SmallButton("Single"))
@@ -351,7 +465,7 @@ void FViewportsPanel::OnRender()
 				bHasLayoutRequest = true;
 			}
 		}
-		else if (ViewIndex == CurrentSingleViewIndex)
+		else if (ViewIndex == Layout.GetSingleViewIndex())
 		{
 			PlaceToolbarItem(SmallButtonWidth("Quad"));
 			if (ImGui::SmallButton("Quad"))
@@ -363,7 +477,7 @@ void FViewportsPanel::OnRender()
 		}
 
 		// Reset Stats
-		if (ViewportAdapter && ViewIndex == ViewportAdapter->GetEditorViewIndex() &&
+		if (ViewIndex == GetEditorViewIndex() &&
 			FStatOverlay::IsAnyEnabled() &&
 			(FStatOverlay::IsEnabled(EStatFlags::Profile) ||
 				FStatRegistry::Find(EditorStats::STAT_PickingTime)))
@@ -385,13 +499,13 @@ void FViewportsPanel::OnRender()
 	// 마지막으로 선택된 뷰포트만 오버레이
 	for (int32 ViewIndex = 0; ViewIndex < 4; ++ViewIndex)
 	{
-		if (!ViewportAdapter || ViewIndex != ViewportAdapter->GetEditorViewIndex())
+		if (ViewIndex != GetEditorViewIndex())
 			continue;
-		if (!Slots[ViewIndex].bActive)
+		if (!Viewports[ViewIndex].IsActive())
 			continue;
 		DrawStatOverlay(DrawList, {
-			ContentOrigin.x + Slots[ViewIndex].Rect.X,
-			ContentOrigin.y + Slots[ViewIndex].Rect.Y + ToolbarExtraHeight[ViewIndex]});
+			ContentOrigin.x + Viewports[ViewIndex].GetRect().X,
+			ContentOrigin.y + Viewports[ViewIndex].GetRect().Y + ToolbarExtraHeight[ViewIndex]});
 	}
 
 	ImGui::End();
@@ -678,41 +792,4 @@ void FViewportsPanel::DrawStatOverlay(ImDrawList* DrawList, const ImVec2& ViewMi
 			DrawList->AddText({ ColumnRight[Column] - TextWidth, Y }, Line.Color, Text.c_str());
 		}
 	}
-}
-
-// View 크기에 맞춰 Color·Depth Texture와 렌더 정보를 재생성한다.
-void FViewportsPanel::ResizeSlot(FViewSlot& Slot, const uint32 Width, const uint32 Height)
-{
-	D3D11_TEXTURE2D_DESC Desc{};
-	Desc.Width = Width;
-	Desc.Height = Height;
-	Desc.MipLevels = 1;
-	Desc.ArraySize = 1;
-	Desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	Desc.SampleDesc.Count = 1;
-	Desc.Usage = D3D11_USAGE_DEFAULT;
-	Desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-	Slot.ColorTarget = RenderCommand::CreateTexture2D(Desc);
-	// CopyResource로 되돌려 쓰므로 ColorTarget과 같은 Desc로 만든다
-	Slot.FxaaTarget = RenderCommand::CreateTexture2D(Desc);
-
-	// Fog 패스가 깊이를 셰이더에서 읽으므로 DSV와 SRV를 둘 다 만들 수 있는 TYPELESS로 만든다
-	Desc.Format = DXGI_FORMAT_R24G8_TYPELESS;
-	Desc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
-	Slot.DepthTarget = RenderCommand::CreateTexture2D(Desc);
-
-	// HDR Target
-	Desc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;	
-	Desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-	Slot.HDRTarget = RenderCommand::CreateTexture2D(Desc);
-
-	Slot.Width = Width;
-	Slot.Height = Height;
-	Slot.RenderingInfo.ColorRenderTargets.Reset();
-	Slot.RenderingInfo.ViewportSetting.Width = Width;
-	Slot.RenderingInfo.ViewportSetting.Height = Height;
-	FRenderingDesc ColorDesc{};
-	ColorDesc.Texture = Slot.ColorTarget.get();
-	Slot.RenderingInfo.ColorRenderTargets.Add(ColorDesc);
-	Slot.RenderingInfo.DepthStencil.Texture = Slot.DepthTarget.get();
 }
