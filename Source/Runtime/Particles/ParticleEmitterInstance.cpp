@@ -14,6 +14,7 @@
 #include "Particles/Modules/ParticleModuleTypeDataRibbon.h"
 #include "Particles/Modules/ParticleModuleBeamSource.h"
 #include "Particles/Modules/ParticleModuleBeamTarget.h"
+#include "Particles/Modules/ParticleModuleBeamNoise.h"
 
 #include "Components/ParticleSystemComponent.h"
 
@@ -25,6 +26,30 @@
 #include <cmath>
 #include <cstring>
 #include <cfloat>
+
+
+namespace
+{
+	FVector SampleBeamNoise(
+	    const FBeamNoisePayload& Noise,
+	    float T)
+	{
+		const int32 Count = Noise.SegmentCount;
+
+		const float X =
+		    std::clamp(T, 0.0f, 1.0f) *
+		    static_cast<float>(Count);
+
+		const int32 Index = std::min(
+		    static_cast<int32>(X),
+		    Count - 1);
+
+		const float Alpha = X - static_cast<float>(Index);
+
+		return Noise.FromOffsets[Index] * (1.0f - Alpha) +
+		       Noise.FromOffsets[Index + 1] * Alpha;
+	}
+}
 
 
 FParticleEmitterInstance::~FParticleEmitterInstance()
@@ -534,7 +559,9 @@ void FParticleBeamEmitterInstance::InitParameters(
 
 	SourceModule = nullptr;
 	TargetModule = nullptr;
+	NoiseModule = nullptr;
 	BeamPayloadOffset = InvalidPayloadOffset;
+	NoisePayloadOffset = InvalidPayloadOffset;
 
 	if (BeamTypeData)
 	{
@@ -566,6 +593,21 @@ void FParticleBeamEmitterInstance::InitParameters(
 				TargetModule =
 				    Cast<UParticleModuleBeamTarget>(Module);
 			}
+
+			if (!NoiseModule)
+			{
+				NoiseModule =
+				    Cast<UParticleModuleBeamNoise>(Module);
+			}
+		}
+	}
+
+	if (NoiseModule)
+	{
+		if (const int32* Offset =
+		        InTemplate->ModuleOffsetMap.Find(NoiseModule))
+		{
+			NoisePayloadOffset = *Offset;
 		}
 	}
 
@@ -689,6 +731,160 @@ bool FParticleBeamEmitterInstance::HasValidBeamSetup() const
 	       BeamPayloadOffset >=
 	           static_cast<int32>(sizeof(FBaseParticle)) &&
 	       BeamPayloadOffset <= ParticleSize - PayloadBytes;
+}
+
+bool FParticleBeamEmitterInstance::HasValidNoiseSetup() const
+{
+	return NoiseModule &&
+	       NoiseModule->bEnabled &&
+	       NoisePayloadOffset >=
+	           static_cast<int32>(sizeof(FBaseParticle)) &&
+	       NoisePayloadOffset <= ParticleSize -
+	                                 static_cast<int32>(sizeof(FBeamNoisePayload));
+}
+
+void FParticleBeamEmitterInstance::BuildBeamPoints(
+    const FBaseParticle& Particle,
+    TArray<FParticleStripPoint>& OutPoints) const
+{
+	OutPoints.Reset();
+
+	if (!HasValidBeamSetup() || Particle.RelativeTime >= 1.0f)
+	{
+		return;
+	}
+
+	const FBeamParticlePayload Beam =
+	    ReadBeamPayload(Particle);
+
+	const FVector Delta =
+	    Beam.TargetPosition - Beam.SourcePosition;
+
+	const float LengthSquared = Delta.SizeSquared();
+	const float Width = std::abs(Particle.Size.X);
+
+	if (LengthSquared <= 1.0e-8f || Width <= 0.0f)
+	{
+		return;
+	}
+
+	FBeamNoisePayload Noise{};
+	bool bUseNoise = false;
+
+	if (HasValidNoiseSetup())
+	{
+		std::memcpy(
+		    &Noise,
+		    reinterpret_cast<const uint8*>(&Particle) +
+		        NoisePayloadOffset,
+		    sizeof(Noise));
+
+		bUseNoise =
+		    Noise.SegmentCount >= 1 &&
+		    Noise.SegmentCount <= MaxBeamNoiseSegments;
+	}
+
+	int32 SegmentCount = std::clamp(
+	    BeamTypeData->SegmentCount,
+	    1,
+	    65534);
+
+	if (bUseNoise)
+	{
+		// 모든 Noise 제어점을 실제 중심점 목록에 포함한다.
+		// 렌더링 구간 수를 Noise 구간 수의 배수로 올린다.
+		const int32 NoiseSegments = Noise.SegmentCount;
+
+		int32 Subdivisions =
+		    (SegmentCount + NoiseSegments - 1) / NoiseSegments;
+
+		Subdivisions = std::clamp(
+		    Subdivisions,
+		    1,
+		    65534 / NoiseSegments);
+
+		SegmentCount = NoiseSegments * Subdivisions;
+	}
+
+	const FVector Direction =
+	    Delta / std::sqrt(LengthSquared);
+
+	// 카메라와 무관한 Beam 수직 평면의 두 축.
+	const FVector Reference =
+	    std::abs(Direction.Z) < 0.9f
+	        ? FVector(0.0f, 0.0f, 1.0f)
+	        : FVector(0.0f, 1.0f, 0.0f);
+
+	const FVector AxisU =
+	    FVector::Cross(Direction, Reference).Normalized();
+
+	const FVector AxisV =
+	    FVector::Cross(Direction, AxisU).Normalized();
+
+	const float Amplitude = bUseNoise
+	                            ? std::max(NoiseModule->Amplitude, 0.0f)
+	                            : 0.0f;
+
+	OutPoints.SetNum(SegmentCount + 1);
+
+	for (int32 Index = 0; Index <= SegmentCount; ++Index)
+	{
+		const float T =
+		    static_cast<float>(Index) /
+		    static_cast<float>(SegmentCount);
+
+		FVector Position =
+		    Beam.SourcePosition + Delta * T;
+
+		// 끝점을 정확히 유지한다.
+		if (bUseNoise && Index > 0 && Index < SegmentCount)
+		{
+			const FVector Offset = SampleBeamNoise(Noise, T);
+
+			Position +=
+			    (AxisU * Offset.X + AxisV * Offset.Y) *
+			    Amplitude;
+		}
+
+		FParticleStripPoint Point{};
+		Point.Position = Position;
+		Point.Width = Width;
+		Point.Color = Particle.Color;
+
+		OutPoints[Index] = Point;
+	}
+
+	// 굴곡이 생겼으므로 직선 길이 대신 실제 중심선 누적 길이 사용.
+	float TotalLength = 0.0f;
+	OutPoints[0].U = 0.0f;
+
+	for (int32 Index = 1; Index < OutPoints.Num(); ++Index)
+	{
+		TotalLength += FVector::Distance(
+		    OutPoints[Index - 1].Position,
+		    OutPoints[Index].Position);
+
+		// 일단 누적 거리를 저장한다.
+		OutPoints[Index].U = TotalLength;
+	}
+
+	const float TileDistance =
+	    BeamTypeData->TextureTileDistance;
+
+	if (TileDistance > 0.0f)
+	{
+		for (FParticleStripPoint& Point : OutPoints)
+		{
+			Point.U /= TileDistance;
+		}
+	}
+	else if (TotalLength > 0.0f)
+	{
+		for (FParticleStripPoint& Point : OutPoints)
+		{
+			Point.U /= TotalLength;
+		}
+	}
 }
 
 FVector FParticleBeamEmitterInstance::ToSimulationPosition(

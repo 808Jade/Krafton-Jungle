@@ -14,6 +14,7 @@ class UParticleModuleTypeDataBeam;
 class UParticleModuleTypeDataRibbon;
 class UParticleModuleBeamTarget;
 class UParticleModuleBeamSource;
+class UParticleModuleBeamNoise;
 class UMaterialInterface;
 class UStaticMesh;
 
@@ -152,8 +153,10 @@ public:
 	UParticleModuleTypeDataBeam* BeamTypeData = nullptr;
 	UParticleModuleBeamSource* SourceModule = nullptr;
 	UParticleModuleBeamTarget* TargetModule = nullptr;
+	UParticleModuleBeamNoise* NoiseModule = nullptr;
 
 	int32 BeamPayloadOffset = InvalidPayloadOffset;
+	int32 NoisePayloadOffset = InvalidPayloadOffset;
 
 protected:
 	void PostSpawn(
@@ -163,6 +166,11 @@ protected:
 
 private:
 	bool HasValidBeamSetup() const;
+	bool HasValidNoiseSetup() const;
+
+	void BuildBeamPoints(
+	    const FBaseParticle& Particle,
+	    TArray<FParticleStripPoint>& OutPoints) const;
 
 	FVector ToSimulationPosition(
 	    const FVector& ComponentLocalPosition) const;
