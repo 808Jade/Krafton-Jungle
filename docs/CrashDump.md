@@ -57,10 +57,12 @@ exe와 PDB는 빌드마다 바뀌는 GUID로 짝을 맞춘다. 같은 커밋을 
 ### 등록
 
 ```bat
-PublishSymbols.bat [Debug|Release|Executable|...]
+PublishSymbols.bat [Debug|Release|Executable|...] ["용도"]
 ```
 
-인자가 없으면 `Release`이다. `Build/Bin/<구성>-windows-x86_64`의 `HitoriEditor.exe`와 `HitoriEditor.pdb`를 창고에 등록한다. 버전에는 커밋 해시를 기록하며, 커밋하지 않은 변경이 있으면 `-dirty`를 붙인다.
+실행하면 용도를 입력받는다(예: `11/14 중간 시연`, `팀원 전달`). 두 번째 인자로 미리 줄 수도 있다. 용도는 `Saved/Symbols/000Admin/history.txt`에 구성과 함께 기록되며, 나중에 어떤 빌드를 지워도 되는지 판단하는 근거가 된다.
+
+구성 인자가 없으면 `Release`이다. `Build/Bin/<구성>-windows-x86_64`의 `HitoriEditor.exe`와 `HitoriEditor.pdb`를 창고에 등록한다. 버전에는 커밋 해시를 기록하며, 커밋하지 않은 변경이 있으면 `-dirty`를 붙인다.
 
 내 PC를 떠나는 빌드(배포, 시연, 팀원 전달)를 만들었을 때만 실행한다. 개발 중 빌드마다 실행할 필요는 없다. Debug PDB는 한 번에 약 150MB를 차지한다.
 
