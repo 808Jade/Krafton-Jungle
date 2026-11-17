@@ -113,6 +113,14 @@ void FParticleSystemEmitterPanel::OnRender()
 			}
 		}
 
+		// 열 바깥 빈 곳 우클릭: 이미터 추가 메뉴. 이미터가 하나도 없을 때도 여기서 추가한다.
+		// 열(자식 창) 안의 우클릭은 열 자신의 메뉴가 처리한다. (부모 창 hover에는 자식 창이 포함되지 않는다)
+		if (Template && ImGui::BeginPopupContextWindow("##EmitterPanelMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+		{
+			DrawNewEmitterMenuItem();
+			ImGui::EndPopup();
+		}
+
 		// 빈 영역을 클릭하면 선택을 해제한다. 디테일 패널은 파티클 시스템 전체를 보여 준다.
 		if (ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 		{
@@ -233,8 +241,27 @@ void FParticleSystemEmitterPanel::DrawModuleRow(const int32 EmitterIndex, UParti
 	ImGui::PopID();
 }
 
+void FParticleSystemEmitterPanel::DrawNewEmitterMenuItem()
+{
+	if (ImGui::MenuItem("New Particle Sprite Emitter"))
+		PendingEdit = { EPendingEdit::AddEmitter, INDEX_NONE, nullptr, nullptr };
+}
+
 void FParticleSystemEmitterPanel::DrawContextMenu(const int32 EmitterIndex, UParticleModule* ClickedModule)
 {
+	// Cascade처럼 이미터 열의 우클릭 메뉴 맨 위에 이미터 추가·삭제를 둔다.
+	DrawNewEmitterMenuItem();
+	// 모듈 위 우클릭에서는 모듈 삭제와 헷갈리지 않도록 이미터 삭제를 보여 주지 않는다.
+	if (!ClickedModule)
+	{
+		const bool bCanDeleteEmitter = Context.CanDeleteEmitter();
+		if (ImGui::MenuItem("Delete Emitter", nullptr, false, bCanDeleteEmitter))
+			PendingEdit = { EPendingEdit::DeleteEmitter, EmitterIndex, nullptr, nullptr };
+		if (!bCanDeleteEmitter && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+			ImGui::SetTooltip("A particle system needs at least one emitter.");
+	}
+	ImGui::Separator();
+
 	const UParticleLODLevel* LODLevel = Context.GetLODLevel(EmitterIndex);
 	if (!LODLevel)
 	{
@@ -300,6 +327,12 @@ void FParticleSystemEmitterPanel::ApplyPendingEdit()
 		break;
 	case EPendingEdit::AddMeshTypeData:
 		Context.AddMeshTypeData(Edit.EmitterIndex);
+		break;
+	case EPendingEdit::AddEmitter:
+		Context.AddSpriteEmitter();
+		break;
+	case EPendingEdit::DeleteEmitter:
+		Context.DeleteEmitter(Edit.EmitterIndex);
 		break;
 	default:
 		break;

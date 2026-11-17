@@ -92,6 +92,16 @@ public:
 	TArray<USkeletalMesh*> GetSkeletalMeshAssets() const;
 	TArray<UBlendSpace1D*> GetBlendSpaceAssets(const USkeletalMesh* Mesh = nullptr) const;
 
+	// .particle (JSON). Path는 Assets 안의 물리 경로이고, 에셋 키는 Assets 기준 상대 경로다. (예: Particles/Fire.particle)
+	// Load: 키로 이미 등록돼 있으면 그 객체를 돌려준다. 새로 읽은 에셋은 이미터 캐시까지 만들어 등록한다.
+	UParticleSystem* LoadParticleSystem(const FString& Path, FString& Error);
+	// Save: 파일만 쓴다. System의 등록 키나 경로는 바꾸지 않는다. (코드로 만든 DefaultParticleSystem도 다른 이름으로 저장할 수 있다.)
+	//       같은 키에 다른 객체가 이미 등록돼 있으면 실패한다. 새 이름으로 저장한 뒤 Load하면 새 에셋 객체가 등록된다.
+	bool SaveParticleSystem(const FString& Path, UParticleSystem* System, FString& Error, bool bCreateOnly = false);
+	TArray<UParticleSystem*> GetParticleSystemAssets() const;
+	// AssetRoot 아래의 .particle을 모두 읽는다. 머티리얼·메시·기본 에셋이 모두 등록된 뒤에 불러야 참조가 풀린다.
+	void LoadParticleSystemAssets(const fs::path& AssetRoot);
+
 	UAnimGraphAsset* LoadAnimGraph(const FString& Path, FString& Error);
     bool SaveAnimGraph(const FString& Path, const FAnimGraphAssetData& Data, FString& Error, bool CreateOnly = false);
 	UAnimStateMachineAsset* LoadAnimStateMachine(const FString& Path, FString& Error);

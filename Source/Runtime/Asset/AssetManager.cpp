@@ -304,6 +304,8 @@ void UAssetManager::Init(const FAssetLoadProgress& OnProgress)
 	Get().CreateParticleMaterial();
 	Get().CreateDefaultParticleMaterial();
 	Get().CreateDefaultParticleSystem();
+	// .particle은 기본 메시·머티리얼을 참조하므로 그것들이 등록된 뒤에 읽는다.
+	Get().LoadParticleSystemAssets("Assets");
 	Get().CreateEditorArrowMaterial();
 }
 
@@ -330,7 +332,8 @@ void UAssetManager::ScanAssets(const fs::path& AssetRoot, const FAssetLoadProgre
 		FString Key = ToUTF8String(fs::relative(Files[i], AssetRoot));
 		FString Path = ToUTF8String(Files[i]);
 		AssetPathMap.Add(Key, Path);
-		if (GetAssetExtension(Path) != ".blendspace" && GetAssetExtension(Path) != ".animsm") LoadAsset(Key, Path);
+		// .particle은 Init에서 기본 에셋이 만들어진 뒤 LoadParticleSystemAssets가 읽는다.
+		if (GetAssetExtension(Path) != ".blendspace" && GetAssetExtension(Path) != ".animsm" && GetAssetExtension(Path) != ".particle") LoadAsset(Key, Path);
 
 		if (OnProgress)
 		{
@@ -355,6 +358,12 @@ void UAssetManager::LoadAsset(const FString& Key, const FString& Path) {
 	{
 		FString Error;
 		if (!LoadBlendSpace(Path, Error)) HTR_LOG(Error, "[BlendSpace] {}: {}", Path, Error);
+		return;
+	}
+	if (Extension == ".particle")
+	{
+		FString Error;
+		if (!LoadParticleSystem(Path, Error)) HTR_LOG(Error, "[ParticleSystem] {}: {}", Path, Error);
 		return;
 	}
 	if (Extension == ".png" || Extension == ".dds") {

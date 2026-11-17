@@ -25,6 +25,8 @@ private:
 	void DrawModuleRow(int32 EmitterIndex, UParticleModule* Module);
 	// 우클릭 메뉴 본문. ClickedModule이 있으면 맨 위에 그 모듈 삭제 항목을 둔다.
 	void DrawContextMenu(int32 EmitterIndex, UParticleModule* ClickedModule);
+	// 이미터 추가 항목. 이미터 열 메뉴와 패널 빈 곳 메뉴가 함께 쓴다.
+	void DrawNewEmitterMenuItem();
 	// 그리는 동안 모듈 배열을 바꾸면 순회가 깨지므로, 메뉴에서 고른 편집은 모아 두었다가 다 그린 뒤 적용한다.
 	void ApplyPendingEdit();
 
@@ -34,6 +36,8 @@ private:
 		AddModule,
 		DeleteModule,
 		AddMeshTypeData,
+		AddEmitter,
+		DeleteEmitter,
 	};
 	struct FPendingEdit
 	{

@@ -21,6 +21,10 @@ public:
 	void OnRender() override;
 	const char* GetPanelName() const override { return "Particle System Editor"; }
 
+	// 콘텐츠 드로어에서 .particle을 더블클릭하면 부른다. 에디터 창을 열고 앞으로 가져온 뒤 그 에셋을 프리뷰한다.
+	// 이미 불러온 에셋이면 메모리의 것을 그대로 쓴다. (저장하지 않은 수정도 유지된다)
+	void OpenAssetFile(const FString& Path);
+
 	// 프리뷰 월드와 GPU 타깃을 해제한다. 전역 UObject 일괄 삭제와 Device 종료 전에 엔진이 호출한다.
 	void ReleaseResources();
 
@@ -41,6 +45,11 @@ private:
 	void DrawLODGroup();
 	void DrawSimulationGroup();
 	void LoadToolbarIcons();
+	// 툴바 Save 버튼과 Ctrl+S가 부른다. 파일이 있는 에셋은 바로 덮어쓰고, 없으면 Save As 창을 연다.
+	void RequestSave();
+	void RequestSaveAs();
+	// 이름을 입력받는 Save As 모달. 호스트 창 안에서 매 프레임 호출한다.
+	void DrawSaveAsPopup();
 	// 내부 DockSpace의 초기 배치. 저장된 배치가 없거나 Reset Layout을 고르면 실행한다.
 	void BuildDefaultLayout(unsigned int DockSpaceId);
 
@@ -75,4 +84,11 @@ private:
 
 	bool bHostVisible = false;
 	bool bResetLayout = false;
+	// OpenAssetFile 다음 프레임에 호스트 창을 앞으로 가져온다. (다른 탭 뒤에 도킹돼 있어도 보이게)
+	bool bFocusNextFrame = false;
+
+	// Save As 모달 상태
+	bool bOpenSaveAsPopup = false;
+	char SaveAsName[128] = {};
+	FString SaveAsError;
 };

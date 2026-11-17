@@ -7,6 +7,7 @@
 #include "Editor/HitoriEd/EditorResourcePaths.h"
 #include "Components/ParticleSystemComponent.h"
 #include "Asset/AssetManager.h"
+#include "Particles/ParticleSystem.h"
 #include "Render/Texture2D.h"
 
 #include <algorithm>
@@ -19,9 +20,13 @@ namespace
 	constexpr float ToolbarIconSize = 18.0f;
 	constexpr float ToolbarGroupSpacing = 10.0f;
 
+	constexpr const char* SaveAsPopupName = "Save Particle System As##Modal";
+	constexpr const char* NewAssetDefaultName = "NewParticleSystem";
+	// 저장 실패 문구 색. 성공은 기본 글자색 그대로 보여 준다.
+	const ImVec4 ErrorTextColor(1.0f, 0.45f, 0.35f, 1.0f);
+
 	// 아직 동작할 수 없는 버튼의 툴팁 끝에 붙인다.
 	constexpr const char* NeedsAssetNote = "\n(Disabled: needs the particle system asset, not connected yet)";
-	constexpr const char* NeedsSerializationNote = "\n(Disabled: particle system assets cannot be saved yet)";
 	constexpr const char* NeedsLODEditingNote = "\n(Disabled: LOD duplication and runtime LOD switching are not supported yet)";
 	constexpr const char* SingleLODNote = "\n(Disabled: there is no other LOD to move to)";
 
@@ -131,16 +136,40 @@ void FParticleSystemEditorPanel::Tick(float DeltaTime)
 		Panel->Tick(DeltaTime);
 }
 
+void FParticleSystemEditorPanel::OpenAssetFile(const FString& Path)
+{
+	// 경로 → 에셋 키 변환과 "이미 불러왔으면 그 객체를 돌려주기"는 LoadParticleSystem이 맡는다.
+	FString Error;
+	UParticleSystem* Asset = UAssetManager::Get().LoadParticleSystem(Path, Error);
+	if (!Asset)
+	{
+		HTR_LOG(Error, "Failed to open particle system '{}': {}", Path, Error);
+		return;
+	}
+
+	SetOpen(true);
+	bFocusNextFrame = true;
+	Context.OpenAsset(Asset);
+}
+
 void FParticleSystemEditorPanel::OnRender()
 {
 	bool bOpen = IsOpen();
 	ImGui::SetNextWindowSize(ImVec2(1280, 800), ImGuiCond_FirstUseEver);
-	bHostVisible = ImGui::Begin(GetPanelName(), &bOpen, ImGuiWindowFlags_MenuBar);
+	// 저장하지 않은 수정이 있으면 탭 제목에 점이 붙는다. (블렌드스페이스 에디터와 같은 표시)
+	const ImGuiWindowFlags HostFlags = ImGuiWindowFlags_MenuBar | (Context.IsDirty() ? ImGuiWindowFlags_UnsavedDocument : ImGuiWindowFlags_None);
+	if (bFocusNextFrame)
+	{
+		ImGui::SetNextWindowFocus();
+		bFocusNextFrame = false;
+	}
+	bHostVisible = ImGui::Begin(GetPanelName(), &bOpen, HostFlags);
 
 	if (bHostVisible)
 	{
 		DrawMenuBar();	// ①
 		DrawToolBar();	// ②
+		DrawSaveAsPopup();
 	}
 
 	// 에디터 전용 WindowClass. 하위 패널은 이 DockSpace에만 붙고, 레벨 에디터 창과 섞이지 않는다.
@@ -159,6 +188,11 @@ void FParticleSystemEditorPanel::OnRender()
 	// 탭이 가려져도 DockSpace는 매 프레임 제출해야 하위 패널이 도킹에서 풀리지 않는다.
 	const ImGuiDockNodeFlags DockFlags = (bHostVisible && bOpen) ? ImGuiDockNodeFlags_None : ImGuiDockNodeFlags_KeepAliveOnly;
 	ImGui::DockSpace(DockSpaceId, ImVec2(0.0f, 0.0f), DockFlags, &EditorClass);
+
+	// Ctrl+S: 하위 패널(뷰포트·이미터·디테일)이 포커스를 가진 때도 저장한다. 우클릭 카메라 이동(S키) 중에는 무시한다.
+	if (bHostVisible && bOpen && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows | ImGuiFocusedFlags_DockHierarchy)
+		&& ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false) && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
+		RequestSave();
 	ImGui::End();
 
 	// ③④⑤ 하위 패널. 도킹 클래스는 여기서 정해 주므로 패널은 자기가 어느 에디터 안에 있는지 모른다.
@@ -183,6 +217,27 @@ void FParticleSystemEditorPanel::DrawMenuBar()
 	if (!ImGui::BeginMenuBar())
 		return;
 
+	if (ImGui::BeginMenu("File"))
+	{
+		if (ImGui::MenuItem("Save", "Ctrl+S", false, Context.CanSave()))
+			RequestSave();
+		if (ImGui::MenuItem("Save As...", nullptr, false, Context.CanSave()))
+			RequestSaveAs();
+
+		// 저장한 파일과 기본 에셋 중 하나를 골라 프리뷰에서 편집한다.
+		if (ImGui::BeginMenu("Open"))
+		{
+			const UParticleSystem* Current = Context.GetTemplate();
+			for (UParticleSystem* Asset : UAssetManager::Get().GetParticleSystemAssets())
+			{
+				if (ImGui::MenuItem(Asset->GetPath().c_str(), nullptr, Asset == Current))
+					Context.OpenAsset(Asset);
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::EndMenu();
+	}
+
 	if (ImGui::BeginMenu("Window"))
 	{
 		for (auto& Panel : SubPanels)
@@ -202,7 +257,89 @@ void FParticleSystemEditorPanel::DrawMenuBar()
 		ImGui::EndMenu();
 	}
 
+	// 메뉴 오른쪽에 편집 중인 에셋과 저장 결과를 보여 준다. 수정이 남아 있으면 이름 뒤에 *이 붙는다.
+	const FString Label = Context.GetAssetLabel();
+	if (!Label.empty())
+		ImGui::TextDisabled("%s%s", Label.c_str(), Context.IsDirty() ? " *" : "");
+	if (!Context.GetSaveStatus().empty())
+	{
+		if (Context.IsSaveStatusError())
+			ImGui::PushStyleColor(ImGuiCol_Text, ErrorTextColor);
+		ImGui::TextUnformatted(Context.GetSaveStatus().c_str());
+		if (Context.IsSaveStatusError())
+			ImGui::PopStyleColor();
+	}
+
 	ImGui::EndMenuBar();
+}
+
+void FParticleSystemEditorPanel::RequestSave()
+{
+	if (!Context.CanSave())
+		return;
+
+	// 파일이 있으면 바로 덮어쓴다. 코드로 만든 기본 에셋은 이름을 정해야 하므로 Save As로 보낸다.
+	if (Context.HasAssetFile())
+		Context.Save();
+	else
+		RequestSaveAs();
+}
+
+void FParticleSystemEditorPanel::RequestSaveAs()
+{
+	// 파일이 있는 에셋을 다른 이름으로 저장할 때는 원래 이름 뒤에 _Copy를 붙여 제안한다.
+	FString Suggested = NewAssetDefaultName;
+	if (Context.HasAssetFile())
+		Suggested = fs::path(Context.GetAssetLabel()).stem().string() + "_Copy";
+	strcpy_s(SaveAsName, sizeof(SaveAsName), Suggested.c_str());
+
+	SaveAsError.clear();
+	bOpenSaveAsPopup = true;
+}
+
+void FParticleSystemEditorPanel::DrawSaveAsPopup()
+{
+	// 메뉴·단축키는 요청만 남기고, 팝업은 호스트 창의 ID 스택에서 여기서 연다.
+	if (bOpenSaveAsPopup)
+	{
+		ImGui::OpenPopup(SaveAsPopupName);
+		bOpenSaveAsPopup = false;
+	}
+
+	if (!ImGui::BeginPopupModal(SaveAsPopupName, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+		return;
+
+	const auto TrySave = [this]()
+	{
+		if (Context.SaveAs(SaveAsName, SaveAsError))
+			ImGui::CloseCurrentPopup();
+	};
+
+	ImGui::TextUnformatted("Enter new asset name:");
+	ImGui::Spacing();
+	if (ImGui::IsWindowAppearing())
+		ImGui::SetKeyboardFocusHere();
+	ImGui::SetNextItemWidth(350.0f);
+	if (ImGui::InputText("##SaveAsName", SaveAsName, sizeof(SaveAsName), ImGuiInputTextFlags_EnterReturnsTrue))
+		TrySave();
+	ImGui::TextDisabled("Will be saved as: Assets/Particles/%s.particle", SaveAsName);
+
+	if (!SaveAsError.empty())
+	{
+		ImGui::PushStyleColor(ImGuiCol_Text, ErrorTextColor);
+		ImGui::TextWrapped("%s", SaveAsError.c_str());
+		ImGui::PopStyleColor();
+	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Spacing();
+	if (ImGui::Button("Save", ImVec2(120.0f, 0.0f)))
+		TrySave();
+	ImGui::SameLine();
+	if (ImGui::Button("Cancel", ImVec2(120.0f, 0.0f)))
+		ImGui::CloseCurrentPopup();
+	ImGui::EndPopup();
 }
 
 void FParticleSystemEditorPanel::LoadToolbarIcons()
@@ -252,10 +389,11 @@ void FParticleSystemEditorPanel::DrawToolBar()
 
 void FParticleSystemEditorPanel::DrawAssetGroup()
 {
-	// 파티클 시스템 에셋을 파일로 쓰는 직렬화가 아직 없어 비활성이다.
-	if (ConditionalButton("##Save", Icons.Save, "Save", "Save the particle system asset",
-		Context.CanSave(), NeedsSerializationNote))
-		Context.Save();
+	// 파일이 있는 에셋은 바로 저장하고, 코드로 만든 기본 에셋은 이름을 묻는 Save As 창이 뜬다.
+	if (ConditionalButton("##Save", Icons.Save, "Save",
+		Context.HasAssetFile() ? "Save the particle system asset (Ctrl+S)" : "Save the particle system as a new asset (Ctrl+S)",
+		Context.CanSave(), NeedsAssetNote))
+		RequestSave();
 	ImGui::SameLine(0.0f, ToolbarGroupSpacing);
 
 	if (IconTextButton("##RestartSim", Icons.RestartSim, "Restart Sim", "Restart the particle system in the preview from the beginning"))

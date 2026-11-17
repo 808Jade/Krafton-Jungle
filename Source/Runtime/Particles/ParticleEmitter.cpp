@@ -57,6 +57,47 @@ namespace
 
 }
 
+void UParticleEmitter::Serialize(FStructuredArchive::FRecord Record)
+{
+	Super::Serialize(Record);
+
+	const bool bLoading = Record.GetUnderlyingArchive().IsLoading();
+
+	int32 Num = 0;
+	if (!bLoading)
+	{
+		for (UParticleLODLevel* LODLevel : LODLevels)
+		{
+			if (LODLevel)
+			{
+				++Num;
+			}
+		}
+	}
+
+	FStructuredArchive::FArray Array = Record.EnterArray("LODLevels", Num);
+	if (bLoading)
+	{
+		LODLevels.Empty();
+		for (int32 Index = 0; Index < Num; ++Index)
+		{
+			UParticleLODLevel* LODLevel = NewObject<UParticleLODLevel>(this);
+			LODLevel->Serialize(Array.EnterElement().EnterRecord());
+			LODLevels.Add(LODLevel);
+		}
+	}
+	else
+	{
+		for (UParticleLODLevel* LODLevel : LODLevels)
+		{
+			if (LODLevel)
+			{
+				LODLevel->Serialize(Array.EnterElement().EnterRecord());
+			}
+		}
+	}
+}
+
 void UParticleEmitter::CacheEmitterModuleInfo()
 {
 	ParticleSize = static_cast<int32>(sizeof(FBaseParticle));
