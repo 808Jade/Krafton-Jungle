@@ -20,6 +20,9 @@ namespace
 	// 예외 정보가 없는 경로: 지금 위치의 레지스터를 잡아 예외 정보를 만들고 기존 덤프 경로로 보낸다.
 	[[noreturn]] void WriteDumpHere(DWORD Code)
 	{
+		if (IsDebuggerPresent())
+			__debugbreak();
+
 		CONTEXT Context{};
 		RtlCaptureContext(&Context);
 		EXCEPTION_RECORD Record{};
