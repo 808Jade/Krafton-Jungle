@@ -27,8 +27,10 @@ namespace
 
 	// 아직 동작할 수 없는 버튼의 툴팁 끝에 붙인다.
 	constexpr const char* NeedsAssetNote = "\n(Disabled: needs the particle system asset, not connected yet)";
-	constexpr const char* NeedsLODEditingNote = "\n(Disabled: LOD duplication and runtime LOD switching are not supported yet)";
+	constexpr const char* RegenLODPopupName = "Regenerate Lowest LOD##Modal";
 	constexpr const char* SingleLODNote = "\n(Disabled: there is no other LOD to move to)";
+	constexpr const char* HighestLODInsertNote = "\n(Disabled: adding before LOD 0 is the same as adding after it)";
+	constexpr const char* HighestLODDeleteNote = "\n(Disabled: LOD 0 cannot be deleted)";
 
 	// 아이콘과 글자를 한 버튼 안에 그린다. 클릭 영역은 버튼 전체다. (언리얼 툴바 버튼과 같은 모양)
 	// bEnabled가 false면 흐리게 그리고 클릭을 받지 않는다. 툴팁은 비활성일 때도 띄워 이유를 보여 준다.
@@ -424,12 +426,33 @@ void FParticleSystemEditorPanel::DrawViewGroup()
 void FParticleSystemEditorPanel::DrawLODGroup()
 {
 	// LOD 0이 가장 높은(가장 자세한) LOD다. Lower는 번호가 커지는 쪽, Higher는 작아지는 쪽이다. (Cascade와 같은 규칙)
-	// LOD 레벨 생성·복제는 모듈 깊은 복사와 런타임 LOD 전환이 없어 아직 비활성이다.
-	PlaceholderButton("##RegenLOD", Icons.RegenLOD, "Regen LOD",
-		"Regenerate the lowest LOD by duplicating the highest LOD", NeedsLODEditingNote);
+	if (ConditionalButton("##RegenLOD", Icons.RegenLOD, "Regen LOD",
+		"Regenerate the lowest LOD by duplicating the highest LOD", Context.CanRegenerateLowestLOD(), NeedsAssetNote))
+	{
+		bPendingRegenDuplicate = true;
+		ImGui::OpenPopup(RegenLODPopupName);
+	}
 	ImGui::SameLine();
-	PlaceholderButton("##RegenLODPercent", Icons.RegenLODPercent, "Regen LOD %",
-		"Regenerate the lowest LOD from the highest LOD using percentage scaling", NeedsLODEditingNote);
+	if (ConditionalButton("##RegenLODPercent", Icons.RegenLODPercent, "Regen LOD %",
+		"Regenerate the lowest LOD from the highest LOD using percentage scaling", Context.CanRegenerateLowestLOD(), NeedsAssetNote))
+	{
+		bPendingRegenDuplicate = false;
+		ImGui::OpenPopup(RegenLODPopupName);
+	}
+	if (ImGui::BeginPopupModal(RegenLODPopupName, nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::TextUnformatted("Regenerating the lowest LOD will delete all other LOD levels.");
+		ImGui::TextUnformatted("Are you sure you want to do so?");
+		if (ImGui::Button("Yes"))
+		{
+			Context.RegenerateLowestLOD(bPendingRegenDuplicate);
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("No"))
+			ImGui::CloseCurrentPopup();
+		ImGui::EndPopup();
+	}
 	ImGui::SameLine();
 
 	// 이동 버튼은 이미터 패널이 보여 줄 LOD 레벨만 바꾼다. 범위 밖이면 비활성이다.
@@ -445,7 +468,9 @@ void FParticleSystemEditorPanel::DrawLODGroup()
 	if (ConditionalButton("##LowerLOD", Icons.LowerLOD, "Lower LOD", "Move to the next lower LOD", bCanGoLower, SingleLODNote))
 		Context.SetCurrentLOD(Context.CurrentLODIndex + 1);
 	ImGui::SameLine();
-	PlaceholderButton("##AddLODBefore", Icons.AddLODBefore, "Add LOD", "Add an LOD before the current LOD", NeedsLODEditingNote);
+	if (ConditionalButton("##AddLODBefore", Icons.AddLODBefore, "Add LOD", "Add an LOD before the current LOD",
+		Context.CanAddLODBefore(), HighestLODInsertNote))
+		Context.AddLOD(false);
 	ImGui::SameLine();
 
 	// 현재 LOD 번호. 직접 입력해도 범위 안으로 맞춘다. LOD가 하나뿐이면 바꿀 수 없다.
@@ -462,7 +487,9 @@ void FParticleSystemEditorPanel::DrawLODGroup()
 		ImGui::SetTooltip("Current LOD (0 = highest detail, %d LOD level(s))", LODCount);
 	ImGui::SameLine();
 
-	PlaceholderButton("##AddLODAfter", Icons.AddLODAfter, "Add LOD", "Add an LOD after the current LOD", NeedsLODEditingNote);
+	if (ConditionalButton("##AddLODAfter", Icons.AddLODAfter, "Add LOD", "Add an LOD after the current LOD",
+		Context.CanAddLODAfter(), NeedsAssetNote))
+		Context.AddLOD(true);
 	ImGui::SameLine();
 	if (ConditionalButton("##HigherLOD", Icons.HigherLOD, "Higher LOD", "Move to the next higher LOD", bCanGoHigher, SingleLODNote))
 		Context.SetCurrentLOD(Context.CurrentLODIndex - 1);
@@ -470,7 +497,9 @@ void FParticleSystemEditorPanel::DrawLODGroup()
 	if (ConditionalButton("##HighestLOD", Icons.HighestLOD, "Highest LOD", "Jump to the highest LOD", bCanGoHigher, SingleLODNote))
 		Context.SetCurrentLOD(0);
 	ImGui::SameLine();
-	PlaceholderButton("##DeleteLOD", Icons.DeleteLOD, "Delete LOD", "Delete the current LOD", NeedsLODEditingNote);
+	if (ConditionalButton("##DeleteLOD", Icons.DeleteLOD, "Delete LOD", "Delete the current LOD",
+		Context.CanDeleteLOD(), HighestLODDeleteNote))
+		Context.DeleteCurrentLOD();
 }
 
 void FParticleSystemEditorPanel::DrawSimulationGroup()

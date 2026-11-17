@@ -55,5 +55,10 @@ public:
 		return 0;
 	}
 
+	virtual bool GenerateLODModuleValues(const UParticleModule* SourceModule, float Percentage)
+	{
+		return true;
+	}
+
 	bool bEnabled = true;
 };

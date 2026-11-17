@@ -54,10 +54,19 @@ public:
 	int32 RestartLevelInstances();
 
 	// --- LOD ---
-	// 이미터들 가운데 가장 많은 LOD 레벨 수. 에셋이 없거나 LOD가 없으면 1이다.
+	// 파티클 시스템의 LOD 수(LODDistances 칸 수). 에셋이 없거나 LOD가 없으면 1이다.
 	int32 GetLODCount() const;
 	// CurrentLODIndex를 0 ~ GetLODCount()-1 안으로 맞춰 설정한다.
 	void SetCurrentLOD(int32 NewLODIndex);
+	bool CanEditModuleStructure() const { return CurrentLODIndex == 0; }
+	bool CanAddLODBefore() const { return GetTemplate() && CurrentLODIndex > 0; }
+	bool CanAddLODAfter() const { return GetTemplate() != nullptr; }
+	bool CanDeleteLOD() const { return GetTemplate() && CurrentLODIndex > 0; }
+	bool AddLOD(bool bAfterCurrent);
+	bool DeleteCurrentLOD();
+	bool CanRegenerateLowestLOD() const { return GetTemplate() != nullptr; }
+	bool RegenerateLowestLOD(bool bDuplicateHighest);
+	bool NormalizeLODSetup();
 
 	// --- 에셋 편집 (이미터 패널 우클릭 메뉴) ---
 	// 편집 대상은 EmitterIndex 이미터의 현재 LOD 레벨이다. 편집이 끝나면 이미터 캐시를 다시 만들고
@@ -101,12 +110,13 @@ public:
 	UParticleModule* SelectedModule = nullptr;
 	bool bSimulationPaused = false;
 	// 툴바에 보이는 현재 LOD 번호. 이미터 패널이 이 번호의 LOD 레벨 모듈을 보여 준다.
-	// 바꿀 때는 SetCurrentLOD로 범위를 맞춘다. 런타임 시뮬레이션은 아직 LOD 0만 쓴다.
+	// 바꿀 때는 SetCurrentLOD로 범위를 맞춘다. 프리뷰 컴포넌트도 이 LOD로 재생한다.
 	int32 CurrentLODIndex = 0;
 
 private:
 	// 에셋 구성이 바뀐 이미터의 모듈 캐시를 다시 만들고, 이 에셋을 쓰는 컴포넌트를 다시 시작한다.
 	void ApplyEmitterChange(int32 EmitterIndex);
+	void RebuildAllEmitters();
 	// 프리뷰 컴포넌트가 재생할 에셋을 바꾸고 선택 상태를 비운다. nullptr이면 기본 에셋이다.
 	void ApplyPreviewTemplate(UParticleSystem* Asset);
 	void SetSaveStatus(const FString& Message, bool bError);

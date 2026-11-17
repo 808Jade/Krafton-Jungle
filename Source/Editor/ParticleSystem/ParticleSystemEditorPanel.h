@@ -91,4 +91,6 @@ private:
 	bool bOpenSaveAsPopup = false;
 	char SaveAsName[128] = {};
 	FString SaveAsError;
+
+	bool bPendingRegenDuplicate = true;
 };
