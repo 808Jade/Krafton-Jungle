@@ -39,6 +39,8 @@ public:
 		return Ret;
 	}
 	const TArray<TUniquePtr<FEditorTab>>& GetTabs() const { return Tabs; }
+	// 탭 0. Init에서 만들고 엔진이 끝날 때까지 지우지 않는다. 레벨 패널은 여기에 추가한다.
+	class FLevelEditorTab* GetLevelTab() const;
 	bool IsAnyTabHoveredOrInteracting() const;
 	void CollectTabViews(TArray<FEditorTabView>& OutViews) const;
 	// 엔진 종료 시 UObject 일괄 삭제와 Device 종료 전에 부른다.
@@ -59,8 +61,7 @@ public:
 
 private:
 	void DrawMainMenuBar();
-	void DrawLevelEditorWorkspace(const struct ImGuiWindowClass& WindowClass);
-	// 탭을 그리고, 닫힌 탭의 자원을 놓은 뒤 지운다.
+	// 레벨 탭을 뺀 탭을 그리고, 닫힌 탭의 자원을 놓은 뒤 지운다.
 	void RenderTabs(ImGuiID RootWorkspaceDockId);
 
 private:
@@ -68,10 +69,9 @@ private:
 	bool bAnimGraphInitialDockPending = true;
 	bool bPassthruCentralNode = false;
 
-	bool bResetLevelLayout = false;
-
+	// 소유(합성): 아직 탭으로 옮기지 않은 에셋 에디터 패널 (Skeletal Mesh Viewer 등)
 	TArray<TUniquePtr<IEditorPanel>> Panels;
-	// 소유(합성): 에셋 에디터 탭. 탭을 닫으면 여기서 지운다.
+	// 소유(합성): 탭. 0번은 레벨 탭이고, 나머지는 에셋 에디터 탭이다. 에셋 에디터 탭을 닫으면 여기서 지운다.
 	TArray<TUniquePtr<FEditorTab>> Tabs;
 	struct FWindowMenuCommand
 	{

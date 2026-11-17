@@ -123,17 +123,13 @@ bool FParticleSystemEditorTab::Init()
 
 	LoadToolbarIcons();
 
-	// 하위 패널은 Context를 참조만 한다. 추가 순서가 곧 그리는 순서다.
+	// 하위 패널은 Context를 참조만 한다. 추가 순서가 곧 그리는 순서다. (AddPanel이 Init까지 부른다)
 	ViewportPanel = AddPanel<FParticleSystemViewportPanel>(Context, GetId());
 	EmitterPanel = AddPanel<FParticleSystemEmitterPanel>(Context, GetId());
 	DetailsPanel = AddPanel<FParticleSystemDetailsPanel>(Context, GetId());
 
-	bool bAllInitialized = true;
-	for (auto& Panel : Panels)
-		bAllInitialized &= Panel->Init();
-
 	RefreshTitle();
-	return bAllInitialized;
+	return true;
 }
 
 void FParticleSystemEditorTab::Tick(const float DeltaTime)

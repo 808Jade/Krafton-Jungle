@@ -6,8 +6,14 @@
 FEditorTab::FEditorTab(FEditorTabSettings InSettings)
 	: Settings(std::move(InSettings))
 {
+	if (Settings.DockSpaceName.empty())
+		Settings.DockSpaceName = "TabDockSpace";
+	if (Settings.WindowClassName.empty())
+		Settings.WindowClassName = Settings.Id;
+	bDockOnFirstRender = Settings.bDockOnFirstRender;
+
 	// 탭마다 다른 클래스: 다른 탭(같은 종류의 에디터 포함)이나 레벨 에디터의 패널과 섞여 도킹되지 않는다.
-	WindowClass.ClassId = ImHashStr(Settings.Id.c_str());
+	WindowClass.ClassId = ImHashStr(Settings.WindowClassName.c_str());
 	WindowClass.DockingAllowUnclassed = false;
 }
 
@@ -15,6 +21,11 @@ void FEditorTab::Tick(const float DeltaTime)
 {
 	for (auto& Panel : Panels)
 		Panel->Tick(DeltaTime);
+}
+
+bool FEditorTab::NeedsLayoutRebuild(const ImGuiDockNode* Node) const
+{
+	return Node == nullptr || (Node->IsLeafNode() && Node->Windows.Size == 0);
 }
 
 void FEditorTab::Render(const ImGuiID DefaultDockId)
@@ -35,20 +46,27 @@ void FEditorTab::Render(const ImGuiID DefaultDockId)
 	}
 
 	bool bStillOpen = bOpen;
+	if (Settings.bZeroHostPadding)
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 	bHostVisible = ImGui::Begin(WindowName.c_str(), Settings.bClosable ? &bStillOpen : nullptr, GetHostWindowFlags());
+	if (Settings.bZeroHostPadding)
+		ImGui::PopStyleVar();
 	if (bHostVisible)
 		DrawHostContents();
 
 	// 내부 DockSpace의 ID는 호스트 창 ID 아래에서 만들어지므로 탭마다 다르다.
-	const ImGuiID DockSpaceId = ImGui::GetID("TabDockSpace");
+	const ImGuiID DockSpaceId = ImGui::GetID(Settings.DockSpaceName.c_str());
 	const ImGuiDockNode* Node = ImGui::DockBuilderGetNode(DockSpaceId);
-	if (bHostVisible && (Node == nullptr || bResetLayout || (Node->IsLeafNode() && Node->Windows.Size == 0)))
+	if (bHostVisible && (bResetLayout || NeedsLayoutRebuild(Node)))
 	{
 		bResetLayout = false;
 		const ImVec2 Available = ImGui::GetContentRegionAvail();
+		const ImGuiViewport* MainViewport = ImGui::GetMainViewport();
 		ImGui::DockBuilderRemoveNode(DockSpaceId);
 		ImGui::DockBuilderAddNode(DockSpaceId, ImGuiDockNodeFlags_DockSpace);
-		ImGui::DockBuilderSetNodeSize(DockSpaceId, ImVec2(std::max(Available.x, 800.0f), std::max(Available.y, 600.0f)));
+		ImGui::DockBuilderSetNodeSize(DockSpaceId, ImVec2(
+			Available.x > 100.0f ? Available.x : std::max(MainViewport->WorkSize.x, 800.0f),
+			Available.y > 100.0f ? Available.y : std::max(MainViewport->WorkSize.y, 600.0f)));
 		BuildDefaultLayout(DockSpaceId);
 		ImGui::DockBuilderFinish(DockSpaceId);
 	}
@@ -59,13 +77,13 @@ void FEditorTab::Render(const ImGuiID DefaultDockId)
 	ImGui::End();
 
 	// 하위 패널은 자기가 어느 탭 안에 있는지 모른다. 도킹 클래스는 여기서 정해 준다.
-	if (bHostVisible && bStillOpen)
+	if (bStillOpen && (bHostVisible || Settings.bRenderPanelsWhenHidden))
 	{
 		for (auto& Panel : Panels)
 		{
 			if (!Panel->IsOpen())
 				continue;
-			ImGui::SetNextWindowClass(&WindowClass);
+			ImGui::SetNextWindowClass(GetPanelWindowClass(*Panel));
 			Panel->OnRender();
 		}
 	}
