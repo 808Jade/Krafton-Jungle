@@ -116,6 +116,11 @@ int32 FParticleEditorContext::GetLODCount() const
 void FParticleEditorContext::SetCurrentLOD(const int32 NewLODIndex)
 {
 	CurrentLODIndex = std::clamp(NewLODIndex, 0, GetLODCount() - 1);
+	UParticleSystemComponent* ParticleSystemComponent = GetPreviewComponent();
+	if (ParticleSystemComponent)
+	{
+		ParticleSystemComponent->SetLODLevel(CurrentLODIndex);
+	}
 }
 
 UParticleLODLevel* FParticleEditorContext::GetLODLevel(const int32 EmitterIndex) const

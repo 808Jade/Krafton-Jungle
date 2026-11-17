@@ -51,6 +51,8 @@ public:
 	void ResetParticleParameters();
 	void IntegrateParticles(float DeltaTime);
 
+	virtual void SetCurrentLODIndex(int32 LODIndex);
+
 	void UpdateTransforms();
 
 	void UpdateBoundingBox();
@@ -122,6 +124,7 @@ struct FParticleMeshEmitterInstance : public FParticleEmitterInstance
 public:
 	virtual FDynamicEmitterDataBase* GetDynamicData() const override;
 	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent) override;
+	virtual void SetCurrentLODIndex(int32 LODIndex) override;
 
 	UParticleModuleTypeDataMesh* MeshTypeData = nullptr;
 	int32 MeshRotationOffset = InvalidPayloadOffset;

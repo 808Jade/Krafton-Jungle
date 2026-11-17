@@ -24,6 +24,7 @@ public:
 	void ResetSystem();
 	bool HasCompleted() const;
 	void PostApplyProperties(const FProperty* ChangedProperty = nullptr) override;
+	void SetLODLevel(int32 InLODLevel);
 
 private:
 	bool GetEmitterBoundingBox(FBox& OutBoundingBox) const;
@@ -38,9 +39,9 @@ public:
 	UPROPERTY(EditAnywhere)
 	float CustomTimeDilation = 1.0f;
 
-	// 테스트/디버깅 용
-	bool bMeshInstancingTest = true;
+	int32	LODLevel = 0;
 
-	//TArray<FDynamicEmitterDataBase*> EmitterRenderData;
+	// 테스트/디버깅 용
+	bool	bMeshInstancingTest = true;
 
 };

@@ -240,6 +240,7 @@ void UParticleSystemComponent::InitParticles()
 			ParticleEmitterInstance = new FParticleSpriteEmitterInstance();
 		}
 		ParticleEmitterInstance->InitParameters(Emitter, this);
+		ParticleEmitterInstance->SetCurrentLODIndex(LODLevel);
 		EmitterInstances.Add(ParticleEmitterInstance);
 	}
 }
@@ -340,4 +341,24 @@ bool UParticleSystemComponent::HasCompleted() const
 		}
 	}
 	return true;
+}
+
+void UParticleSystemComponent::SetLODLevel(int InLODLevel)
+{
+	if (LODLevel == InLODLevel)
+	{
+		return;
+	}
+
+	if (!Template)
+	{
+		LODLevel = InLODLevel;
+		return;
+	}
+
+	LODLevel = InLODLevel;
+	for (FParticleEmitterInstance* EmitterInstance : EmitterInstances)
+	{
+		EmitterInstance->SetCurrentLODIndex(LODLevel);
+	}
 }

@@ -4,6 +4,8 @@
 #include "Particles/ParticleModule.h"
 #include "Particles/Modules/ParticleModuleRequired.h"
 #include "Particles/Modules/ParticleModuleTypeDataBase.h"
+#include "Particles/Modules/ParticleModuleSpawn.h"
+#include "Particles/Modules/ParticleModuleLifetime.h"
 #include "UObject/Casts.h"
 #include "UObject/UObjectHash.h"
 
@@ -116,12 +118,6 @@ void UParticleLODLevel::Serialize(FStructuredArchive::FRecord Record)
 		}
 	}
 }
-
-#include "Particles/ParticleModule.h"
-#include "Particles/Modules/ParticleModuleRequired.h"
-#include "Particles/Modules/ParticleModuleSpawn.h"
-#include "Particles/Modules/ParticleModuleLifetime.h"
-#include "UObject/Casts.h"
 
 int32 UParticleLODLevel::CalculateMaxActiveParticleCount() const
 {

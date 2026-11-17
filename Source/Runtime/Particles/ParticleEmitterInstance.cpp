@@ -17,7 +17,6 @@
 
 #include "Math/Transform.h"
 
-
 FParticleEmitterInstance::~FParticleEmitterInstance()
 {
 	Release();
@@ -111,6 +110,43 @@ void FParticleEmitterInstance::IntegrateParticles(float DeltaTime)
 	}
 }
 
+void FParticleEmitterInstance::SetCurrentLODIndex(int32 LODIndex)
+{
+	if (!SpriteTemplate || SpriteTemplate->LODLevels.IsEmpty())
+	{
+		return;
+	}
+	LODIndex = std::clamp(LODIndex, 0, SpriteTemplate->LODLevels.Num() - 1);
+
+	const UParticleLODLevel* RequestedLODLevel = SpriteTemplate->LODLevels[LODIndex];
+	if (!RequestedLODLevel || !RequestedLODLevel->bModuleLayoutValid)
+	{
+		LODIndex = 0;
+	}
+
+	UParticleLODLevel* NewLODLevel = SpriteTemplate->LODLevels[LODIndex];
+	if (!NewLODLevel)
+	{
+		return;
+	}
+
+	CurrentLODLevelIndex = LODIndex;
+	CurrentLODLevel = NewLODLevel;
+
+	UParticleModuleRequired* Required = CurrentLODLevel->RequiredModule;
+	if (Required)
+	{
+		CurrentMaterial = Required->Material;
+		EmitterDuration = Required->EmitterDuration;
+		EmitterLoops = Required->EmitterLoops;
+	}
+
+	if (!CurrentLODLevel->bEnabled)
+	{
+		KillParticlesForced();
+	}
+}
+
 void FParticleEmitterInstance::UpdateBoundingBox()
 {
 	if (!Component || (Component->Template && Component->Template->bUseFixedRelativeBoundingBox) || ActiveParticles <= 0)
@@ -175,7 +211,7 @@ void FParticleEmitterInstance::UpdateTransforms()
 void FParticleEmitterInstance::Spawn(float DeltaTime)
 {
 	const UParticleModuleSpawn* SpawnModule = CurrentLODLevel ? CurrentLODLevel->SpawnModule : nullptr;
-	if (bEmitterIsDone || bHaltSpawning || !SpawnModule || !SpawnModule->bEnabled)
+	if (bEmitterIsDone || bHaltSpawning || !SpawnModule || !SpawnModule->bEnabled || !CurrentLODLevel || !CurrentLODLevel->bEnabled)
 	{
 		return;
 	}
@@ -352,7 +388,7 @@ void FParticleEmitterInstance::Release()
 bool FParticleEmitterInstance::FillReplayData(
     FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const
 {
-	if (!ParticleData || ActiveParticles <= 0 || !Component)
+	if (!ParticleData || ActiveParticles <= 0 || !Component || !CurrentLODLevel || !CurrentLODLevel->bEnabled)
 	{
 		return false;
 	}
@@ -490,6 +526,13 @@ void FParticleMeshEmitterInstance::InitParameters(
 			MeshRotationOffset = *Offset;
 		}
 	}
+}
+
+void FParticleMeshEmitterInstance::SetCurrentLODIndex(int32 LODIndex)
+{
+	FParticleEmitterInstance::SetCurrentLODIndex(LODIndex);
+
+	MeshTypeData = CurrentLODLevel ? Cast<UParticleModuleTypeDataMesh>(CurrentLODLevel->TypeDataModule) : nullptr;
 }
 
 FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData() const
