@@ -37,6 +37,15 @@ enum class EParticleAxisLock : uint8
 	Z,
 };
 
+// Collision 모듈의 MaxCollisions에 도달했을 때 파티클에 하는 일.
+// 순서는 편집기 표시 표(ParticleSystemDetailsPanel.cpp)와 같아야 한다.
+enum class EParticleCollisionComplete : uint8
+{
+	Kill,            // 마지막 충돌에서 파티클을 없앤다.
+	Freeze,          // 마지막 충돌 지점에 멈춰 붙는다.
+	HaltCollisions,  // 마지막 충돌은 튕기고, 그 뒤로는 충돌 검사를 하지 않는다.
+};
+
 enum EParticleStates
 {
 	/** Ignore updates to the particle						*/

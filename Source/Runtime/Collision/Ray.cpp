@@ -108,8 +108,39 @@ bool RayIntersectsTriangleEdges(const FRay& Ray, const FVector& V0, const FVecto
 }
 
 // Mesh AABB를 통과한 Ray에 삼각형 교차를 적용해 가장 가까운 거리만 반환한다.
-bool RayIntersectsMesh(const FRay& LocalRay, const FStaticMeshData& Mesh, float& InOutNearestT)
+namespace
 {
+    // 삼각형의 단위 법선을 레이 쪽(앞면)을 향하게 만든다. 퇴화 삼각형이면 레이 반대 방향을 쓴다.
+    FVector FrontFacingTriangleNormal(const FVector& Edge1, const FVector& Edge2, const FVector& RayDirection)
+    {
+        FVector Normal = Edge1.Cross(Edge2);
+        const float Length = Normal.Length();
+        if (Length < 1e-12f)
+        {
+            return RayDirection.GetSafeNormal() * -1.0f;
+        }
+        Normal = Normal * (1.0f / Length);
+        if (Normal.Dot(RayDirection) > 0.0f)
+        {
+            Normal = Normal * -1.0f;
+        }
+        return Normal;
+    }
+}
+
+FVector LocalNormalToWorld(const FMatrix& WorldToLocal, const FVector& LocalNormal)
+{
+    // 점이 p_local = p_world * WorldToLocal(행벡터)이면 법선은 WorldToLocal을 열벡터 행렬로 곱한 값이다.
+    const FVector WorldNormal(
+        WorldToLocal.M[0][0] * LocalNormal.X + WorldToLocal.M[0][1] * LocalNormal.Y + WorldToLocal.M[0][2] * LocalNormal.Z,
+        WorldToLocal.M[1][0] * LocalNormal.X + WorldToLocal.M[1][1] * LocalNormal.Y + WorldToLocal.M[1][2] * LocalNormal.Z,
+        WorldToLocal.M[2][0] * LocalNormal.X + WorldToLocal.M[2][1] * LocalNormal.Y + WorldToLocal.M[2][2] * LocalNormal.Z);
+    return WorldNormal.GetSafeNormal(1e-12f, LocalNormal);
+}
+
+bool RayIntersectsMesh(const FRay& LocalRay, const FStaticMeshData& Mesh, float& InOutNearestT, FVector* OutLocalNormal)
+{
+    FVector HitNormal{};
     if (!Mesh.TriangleBVH)
     {
 	    FBox Box = Mesh.AABB;
@@ -144,6 +175,11 @@ bool RayIntersectsMesh(const FRay& LocalRay, const FStaticMeshData& Mesh, float&
                     T < OutNearestT)
                 {
                     OutNearestT = T;
+                    // TraceClosest는 더 가까운 교차만 받아들이므로 마지막으로 받은 삼각형이 가장 가까운 삼각형이다.
+                    if (OutLocalNormal)
+                    {
+                        HitNormal = FrontFacingTriangleNormal(Element.Edge1, Element.Edge2, LocalRay.Direction);
+                    }
                     return true;
                 }
 
@@ -170,11 +206,22 @@ bool RayIntersectsMesh(const FRay& LocalRay, const FStaticMeshData& Mesh, float&
             {
                 NearestT = T;
                 bHit = true;
+                if (OutLocalNormal)
+                {
+                    HitNormal = FrontFacingTriangleNormal(vertices[1] - vertices[0], vertices[2] - vertices[0], LocalRay.Direction);
+                }
             }
         }
     }
 
-    if (bHit) InOutNearestT = NearestT;
+    if (bHit)
+    {
+        InOutNearestT = NearestT;
+        if (OutLocalNormal)
+        {
+            *OutLocalNormal = HitNormal;
+        }
+    }
     return bHit;
 }
 

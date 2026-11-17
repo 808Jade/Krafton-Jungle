@@ -38,7 +38,13 @@ bool RayIntersectsTriangle(const FRay& Ray, const FVector& v1, const FVector& v2
 
 bool RayIntersectsTriangleEdges(const FRay& Ray, const FVector& V0, const FVector& Edge1, const FVector& Edge2, float& OutT);
 
-bool RayIntersectsMesh(const FRay& LocalRay, const FStaticMeshData& Mesh, float& InOutNearestT);
+// OutLocalNormal을 주면 가장 가까운 교차 삼각형의 로컬 단위 법선을 채운다. 레이를 향하는 면(앞면)으로 뒤집어 돌려준다.
+// 교차가 없으면 OutLocalNormal은 건드리지 않는다.
+bool RayIntersectsMesh(const FRay& LocalRay, const FStaticMeshData& Mesh, float& InOutNearestT, FVector* OutLocalNormal = nullptr);
+
+// 로컬 법선을 월드 법선으로 바꾼다. 비균등 스케일에서도 면에 수직이 유지되도록 역전치 변환을 쓴다.
+// WorldToLocal은 월드→로컬 행렬이다. 결과는 단위 길이다.
+FVector LocalNormalToWorld(const FMatrix& WorldToLocal, const FVector& LocalNormal);
 
 FVector2 WorldToScreen(const FVector& WorldPos, const FMatrix& ViewProj, int ScreenW, int ScreenH);
 

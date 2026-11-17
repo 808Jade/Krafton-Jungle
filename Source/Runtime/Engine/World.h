@@ -160,7 +160,14 @@ public:
 	// View별 Billboard 행렬 공급자는 이 동기 호출 동안만 사용하며 저장하지 않는다.
 	using FBillboardTraceTransform = FMatrix(*)(const UBillboardComponent&, const void*);
 	// 현재 World의 Component에 Ray를 전달하고 가장 가까운 유효 교차를 반환한다.
-	bool LineTraceSingle(const FRay& WorldRay, FHitResult& OutHit, FBillboardTraceTransform ResolveBillboard = nullptr, const void* ViewContext = nullptr, const AActor* IgnoreActor = nullptr);
+	// 스태틱 메시에 맞으면 OutHit.ImpactNormal/Normal에 레이를 향하는 월드 단위 법선을 채운다. (다른 컴포넌트는 채우지 않는다)
+	// WorldRay.Direction은 정규화하지 않아도 되고, OutHit.Distance는 Direction 길이를 단위로 한 값이다.
+	// MaxT: 이 값 이상 떨어진 교차는 무시한다. bStaticMeshOnly: 빌보드 등 메시가 아닌 컴포넌트는 무시한다.
+	bool LineTraceSingle(const FRay& WorldRay, FHitResult& OutHit, FBillboardTraceTransform ResolveBillboard = nullptr, const void* ViewContext = nullptr, const AActor* IgnoreActor = nullptr, float MaxT = FLT_MAX, bool bStaticMeshOnly = false);
+
+	// Start에서 End까지 선분으로 스태틱 메시와의 가장 가까운 교차를 찾는다. 파티클 충돌처럼 이동 구간 검사용이다.
+	// 성공하면 OutHit에 Time(0~1), Distance(월드 길이), ImpactPoint/Location, 앞면 월드 법선(Normal/ImpactNormal), HitComponent를 채운다.
+	bool LineTraceSegment(const FVector& Start, const FVector& End, FHitResult& OutHit, const AActor* IgnoreActor = nullptr);
 
 	void BeginPlay();
 	void EndPlay();

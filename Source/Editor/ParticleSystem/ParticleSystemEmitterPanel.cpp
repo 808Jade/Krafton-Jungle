@@ -17,6 +17,7 @@
 #include "Particles/Modules/ParticleModuleRotation.h"
 #include "Particles/Modules/ParticleModuleRotationRate.h"
 #include "Particles/Modules/ParticleModuleAccelerationConstant.h"
+#include "Particles/Modules/ParticleModuleCollision.h"
 
 #include <algorithm>
 
@@ -35,6 +36,7 @@ namespace
 	};
 	const FAddableModule AddableModules[] = {
 		{ "Acceleration",  "Const Acceleration",    [] { return UParticleModuleAccelerationConstant::StaticClass(); } },
+		{ "Collision",     "Collision",             [] { return UParticleModuleCollision::StaticClass(); } },
 		{ "Color",         "Initial Color",         [] { return UParticleModuleColor::StaticClass(); } },
 		{ "Lifetime",      "Lifetime",              [] { return UParticleModuleLifetime::StaticClass(); } },
 		{ "Location",      "Initial Location",      [] { return UParticleModuleLocation::StaticClass(); } },
