@@ -232,6 +232,8 @@ private:
 
 	void ResetTrailTracking();
 
+	bool TryBuildSourcePoint(FParticleStripPoint& OutPoint) const;
+
 private:
 	int32 HeadSlot = InvalidRibbonSlot;
 	int32 TailSlot = InvalidRibbonSlot;

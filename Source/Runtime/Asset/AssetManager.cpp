@@ -725,8 +725,9 @@ UParticleSystem* UAssetManager::BuildDefaultRibbonParticleSystem()
 
 	RibbonTypeData->MaxTrailCount = 1;
 	RibbonTypeData->MaxPointsPerTrail = 128;
-	RibbonTypeData->MinSpawnDistance = 0.1f;
+	RibbonTypeData->MinSpawnDistance = 1.0f;
 	RibbonTypeData->TextureTileDistance = 0.0f;
+	RibbonTypeData->bClipSourceSegment = false;
 
 	UParticleModuleLifetime* Lifetime =
 	    NewObject<UParticleModuleLifetime>(LODLevel);

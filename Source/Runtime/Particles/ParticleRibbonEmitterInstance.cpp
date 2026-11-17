@@ -84,6 +84,64 @@ void FParticleRibbonEmitterInstance::ResetTrailTracking()
 	PendingSpawnDistance = 0.0;
 }
 
+bool FParticleRibbonEmitterInstance::TryBuildSourcePoint(
+    FParticleStripPoint& OutPoint) const
+{
+	OutPoint = FParticleStripPoint{};
+
+	if (!HasValidRibbonSetup() ||
+	    RibbonTypeData->bClipSourceSegment ||
+	    ActiveParticles <= 0 ||
+	    !bHasPreviousSource ||
+	    bHaltSpawning ||
+	    bEmitterIsDone)
+	{
+		return false;
+	}
+
+	if (TailSlot < 0 || TailSlot >= MaxActiveParticles)
+	{
+		assert(false && "Invalid ribbon tail.");
+		return false;
+	}
+
+	const FBaseParticle* TailParticle =
+	    GetParticleBySlot(TailSlot);
+
+	// Spawn()에서 마지막으로 처리한 Source 위치.
+	// ReplayData와 Bounds가 같은 시뮬레이션 시점의 위치를 사용한다.
+	const FVector SourcePosition = PreviousSource;
+
+	const float SegmentLength = FVector::Distance(
+	    TailParticle->Location,
+	    SourcePosition);
+
+	// Source와 마지막 파티클이 겹치면 추가할 구간이 없다.
+	if (!std::isfinite(SegmentLength) ||
+	    SegmentLength <= 1.0e-6f)
+	{
+		return false;
+	}
+
+	OutPoint.Position = SourcePosition;
+
+	// 이번 단계에서는 마지막 실제 파티클의 속성을 이어받는다.
+	OutPoint.Width = std::abs(TailParticle->Size.X);
+	OutPoint.Color = TailParticle->Color;
+
+	const float TileDistance =
+	    RibbonTypeData->TextureTileDistance;
+
+	if (TileDistance > 0.0f)
+	{
+		OutPoint.U = static_cast<float>(
+		    TotalSourceDistance /
+		    static_cast<double>(TileDistance));
+	}
+
+	return true;
+}
+
 FBaseParticle* FParticleRibbonEmitterInstance::GetParticleBySlot(
     int32 Slot)
 {
@@ -429,7 +487,7 @@ void FParticleRibbonEmitterInstance::IntegrateParticles(
 FDynamicEmitterDataBase*
 FParticleRibbonEmitterInstance::GetDynamicData() const
 {
-	if (!HasValidRibbonSetup() || ActiveParticles < 2)
+	if (!HasValidRibbonSetup() || ActiveParticles <= 0)
 	{
 		return nullptr;
 	}
@@ -439,7 +497,7 @@ FParticleRibbonEmitterInstance::GetDynamicData() const
 	Replay.bUseLocalSpace = false;
 	Replay.ActiveParticleCount = ActiveParticles;
 
-	Replay.Points.Reserve(ActiveParticles);
+	Replay.Points.Reserve(ActiveParticles + 1);
 
 	const float TileDistance =
 	    RibbonTypeData->TextureTileDistance;
@@ -501,6 +559,26 @@ FParticleRibbonEmitterInstance::GetDynamicData() const
 		return nullptr;
 	}
 
+	FParticleStripPoint SourcePoint{};
+
+	if (TryBuildSourcePoint(SourcePoint))
+	{
+		const float SourceSegmentLength = FVector::Distance(
+		    PreviousPosition,
+		    SourcePoint.Position);
+
+		CurrentLength += SourceSegmentLength;
+
+		if (TileDistance <= 0.0f)
+		{
+			// 정규화 전 누적 길이.
+			// 아래의 기존 정규화 루프에서 전체 길이로 나눈다.
+			SourcePoint.U = CurrentLength;
+		}
+
+		Replay.Points.Add(SourcePoint);
+	}
+
 	if (Replay.Points.Num() < 2 || CurrentLength <= 1.0e-6f)
 	{
 		return nullptr;
@@ -547,21 +625,47 @@ void FParticleRibbonEmitterInstance::UpdateBoundingBox()
 	FVector MinValue(FLT_MAX, FLT_MAX, FLT_MAX);
 	FVector MaxValue(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
+	const auto ExpandBounds =
+	    [&MinValue, &MaxValue](
+	        const FVector& Position,
+	        float Width)
+	{
+		const float Radius = std::abs(Width) * 0.5f;
+
+		MinValue.X = std::min(
+		    MinValue.X, Position.X - Radius);
+		MinValue.Y = std::min(
+		    MinValue.Y, Position.Y - Radius);
+		MinValue.Z = std::min(
+		    MinValue.Z, Position.Z - Radius);
+
+		MaxValue.X = std::max(
+		    MaxValue.X, Position.X + Radius);
+		MaxValue.Y = std::max(
+		    MaxValue.Y, Position.Y + Radius);
+		MaxValue.Z = std::max(
+		    MaxValue.Z, Position.Z + Radius);
+	};
+
+	// 실제 파티클.
 	for (int32 Index = 0; Index < ActiveParticles; ++Index)
 	{
 		const FBaseParticle* Particle =
 		    GetParticleBySlot(ParticleIndices[Index]);
 
-		const FVector Position = Particle->Location;
-		const float Radius = std::abs(Particle->Size.X) * 0.5f;
+		ExpandBounds(
+		    Particle->Location,
+		    Particle->Size.X);
+	}
 
-		MinValue.X = std::min(MinValue.X, Position.X - Radius);
-		MinValue.Y = std::min(MinValue.Y, Position.Y - Radius);
-		MinValue.Z = std::min(MinValue.Z, Position.Z - Radius);
+	// 렌더링용 Source 점.
+	FParticleStripPoint SourcePoint{};
 
-		MaxValue.X = std::max(MaxValue.X, Position.X + Radius);
-		MaxValue.Y = std::max(MaxValue.Y, Position.Y + Radius);
-		MaxValue.Z = std::max(MaxValue.Z, Position.Z + Radius);
+	if (TryBuildSourcePoint(SourcePoint))
+	{
+		ExpandBounds(
+		    SourcePoint.Position,
+		    SourcePoint.Width);
 	}
 
 	ParticleBoundingBox = FBox{ MinValue, MaxValue };
