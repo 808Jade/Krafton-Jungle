@@ -128,6 +128,39 @@
                                 "mOrthoWidth": 16.0,
                                 "mWheelSpeed": 0.10000000149011612
                             }
+                        },
+                        {
+                            "Class": "UParticleSystemComponent",
+                            "Name": "UParticleSystemComponent_0",
+                            "ObjectLabel": "UParticleSystemComponent_0",
+                            "Parent": "CapsuleComponent",
+                            "Properties": {
+                                "CustomTimeDilation": 1.0,
+                                "Template": "DefaultRibbonParticleSystem",
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
                         }
                     ],
                     "Name": "ACharacter_0",
@@ -673,6 +706,102 @@
                     ],
                     "Name": "AParticleSystemActor_1",
                     "ObjectLabel": "AParticleSystemActor_1",
+                    "Properties": {},
+                    "RootComponent": "ParticleSystemComponent"
+                },
+                {
+                    "Class": "AParticleSystemActor",
+                    "Components": [
+                        {
+                            "Class": "UParticleSystemComponent",
+                            "Name": "ParticleSystemComponent",
+                            "ObjectLabel": "ParticleSystemComponent",
+                            "Parent": "",
+                            "Properties": {
+                                "CustomTimeDilation": 1.0,
+                                "Template": "Particles/BeamParticle.particle",
+                                "Transform": {
+                                    "Location": {
+                                        "X": -3.7817270755767822,
+                                        "Y": 3.0173308849334717,
+                                        "Z": 0.5653641223907471
+                                    },
+                                    "Rotation": {
+                                        "Pitch": -0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": -92.83020782470703
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
+                        },
+                        {
+                            "Class": "UBillboardComponent",
+                            "Material": {
+                                "Base": "SubUVMaterial",
+                                "Instance": {
+                                    "BaseColor": {
+                                        "W": 1.0,
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    },
+                                    "BlendState": "AlphaBlend",
+                                    "ObjectLabel": "UMaterial_189",
+                                    "Properties": {},
+                                    "SamplerState": "LinearClamp",
+                                    "Shininess": 32.0,
+                                    "Textures": [
+                                        "Resources/Icons/ParticleSystem.png"
+                                    ],
+                                    "UVScrollSpeed": [
+                                        0.0,
+                                        0.0
+                                    ]
+                                }
+                            },
+                            "Name": "BillboardComponent",
+                            "ObjectLabel": "BillboardComponent",
+                            "Parent": "ParticleSystemComponent",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
+                        }
+                    ],
+                    "Name": "AParticleSystemActor_2",
+                    "ObjectLabel": "BeamParticleSystemActor",
                     "Properties": {},
                     "RootComponent": "ParticleSystemComponent"
                 }

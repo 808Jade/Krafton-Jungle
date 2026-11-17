@@ -5,6 +5,9 @@
 #include "Components/ParticleSystemComponent.h"
 #include "Particles/ParticleModule.h"
 #include "Particles/ParticleRange.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/Modules/ParticleModuleRequired.h"
+#include "Particles/Modules/ParticleModuleTypeDataRibbon.h"
 #include "Render/MaterialInterface.h"
 #include "Render/Mesh.h"
 #include "UObject/Class.h"
@@ -151,7 +154,38 @@ void FParticleSystemDetailsPanel::DrawEmitterProperties()
 	{
 		ImGui::Text("Index: %d", Context.SelectedEmitterIndex);
 		ImGui::Text("Active Particles: %d / %d", Instance->ActiveParticles, Instance->MaxActiveParticles);
-		ImGui::Checkbox("Use Local Space", &Instance->bUseLocalSpace);
+		UParticleLODLevel* LODLevel =
+		    Context.GetLODLevel(Context.SelectedEmitterIndex);
+
+		if (LODLevel && LODLevel->RequiredModule)
+		{
+			const bool bRibbon =
+			    Cast<UParticleModuleTypeDataRibbon>(
+			        LODLevel->TypeDataModule) != nullptr;
+
+			bool bLocalSpace =
+			    LODLevel->RequiredModule->bUseLocalSpace;
+
+			ImGui::BeginDisabled(bRibbon);
+
+			const bool bChanged =
+			    ImGui::Checkbox("Use Local Space", &bLocalSpace);
+
+			ImGui::EndDisabled();
+
+			if (bRibbon)
+			{
+				ImGui::TextDisabled(
+				    "Ribbon currently supports world space only.");
+			}
+
+			if (bChanged)
+			{
+				LODLevel->RequiredModule->bUseLocalSpace = bLocalSpace;
+				Context.NotifyModuleEdited(Context.SelectedEmitterIndex);
+				return;
+			}
+		}
 	}
 
 	if (ImGui::CollapsingHeader("Bounds", ImGuiTreeNodeFlags_DefaultOpen))
@@ -186,7 +220,20 @@ void FParticleSystemDetailsPanel::DrawModuleProperties(UParticleModule* Module)
 			if (!Property.HasAnyFlags(CPF_Edit) || !Module->IsPropertyVisibleInDetails(Property))
 				continue;
 
-			const bool bReadOnly = Property.HasAnyFlags(CPF_EditConst);
+			const UParticleLODLevel* LODLevel =
+			    Context.GetLODLevel(Context.SelectedEmitterIndex);
+
+			const bool bRibbonLocalSpace =
+			    LODLevel &&
+			    Cast<UParticleModuleTypeDataRibbon>(
+			        LODLevel->TypeDataModule) &&
+			    Cast<UParticleModuleRequired>(Module) &&
+			    Property.Name.ToString() == "bUseLocalSpace";
+
+			const bool bReadOnly =
+			    Property.HasAnyFlags(CPF_EditConst) ||
+			    bRibbonLocalSpace;
+
 			if (bReadOnly) ImGui::BeginDisabled();
 			bCommitted |= DrawModuleProperty(Module, Property);
 			if (bReadOnly) ImGui::EndDisabled();

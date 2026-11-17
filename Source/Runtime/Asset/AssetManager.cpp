@@ -33,6 +33,7 @@
 #include "Particles/Modules/ParticleModuleColor.h"
 #include "Particles/Modules/ParticleModuleTypeDataMesh.h"
 #include "Particles/Modules/ParticleModuleTypeDataBeam.h"
+#include "Particles/Modules/ParticleModuleTypeDataRibbon.h"
 #include "Particles/Modules/ParticleModuleBeamSource.h"
 #include "Particles/Modules/ParticleModuleBeamTarget.h"
 #include "Particles/Modules/ParticleModuleBeamNoise.h"
@@ -529,6 +530,7 @@ void UAssetManager::CreateDefaultParticleSystem()
 	RegisterAsset("DefaultParticleSystem", BuildDefaultParticleSystem(false));
 	RegisterAsset("DefaultMeshParticleSystem", BuildDefaultParticleSystem(true));
 	RegisterAsset("DefaultBeamParticleSystem", BuildDefaultBeamParticleSystem());
+	RegisterAsset("DefaultRibbonParticleSystem", BuildDefaultRibbonParticleSystem());
 }
 
 UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
@@ -697,6 +699,79 @@ UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
 	LODLevel->Modules.Add(Source);
 	LODLevel->Modules.Add(Target);
 	LODLevel->Modules.Add(Noise);
+
+	Emitter->LODLevels.Add(LODLevel);
+	System->Emitters.Add(Emitter);
+
+	return System;
+}
+
+UParticleSystem* UAssetManager::BuildDefaultRibbonParticleSystem()
+{
+	UParticleSystem* System =
+	    NewObject<UParticleSystem>();
+
+	System->bUseFixedRelativeBoundingBox = false;
+
+	UParticleEmitter* Emitter =
+	    NewObject<UParticleEmitter>(System);
+
+	UParticleLODLevel* LODLevel =
+	    NewObject<UParticleLODLevel>(Emitter);
+
+	UParticleModuleRequired* Required =
+	    NewObject<UParticleModuleRequired>(LODLevel);
+
+	Required->Material =
+	    GetAssetByPath<UMaterial>("DefaultParticleMaterial");
+
+	Required->bUseLocalSpace = false;
+	Required->EmitterDuration = 1.0f;
+	Required->EmitterLoops = 0;
+	Required->MaxActiveParticles = 128;
+	Required->SortMode = EParticleSortMode::None;
+
+	UParticleModuleTypeDataRibbon* RibbonTypeData =
+	    NewObject<UParticleModuleTypeDataRibbon>(LODLevel);
+
+	RibbonTypeData->MaxTrailCount = 1;
+	RibbonTypeData->MaxPointsPerTrail = 128;
+	RibbonTypeData->MinSpawnDistance = 1.0f;
+	RibbonTypeData->TextureTileDistance = 0.0f;
+	RibbonTypeData->bClipSourceSegment = false;
+
+	UParticleModuleLifetime* Lifetime =
+	    NewObject<UParticleModuleLifetime>(LODLevel);
+
+	Lifetime->Lifetime = FParticleFloatRange(2.0f, 2.0f);
+
+	UParticleModuleSize* Size =
+	    NewObject<UParticleModuleSize>(LODLevel);
+
+	Size->StartSize =
+	    FParticleVectorRange(FVector(0.2f, 0.2f, 0.2f));
+
+	UParticleModuleColor* Color =
+	    NewObject<UParticleModuleColor>(LODLevel);
+
+	const FLinearColor StartColor(1.0f, 0.35f, 0.05f, 1.0f);
+
+	Color->StartColor =
+	    FParticleColorRange(StartColor, StartColor);
+
+	Color->bUseColorOverLife = true;
+	Color->EndColor =
+	    FLinearColor(1.0f, 0.35f, 0.05f, 0.0f);
+
+	LODLevel->RequiredModule = Required;
+	LODLevel->TypeDataModule = RibbonTypeData;
+
+	LODLevel->Modules.Add(Lifetime);
+	LODLevel->Modules.Add(Size);
+	LODLevel->Modules.Add(Color);
+
+	// Spawn 모듈은 추가하지 않는다.
+	// Ribbon의 Spawn()이 이동 거리로 생성 개수를 결정한다.
 
 	Emitter->LODLevels.Add(LODLevel);
 	System->Emitters.Add(Emitter);

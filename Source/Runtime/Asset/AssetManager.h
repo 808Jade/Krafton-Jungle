@@ -65,6 +65,7 @@ public:
 	UParticleLODLevel* BuildDefaultParticleLODLevel(UParticleEmitter* Emitter, int32 Level, bool bMesh,
 		float SpawnRate, const FLinearColor& StartColorMin, const FLinearColor& StartColorMax);
 	UParticleSystem* BuildDefaultBeamParticleSystem();
+	UParticleSystem* BuildDefaultRibbonParticleSystem();
 	void CreateParticleMaterial();
 	void CreateEditorArrowMaterial();
 

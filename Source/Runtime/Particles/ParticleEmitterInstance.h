@@ -3,6 +3,7 @@
 #include "ParticleReplayData.h"
 #include "ParticleRenderData.h"
 #include "ParticleBeamData.h"
+#include "ParticleRibbonData.h"
 #include "Math/Box.h"
 #include "Math/Matrix.h"
 
@@ -40,15 +41,15 @@ public:
 	virtual FDynamicEmitterDataBase* GetDynamicData() const;
 	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent);
 
-	void Spawn(float DeltaTime);
+	virtual void Spawn(float DeltaTime);
 	void SpawnParticles(int32 Count, float StartTime, float Increment, const FVector& InitialLocation,
 	                    const FVector& InitialVelocity);
 
-	void KillParticle(int32 Index);
-	void KillParticlesForced();
+	virtual void KillParticle(int32 Index);
+	virtual void KillParticlesForced();
 	void Init(int32 InMaxParticles, int32 InParticleSize);
 	void Release();
-	void Rewind();
+	virtual void Rewind();
 	bool HasCompleted() const;
 	void UpdateModules(float DeltaTime);
 
@@ -197,11 +198,59 @@ public:
 	    UParticleSystemComponent* InComponent) override;
 	void SetCurrentLODIndex(int32 LODIndex) override;
 
-	FDynamicEmitterDataBase* GetDynamicData() const override
-	{
-		// 다음 단계에서 Ribbon ReplayData를 생성한다.
-		return nullptr;
-	}
+	void Spawn(float DeltaTime) override;
+	void IntegrateParticles(float DeltaTime) override;
+
+	void KillParticle(int32 Index) override;
+	void KillParticlesForced() override;
+	void Rewind() override;
+
+	void UpdateBoundingBox() override;
+
+	FDynamicEmitterDataBase* GetDynamicData() const override;
 
 	UParticleModuleTypeDataRibbon* RibbonTypeData = nullptr;
+	int32 RibbonPayloadOffset = InvalidPayloadOffset;
+
+protected:
+	void PostSpawn(
+	    FBaseParticle* Particle,
+	    float InterpolationPercentage,
+	    float SpawnTime) override;
+
+private:
+	bool HasValidRibbonSetup() const;
+
+	FBaseParticle* GetParticleBySlot(int32 Slot);
+	const FBaseParticle* GetParticleBySlot(int32 Slot) const;
+
+	FRibbonParticlePayload ReadRibbonPayload(int32 Slot) const;
+	void WriteRibbonPayload(
+	    int32 Slot,
+	    const FRibbonParticlePayload& Payload);
+
+	int32 FindActiveIndex(int32 Slot) const;
+
+	bool SpawnRibbonPoint(
+	    const FVector& WorldPosition,
+	    float SpawnAge,
+	    double Distance);
+
+	void ResetTrailTracking();
+
+	bool TryBuildSourcePoint(FParticleStripPoint& OutPoint) const;
+
+private:
+	int32 HeadSlot = InvalidRibbonSlot;
+	int32 TailSlot = InvalidRibbonSlot;
+
+	bool bHasPreviousSource = false;
+	FVector PreviousSource = FVector::ZeroVector;
+
+	double DistanceRemainder = 0.0;
+	double TotalSourceDistance = 0.0;
+
+	// SpawnParticles → PostSpawn 사이에 전달할 생성 정보.
+	FVector PendingSpawnPosition = FVector::ZeroVector;
+	double PendingSpawnDistance = 0.0;
 };
