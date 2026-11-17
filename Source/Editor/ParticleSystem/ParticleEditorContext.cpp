@@ -37,6 +37,7 @@ bool FParticleEditorContext::Init()
 void FParticleEditorContext::Release()
 {
 	PreviewActor = nullptr;
+	EditedAsset = nullptr;
 	SelectedEmitterIndex = INDEX_NONE;
 	SelectedModule = nullptr;
 	if (PreviewScene)
@@ -48,6 +49,14 @@ void FParticleEditorContext::Tick(float DeltaTime)
 {
 	if (PreviewScene)
 		PreviewScene->Tick(bSimulationPaused ? 0.0f : DeltaTime);
+
+	// 저장 결과 문구는 몇 초만 보여 준다. 일시정지 중에도 사라지도록 실제 시간으로 센다.
+	if (SaveStatusTimer > 0.0f)
+	{
+		SaveStatusTimer -= DeltaTime;
+		if (SaveStatusTimer <= 0.0f)
+			SaveStatus.clear();
+	}
 }
 
 void FParticleEditorContext::RestartSimulation()
@@ -59,6 +68,10 @@ void FParticleEditorContext::RestartSimulation()
 	if (PreviewActor)
 		PreviewScene->DestroyActor(PreviewActor);
 	PreviewActor = PreviewScene->SpawnActor<AParticleSystemActor>();
+
+	// 새 액터는 기본 에셋으로 시작하므로, 사용자가 고른 에셋이 있으면 다시 씌운다.
+	if (EditedAsset && PreviewActor && PreviewActor->ParticleSystemComponent)
+		PreviewActor->ParticleSystemComponent->SetTemplate(EditedAsset);
 }
 
 int32 FParticleEditorContext::RestartLevelInstances()
@@ -306,6 +319,9 @@ bool FParticleEditorContext::DeleteEmitter(const int32 EmitterIndex)
 
 void FParticleEditorContext::ApplyEmitterChange(const int32 EmitterIndex)
 {
+	// 모듈을 더하거나 지우거나 값을 고치는 편집은 모두 여기를 지난다.
+	MarkDirty();
+
 	// 이 에셋을 쓰는 컴포넌트가 하나도 없어도 이미터 캐시는 최신이어야 한다.
 	// (캐시가 지운 모듈을 가리킨 채로 남지 않도록 RestartLevelInstances와 별도로 다시 만든다.)
 	if (UParticleSystem* Template = GetTemplate())
@@ -314,6 +330,131 @@ void FParticleEditorContext::ApplyEmitterChange(const int32 EmitterIndex)
 			Template->Emitters[EmitterIndex]->CacheEmitterModuleInfo();
 	}
 	RestartLevelInstances();
+}
+
+namespace
+{
+	constexpr const char* ParticleAssetFolder = "Assets/Particles/";
+	constexpr const char* ParticleAssetExtension = ".particle";
+	constexpr float SaveStatusSeconds = 4.0f;
+
+	bool EndsWithIgnoreCase(const FString& Text, const char* Suffix)
+	{
+		const size_t SuffixLength = std::strlen(Suffix);
+		if (Text.size() < SuffixLength)
+			return false;
+		for (size_t Index = 0; Index < SuffixLength; ++Index)
+		{
+			const char A = static_cast<char>(std::tolower(static_cast<unsigned char>(Text[Text.size() - SuffixLength + Index])));
+			const char B = static_cast<char>(std::tolower(static_cast<unsigned char>(Suffix[Index])));
+			if (A != B)
+				return false;
+		}
+		return true;
+	}
+}
+
+bool FParticleEditorContext::HasAssetFile() const
+{
+	const UParticleSystem* Template = GetTemplate();
+	return Template && EndsWithIgnoreCase(Template->GetPath(), ParticleAssetExtension);
+}
+
+bool FParticleEditorContext::IsDirty() const
+{
+	const UParticleSystem* Template = GetTemplate();
+	return Template && DirtyAssets.Find(Template) != INDEX_NONE;
+}
+
+void FParticleEditorContext::MarkDirty()
+{
+	const UParticleSystem* Template = GetTemplate();
+	if (Template && DirtyAssets.Find(Template) == INDEX_NONE)
+		DirtyAssets.Add(Template);
+}
+
+bool FParticleEditorContext::Save()
+{
+	UParticleSystem* Template = GetTemplate();
+	if (!Template || !HasAssetFile())
+		return false;
+
+	// 에셋 키는 Assets 기준 상대 경로이므로 앞에 Assets/를 붙이면 파일 경로가 된다.
+	FString Error;
+	if (!UAssetManager::Get().SaveParticleSystem(FString("Assets/") + Template->GetPath(), Template, Error))
+	{
+		SetSaveStatus("Save failed: " + Error, true);
+		return false;
+	}
+
+	const int32 DirtyIndex = DirtyAssets.Find(Template);
+	if (DirtyIndex != INDEX_NONE)
+		DirtyAssets.RemoveAt(DirtyIndex);
+	SetSaveStatus("Saved " + Template->GetPath(), false);
+	return true;
+}
+
+bool FParticleEditorContext::SaveAs(const FString& AssetName, FString& OutError)
+{
+	OutError.clear();
+	UParticleSystem* Template = GetTemplate();
+	if (!Template)
+	{
+		OutError = "There is no particle system to save.";
+		return false;
+	}
+
+	// 폴더 구분자나 확장자가 섞이면 Assets/Particles 밖에 쓰이거나 이름이 틀어진다. (콘텐츠 드로어와 같은 규칙)
+	if (AssetName.empty() || AssetName.find_first_of("<>:\"/\\|?*.") != FString::npos || AssetName.back() == ' ')
+	{
+		OutError = "Enter a file name without an extension or reserved characters.";
+		return false;
+	}
+
+	const FString Path = FString(ParticleAssetFolder) + AssetName + ParticleAssetExtension;
+	UAssetManager& AssetManager = UAssetManager::Get();
+	if (!AssetManager.SaveParticleSystem(Path, Template, OutError, true))
+		return false;
+
+	// 저장한 파일을 읽어 새 에셋 객체로 바꾼다. 원래 에셋 객체(기본 에셋 등)는 그대로 남는다.
+	UParticleSystem* Saved = AssetManager.LoadParticleSystem(Path, OutError);
+	if (!Saved)
+		return false;
+
+	ApplyPreviewTemplate(Saved);
+	SetSaveStatus("Saved " + Saved->GetPath(), false);
+	return true;
+}
+
+void FParticleEditorContext::OpenAsset(UParticleSystem* Asset)
+{
+	if (Asset && Asset != GetTemplate())
+		ApplyPreviewTemplate(Asset);
+}
+
+FString FParticleEditorContext::GetAssetLabel() const
+{
+	const UParticleSystem* Template = GetTemplate();
+	return Template ? Template->GetPath() : FString();
+}
+
+void FParticleEditorContext::ApplyPreviewTemplate(UParticleSystem* Asset)
+{
+	EditedAsset = Asset;
+	// 선택은 이전 에셋의 이미터·모듈을 가리키므로 함께 비운다.
+	SelectedEmitterIndex = INDEX_NONE;
+	SelectedModule = nullptr;
+	CurrentLODIndex = 0;
+
+	if (UParticleSystemComponent* Component = GetPreviewComponent())
+		Component->SetTemplate(Asset);
+}
+
+void FParticleEditorContext::SetSaveStatus(const FString& Message, const bool bError)
+{
+	SaveStatus = Message;
+	bSaveStatusError = bError;
+	SaveStatusTimer = SaveStatusSeconds;
 }
 
 UParticleSystemComponent* FParticleEditorContext::GetPreviewComponent() const

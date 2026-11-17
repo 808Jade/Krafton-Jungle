@@ -16,6 +16,10 @@ public:
 	UParticleEmitter() = default;
 	~UParticleEmitter() override = default;
 
+	// LODLevels만 저장한다. 아래 캐시 값은 CacheEmitterModuleInfo로 다시 만들 수 있으므로 저장하지 않는다.
+	using Super::Serialize;
+	void Serialize(FStructuredArchive::FRecord Record) override;
+
 	// 모듈들을 한 번 훑어서 런타임이 매번 다시 계산하지 않아도 되게 결과를 미리 계산해 멤버에 저장해 두는 함수
 	// LODLevels[0]을 기준으로 아래 캐시 값을 계산한다.
 	// 모듈이나 LODLevel 구성이 바뀐 뒤 다시 호출해야 한다.

@@ -129,7 +129,10 @@ void FParticleSystemDetailsPanel::DrawParticleSystemProperties()
 		bBoundsChanged |= ImGui::DragFloat3("Fixed Bounds Max", &Template->FixedRelativeBoundingBox.Max.X, 0.05f);
 		ImGui::EndDisabled();
 		if (bBoundsChanged)
+		{
 			Component->OnTransformDirty();
+			Context.MarkDirty();
+		}
 	}
 
 	if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen))
