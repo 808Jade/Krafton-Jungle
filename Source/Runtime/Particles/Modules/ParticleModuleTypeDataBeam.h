@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Particles/Modules/ParticleModuleTypeDataBase.h"
+#include "Particles/ParticleBeamData.h"
 
 #include "ParticleModuleTypeDataBeam.generated.h"
 
@@ -13,6 +14,11 @@ public:
 	EDynamicEmitterType GetEmitterType() const override
 	{
 		return EDynamicEmitterType::Beam;
+	}
+
+	int32 GetRequiredPayloadBytes() const override
+	{
+		return static_cast<int32>(sizeof(FBeamParticlePayload));
 	}
 
 	UPROPERTY()
