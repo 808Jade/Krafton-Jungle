@@ -120,13 +120,16 @@ void FParticleSystemDetailsPanel::DrawParticleSystemProperties()
 		return;
 	}
 
-	if (ImGui::CollapsingHeader("Particle System", ImGuiTreeNodeFlags_DefaultOpen))
+	UParticleSystem* Template = Context.GetTemplate();
+	if (Template && ImGui::CollapsingHeader("Particle System", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::Checkbox("Use Fixed Bounds", &Component->bUseFixedRelativeBoundingBox);
-		ImGui::BeginDisabled(!Component->bUseFixedRelativeBoundingBox);
-		ImGui::DragFloat3("Fixed Bounds Min", &Component->FixedRelativeBoundingBox.Min.X, 0.05f);
-		ImGui::DragFloat3("Fixed Bounds Max", &Component->FixedRelativeBoundingBox.Max.X, 0.05f);
+		bool bBoundsChanged = ImGui::Checkbox("Use Fixed Bounds", &Template->bUseFixedRelativeBoundingBox);
+		ImGui::BeginDisabled(!Template->bUseFixedRelativeBoundingBox);
+		bBoundsChanged |= ImGui::DragFloat3("Fixed Bounds Min", &Template->FixedRelativeBoundingBox.Min.X, 0.05f);
+		bBoundsChanged |= ImGui::DragFloat3("Fixed Bounds Max", &Template->FixedRelativeBoundingBox.Max.X, 0.05f);
 		ImGui::EndDisabled();
+		if (bBoundsChanged)
+			Component->OnTransformDirty();
 	}
 
 	if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen))
