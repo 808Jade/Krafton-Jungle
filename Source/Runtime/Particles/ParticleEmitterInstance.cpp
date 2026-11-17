@@ -11,7 +11,6 @@
 #include "Particles/Modules/ParticleModuleSpawn.h"
 #include "Particles/Modules/ParticleModuleTypeDataMesh.h"
 #include "Particles/Modules/ParticleModuleTypeDataBeam.h"
-#include "Particles/Modules/ParticleModuleTypeDataRibbon.h"
 #include "Particles/Modules/ParticleModuleBeamSource.h"
 #include "Particles/Modules/ParticleModuleBeamTarget.h"
 #include "Particles/Modules/ParticleModuleBeamNoise.h"
@@ -59,7 +58,7 @@ namespace
 	    const FBeamNoisePayload& Noise,
 	    float T,
 	    float UpdateInterval,
-		bool bSmoothNoise)
+	    bool bSmoothNoise)
 	{
 		const int32 Count = Noise.SegmentCount;
 
@@ -897,10 +896,10 @@ void FParticleBeamEmitterInstance::BuildBeamPoints(
 		if (bUseNoise && Index > 0 && Index < SegmentCount)
 		{
 			const FVector Offset = SampleBeamNoise(
-				Noise, 
-				T, 
-				NoiseModule->UpdateInterval,
-				NoiseModule->bSmoothNoise);
+			    Noise,
+			    T,
+			    NoiseModule->UpdateInterval,
+			    NoiseModule->bSmoothNoise);
 
 			Position +=
 			    (AxisU * Offset.X + AxisV * Offset.Y) *
@@ -983,21 +982,6 @@ void FParticleBeamEmitterInstance::WriteBeamPayload(
 	    reinterpret_cast<uint8*>(&Particle) + BeamPayloadOffset,
 	    &Payload,
 	    sizeof(Payload));
-}
-
-
-void FParticleRibbonEmitterInstance::InitParameters(
-    UParticleEmitter* InTemplate,
-    UParticleSystemComponent* InComponent)
-{
-	FParticleEmitterInstance::InitParameters(
-	    InTemplate,
-	    InComponent);
-
-	RibbonTypeData = CurrentLODLevel
-	                     ? Cast<UParticleModuleTypeDataRibbon>(
-	                           CurrentLODLevel->TypeDataModule)
-	                     : nullptr;
 }
 
 FDynamicEmitterDataBase*

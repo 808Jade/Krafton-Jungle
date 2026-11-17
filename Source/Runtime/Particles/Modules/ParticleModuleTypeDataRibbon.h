@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Particles/Modules/ParticleModuleTypeDataBase.h"
+#include "Particles/ParticleRibbonData.h"
 
 #include "ParticleModuleTypeDataRibbon.generated.h"
 
@@ -15,6 +16,11 @@ public:
 		return EDynamicEmitterType::Ribbon;
 	}
 
+	int32 GetRequiredPayloadBytes() const override
+	{
+		return static_cast<int32>(sizeof(FRibbonParticlePayload));
+	}
+	
 	UPROPERTY()
 	// 서로 독립적인 Ribbon 경로 개수.
 	int32 MaxTrailCount = 1;
