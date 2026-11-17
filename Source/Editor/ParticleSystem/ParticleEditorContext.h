@@ -55,6 +55,14 @@ public:
 	bool DeleteModule(int32 EmitterIndex, UParticleModule* Module);
 	// 메시 TypeData를 붙여 메시 이미터로 바꾼다. 기본 메시는 엔진의 "Cube"다. TypeData가 이미 있으면 실패한다.
 	bool AddMeshTypeData(int32 EmitterIndex);
+	// Cascade의 "New Particle Sprite Emitter". 기본 모듈 구성(Required·Spawn·Lifetime·Initial Size·
+	// Initial Velocity·Initial Color)을 가진 스프라이트 이미터를 Emitters 끝에 붙이고 선택한다.
+	// 새 이미터의 인덱스를 돌려준다. 에셋이 없으면 INDEX_NONE이다.
+	int32 AddSpriteEmitter();
+	// 이미터가 하나뿐이면 지울 수 없다. (빈 파티클 시스템은 아무것도 재생하지 않는다)
+	bool CanDeleteEmitter() const;
+	// EmitterIndex 이미터를 에셋에서 빼고, 그 이미터가 소유한 LOD 레벨·모듈까지 함께 삭제한다.
+	bool DeleteEmitter(int32 EmitterIndex);
 	// 디테일 패널에서 모듈 값을 고친 뒤 부른다. NeedsUpdate·MaxActiveParticles·Mesh처럼
 	// 이미터 캐시에 들어가는 값이 바뀌었을 수 있으므로 캐시를 다시 만들고 컴포넌트를 다시 시작한다.
 	void NotifyModuleEdited(int32 EmitterIndex) { ApplyEmitterChange(EmitterIndex); }

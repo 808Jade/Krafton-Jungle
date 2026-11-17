@@ -9,6 +9,10 @@
 #include "Particles/Modules/ParticleModuleRequired.h"
 #include "Particles/Modules/ParticleModuleSpawn.h"
 #include "Particles/Modules/ParticleModuleTypeDataMesh.h"
+#include "Particles/Modules/ParticleModuleLifetime.h"
+#include "Particles/Modules/ParticleModuleSize.h"
+#include "Particles/Modules/ParticleModuleVelocity.h"
+#include "Particles/Modules/ParticleModuleColor.h"
 #include "Asset/AssetManager.h"
 #include "Render/Mesh.h"
 #include "UObject/UObjectIterator.h"
@@ -192,6 +196,111 @@ bool FParticleEditorContext::AddMeshTypeData(const int32 EmitterIndex)
 	ApplyEmitterChange(EmitterIndex);
 	SelectedEmitterIndex = EmitterIndex;
 	SelectedModule = MeshData;
+	return true;
+}
+
+int32 FParticleEditorContext::AddSpriteEmitter()
+{
+	UParticleSystem* Template = GetTemplate();
+	if (!Template)
+		return INDEX_NONE;
+
+	// 소유 관계는 기본 에셋을 만들 때와 같다. 시스템 → 이미터 → LOD 레벨 → 모듈 순으로 Outer가 된다.
+	UParticleEmitter* Emitter = NewObject<UParticleEmitter>(Template);
+	UParticleLODLevel* LODLevel = NewObject<UParticleLODLevel>(Emitter);
+	LODLevel->Level = 0;
+
+	// Material이 nullptr이면 인스턴스가 DefaultParticleMaterial로 그린다.
+	UParticleModuleRequired* Required = NewObject<UParticleModuleRequired>(LODLevel);
+	Required->MaxActiveParticles = 100;
+
+	UParticleModuleSpawn* Spawn = NewObject<UParticleModuleSpawn>(LODLevel);
+	Spawn->SpawnRate = 20.0f;
+
+	UParticleModuleLifetime* Lifetime = NewObject<UParticleModuleLifetime>(LODLevel);
+	Lifetime->Lifetime = FParticleFloatRange(1.0f, 1.0f);
+
+	UParticleModuleSize* Size = NewObject<UParticleModuleSize>(LODLevel);
+	Size->StartSize = FParticleVectorRange(FVector(0.5f, 0.5f, 0.5f));
+
+	// 기존 이미터와 겹쳐도 구분되도록 위쪽(Z)으로 곧게 올라가게 한다.
+	UParticleModuleVelocity* Velocity = NewObject<UParticleModuleVelocity>(LODLevel);
+	Velocity->StartVelocity = FParticleVectorRange(FVector(-0.5f, -0.5f, 2.0f), FVector(0.5f, 0.5f, 3.0f));
+
+	// Cascade 기본 이미터의 Color Over Life처럼 흰색에서 투명으로 사라지게 한다.
+	UParticleModuleColor* Color = NewObject<UParticleModuleColor>(LODLevel);
+	Color->StartColor = FParticleColorRange(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
+	Color->bUseColorOverLife = true;
+	Color->EndColor = FLinearColor(1.0f, 1.0f, 1.0f, 0.0f);
+
+	LODLevel->RequiredModule = Required;
+	LODLevel->Modules.Add(Spawn);
+	LODLevel->Modules.Add(Lifetime);
+	LODLevel->Modules.Add(Size);
+	LODLevel->Modules.Add(Velocity);
+	LODLevel->Modules.Add(Color);
+
+	// 지금은 모든 에셋이 LOD 0 하나뿐이다. LOD 편집이 생기면 다른 이미터와 LOD 수를 맞춰야 한다.
+	Emitter->LODLevels.Add(LODLevel);
+	Template->Emitters.Add(Emitter);
+
+	// 인스턴스 수가 Emitters와 달라졌으므로 캐시를 만들고 이 에셋을 쓰는 컴포넌트를 모두 다시 시작한다.
+	const int32 NewIndex = Template->Emitters.Num() - 1;
+	ApplyEmitterChange(NewIndex);
+	SelectedEmitterIndex = NewIndex;
+	SelectedModule = nullptr;
+	return NewIndex;
+}
+
+bool FParticleEditorContext::CanDeleteEmitter() const
+{
+	const UParticleSystem* Template = GetTemplate();
+	return Template && Template->Emitters.Num() > 1;
+}
+
+bool FParticleEditorContext::DeleteEmitter(const int32 EmitterIndex)
+{
+	UParticleSystem* Template = GetTemplate();
+	if (!CanDeleteEmitter() || EmitterIndex < 0 || EmitterIndex >= Template->Emitters.Num())
+		return false;
+
+	UParticleEmitter* Emitter = Template->Emitters[EmitterIndex];
+	Template->Emitters.RemoveAt(EmitterIndex);
+
+	// 이미터 인스턴스가 지울 이미터(SpriteTemplate)와 그 모듈을 가리키고 있다.
+	// 먼저 이 에셋을 쓰는 모든 컴포넌트의 인스턴스를 남은 이미터 기준으로 다시 만든 뒤에 지운다.
+	// 월드 밖 컴포넌트는 다시 시작하지 않으므로 인스턴스만 비워 옛 이미터를 가리키지 않게 한다.
+	for (TObjectIterator<UParticleSystemComponent> It; It; ++It)
+	{
+		UParticleSystemComponent* Component = *It;
+		if (!Component || Component->Template != Template)
+			continue;
+		const AActor* Owner = Component->GetOwner();
+		if (Owner && Owner->GetWorld())
+			Component->ActivateSystem(true);
+		else
+			Component->ResetParticles();
+	}
+
+	// 지운 이미터 뒤의 번호가 하나씩 당겨지므로 선택을 비운다. 디테일 패널은 시스템 전체를 보여 준다.
+	SelectedEmitterIndex = INDEX_NONE;
+	SelectedModule = nullptr;
+
+	// 소유 트리를 아래에서부터 지운다. (모듈 → LOD 레벨 → 이미터)
+	if (Emitter)
+	{
+		for (UParticleLODLevel* LODLevel : Emitter->LODLevels)
+		{
+			if (!LODLevel)
+				continue;
+			for (UParticleModule* Module : LODLevel->Modules)
+				delete Module;
+			delete LODLevel->RequiredModule;
+			delete LODLevel->TypeDataModule;
+			delete LODLevel;
+		}
+		delete Emitter;
+	}
 	return true;
 }
 
