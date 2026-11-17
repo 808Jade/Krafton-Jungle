@@ -313,6 +313,11 @@ void FParticleSystemEmitterPanel::DrawContextMenu(const int32 EmitterIndex, UPar
 		}
 	}
 
+	const bool bCanEditStructure = Context.CanEditModuleStructure();
+	if (!bCanEditStructure)
+		ImGui::TextDisabled("Switch to LOD 0 to add or remove modules.");
+	ImGui::BeginDisabled(!bCanEditStructure);
+
 	if (ClickedModule)
 	{
 		const bool bCanDelete = 
@@ -428,6 +433,8 @@ void FParticleSystemEmitterPanel::DrawContextMenu(const int32 EmitterIndex, UPar
 		}
 		ImGui::EndMenu();
 	}
+
+	ImGui::EndDisabled();
 }
 
 void FParticleSystemEmitterPanel::ApplyPendingEdit()
