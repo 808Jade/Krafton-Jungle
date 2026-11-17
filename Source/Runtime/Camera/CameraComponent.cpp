@@ -170,18 +170,21 @@ void UCameraComponent::TickComponent(float DeltaTime) {
 
 	Super::TickComponent(DeltaTime);
 
-	if (not GetOwner()->GetWorld()->IsPlayInEditor())
+	// PIE에서는 게임 로직이 카메라를 움직이므로 직접 입력을 받지 않는다.
+	// 단, 씬에 카메라가 없어 PIE가 만든 카메라(mFreeFlyInPlay)는 에디터 카메라처럼 직접 움직인다.
+	UWorld* World{ GetOwner() ? GetOwner()->GetWorld() : nullptr };
+	if (World && World->IsPlayInEditor() && !mFreeFlyInPlay)
 	{
-		UWorld* World{ GetOwner() ? GetOwner()->GetWorld() : nullptr };
-		if (mExternalInputManaged || (World && World->IsPlayInEditor() && World->GetMainCameraComponent() != this))
-		{
-			return;
-		}
-
-		UpdateMovement(DeltaTime);
-		UpdateRotation(DeltaTime);
-		UpdateZoom(DeltaTime);
+		return;
 	}
+	if (mExternalInputManaged)
+	{
+		return;
+	}
+
+	UpdateMovement(DeltaTime);
+	UpdateRotation(DeltaTime);
+	UpdateZoom(DeltaTime);
 }
 
 // 마우스 조작

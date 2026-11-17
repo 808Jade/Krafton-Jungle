@@ -20,21 +20,6 @@
 #include "Core/Async/TaskPool.h"
 #include "UObject/UObjectIterator.h"
 #include "UObject/UObjectGlobals.h"
-#include <fstream> // TEMP_ASSET_COLL_TEST
-#include "PreviewScene.h" // TEMP_ASSET_COLL_TEST
-#include "Engine/World.h" // TEMP_ASSET_COLL_TEST
-#include "Engine/Scene.h" // TEMP_ASSET_COLL_TEST
-#include "Render/Mesh.h" // TEMP_ASSET_COLL_TEST
-#include "Components/StaticMeshComponent.h" // TEMP_ASSET_COLL_TEST
-#include "Components/ParticleSystemComponent.h" // TEMP_ASSET_COLL_TEST
-#include "GameFramework/Actor/StaticMeshActor.h" // TEMP_ASSET_COLL_TEST
-#include "GameFramework/Actor/ParticleSystemActor.h" // TEMP_ASSET_COLL_TEST
-#include "Particles/ParticleSystem.h" // TEMP_ASSET_COLL_TEST
-#include "Particles/ParticleEmitter.h" // TEMP_ASSET_COLL_TEST
-#include "Particles/ParticleLODLevel.h" // TEMP_ASSET_COLL_TEST
-#include "Particles/ParticleEmitterInstance.h" // TEMP_ASSET_COLL_TEST
-#include "Particles/ParticleHelper.h" // TEMP_ASSET_COLL_TEST
-#include "Particles/Modules/ParticleModuleCollision.h" // TEMP_ASSET_COLL_TEST
 
 namespace
 {
@@ -129,53 +114,6 @@ bool FEngineLoop::PreInit(HINSTANCE hInstance, UClass* EngineClass)
 		return false;
 	}
 	bEngineInitialized = true;
-
-	{ // TEMP_ASSET_COLL_TEST
-		std::ofstream Out("C:/Users/JUNGLE/AppData/Local/Temp/claude/6539d2324b6f521e/2b39357d-296a-4f2d-9800-97a1869f0c20/scratchpad/asset_coll_test.txt");
-		UParticleSystem* Asset = UAssetManager::GetAssetByPath<UParticleSystem>("Particles/BittenApple.particle");
-		Out << "asset loaded=" << (Asset != nullptr) << "\n";
-		UStaticMesh* Cube = UAssetManager::GetAssetByPath<UStaticMesh>("Cube");
-		auto Run = [&](const char* Label) {
-			FPreviewScene Scene(FName("AssetColl"));
-			UWorld* W = Scene.GetWorld();
-			AStaticMeshActor* Floor = Scene.SpawnActor<AStaticMeshActor>("Floor");
-			AParticleSystemActor* PA = Scene.SpawnActor<AParticleSystemActor>("PA");
-			Floor->GetStaticMeshComponent()->SetStaticMesh(Cube);
-			Floor->GetStaticMeshComponent()->SetWorldLocation(FVector(0, 0, -2.0295238f), false);
-			Floor->GetStaticMeshComponent()->SetWorldScale3D(FVector(7.7045884f, 5.7469225f, 1.0f));
-			PA->ParticleSystemComponent->SetTemplate(Asset);
-			PA->ParticleSystemComponent->SetWorldLocation(FVector(-0.053f, -0.149f, 0.0f), false);
-			float MinZ = 1e9f; int MaxActive = 0; int Samples = 0;
-			for (int f = 0; f < 240; ++f)
-			{
-				Scene.Tick(1.0f / 60.0f);
-				W->GetScene().UpdateAllTransforms();
-				if (PA->ParticleSystemComponent->EmitterInstances.IsEmpty()) continue;
-				FParticleEmitterInstance* Inst = PA->ParticleSystemComponent->EmitterInstances[0];
-				MaxActive = std::max(MaxActive, Inst->ActiveParticles);
-				for (int i = 0; i < Inst->ActiveParticles; ++i)
-				{
-					DECLARE_PARTICLE_PTR(P, Inst->ParticleData + Inst->ParticleStride * Inst->ParticleIndices[i]);
-					MinZ = std::min(MinZ, P->Location.Z); ++Samples;
-				}
-			}
-			Out << Label << ": maxActive=" << MaxActive << " samples=" << Samples << " minZ=" << MinZ << " (floor top = -1.5295)\n";
-			Scene.Release();
-		};
-		if (Asset && Cube)
-		{
-			UParticleLODLevel* Lod = Asset->Emitters[0]->LODLevels[0];
-			bool bHas = false;
-			for (UParticleModule* M : Lod->Modules) { if (Cast<UParticleModuleCollision>(M)) bHas = true; }
-			Out << "asset contains Collision module=" << bHas << "\n";
-			Run("A) asset as saved (no Collision)");
-			UParticleModuleCollision* Co = NewObject<UParticleModuleCollision>(Lod);
-			Co->DampingFactor = 0.5f; Co->MaxCollisions = 3; Co->CollisionCompletionOption = EParticleCollisionComplete::Kill;
-			Lod->Modules.Add(Co);
-			Run("B) with Collision added (damping .5, max 3, kill)");
-		}
-		Out.close();
-	}
 
 	FSplashScreen::SetProgress(1.0f);
 	FSplashScreen::Hide();

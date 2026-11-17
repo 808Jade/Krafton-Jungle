@@ -1040,7 +1040,13 @@ void UWorld::InitializePlayCamera() {
 				mPlayCameraComponent->SetFarZ(DefaultCamera->GetFarZ());
 				mPlayCameraComponent->SetIsOrthogonal(DefaultCamera->GetIsOrthogonal());
 				mPlayCameraComponent->SetOrthoWidth(DefaultCamera->GetOrthoWidth());
+				// 에디터 카메라와 같은 조작감으로 움직이게 속도 설정도 이어받는다.
+				mPlayCameraComponent->SetMoveSpeed(DefaultCamera->GetMoveSpeed());
+				mPlayCameraComponent->SetMouseSensitivity(DefaultCamera->GetMouseSensitivity());
+				mPlayCameraComponent->SetWheelSpeed(DefaultCamera->GetWheelSpeed());
 			}
+			// 씬에 카메라가 없을 때 PIE가 만든 카메라만 직접 움직일 수 있게 한다. 에디터가 PIE View 선택 여부로 입력을 켜고 끈다.
+			mPlayCameraComponent->SetFreeFlyInPlay(true);
 			mPlayCameraComponent->SetExternalInputManaged(true);
 		}
 	}
