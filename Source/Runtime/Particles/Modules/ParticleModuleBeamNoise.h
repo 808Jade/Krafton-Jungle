@@ -25,6 +25,9 @@ public:
 	UPROPERTY(EditAnywhere)
 	int32 RandomSeed = 12345;
 
+	UPROPERTY(EditAnywhere)
+	bool bSmoothNoise = false;
+
 	int32 GetRequiredPayloadBytes() const override
 	{
 		return static_cast<int32>(sizeof(FBeamNoisePayload));

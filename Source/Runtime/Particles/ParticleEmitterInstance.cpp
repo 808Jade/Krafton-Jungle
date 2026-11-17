@@ -58,7 +58,8 @@ namespace
 	FVector SampleBeamNoise(
 	    const FBeamNoisePayload& Noise,
 	    float T,
-	    float UpdateInterval)
+	    float UpdateInterval,
+		bool bSmoothNoise)
 	{
 		const int32 Count = Noise.SegmentCount;
 
@@ -70,15 +71,40 @@ namespace
 		    static_cast<int32>(X),
 		    Count - 1);
 
-		const float Alpha = X - static_cast<float>(Index);
+		const float U = X - static_cast<float>(Index);
 
-		const FVector A =
+		const FVector P1 =
 		    GetTimedNoiseOffset(Noise, Index, UpdateInterval);
 
-		const FVector B =
+		const FVector P2 =
 		    GetTimedNoiseOffset(Noise, Index + 1, UpdateInterval);
 
-		return A * (1.0f - Alpha) + B * Alpha;
+		if (!bSmoothNoise)
+		{
+			return P1 * (1.0f - U) + P2 * U;
+		}
+
+		const FVector P0 = GetTimedNoiseOffset(
+		    Noise,
+		    std::max(Index - 1, 0),
+		    UpdateInterval);
+
+		const FVector P3 = GetTimedNoiseOffset(
+		    Noise,
+		    std::min(Index + 2, Count),
+		    UpdateInterval);
+
+		// Catmull-Rom 보간
+		const float U2 = U * U;
+		const float U3 = U2 * U;
+
+		// Uniform Catmull–Rom의 계수.
+		const float W0 = -0.5f * U + U2 - 0.5f * U3;
+		const float W1 = 1.0f - 2.5f * U2 + 1.5f * U3;
+		const float W2 = 0.5f * U + 2.0f * U2 - 1.5f * U3;
+		const float W3 = -0.5f * U2 + 0.5f * U3;
+
+		return P0 * W0 + P1 * W1 + P2 * W2 + P3 * W3;
 	}
 }
 
@@ -870,7 +896,11 @@ void FParticleBeamEmitterInstance::BuildBeamPoints(
 		// 끝점을 정확히 유지한다.
 		if (bUseNoise && Index > 0 && Index < SegmentCount)
 		{
-			const FVector Offset = SampleBeamNoise(Noise, T, NoiseModule->UpdateInterval);
+			const FVector Offset = SampleBeamNoise(
+				Noise, 
+				T, 
+				NoiseModule->UpdateInterval,
+				NoiseModule->bSmoothNoise);
 
 			Position +=
 			    (AxisU * Offset.X + AxisV * Offset.Y) *

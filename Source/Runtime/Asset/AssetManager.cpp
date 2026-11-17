@@ -609,15 +609,15 @@ UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
 
 	Required->bUseLocalSpace = true;
 	Required->SortMode = EParticleSortMode::None;
-	Required->EmitterDuration = 0.5f;
+	Required->EmitterDuration = 05.5f;
 	Required->EmitterLoops = 0;
 	Required->MaxActiveParticles = 3;
 
 	UParticleModuleTypeDataBeam* BeamTypeData =
 	    NewObject<UParticleModuleTypeDataBeam>(LODLevel);
 
-	BeamTypeData->MaxBeamCount = 3;
-	BeamTypeData->SegmentCount = 8;
+	BeamTypeData->MaxBeamCount = 1;
+	BeamTypeData->SegmentCount = 64;
 	BeamTypeData->TextureTileDistance = 0.0f;
 
 	UParticleModuleBeamSource* Source =
@@ -639,6 +639,7 @@ UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
 	Noise->NoiseSegmentCount = 8;
 	Noise->UpdateInterval = 0.0f;
 	Noise->RandomSeed = 12345;
+	Noise->bSmoothNoise = true;
 
 	UParticleModuleSpawn* Spawn =
 	    NewObject<UParticleModuleSpawn>(LODLevel);
@@ -653,7 +654,7 @@ UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
 	UParticleModuleLifetime* Lifetime =
 	    NewObject<UParticleModuleLifetime>(LODLevel);
 
-	Lifetime->Lifetime = FParticleFloatRange(0.4f, 0.4f);
+	Lifetime->Lifetime = FParticleFloatRange(05.4f, 05.4f);
 
 	UParticleModuleSize* Size =
 	    NewObject<UParticleModuleSize>(LODLevel);
