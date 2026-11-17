@@ -156,6 +156,19 @@
                                         "bEnabled": true
                                     }
                                 }
+                            },
+                            {
+                                "Class": "UParticleModuleCollision",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleCollision_0",
+                                    "Properties": {
+                                        "CollisionCompletionOption": 0,
+                                        "DampingFactor": 0.5,
+                                        "MaxCollisions": 5,
+                                        "ParticleRadiusScale": 1.0,
+                                        "bEnabled": true
+                                    }
+                                }
                             }
                         ],
                         "ObjectLabel": "UParticleLODLevel_0",

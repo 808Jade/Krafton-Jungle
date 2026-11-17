@@ -14,6 +14,7 @@ class UParticleModuleCollision : public UParticleModule
 	DECLARE_CLASS(UParticleModuleCollision, UParticleModule)
 	REFLECT_START(UParticleModuleCollision)
 		PROPERTY(DampingFactor)
+		PROPERTY(ParticleRadiusScale)
 		PROPERTY(MaxCollisions)
 		PROPERTY(CollisionCompletionOption)
 	REFLECT_END()
@@ -29,6 +30,11 @@ public:
 
 	// 반사한 속도에 곱하는 값. 1이면 에너지를 잃지 않고, 0이면 충돌 지점에서 속도가 사라진다.
 	float DampingFactor = 0.5f;
+
+	// 파티클 크기의 절반(반경)에 곱하는 값. 0이면 크기 없는 점으로 검사한다.
+	// 1이면 파티클 가장자리가 표면에 닿을 때 충돌한다. 스프라이트는 Size X·Y 중 큰 값, 메시는 메시 AABB의 가장 큰 변 x Size를 기준으로 한다.
+	// 이동 방향의 선분 하나로 검사하는 근사라서, 중심선은 표면 위인데 가장자리만 모서리 밖에 걸친 경우는 잡지 못한다.
+	float ParticleRadiusScale = 1.0f;
 
 	// 이 횟수만큼 충돌하면 CollisionCompletionOption을 적용한다. 1이면 첫 충돌이 마지막이다.
 	int32 MaxCollisions = 3;
