@@ -223,19 +223,19 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 
 	if (const auto* RibbonTypeData =
 	        Cast<UParticleModuleTypeDataRibbon>(
-	            LODLevel->TypeDataModule))
+	            HighestLODLevel->TypeDataModule))
 	{
 		int32 Capacity = std::clamp(
 		    RibbonTypeData->MaxPointsPerTrail,
 		    2,
 		    MaxParticleSlots);
 
-		if (LODLevel->RequiredModule &&
-		    LODLevel->RequiredModule->MaxActiveParticles > 0)
+		if (HighestLODLevel->RequiredModule &&
+		    HighestLODLevel->RequiredModule->MaxActiveParticles > 0)
 		{
 			Capacity = std::min(
 			    Capacity,
-			    LODLevel->RequiredModule->MaxActiveParticles);
+			    HighestLODLevel->RequiredModule->MaxActiveParticles);
 		}
 
 		MaxActiveParticles = Capacity;

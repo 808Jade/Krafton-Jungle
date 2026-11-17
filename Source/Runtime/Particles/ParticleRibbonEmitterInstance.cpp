@@ -52,6 +52,16 @@ void FParticleRibbonEmitterInstance::InitParameters(
 	}
 }
 
+void FParticleRibbonEmitterInstance::SetCurrentLODIndex(int32 LODIndex)
+{
+	FParticleEmitterInstance::SetCurrentLODIndex(LODIndex);
+
+	RibbonTypeData = CurrentLODLevel
+	                     ? Cast<UParticleModuleTypeDataRibbon>(
+	                           CurrentLODLevel->TypeDataModule)
+	                     : nullptr;
+}
+
 bool FParticleRibbonEmitterInstance::HasValidRibbonSetup() const
 {
 	return Component &&

@@ -1058,31 +1058,6 @@ void FParticleBeamEmitterInstance::WriteBeamPayload(
 	    sizeof(Payload));
 }
 
-
-void FParticleRibbonEmitterInstance::InitParameters(
-    UParticleEmitter* InTemplate,
-    UParticleSystemComponent* InComponent)
-{
-	FParticleEmitterInstance::InitParameters(
-	    InTemplate,
-	    InComponent);
-
-	RibbonTypeData = CurrentLODLevel
-	                     ? Cast<UParticleModuleTypeDataRibbon>(
-	                           CurrentLODLevel->TypeDataModule)
-	                     : nullptr;
-}
-
-void FParticleRibbonEmitterInstance::SetCurrentLODIndex(int32 LODIndex)
-{
-	FParticleEmitterInstance::SetCurrentLODIndex(LODIndex);
-
-	RibbonTypeData = CurrentLODLevel
-	                     ? Cast<UParticleModuleTypeDataRibbon>(
-	                           CurrentLODLevel->TypeDataModule)
-	                     : nullptr;
-}
-
 FDynamicEmitterDataBase*
 FParticleBeamEmitterInstance::GetDynamicData() const
 {
