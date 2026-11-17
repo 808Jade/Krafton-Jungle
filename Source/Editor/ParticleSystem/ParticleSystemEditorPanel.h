@@ -41,6 +41,11 @@ private:
 	void DrawLODGroup();
 	void DrawSimulationGroup();
 	void LoadToolbarIcons();
+	// 툴바 Save 버튼과 Ctrl+S가 부른다. 파일이 있는 에셋은 바로 덮어쓰고, 없으면 Save As 창을 연다.
+	void RequestSave();
+	void RequestSaveAs();
+	// 이름을 입력받는 Save As 모달. 호스트 창 안에서 매 프레임 호출한다.
+	void DrawSaveAsPopup();
 	// 내부 DockSpace의 초기 배치. 저장된 배치가 없거나 Reset Layout을 고르면 실행한다.
 	void BuildDefaultLayout(unsigned int DockSpaceId);
 
@@ -75,4 +80,9 @@ private:
 
 	bool bHostVisible = false;
 	bool bResetLayout = false;
+
+	// Save As 모달 상태
+	bool bOpenSaveAsPopup = false;
+	char SaveAsName[128] = {};
+	FString SaveAsError;
 };

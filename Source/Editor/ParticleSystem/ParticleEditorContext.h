@@ -27,10 +27,27 @@ public:
 	// 프리뷰 액터를 지우고 다시 만들어 시뮬레이션을 처음부터 시작한다.
 	void RestartSimulation();
 
-	// 편집 중인 파티클 시스템 에셋을 저장한다. 에셋 모델(UParticleSystem)이 아직 없어 지금은 항상 저장할 대상이 없다.
-	// TODO: 에셋을 열면 그 에셋이 있을 때 true, Save에서 에셋을 직렬화해 파일로 쓴다.
-	bool CanSave() const { return false; }
-	bool Save() { return false; }
+	// --- 저장 / 열기 ---
+	// 편집 중인 에셋이 있으면 저장할 수 있다. 파일이 없는 에셋(코드로 만든 기본 에셋)은 Save가 아니라 SaveAs로 저장한다.
+	bool CanSave() const { return GetTemplate() != nullptr; }
+	// 편집 중인 에셋이 .particle 파일에서 온 것이면 true. 이때만 Save가 파일에 덮어쓸 수 있다.
+	bool HasAssetFile() const;
+	// 마지막 저장 뒤에 이 에셋을 고쳤으면 true. 에셋마다 따로 센다.
+	bool IsDirty() const;
+	// 에셋 값을 고쳤을 때 부른다. 모듈 편집은 ApplyEmitterChange가 대신 부르므로, 에셋 자체 값(바운드 등)을 고칠 때만 직접 부른다.
+	void MarkDirty();
+	// 에셋 파일에 덮어쓴다. HasAssetFile()일 때만 성공한다. 결과는 GetSaveStatus()에 한동안 남는다.
+	bool Save();
+	// Assets/Particles/<AssetName>.particle에 새로 저장하고, 그 파일을 불러와 프리뷰의 에셋으로 바꾼다.
+	// 이미 있는 이름이거나 이름이 올바르지 않으면 false이고 OutError에 이유를 담는다.
+	bool SaveAs(const FString& AssetName, FString& OutError);
+	// 등록된 파티클 시스템 에셋(저장한 파일 + 기본 에셋)을 프리뷰의 에셋으로 바꾼다.
+	void OpenAsset(UParticleSystem* Asset);
+	// 툴바·메뉴에 보일 에셋 이름. 에셋이 없으면 빈 문자열이다.
+	FString GetAssetLabel() const;
+	// 저장 결과 문구. 몇 초가 지나면 빈 문자열이 된다. 실패 문구인지는 IsSaveStatusError()로 안다.
+	const FString& GetSaveStatus() const { return SaveStatus; }
+	bool IsSaveStatusError() const { return bSaveStatusError; }
 
 	// 같은 Template을 쓰는 모든 컴포넌트(프리뷰 + 레벨·PIE 월드에 놓인 것)를 처음부터 다시 시작한다.
 	// 에셋을 고친 뒤 레벨 쪽에도 반영할 때 쓴다. 다시 시작한 컴포넌트 수를 돌려준다.
@@ -79,6 +96,18 @@ public:
 private:
 	// 에셋 구성이 바뀐 이미터의 모듈 캐시를 다시 만들고, 이 에셋을 쓰는 컴포넌트를 다시 시작한다.
 	void ApplyEmitterChange(int32 EmitterIndex);
+	// 프리뷰 컴포넌트가 재생할 에셋을 바꾸고 선택 상태를 비운다. nullptr이면 기본 에셋이다.
+	void ApplyPreviewTemplate(UParticleSystem* Asset);
+	void SetSaveStatus(const FString& Message, bool bError);
+
+	// 참조(집약): 사용자가 고른 에셋. nullptr이면 액터가 기본으로 쓰는 에셋이다.
+	// RestartSimulation이 액터를 새로 만들 때 이 에셋을 다시 씌우는 데 쓴다.
+	UParticleSystem* EditedAsset = nullptr;
+	// 참조(집약): 저장하지 않은 수정이 있는 에셋. 에셋은 UAssetManager가 소유한다.
+	TArray<const UParticleSystem*> DirtyAssets;
+	FString SaveStatus;
+	bool bSaveStatusError = false;
+	float SaveStatusTimer = 0.0f;
 
 	// 소유(합성): 이 에디터만 쓰는 독립 월드. 에디터와 수명이 같다.
 	TUniquePtr<FPreviewScene> PreviewScene;

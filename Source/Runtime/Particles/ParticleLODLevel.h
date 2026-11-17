@@ -16,6 +16,11 @@ public:
 	UParticleLODLevel() = default;
 	~UParticleLODLevel() override = default;
 
+	// Level, bEnabled, Required, TypeData, Modules를 저장한다. 모듈은 {Class, Data}로 쓰고
+	// 불러올 때 클래스 이름으로 다시 만든다.
+	using Super::Serialize;
+	void Serialize(FStructuredArchive::FRecord Record) override;
+
 	int32 Level = 0;
 	bool bEnabled = true;
 
