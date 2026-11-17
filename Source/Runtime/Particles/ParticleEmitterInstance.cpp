@@ -12,12 +12,19 @@
 #include "Particles/Modules/ParticleModuleTypeDataMesh.h"
 #include "Particles/Modules/ParticleModuleTypeDataBeam.h"
 #include "Particles/Modules/ParticleModuleTypeDataRibbon.h"
+#include "Particles/Modules/ParticleModuleBeamSource.h"
+#include "Particles/Modules/ParticleModuleBeamTarget.h"
 
 #include "Components/ParticleSystemComponent.h"
 
 #include "Asset/AssetManager.h"
 
 #include "Math/Transform.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <cfloat>
 
 
 FParticleEmitterInstance::~FParticleEmitterInstance()
@@ -264,7 +271,7 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
 			const int32* Offset = SpriteTemplate->ModuleOffsetMap.Find(SpawnModule);
 			SpawnModule->Spawn(*this, Offset ? *Offset : 0, SpawnTime, *Particle);
 		}
-		
+
 		PostSpawn(Particle, InterpolationPercentage, SpawnTime);
 		InterpolationPercentage = InterpolationPercentage != 0 ? InterpolationPercentage - 1.0f / Count : 0;
 		ActiveParticles++;
@@ -363,21 +370,21 @@ bool FParticleEmitterInstance::FillReplayData(
 
 	const UParticleModuleRequired* Required = CurrentLODLevel ? CurrentLODLevel->RequiredModule : nullptr;
 
-	OutDynamicEmitterReplayDataBase.SortMode = 
-		Required
-			? Required->SortMode
+	OutDynamicEmitterReplayDataBase.SortMode =
+	    Required
+	        ? Required->SortMode
 	        : EParticleSortMode::None;
 
 	return true;
 }
 
 void FParticleEmitterInstance::FillSpriteReplaySettings(
-	FDynamicSpriteEmitterReplayDataBase& OutData) const
+    FDynamicSpriteEmitterReplayDataBase& OutData) const
 {
 	OutData.bUseLocalSpace = bUseLocalSpace;
 
 	const UParticleModuleRequired* Required =
-		CurrentLODLevel
+	    CurrentLODLevel
 	        ? CurrentLODLevel->RequiredModule
 	        : nullptr;
 
@@ -403,7 +410,7 @@ FDynamicEmitterDataBase* FParticleEmitterInstance::GetDynamicData() const
 }
 
 void FParticleEmitterInstance::InitParameters(
-	UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent)
+    UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent)
 {
 	SpriteTemplate = InTemplate;
 	Component = InComponent;
@@ -475,7 +482,7 @@ bool FParticleMeshEmitterInstance::FillReplayData(
 	OutDynamicEmitterReplayDataBase.eEmitterType = EDynamicEmitterType::Mesh;
 
 	FDynamicMeshEmitterReplayData* MeshReplayData =
-		static_cast<FDynamicMeshEmitterReplayData*>(&OutDynamicEmitterReplayDataBase);
+	    static_cast<FDynamicMeshEmitterReplayData*>(&OutDynamicEmitterReplayDataBase);
 	FillSpriteReplaySettings(*MeshReplayData);
 	MeshReplayData->Mesh = MeshTypeData ? MeshTypeData->Mesh : nullptr;
 	MeshReplayData->MeshRotationPayloadOffset = MeshRotationOffset;
@@ -485,7 +492,7 @@ bool FParticleMeshEmitterInstance::FillReplayData(
 }
 
 void FParticleMeshEmitterInstance::InitParameters(
-	UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent)
+    UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent)
 {
 	FParticleEmitterInstance::InitParameters(InTemplate, InComponent);
 
@@ -524,7 +531,203 @@ void FParticleBeamEmitterInstance::InitParameters(
 	                   ? Cast<UParticleModuleTypeDataBeam>(
 	                         CurrentLODLevel->TypeDataModule)
 	                   : nullptr;
+
+	SourceModule = nullptr;
+	TargetModule = nullptr;
+	BeamPayloadOffset = InvalidPayloadOffset;
+
+	if (BeamTypeData)
+	{
+		if (const int32* Offset =
+		        InTemplate->ModuleOffsetMap.Find(BeamTypeData))
+		{
+			BeamPayloadOffset = *Offset;
+		}
+	}
+
+	if (CurrentLODLevel)
+	{
+		// 첫 번째 활성 Source/Target 모듈을 사용.
+		for (UParticleModule* Module : CurrentLODLevel->Modules)
+		{
+			if (!Module || !Module->bEnabled)
+			{
+				continue;
+			}
+
+			if (!SourceModule)
+			{
+				SourceModule =
+				    Cast<UParticleModuleBeamSource>(Module);
+			}
+
+			if (!TargetModule)
+			{
+				TargetModule =
+				    Cast<UParticleModuleBeamTarget>(Module);
+			}
+		}
+	}
+
+	if (!HasValidBeamSetup())
+	{
+		bHaltSpawning = true;
+
+		HTR_LOG(
+		    Error,
+		    "Beam emitter requires enabled TypeData, Source, "
+		    "Target modules and a valid payload.");
+	}
 }
+
+void FParticleBeamEmitterInstance::PostSpawn(
+    FBaseParticle* Particle,
+    float InterpolationPercentage,
+    float SpawnTime)
+{
+	// 생성 카운터와 JustSpawned 플래그 등 기존 공통 처리.
+	FParticleEmitterInstance::PostSpawn(
+	    Particle,
+	    InterpolationPercentage,
+	    SpawnTime);
+
+	if (!HasValidBeamSetup())
+	{
+		// 잘못된 설정에서 생성된 파티클은 렌더링하지 않고
+		// 다음 수명 처리에서 제거되도록 한다.
+		Particle->RelativeTime = 1.0f;
+		return;
+	}
+
+	FBeamParticlePayload Payload;
+
+	Payload.SourcePosition = ToSimulationPosition(
+	    SourceModule->SourcePosition);
+
+	Payload.TargetPosition = ToSimulationPosition(
+	    TargetModule->TargetPosition);
+
+	WriteBeamPayload(*Particle, Payload);
+
+	// Beam 위치의 대표값으로 Source를 사용.
+	Particle->Location = Payload.SourcePosition;
+	Particle->OldLocation = Payload.SourcePosition;
+
+	// 이번 Beam은 Source/Target으로 위치를 제어한다.
+	Particle->Velocity = FVector::ZeroVector;
+	Particle->BaseVelocity = FVector::ZeroVector;
+}
+
+void FParticleBeamEmitterInstance::IntegrateParticles(
+    float DeltaTime)
+{
+	if (!HasValidBeamSetup())
+	{
+		return;
+	}
+
+	for (int32 Index = 0; Index < ActiveParticles; ++Index)
+	{
+		const uint16 Slot = ParticleIndices[Index];
+
+		auto* Particle = reinterpret_cast<FBaseParticle*>(
+		    ParticleData + Slot * ParticleStride);
+
+		if (Particle->RelativeTime >= 1.0f)
+		{
+			continue;
+		}
+
+		const bool bJustSpawned =
+		    (Particle->Flags & STATE_Particle_JustSpawned) != 0;
+
+		Particle->Flags &= ~STATE_Particle_JustSpawned;
+
+		if (Particle->Flags &
+		    (STATE_Particle_Freeze |
+		     STATE_Particle_FreezeTranslation))
+		{
+			continue;
+		}
+
+		FBeamParticlePayload Payload =
+		    ReadBeamPayload(*Particle);
+
+		// 새 파티클은 PostSpawn에서 이미 평가했다.
+		if (!bJustSpawned)
+		{
+			if (!SourceModule->bLockOnSpawn)
+			{
+				Payload.SourcePosition = ToSimulationPosition(
+				    SourceModule->SourcePosition);
+			}
+
+			if (!TargetModule->bLockOnSpawn)
+			{
+				Payload.TargetPosition = ToSimulationPosition(
+				    TargetModule->TargetPosition);
+			}
+		}
+
+		Particle->OldLocation = Particle->Location;
+		Particle->Location = Payload.SourcePosition;
+
+		WriteBeamPayload(*Particle, Payload);
+	}
+}
+
+bool FParticleBeamEmitterInstance::HasValidBeamSetup() const
+{
+	const int32 PayloadBytes =
+	    static_cast<int32>(sizeof(FBeamParticlePayload));
+
+	return Component &&
+	       ParticleData &&
+	       BeamTypeData && BeamTypeData->bEnabled &&
+	       SourceModule && SourceModule->bEnabled &&
+	       TargetModule && TargetModule->bEnabled &&
+	       BeamPayloadOffset >=
+	           static_cast<int32>(sizeof(FBaseParticle)) &&
+	       BeamPayloadOffset <= ParticleSize - PayloadBytes;
+}
+
+FVector FParticleBeamEmitterInstance::ToSimulationPosition(
+    const FVector& ComponentLocalPosition) const
+{
+	if (bUseLocalSpace)
+	{
+		return ComponentLocalPosition;
+	}
+
+	return Component->GetWorldMatrix().TransformPosition(
+	    ComponentLocalPosition);
+}
+
+FBeamParticlePayload
+FParticleBeamEmitterInstance::ReadBeamPayload(
+    const FBaseParticle& Particle) const
+{
+	FBeamParticlePayload Payload;
+
+	std::memcpy(
+	    &Payload,
+	    reinterpret_cast<const uint8*>(&Particle) +
+	        BeamPayloadOffset,
+	    sizeof(Payload));
+
+	return Payload;
+}
+
+void FParticleBeamEmitterInstance::WriteBeamPayload(
+    FBaseParticle& Particle,
+    const FBeamParticlePayload& Payload) const
+{
+	std::memcpy(
+	    reinterpret_cast<uint8*>(&Particle) + BeamPayloadOffset,
+	    &Payload,
+	    sizeof(Payload));
+}
+
 
 void FParticleRibbonEmitterInstance::InitParameters(
     UParticleEmitter* InTemplate,
@@ -543,7 +746,7 @@ void FParticleRibbonEmitterInstance::InitParameters(
 FDynamicEmitterDataBase*
 FParticleBeamEmitterInstance::GetDynamicData() const
 {
-	if (!Component || !BeamTypeData)
+	if (!HasValidBeamSetup() || ActiveParticles <= 0)
 	{
 		return nullptr;
 	}
@@ -551,30 +754,163 @@ FParticleBeamEmitterInstance::GetDynamicData() const
 	FDynamicBeamEmitterReplayData Replay;
 
 	Replay.MaterialInterface = GetCurrentMaterial();
-	Replay.bUseLocalSpace = true;
+	Replay.bUseLocalSpace = bUseLocalSpace;
+	Replay.ActiveParticleCount = ActiveParticles;
 
-	// 실제 시뮬레이션 파티클은 아직 생성하지 않는다.
-	// 렌더링은 Points / Strips의 개수를 기준으로 한다.
-	Replay.ActiveParticleCount = 0;
+	// Strip 렌더러가 허용하는 점 개수 이내로 제한.
+	const int32 SegmentCount = std::clamp(
+	    BeamTypeData->SegmentCount,
+	    1,
+	    65534);
 
-	FParticleStripPoint Source{};
-	Source.Position = FVector(0.0f, 0.0f, 2.0f);
-	Source.Width = 0.3f;
-	Source.Color = FLinearColor(0.1f, 0.7f, 1.0f, 0.8f);
-	Source.U = 0.0f;
+	const float TileDistance =
+	    BeamTypeData->TextureTileDistance;
 
-	FParticleStripPoint Target = Source;
-	Target.Position = FVector(5.0f, 0.0f, 2.0f);
-	Target.U = 1.0f;
+	for (int32 Index = 0; Index < ActiveParticles; ++Index)
+	{
+		const uint16 Slot = ParticleIndices[Index];
 
-	Replay.Points.Add(Source);
-	Replay.Points.Add(Target);
+		const auto* Particle =
+		    reinterpret_cast<const FBaseParticle*>(
+		        ParticleData + Slot * ParticleStride);
 
-	FParticleStripRange Range{};
-	Range.FirstPoint = 0;
-	Range.PointCount = 2;
+		// 긴 프레임에서 생성 시점부터 수명이 끝난 경우도 제외.
+		if (Particle->RelativeTime >= 1.0f)
+		{
+			continue;
+		}
 
-	Replay.Strips.Add(Range);
+		const FBeamParticlePayload Payload =
+		    ReadBeamPayload(*Particle);
+
+		const FVector Delta =
+		    Payload.TargetPosition - Payload.SourcePosition;
+
+		const float LengthSquared = Delta.SizeSquared();
+		const float Width = std::abs(Particle->Size.X);
+
+		if (LengthSquared <= 1.0e-8f || Width <= 0.0f)
+		{
+			continue;
+		}
+
+		const float Length = std::sqrt(LengthSquared);
+
+		FParticleStripRange Range{};
+		Range.FirstPoint = Replay.Points.Num();
+		Range.PointCount = SegmentCount + 1;
+
+		for (int32 PointIndex = 0;
+		     PointIndex <= SegmentCount;
+		     ++PointIndex)
+		{
+			const float T =
+			    static_cast<float>(PointIndex) /
+			    static_cast<float>(SegmentCount);
+
+			FParticleStripPoint Point{};
+
+			Point.Position =
+			    Payload.SourcePosition + Delta * T;
+
+			Point.Width = Width;
+			Point.Color = Particle->Color;
+
+			// 거리 값은 Payload와 같은 시뮬레이션 공간 기준.
+			Point.U = TileDistance > 0.0f
+			              ? (Length * T) / TileDistance
+			              : T;
+
+			Replay.Points.Add(Point);
+		}
+
+		Replay.Strips.Add(Range);
+	}
+
+	if (Replay.Strips.Num() == 0)
+	{
+		return nullptr;
+	}
 
 	return new FDynamicBeamEmitterData(std::move(Replay));
+}
+
+void FParticleBeamEmitterInstance::UpdateBoundingBox()
+{
+	if (!HasValidBeamSetup())
+	{
+		ParticleBoundingBox = FBox{};
+		return;
+	}
+
+	if (Component->Template &&
+	    Component->Template->bUseFixedRelativeBoundingBox)
+	{
+		return;
+	}
+
+	const FMatrix LocalToWorld = Component->GetWorldMatrix();
+
+	FVector MinValue(FLT_MAX, FLT_MAX, FLT_MAX);
+	FVector MaxValue(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+	bool bHasBounds = false;
+
+	auto IncludePoint =
+	    [&](const FVector& Position, float Radius)
+	{
+		MinValue.X = std::min(MinValue.X, Position.X - Radius);
+		MinValue.Y = std::min(MinValue.Y, Position.Y - Radius);
+		MinValue.Z = std::min(MinValue.Z, Position.Z - Radius);
+
+		MaxValue.X = std::max(MaxValue.X, Position.X + Radius);
+		MaxValue.Y = std::max(MaxValue.Y, Position.Y + Radius);
+		MaxValue.Z = std::max(MaxValue.Z, Position.Z + Radius);
+
+		bHasBounds = true;
+	};
+
+	for (int32 Index = 0; Index < ActiveParticles; ++Index)
+	{
+		const uint16 Slot = ParticleIndices[Index];
+
+		const auto* Particle =
+		    reinterpret_cast<const FBaseParticle*>(
+		        ParticleData + Slot * ParticleStride);
+
+		if (Particle->RelativeTime >= 1.0f)
+		{
+			continue;
+		}
+
+		const FBeamParticlePayload Payload =
+		    ReadBeamPayload(*Particle);
+
+		const FVector SourceWorld = bUseLocalSpace
+		                                ? LocalToWorld.TransformPosition(
+		                                      Payload.SourcePosition)
+		                                : Payload.SourcePosition;
+
+		const FVector TargetWorld = bUseLocalSpace
+		                                ? LocalToWorld.TransformPosition(
+		                                      Payload.TargetPosition)
+		                                : Payload.TargetPosition;
+
+		// Strip 렌더러와 동일하게 Width는 월드 단위.
+		const float Radius =
+		    std::abs(Particle->Size.X) * 0.5f;
+
+		IncludePoint(SourceWorld, Radius);
+		IncludePoint(TargetWorld, Radius);
+	}
+
+	if (bHasBounds)
+	{
+		ParticleBoundingBox = FBox{ MinValue, MaxValue };
+	}
+	else
+	{
+		const FVector Origin = Component->GetWorldLocation();
+		ParticleBoundingBox = FBox{ Origin, Origin };
+	}
 }
