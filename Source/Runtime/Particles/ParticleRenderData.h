@@ -4,6 +4,8 @@
 #include "Particles/ParticleVertex.h"
 #include "Engine/PrimitiveSceneProxy.h"
 
+#include <utility>
+
 class FParticleSystemSceneProxy;
 class FRenderQueue;
 class UMaterial;
@@ -97,4 +99,54 @@ public:
 private:
 	FDynamicMeshEmitterReplayData Source;
 	TArray<FMeshParticleInstanceVertex> Instances;
+};
+
+struct FDynamicStripEmitterDataBase
+    : public FDynamicEmitterDataBase
+{
+	virtual const FDynamicStripEmitterReplayDataBase&
+	GetSource() const override = 0;
+
+	// PrepareRenderData / GatherRenderPackets는
+	// 다음 렌더링 단계에서 공통 구현한다.
+};
+
+struct FDynamicBeamEmitterData
+    : public FDynamicStripEmitterDataBase
+{
+public:
+	explicit FDynamicBeamEmitterData(
+	    FDynamicBeamEmitterReplayData&& InSource)
+	    : Source(std::move(InSource))
+	{
+	}
+
+	const FDynamicBeamEmitterReplayData&
+	GetSource() const override
+	{
+		return Source;
+	}
+
+private:
+	FDynamicBeamEmitterReplayData Source;
+};
+
+struct FDynamicRibbonEmitterData
+    : public FDynamicStripEmitterDataBase
+{
+public:
+	explicit FDynamicRibbonEmitterData(
+	    FDynamicRibbonEmitterReplayData&& InSource)
+	    : Source(std::move(InSource))
+	{
+	}
+
+	const FDynamicRibbonEmitterReplayData&
+	GetSource() const override
+	{
+		return Source;
+	}
+
+private:
+	FDynamicRibbonEmitterReplayData Source;
 };

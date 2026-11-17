@@ -9,6 +9,8 @@ class UParticleSystemComponent;
 class UParticleEmitter;
 class UParticleLODLevel;
 class UParticleModuleTypeDataMesh;
+class UParticleModuleTypeDataBeam;
+class UParticleModuleTypeDataRibbon;
 class UMaterialInterface;
 class UStaticMesh;
 
@@ -20,6 +22,7 @@ protected:
 
 	/** 모든 이미터 타입에 공통인 ReplayData 필드를 채운다. 파생 클래스의 override에서 먼저 호출 */
 	virtual bool FillReplayData(FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const;
+	void FillSpriteReplaySettings(FDynamicSpriteEmitterReplayDataBase& OutData) const;
 
 	UMaterialInterface* GetCurrentMaterial() const;
 
@@ -127,4 +130,38 @@ public:
 	int32 MeshRotationOffset = InvalidPayloadOffset;
 protected:
 	virtual bool FillReplayData(FDynamicEmitterReplayDataBase& OutDynamicEmitterReplayDataBase) const override;
+};
+
+struct FParticleBeamEmitterInstance
+    : public FParticleEmitterInstance
+{
+public:
+	void InitParameters(
+	    UParticleEmitter* InTemplate,
+	    UParticleSystemComponent* InComponent) override;
+
+	FDynamicEmitterDataBase* GetDynamicData() const override
+	{
+		// 다음 단계에서 Beam ReplayData를 생성한다.
+		return nullptr;
+	}
+
+	UParticleModuleTypeDataBeam* BeamTypeData = nullptr;
+};
+
+struct FParticleRibbonEmitterInstance
+    : public FParticleEmitterInstance
+{
+public:
+	void InitParameters(
+	    UParticleEmitter* InTemplate,
+	    UParticleSystemComponent* InComponent) override;
+
+	FDynamicEmitterDataBase* GetDynamicData() const override
+	{
+		// 다음 단계에서 Ribbon ReplayData를 생성한다.
+		return nullptr;
+	}
+
+	UParticleModuleTypeDataRibbon* RibbonTypeData = nullptr;
 };

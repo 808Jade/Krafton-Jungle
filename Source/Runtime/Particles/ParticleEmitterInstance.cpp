@@ -10,6 +10,8 @@
 #include "Particles/Modules/ParticleModuleRequired.h"
 #include "Particles/Modules/ParticleModuleSpawn.h"
 #include "Particles/Modules/ParticleModuleTypeDataMesh.h"
+#include "Particles/Modules/ParticleModuleTypeDataBeam.h"
+#include "Particles/Modules/ParticleModuleTypeDataRibbon.h"
 
 #include "Components/ParticleSystemComponent.h"
 
@@ -359,19 +361,31 @@ bool FParticleEmitterInstance::FillReplayData(
 	    ParticleIndices,
 	    ActiveParticles);
 
-	FDynamicSpriteEmitterReplayDataBase* SpriteReplayDataBase =
-	    static_cast<FDynamicSpriteEmitterReplayDataBase*>(&OutDynamicEmitterReplayDataBase);
-	SpriteReplayDataBase->bUseLocalSpace = bUseLocalSpace;
-
 	const UParticleModuleRequired* Required = CurrentLODLevel ? CurrentLODLevel->RequiredModule : nullptr;
-	if (Required)
-	{
-		OutDynamicEmitterReplayDataBase.SortMode = Required->SortMode;
-		SpriteReplayDataBase->ScreenAlignment = Required->ScreenAlignment;
-		SpriteReplayDataBase->AxisLock = Required->LockAxis;
-	}
+
+	OutDynamicEmitterReplayDataBase.SortMode = 
+		Required
+			? Required->SortMode
+	        : EParticleSortMode::None;
 
 	return true;
+}
+
+void FParticleEmitterInstance::FillSpriteReplaySettings(
+	FDynamicSpriteEmitterReplayDataBase& OutData) const
+{
+	OutData.bUseLocalSpace = bUseLocalSpace;
+
+	const UParticleModuleRequired* Required =
+		CurrentLODLevel
+	        ? CurrentLODLevel->RequiredModule
+	        : nullptr;
+
+	if (Required)
+	{
+		OutData.ScreenAlignment = Required->ScreenAlignment;
+		OutData.AxisLock = Required->LockAxis;
+	}
 }
 
 UMaterialInterface* FParticleEmitterInstance::GetCurrentMaterial() const
@@ -428,6 +442,7 @@ bool FParticleSpriteEmitterInstance::FillReplayData(
 
 	FDynamicSpriteEmitterReplayData* SpriteReplayData =
 	    static_cast<FDynamicSpriteEmitterReplayData*>(&OutDynamicEmitterReplayDataBase);
+	FillSpriteReplaySettings(*SpriteReplayData);
 	SpriteReplayData->MaterialInterface = GetCurrentMaterial();
 	return true;
 }
@@ -461,6 +476,7 @@ bool FParticleMeshEmitterInstance::FillReplayData(
 
 	FDynamicMeshEmitterReplayData* MeshReplayData =
 		static_cast<FDynamicMeshEmitterReplayData*>(&OutDynamicEmitterReplayDataBase);
+	FillSpriteReplaySettings(*MeshReplayData);
 	MeshReplayData->Mesh = MeshTypeData ? MeshTypeData->Mesh : nullptr;
 	MeshReplayData->MeshRotationPayloadOffset = MeshRotationOffset;
 	MeshReplayData->MaterialInterface = nullptr;
@@ -494,4 +510,32 @@ FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData() const
 	}
 
 	return new FDynamicMeshEmitterData(std::move(ReplayData));
+}
+
+void FParticleBeamEmitterInstance::InitParameters(
+    UParticleEmitter* InTemplate,
+    UParticleSystemComponent* InComponent)
+{
+	FParticleEmitterInstance::InitParameters(
+	    InTemplate,
+	    InComponent);
+
+	BeamTypeData = CurrentLODLevel
+	                   ? Cast<UParticleModuleTypeDataBeam>(
+	                         CurrentLODLevel->TypeDataModule)
+	                   : nullptr;
+}
+
+void FParticleRibbonEmitterInstance::InitParameters(
+    UParticleEmitter* InTemplate,
+    UParticleSystemComponent* InComponent)
+{
+	FParticleEmitterInstance::InitParameters(
+	    InTemplate,
+	    InComponent);
+
+	RibbonTypeData = CurrentLODLevel
+	                     ? Cast<UParticleModuleTypeDataRibbon>(
+	                           CurrentLODLevel->TypeDataModule)
+	                     : nullptr;
 }

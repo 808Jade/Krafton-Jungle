@@ -43,3 +43,11 @@ struct alignas(16) FMeshParticleInstanceVertex
 	FVector4 Color;
 };
 
+// CPU에서 좌우로 확장한 최종 정점.
+// InstanceBuffer가 아니라 일반 VertexBuffer에 저장한다.
+struct FParticleStripVertex
+{
+	FVector Position;
+	FVector2 UV;
+	FVector4 Color;
+};
