@@ -3,6 +3,8 @@
 #include "Editor/ParticleSystem/ParticleSystemViewportPanel.h"
 #include "Editor/ParticleSystem/ParticleSystemEmitterPanel.h"
 #include "Editor/ParticleSystem/ParticleSystemDetailsPanel.h"
+#include "Editor/ParticleSystem/ParticleCurveEditorPanel.h"
+#include "imgui_internal.h"
 
 #include "Editor/HitoriEd/EditorResourcePaths.h"
 #include "Components/ParticleSystemComponent.h"
@@ -127,6 +129,7 @@ bool FParticleSystemEditorTab::Init()
 	ViewportPanel = AddPanel<FParticleSystemViewportPanel>(Context, GetId());
 	EmitterPanel = AddPanel<FParticleSystemEmitterPanel>(Context, GetId());
 	DetailsPanel = AddPanel<FParticleSystemDetailsPanel>(Context, GetId());
+	CurveEditorPanel = AddPanel<FParticleCurveEditorPanel>(Context, GetId());
 
 	RefreshTitle();
 	return true;
@@ -451,8 +454,13 @@ void FParticleSystemEditorTab::DrawSimulationGroup()
 void FParticleSystemEditorTab::BuildDefaultLayout(const ImGuiID DockSpaceId)
 {
 	ImGuiID LeftNode = DockSpaceId;
-	const ImGuiID RightNode = ImGui::DockBuilderSplitNode(LeftNode, ImGuiDir_Right, 0.60f, nullptr, &LeftNode);
+	ImGuiID RightNode = ImGui::DockBuilderSplitNode(LeftNode, ImGuiDir_Right, 0.60f, nullptr, &LeftNode);
 	const ImGuiID LeftBottomNode = ImGui::DockBuilderSplitNode(LeftNode, ImGuiDir_Down, 0.45f, nullptr, &LeftNode);
+	// Cascade처럼 커브 에디터는 이미터 패널 아래에 둔다.
+	const ImGuiID RightBottomNode = ImGui::DockBuilderSplitNode(RightNode, ImGuiDir_Down, 0.45f, nullptr, &RightNode);
+
+	if (CurveEditorPanel)
+		ImGui::DockBuilderDockWindow(CurveEditorPanel->GetPanelName(), RightBottomNode);
 
 	if (ViewportPanel)
 		ImGui::DockBuilderDockWindow(ViewportPanel->GetPanelName(), LeftNode);
@@ -460,6 +468,17 @@ void FParticleSystemEditorTab::BuildDefaultLayout(const ImGuiID DockSpaceId)
 		ImGui::DockBuilderDockWindow(DetailsPanel->GetPanelName(), LeftBottomNode);
 	if (EmitterPanel)
 		ImGui::DockBuilderDockWindow(EmitterPanel->GetPanelName(), RightNode);
+}
+
+bool FParticleSystemEditorTab::NeedsLayoutRebuild(const ImGuiDockNode* Node) const
+{
+	if (FEditorTab::NeedsLayoutRebuild(Node))
+		return true;
+	// 커브 에디터가 생기기 전에 저장된 배치에는 그 창 자리가 없다. 창도 기록도 없으면 기본 배치를 한 번 다시 짠다.
+	if (!CurveEditorPanel)
+		return false;
+	const char* Name = CurveEditorPanel->GetPanelName();
+	return !ImGui::FindWindowByName(Name) && !ImGui::FindWindowSettingsByID(ImHashStr(Name));
 }
 
 bool FParticleSystemEditorTab::IsHoveredOrInteracting() const

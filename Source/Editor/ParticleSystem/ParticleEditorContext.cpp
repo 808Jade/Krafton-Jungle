@@ -421,7 +421,7 @@ int32 FParticleEditorContext::AddSpriteEmitter()
 	UParticleModuleColor* Color = NewObject<UParticleModuleColor>(LODLevel);
 	Color->StartColor = FParticleColorRange(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
 	Color->bUseColorOverLife = true;
-	Color->EndColor = FLinearColor(1.0f, 1.0f, 1.0f, 0.0f);
+	Color->SetFadeOut();
 
 	LODLevel->RequiredModule = Required;
 	LODLevel->Modules.Add(Spawn);

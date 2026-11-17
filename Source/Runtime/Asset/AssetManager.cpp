@@ -685,8 +685,6 @@ UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
 	    FParticleColorRange(StartColor, StartColor);
 
 	Color->bUseColorOverLife = false;
-	//Color->EndColor =
-	//    FLinearColor(0.1f, 0.7f, 1.0f, 0.0f);
 
 	LODLevel->Level = 0;
 	LODLevel->RequiredModule = Required;
@@ -760,8 +758,8 @@ UParticleSystem* UAssetManager::BuildDefaultRibbonParticleSystem()
 	    FParticleColorRange(StartColor, StartColor);
 
 	Color->bUseColorOverLife = true;
-	Color->EndColor =
-	    FLinearColor(1.0f, 0.35f, 0.05f, 0.0f);
+	// 색은 그대로 두고 수명 끝에서 투명해진다.
+	Color->SetFadeOut();
 
 	LODLevel->RequiredModule = Required;
 	LODLevel->TypeDataModule = RibbonTypeData;

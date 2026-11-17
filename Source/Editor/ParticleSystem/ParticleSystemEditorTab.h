@@ -6,6 +6,7 @@
 class FParticleSystemViewportPanel;
 class FParticleSystemEmitterPanel;
 class FParticleSystemDetailsPanel;
+class FParticleCurveEditorPanel;
 class UParticleSystem;
 class UTexture2D;
 
@@ -37,8 +38,9 @@ public:
 protected:
 	void DrawHostContents() override;
 	ImGuiWindowFlags GetHostWindowFlags() const override;
-	// Cascade 배치: 왼쪽 위 뷰포트, 왼쪽 아래 디테일, 오른쪽 이미터
+	// Cascade 배치: 왼쪽 위 뷰포트, 왼쪽 아래 디테일, 오른쪽 위 이미터, 오른쪽 아래 커브 에디터
 	void BuildDefaultLayout(ImGuiID DockSpaceId) override;
+	bool NeedsLayoutRebuild(const ImGuiDockNode* Node) const override;
 
 private:
 	void DrawMenuBar();
@@ -69,6 +71,7 @@ private:
 	FParticleSystemViewportPanel* ViewportPanel = nullptr;
 	FParticleSystemEmitterPanel* EmitterPanel = nullptr;
 	FParticleSystemDetailsPanel* DetailsPanel = nullptr;
+	FParticleCurveEditorPanel* CurveEditorPanel = nullptr;
 
 	// 참조(집약): 툴바 아이콘. 텍스처는 UAssetManager가 소유하고 캐시한다.
 	struct FToolbarIcons
