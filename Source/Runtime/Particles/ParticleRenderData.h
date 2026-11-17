@@ -107,8 +107,16 @@ struct FDynamicStripEmitterDataBase
 	virtual const FDynamicStripEmitterReplayDataBase&
 	GetSource() const override = 0;
 
-	// PrepareRenderData / GatherRenderPackets는
-	// 다음 렌더링 단계에서 공통 구현한다.
+	void PrepareRenderData(
+	    const FParticleSystemSceneProxy& Proxy) override;
+
+	void GatherRenderPackets(
+	    const FParticleSystemSceneProxy& Proxy,
+	    FRenderQueue& RenderQueue,
+	    const FRenderViewContext& View) const override;
+
+private:
+	UMaterial* Material = nullptr;
 };
 
 struct FDynamicBeamEmitterData
