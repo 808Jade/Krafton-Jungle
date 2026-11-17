@@ -35,6 +35,9 @@ struct FEditorTabSettings
 	bool bRenderPanelsWhenHidden = false;
 	// true면 호스트 창의 WindowPadding을 0으로 둔다.
 	bool bZeroHostPadding = false;
+	// true면 X로 닫아도 탭 객체를 지우지 않고 숨기기만 한다. RequestFocus로 다시 띄운다.
+	// (다른 에디터가 계속 참조하는 탭. 예: State Machine 에디터가 쓰는 Animation Preview 탭)
+	bool bKeepWhenClosed = false;
 };
 
 // 에셋 에디터 하나의 탭. 호스트 창 하나와 그 안의 DockSpace, 하위 패널들을 소유한다.
@@ -76,7 +79,11 @@ public:
 	bool IsOpen() const { return bOpen; }
 	// 닫혀 있거나 다른 탭에 가려졌으면 false다.
 	bool IsVisible() const { return bOpen && bHostVisible; }
-	void RequestFocus() { bFocusRequested = true; }
+	// 앞으로 가져온다. 숨겨 둔 탭(bKeepWhenClosed)이면 다시 연다.
+	void RequestFocus() { bOpen = true; bFocusRequested = true; }
+	// 숨기기만 한다. bKeepWhenClosed가 아닌 탭은 다음 RenderTabs에서 지워진다.
+	void Close() { bOpen = false; }
+	bool KeepWhenClosed() const { return Settings.bKeepWhenClosed; }
 	// 다음 Render에서 BuildDefaultLayout으로 배치를 다시 만든다.
 	void RequestLayoutReset() { bResetLayout = true; }
 
@@ -90,6 +97,8 @@ public:
 	virtual void ReleaseResources() {}
 
 protected:
+	// Render 맨 앞에서 탭이 보이든 가려지든 매 프레임 불린다. 지난 프레임의 표시·Hover 상태를 지울 때 쓴다.
+	virtual void OnPreRender() {}
 	// 호스트 창 안(메뉴바·툴바 자리)을 그린다. 창이 보일 때만 불린다.
 	virtual void DrawHostContents() {}
 	virtual ImGuiWindowFlags GetHostWindowFlags() const { return ImGuiWindowFlags_MenuBar; }

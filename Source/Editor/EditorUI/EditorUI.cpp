@@ -85,12 +85,16 @@ void FEditorUI::RenderTabs(const ImGuiID RootWorkspaceDockId)
 	// 배열이 재할당되면 범위 기반 for의 반복자가 무효가 되므로 인덱스로 돈다.
 	// 탭 객체 자체는 힙에 있어 재할당 뒤에도 그대로이고, 새로 붙은 탭은 같은 프레임에 이어서 그려진다.
 	for (int32 Index = 1; Index < Tabs.Num(); ++Index)
-		Tabs[Index]->Render(DefaultDockId);
+	{
+		// 숨겨 둔 탭(bKeepWhenClosed)은 다시 열 때까지 그리지 않는다.
+		if (Tabs[Index]->IsOpen())
+			Tabs[Index]->Render(DefaultDockId);
+	}
 
 	// 닫힌 탭은 그리기가 끝난 뒤에 지운다. 프리뷰 월드·GPU 타깃을 먼저 놓는다.
 	for (int32 Index = Tabs.Num() - 1; Index >= 1; --Index)
 	{
-		if (Tabs[Index]->IsOpen())
+		if (Tabs[Index]->IsOpen() || Tabs[Index]->KeepWhenClosed())
 			continue;
 		Tabs[Index]->ReleaseResources();
 		Tabs.RemoveAt(Index);
@@ -156,7 +160,6 @@ void FEditorUI::OnRender()
 				ImGui::DockBuilderSetNodeSize(rootDockId, rootSize);
 
 				ImGui::DockBuilderDockWindow("Level Editor", rootDockId);
-				ImGui::DockBuilderDockWindow("Skeletal Mesh Viewer", rootDockId);
 				ImGui::DockBuilderDockWindow("Blend Space Editor", rootDockId);
 				ImGui::DockBuilderDockWindow("State Machine Editor", rootDockId);
                 ImGui::DockBuilderDockWindow("AnimGraph Editor", rootDockId);

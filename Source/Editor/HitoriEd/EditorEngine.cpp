@@ -31,7 +31,7 @@
 #include "Render/RenderCommand.h"
 #include "Editor/Outliner/OutlinerPanel.h"
 #include "Editor/Sequence/SequencePanel.h"
-#include "Editor/SkeletalMeshViewer/SkeletalMeshViewerPanel.h"
+#include "Editor/SkeletalMeshViewer/SkeletalMeshViewerTab.h"
 #include "Editor/LevelEditor/LevelEditorTab.h"
 #include "Editor/ParticleSystem/ParticleSystemEditorTab.h"
 #include "Particles/ParticleSystem.h"
@@ -150,6 +150,9 @@ bool UEditorEngine::Init()
 	GizmoRenderer = MakeUnique<FGizmoRenderer>();
 	GizmoRenderer->Init(Renderer);
 
+	SkeletonRenderer = MakeUnique<FSkeletonRenderer>();
+	SkeletonRenderer->Init();
+
 	Gizmo = MakeUnique<FGizmo>();
 
 	FogRenderer = MakeUnique<FFogRenderer>();
@@ -250,26 +253,23 @@ bool UEditorEngine::Init()
 	{
 		OpenParticleSystemEditor(UAssetManager::GetAssetByPath<UParticleSystem>("DefaultParticleSystem"));
 	});
-	SkeletalMeshViewerPanel = EditorUI->AddEditorPanel<FSkeletalMeshViewerPanel>();
- StateMachineEditorPanel->SetViewer(SkeletalMeshViewerPanel);
- AnimGraphEditorPanel->SetViewer(SkeletalMeshViewerPanel);
+	// 스켈레탈 뷰어는 메시마다 탭 하나다. (OpenSkeletalMeshViewer)
+	// 아래 공유 뷰어는 State Machine·AnimGraph 에디터가 서비스로 쓰는 것이다. 미리보기를 띄우면 "Animation Preview" 탭이 이 뷰어를 빌려 보여 준다.
+	AnimationPreviewTab = EditorUI->AddTab<FSkeletalMeshViewerTab>(FString("SkeletalAnimationPreview"));
+	// 미리보기를 요청받기 전까지는 숨겨 둔다. 미리보기가 시작되면 탭이 스스로 다시 열린다. (RequestFocus)
+	if (AnimationPreviewTab)
+		AnimationPreviewTab->Close();
+	EditorUI->AddWindowMenuCommand("Open Skeletal Mesh Viewer", [this]() { OpenSkeletalMeshViewer(nullptr); });
+ StateMachineEditorPanel->SetViewer(AnimationPreviewTab);
+ AnimGraphEditorPanel->SetViewer(AnimationPreviewTab);
  AnimGraphEditorPanel->SetStateMachineTemplate(StateMachineEditorPanel);
  StateMachineEditorPanel->OpenHost=[this](){AnimGraphEditorPanel->SetOpen(true);};
  ContentDrawerPanel->SetOpenAnimGraphCallback([this](const FString& P){ AnimGraphEditorPanel->OpenAsset(P); });
  ContentDrawerPanel->SetCreateAnimGraphCallback([this](const FString& P){ AnimGraphEditorPanel->NewAsset(P); });
-	SkeletalMeshViewerPanel->SetOpenBlendSpaceEditorCallback([this](const FString& Path) { BlendSpaceEditorPanel->OpenAsset(Path); });
-	SkeletalMeshViewerPanel->SetRenderer(Renderer);
-	SkeletalMeshViewerPanel->SetGridRenderer(GridRenderer.get());
-	SkeletalMeshViewerPanel->SetGizmoRenderer(GizmoRenderer.get());
-	SkeletalMeshViewerPanel->SetToneMapRenderer(ToneMapRenderer.get());
-	DetailsPanel->SetOpenSkeletalMeshViewerCallback([this](USkeletalMesh* Mesh)
-	{
-		SkeletalMeshViewerPanel->OpenMesh(Mesh);
-	});
-	ContentDrawerPanel->SetOpenSkeletalMeshCallback([this](const FString& Path)
-	{
-		SkeletalMeshViewerPanel->OpenAsset(Path);
-	});
+	if (AnimationPreviewTab)
+	AnimationPreviewTab->Animation.SetOpenBlendSpaceEditorCallback([this](const FString& Path) { BlendSpaceEditorPanel->OpenAsset(Path); });
+	DetailsPanel->SetOpenSkeletalMeshViewerCallback([this](USkeletalMesh* Mesh) { OpenSkeletalMeshViewer(Mesh); });
+	ContentDrawerPanel->SetOpenSkeletalMeshCallback([this](const FString& Path) { OpenSkeletalMeshFile(Path); });
 	FSequencePanel* SequencePanel = EditorUI->GetLevelTab()->AddPanel<FSequencePanel>();
 	SequencePanel->SetSequenceActorProvider([this]() -> ASequenceActor*
 	{
@@ -500,8 +500,6 @@ void UEditorEngine::Tick(const float DeltaTime)
 			SceneTransitions->ProcessPendingTransition();
 	}
 	RenderAllViews();
-	SkeletalMeshViewerPanel->RenderPreview();
-    AnimGraphEditorPanel->RenderPreview();
 	EndFrame();
 }
 
@@ -668,8 +666,7 @@ void UEditorEngine::UpdateMultipleViewportState(const float DeltaTime)
 		SettingsPanel->GetMutableSettings().MultipleViewportsVertical = Ratio.Vertical;
 	}
 
-	if (SkeletalMeshViewerPanel->IsOpen() && SkeletalMeshViewerPanel->IsHoveredOrInteracting())
-		return;
+	// 에셋 에디터 탭(파티클·스켈레탈 뷰어)의 뷰포트를 조작 중이면 레벨 View 입력을 받지 않는다.
 	if (EditorUI->IsAnyTabHoveredOrInteracting())
 		return;
 
@@ -730,6 +727,8 @@ void UEditorEngine::RenderAllViews()
 	// 1. 그릴 화면 수집. 가려진 탭은 건너뛴다.
 	TArray<FEditorTabView> Views;
 	EditorUI->CollectTabViews(Views);
+	// AnimGraph 에디터는 탭이 아닌 기존 패널이라 문서별 미리보기 View를 따로 모은다.
+	AnimGraphEditorPanel->CollectPreviewViews(Views);
 	for (FEditorTabView& TabView : Views)
 	{
 		// 레벨 View는 자기 ID를 이미 가진다. 프리뷰처럼 비어 있으면 공용 프리뷰 ID를 준다.
@@ -1103,6 +1102,9 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 			RenderCommand::BeginRenderPass(ResumeInfo);
 		}
 
+		// 스켈레탈 프리뷰의 본 웨이트 히트맵: 정점별 웨이트를 VS t32에 묶는다. 앞의 깊이·데칼·라이트 컬링 패스가 슬롯을 덮어쓸 수 있어 그리기 직전에 묶는다.
+		if (View.BoneWeightHeatmap && View.BoneWeightHeatmapStatus == FBoneWeightHeatmap::StatusOn)
+			View.BoneWeightHeatmap->Bind();
 		Renderer->RenderOpaque(ViewProjection, DrawMeshParticle);
 		// 장면 Wireframe이 Grid·Gizmo·UI로 전파되지 않도록 복원한다.
 		RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
@@ -1270,7 +1272,9 @@ void UEditorEngine::RenderOverlayPass(const FEditorSceneView& View, UWorld& View
 	//그리드
 	//TODO : 그리드도 안개가 적용되어야하나..?
 	// 언리얼처럼 투영에 따라 방식을 고정한다. 원근은 PS 그리드, 직교는 보는 평면에 맞춘 배치 라인 그리드다.
-	if (bShowEditorOverlay && SettingsPanel->GetSettings().mShowGrid)
+	const bool bDrawGrid = View.GridMode == EViewGridMode::Show
+		|| (View.GridMode == EViewGridMode::FollowOverlay && bShowEditorOverlay && SettingsPanel->GetSettings().mShowGrid);
+	if (bDrawGrid)
 	{
 		const EGridPlane GridPlane = View.Client->GetGridPlane();
 
@@ -1291,6 +1295,17 @@ void UEditorEngine::RenderOverlayPass(const FEditorSceneView& View, UWorld& View
 				PassInfo.ViewportSetting
 			);
 		}
+	}
+
+	// 스켈레탈 프리뷰의 본과 본 Gizmo. (Week11처럼 프리뷰는 무엇을 그릴지만 View에 싣고, 그리기는 여기서 한다)
+	// 둘 다 장면 깊이를 지우고 그려서 메시에 가려지지 않는다.
+	if (View.Skeleton && SkeletonRenderer)
+		SkeletonRenderer->Render(*View.Skeleton, ViewProjection, PassInfo.DepthStencil.Texture);
+	if (View.PreviewGizmo && View.PreviewGizmo->GetTarget())
+	{
+		RenderCommand::ClearDepthStencil(PassInfo.DepthStencil.Texture);
+		RenderCommand::SetRasterizerState(ERasterizerState::SolidBack);
+		GizmoRenderer->OnRender(*View.PreviewGizmo, ViewProjection, ViewCameraLocation, View.IsOrthographic());
 	}
 
 	// Editor Icon (안개, Light Actor) + 빛 방향 Arrow
@@ -1467,7 +1482,8 @@ void UEditorEngine::RenderToneMapPass(const FEditorSceneView& View, UWorld& View
 
 	//HDR 장면 텍스처를 읽어서 LDR 뷰 텍스처에 ToneMap 결과를 그린다
 	RenderCommand::BeginRenderPass(PassInfo);
-	ToneMapRenderer->SetExposure(SettingsPanel->GetSettings().Exposure);
+	// 애셋 프리뷰는 자기 노출 값을 쓴다. (Preview Scene Settings의 Exposure)
+	ToneMapRenderer->SetExposure(View.ExposureOverride >= 0.0f ? View.ExposureOverride : SettingsPanel->GetSettings().Exposure);
 	const FVignetteSettings& Vignette = ViewWorld.GetVignetteSettings();
 	ToneMapRenderer->SetVignette(
 		Vignette.GetEffectiveIntensity(),
@@ -1497,8 +1513,6 @@ void UEditorEngine::RenderDepthPass(const FEditorSceneView& View, const FRenderi
 // 입력 View의 Ray와 피킹으로 Gizmo·공유 선택을 갱신한다.
 void UEditorEngine::UpdateGizmoAndPicking()
 {
-	if (SkeletalMeshViewerPanel->IsOpen() && SkeletalMeshViewerPanel->IsHoveredOrInteracting())
-		return;
 	if (EditorUI->IsAnyTabHoveredOrInteracting())
 		return;
 
@@ -1604,6 +1618,55 @@ void UEditorEngine::OpenParticleSystemEditor(UParticleSystem* Asset)
 		HTR_LOG(Error, "Failed to create particle system editor tab.");
 }
 
+void UEditorEngine::OpenSkeletalMeshViewer(USkeletalMesh* Mesh)
+{
+	// 같은 메시를 보고 있는 탭이 있으면 그 탭을 띄운다. 메시 없이 여는 빈 뷰어는 항상 새로 만든다.
+	TArray<int32> UsedSlots;
+	for (const TUniquePtr<FEditorTab>& Tab : EditorUI->GetTabs())
+	{
+		auto* SkeletalTab = dynamic_cast<FSkeletalMeshViewerTab*>(Tab.get());
+		if (!SkeletalTab || SkeletalTab->IsSharedPreviewTab())
+			continue;
+		if (Mesh && SkeletalTab->GetEditingAsset() == Mesh)
+		{
+			SkeletalTab->RequestFocus();
+			return;
+		}
+		UsedSlots.Add(SkeletalTab->GetSlot());
+	}
+
+	// 가장 작은 빈 번호를 쓴다. 닫았던 번호를 다시 쓰면 imgui.ini에 남은 그 탭의 패널 배치를 재사용한다.
+	int32 Slot = 0;
+	while (UsedSlots.Find(Slot) != INDEX_NONE)
+		++Slot;
+
+	FSkeletalMeshViewerTab* NewTab = EditorUI->AddTab<FSkeletalMeshViewerTab>(Slot, Mesh,
+		[this](USkeletalMesh* Requested) { OpenSkeletalMeshViewer(Requested); });
+	if (!NewTab)
+	{
+		HTR_LOG(Error, "Failed to create skeletal mesh viewer tab.");
+		return;
+	}
+	NewTab->Animation.SetOpenBlendSpaceEditorCallback([this](const FString& Path) { BlendSpaceEditorPanel->OpenAsset(Path); });
+}
+
+void UEditorEngine::OpenSkeletalMeshFile(const FString& Path)
+{
+	const FFbxAssetSet* Assets = UAssetManager::Get().LoadFbxAssets(Path);
+	if (!Assets)
+	{
+		HTR_LOG(Error, "Could not open FBX asset: {}", Path);
+		return;
+	}
+	if (!Assets->SkeletalMesh)
+	{
+		HTR_LOG(Info, "Imported {} static mesh assets from {}. This FBX has no skeletal mesh to preview.",
+			Assets->StaticMeshes.Num(), Path);
+		return;
+	}
+	OpenSkeletalMeshViewer(Assets->SkeletalMesh);
+}
+
 void UEditorEngine::OpenParticleSystemFile(const FString& Path)
 {
 	// 경로 → 에셋 키 변환과 "이미 불러왔으면 그 객체를 돌려주기"는 LoadParticleSystem이 맡는다.
@@ -1638,6 +1701,8 @@ void UEditorEngine::RenderFrame(const FEditorSceneView& View, UWorld& ViewWorld,
 	ViewConstants.CameraForward = ViewCameraForward;
 	// 패널과 별도 PIE 모두 해당 Client의 표시 상태를 전달한다.
 	ViewConstants.VisualizeShadowCascades = View.Client->GetShowFlags().IsEnabled(EEngineShowFlag::ShadowCascades) ? 1u : 0u;
+	// 스켈레탈 프리뷰의 본 웨이트 히트맵. 레벨 View는 0(꺼짐)이다.
+	ViewConstants.BoneWeightHeatmapStatus = View.BoneWeightHeatmapStatus;
 
 
 	// 작업 생성과 동일한 표시 조건으로 Directional 수신 데이터를 준비한다.
@@ -1691,6 +1756,8 @@ void UEditorEngine::RenderFrame(const FEditorSceneView& View, UWorld& ViewWorld,
 
 	// 준비한 View 상수를 장면 패스에 전달한다.
 	RenderOpaquePass(View, ViewRenderingInfo, ViewConstants, RenderQueue, ViewWorld);
+	if (View.BoneWeightHeatmap)
+		View.BoneWeightHeatmap->Unbind();
 
 	if (ShowFlags.IsEnabled(EEngineShowFlag::DepthView))
 	{
@@ -1747,9 +1814,12 @@ void UEditorEngine::PreExit()
 	DestroyPIEWindow();
 	if (AnimGraphEditorPanel) AnimGraphEditorPanel->ReleaseResources();
 	if (StateMachineEditorPanel) StateMachineEditorPanel->ReleaseResources();
-	SkeletalMeshViewerPanel->ReleaseResources();
-	// 프리뷰 월드는 전역 UObject 일괄 삭제 전에, 타깃은 Device 종료 전에 해제한다.
+	// 탭(애니메이션 미리보기 탭 포함)의 프리뷰 월드는 전역 UObject 일괄 삭제 전에, 타깃은 Device 종료 전에 해제한다.
+	// 미리보기 탭을 가리키던 에디터들은 먼저 끊는다.
+	if (StateMachineEditorPanel) StateMachineEditorPanel->SetViewer(nullptr);
+	if (AnimGraphEditorPanel) AnimGraphEditorPanel->SetViewer(nullptr);
 	EditorUI->ReleaseTabResources();
+	AnimationPreviewTab = nullptr;
 	// Panels outlive the global UObject sweep. Release the owned draft first
 	// so its unique_ptr cannot delete an already-destroyed UObject later.
 	if (BlendSpaceEditorPanel) BlendSpaceEditorPanel->ReleaseResources();

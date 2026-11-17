@@ -6,7 +6,7 @@
 #include "Animation/BlendSpace.h"
 #include "Asset/AssetManager.h"
 #include "Core/Misc/FileHelper.h"
-#include "Editor/SkeletalMeshViewer/SkeletalMeshViewerPanel.h"
+#include "Editor/SkeletalMeshViewer/SkeletalPreviewTabBase.h"
 #include "Render/Mesh.h"
 #include <algorithm>
 #include <cmath>
@@ -82,7 +82,7 @@ void FStateMachineEditorPanel::SetOpen(bool Open)
 		return;
 	}
 	if (!Open && Viewer)
-		Viewer->StopStateMachinePreview();
+		Viewer->Animation.StopStateMachinePreview();
 	if (!Open)
 		ClearContexts();
 	IEditorPanel::SetOpen(Open);
@@ -90,7 +90,7 @@ void FStateMachineEditorPanel::SetOpen(bool Open)
 void FStateMachineEditorPanel::ReleaseResources()
 {
 	if (Viewer)
-		Viewer->StopStateMachinePreview();
+		Viewer->Animation.StopStateMachinePreview();
 	ClearContexts();
 	Working = {};
 	Dirty = false;
@@ -125,7 +125,7 @@ void FStateMachineEditorPanel::LoadPending()
 			return;
 		}
 		if (Viewer)
-			Viewer->StopStateMachinePreview();
+			Viewer->Animation.StopStateMachinePreview();
 		Working = a->Data;
 		Path = PendingPath;
 		PendingPath.clear();
@@ -134,7 +134,7 @@ void FStateMachineEditorPanel::LoadPending()
 	else if (!PendingFolder.empty())
 	{
 		if (Viewer)
-			Viewer->StopStateMachinePreview();
+			Viewer->Animation.StopStateMachinePreview();
 		Working = {};
 		Path.clear();
 		auto p = FFileHelper::ToUtf8Path(FFileHelper::ToNativePath(PendingFolder) / "NewStateMachine.animsm");
@@ -327,10 +327,10 @@ void FStateMachineEditorPanel::DrawPreview()
 	{
 		if (Working.CompileRules(Error) && Working.Validate(Error))
 		{
-			Viewer->PreviewStateMachine(Working, Error);
+			Viewer->Animation.PreviewStateMachine(Working, Error);
 		}
 	}
-	auto *instance = Viewer ? Viewer->GetStateMachinePreview() : nullptr;
+	auto *instance = Viewer ? Viewer->Animation.GetStateMachinePreview() : nullptr;
 	if (!instance)
 		return;
 	ImGui::SameLine();
@@ -467,7 +467,7 @@ void FStateMachineEditorPanel::OnRender()
 				IEditorPanel::SetOpen(false);
 				ClearContexts();
 				if (Viewer)
-					Viewer->StopStateMachinePreview();
+					Viewer->Animation.StopStateMachinePreview();
 			}
 			else
 				LoadPending();
@@ -567,7 +567,7 @@ void FStateMachineEditorPanel::ResolveObservation()
 	}
 	else
 	{
-		auto *instance = Viewer ? Viewer->GetStateMachinePreview() : nullptr;
+		auto *instance = Viewer ? Viewer->Animation.GetStateMachinePreview() : nullptr;
 		if (!instance)
 		{
 			ObservationMessage = "Apply this graph to 3D Preview to observe playback.";

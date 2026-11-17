@@ -4,7 +4,7 @@
 #include "Asset/AssetManager.h"
 #include "Animation/AnimSequence.h"
 #include "Render/Mesh.h"
-#include "Editor/SkeletalMeshViewer/SkeletalMeshViewerPanel.h"
+#include "Editor/SkeletalMeshViewer/SkeletalPreviewTabBase.h"
 #include "imgui_node_editor.h"
 #include "Editor/AnimGraphEditor/AnimationEditorStyle.h"
 #include "Core/Misc/FileHelper.h"

@@ -43,6 +43,7 @@ public:
 	class FLevelEditorTab* GetLevelTab() const;
 	bool IsAnyTabHoveredOrInteracting() const;
 	void CollectTabViews(TArray<FEditorTabView>& OutViews) const;
+	void RenderTabCustomPreviews() const;
 	// 엔진 종료 시 UObject 일괄 삭제와 Device 종료 전에 부른다.
 	void ReleaseTabResources();
 

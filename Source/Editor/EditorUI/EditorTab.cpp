@@ -30,6 +30,8 @@ bool FEditorTab::NeedsLayoutRebuild(const ImGuiDockNode* Node) const
 
 void FEditorTab::Render(const ImGuiID DefaultDockId)
 {
+	OnPreRender();
+
 	const FString WindowName = GetWindowName();
 
 	ImGui::SetNextWindowSize(ImVec2(1280, 800), ImGuiCond_FirstUseEver);

@@ -9,6 +9,7 @@
 #include "Render/Swapchain.h"
 #include "Editor/EditorUI/ImGuiRenderer.h"
 #include "Editor/Rendering/GridRenderer.h"
+#include "Editor/Rendering/SkeletonRenderer.h"
 #include "Editor/Gizmo/GizmoRenderer.h"
 #include "Render/LineBatcher.h"
 #include "Render/FogRenderer.h"
@@ -28,6 +29,7 @@
 #include "Editor/EditorControls/EditorControlsPanel.h"
 #include "Editor/Settings/SettingsPanel.h"
 #include "Editor/Viewports/ViewportsPanel.h"
+#include "Editor/SkeletalMeshViewer/SkeletalMeshViewerTab.h"
 #include "Editor/HitoriEd/EditorSceneView.h"
 #include "Editor/ContentDrawer/ContentDrawerPanel.h"
 
@@ -46,7 +48,8 @@
 #include "Text/Font.h"
 #include "Text/TextRenderer.h"
 
-class FSkeletalMeshViewerPanel;
+class FSkeletalMeshViewerTab;
+class USkeletalMesh;
 class FBlendSpaceEditorPanel;
 class FStateMachineEditorPanel;
 class FAnimGraphEditorPanel;
@@ -150,6 +153,11 @@ private:
 	void OpenParticleSystemEditor(UParticleSystem* Asset);
 	// 콘텐츠 드로어의 .particle 더블클릭. 파일을 불러온 뒤 OpenParticleSystemEditor로 넘긴다.
 	void OpenParticleSystemFile(const FString& Path);
+	// 스켈레탈 메시 뷰어 탭을 연다. 같은 메시를 보고 있는 탭이 있으면 그 탭을 띄운다. Mesh가 nullptr이면 빈 뷰어 탭을 연다.
+	void OpenSkeletalMeshViewer(USkeletalMesh* Mesh);
+	// 콘텐츠 드로어의 FBX 더블클릭. 스켈레탈 메시가 있으면 그 탭을 연다.
+	void OpenSkeletalMeshFile(const FString& Path);
+	// 공유 뷰어(State Machine 미리보기)를 보여 주는 Animation Preview 탭을 연다.
 
 	//Icon Pass
 	void RenderIconPass(int32 ViewIndex, UWorld& ViewWorld, const FRenderingInfo& ViewRenderingInfo, const FMatrix& ViewProjection, const FVector& ViewCameraLocation, const FVector& ViewCameraForward, FRenderQueue& RenderIconQueue, FRenderQueue& ArrowQueue);
@@ -172,6 +180,8 @@ private:
 	TUniquePtr<FImGuiRenderer> ImGuiRenderer;
 	TUniquePtr<FGridRenderer> GridRenderer;
 	TUniquePtr<FGizmoRenderer> GizmoRenderer;
+	// 소유(합성): 스켈레탈 프리뷰 View의 본을 그린다. (예전에는 스켈레탈 뷰어가 직접 그렸다)
+	TUniquePtr<FSkeletonRenderer> SkeletonRenderer;
 	TUniquePtr<FTextRenderer> TextRenderer;
 	TUniquePtr<FFogRenderer> FogRenderer;
 	TUniquePtr<FDecalRenderer> DecalRenderer;
@@ -206,7 +216,8 @@ private:
 	FBlendSpaceEditorPanel* BlendSpaceEditorPanel = nullptr;
  FAnimGraphEditorPanel* AnimGraphEditorPanel = nullptr;
  FStateMachineEditorPanel* StateMachineEditorPanel = nullptr;
-	FSkeletalMeshViewerPanel* SkeletalMeshViewerPanel = nullptr;
+	// 참조(집약): State Machine·AnimGraph 에디터가 쓰는 애니메이션 미리보기 탭. EditorUI가 소유하고, 닫아도 숨기기만 한다.
+	FSkeletalMeshViewerTab* AnimationPreviewTab = nullptr;
 
 	UWorld* EditorWorld = nullptr;
 	UWorld* PlayWorld = nullptr;
