@@ -12,7 +12,7 @@ namespace
 {
 	constexpr uint32 BakeMagic = 0x4B424B53; // SKBK
 	// 바이너리 형식이나 FBX 임포트·쿠킹 규칙이 바뀌면 버전을 올린다.
-	constexpr uint32 BakeVersion = 4;
+	constexpr uint32 BakeVersion = 5;
 
 	class FBakeReader
 	{
