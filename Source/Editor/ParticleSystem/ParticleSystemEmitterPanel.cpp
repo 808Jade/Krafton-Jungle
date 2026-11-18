@@ -31,6 +31,7 @@
 #include "Particles/Modules/ParticleModuleEventGenerator.h"
 #include "Particles/Modules/ParticleModuleDrag.h"
 #include "Particles/Modules/ParticleModuleVelocityRadial.h"
+#include "Particles/Modules/ParticleModuleLight.h"
 #include "Particles/Modules/ParticleModuleSubUV.h"
 #include "Particles/Modules/ParticleModuleSubUVMovie.h"
 
@@ -60,6 +61,7 @@ namespace
 		{ "Color",         "Initial Color",         [] { return UParticleModuleColor::StaticClass(); } },
 		{ "Lifetime",      "Lifetime",              [] { return UParticleModuleLifetime::StaticClass(); } },
 		{ "Location",      "Initial Location",      [] { return UParticleModuleLocation::StaticClass(); } },
+		{ "Light",         "Light",                 [] { return UParticleModuleLight::StaticClass(); } },
 		{ "Rotation",      "Initial Rotation",      [] { return UParticleModuleRotation::StaticClass(); } },
 		{ "Rotation Rate", "Initial Rotation Rate", [] { return UParticleModuleRotationRate::StaticClass(); } },
 		{ "Size",          "Initial Size",          [] { return UParticleModuleSize::StaticClass(); } },
@@ -109,6 +111,7 @@ namespace
 		{ "UParticleModuleSizeScaleBySpeed", "Size By Speed" },
 		{ "UParticleModuleEventGenerator", "Event Generator" },
 		{ "UParticleModuleDrag", "Drag" },
+		{ "UParticleModuleLight", "Light" },
 		{ "UParticleModuleVelocityRadial", "Radial Velocity" },
 		{ "UParticleModuleEventReceiverSpawn", "Event Receiver Spawn" },
 		{ "UParticleModuleEventReceiverKillAll", "Event Receiver Kill All" },

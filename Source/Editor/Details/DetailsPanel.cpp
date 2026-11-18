@@ -789,7 +789,9 @@ namespace
 
 					const char* BlendItems[] = { "Opaque", "Alpha Blend" };
 					int BlendIndex = Effective ? static_cast<int>(Effective->BlendState) : static_cast<int>(EBlendState::Opaque);
-					if (ImGui::BeginCombo("##BlendState", BlendItems[BlendIndex]))
+					// 파티클 전용 재질은 Additive(3)일 수 있다. 목록에 없는 상태도 이름만은 안전하게 보여 준다.
+					const char* BlendPreviewNames[] = { "Opaque", "Alpha Blend", "No Color Write", "Additive" };
+					if (ImGui::BeginCombo("##BlendState", BlendPreviewNames[std::clamp(BlendIndex, 0, 3)]))
 					{
 						for (int i = 0; i < IM_ARRAYSIZE(BlendItems); ++i)
 						{

@@ -491,7 +491,9 @@ float FAnimNode_BlendSpacePlayer::GetEffectivePlayLength() const
 	if (BlendSpace == nullptr)
 		return 0.0f;
 
-	return BlendSpace->GetEffectivePlayLength(SampleWeights);
+	// 속도 동기화가 켜져 있으면 실제 이동 속도에 맞게 빨리(느리게) 돌도록 길이를 배율로 나눈다.
+	const float Length = BlendSpace->GetEffectivePlayLength(SampleWeights);
+	return Length / BlendSpace->GetSyncedPlayRate(SampleWeights, AppliedX);
 }
 
 void FAnimNode_BlendSpacePlayer::Evaluate(FPoseContext& Output)

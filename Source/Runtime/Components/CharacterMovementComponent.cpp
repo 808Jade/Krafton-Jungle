@@ -9,6 +9,7 @@
 #include "Engine/Level.h"
 #include "GameFramework/Actor/Character.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/CapsuleComponent.h"
 
 #include <algorithm>
 #include <cmath>
@@ -107,6 +108,7 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime)
 	};
 
 	UpdateGroundedState();
+	const bool bWasGrounded = bIsGrounded;
 
 	// --------------------------------------------------
 	// 1. 수평 가속·감속
@@ -186,6 +188,12 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime)
 		}
 	}
 
+	// 바닥 메시 위를 걷는 중이면 그 표면 높이를 따라간다. (오르막·내리막·움푹 팬 곳)
+	if (bWasGrounded && (HorizontalDelta.X != 0.0f || HorizontalDelta.Y != 0.0f))
+	{
+		FollowMeshFloor(PreviousLocation);
+	}
+
 	const FVector HorizontalMoved =
 	    UpdatedComponent->GetWorldLocation() - PreviousLocation;
 
@@ -255,6 +263,12 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime)
 			// 걸을 수 있는 바닥인지는 아래에서 별도 판정한다.
 			Velocity.Z = 0.0f;
 		}
+	}
+
+	// 바닥 메시는 Shape가 아니라서 위의 Sweep에 걸리지 않는다. 떨어지다 표면 아래로 내려갔으면 표면에 세운다.
+	if (VerticalDelta < 0.0f && LandOnMeshFloor(-VerticalDelta))
+	{
+		Velocity.Z = 0.0f;
 	}
 
 	// --------------------------------------------------
@@ -554,8 +568,97 @@ void UCharacterMovementComponent::UpdateGroundedState()
 
 	FHitResult FloorHit;
 
-	if (!FindFloor(FloorHit))
+	if (FindFloor(FloorHit) && FloorHit.Distance <= GroundContactDistance)
+	{
+		bIsGrounded = true;
+		return;
+	}
+
+	// Shape 바닥이 없으면 바닥 메시의 표면을 본다. 표면이 캡슐 바닥보다 조금 위여도(한 걸음 이내) 서 있는 것으로 본다.
+	float Gap = 0.0f;
+	bool bWalkable = false;
+	if (FindMeshFloor(MaxStepHeight, GroundProbeDistance, Gap, bWalkable) && bWalkable)
+	{
+		bIsGrounded = Gap <= GroundContactDistance;
+	}
+}
+
+bool UCharacterMovementComponent::FindMeshFloor(float UpReach, float DownReach, float& OutGap, bool& bOutWalkable) const
+{
+	OutGap = 0.0f;
+	bOutWalkable = false;
+
+	if (!bWalkOnBlockingMeshes)
+		return false;
+
+	UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(UpdatedComponent);
+	UWorld* World = Capsule ? Capsule->GetWorld() : nullptr;
+	if (!World)
+		return false;
+
+	const float Radius = Capsule->GetScaledCapsuleRadius() * MeshFloorProbeRadiusScale;
+	const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
+	if (!(Radius > 0.0f) || !(HalfHeight > Radius) || !std::isfinite(UpReach) || !std::isfinite(DownReach))
+		return false;
+
+	// 아래쪽 끝이 캡슐 바닥에 닿는 구의 중심에서 위로 UpReach, 아래로 DownReach까지 쓸어 내린다.
+	const FVector Center = Capsule->GetWorldLocation();
+	const FVector Foot(Center.X, Center.Y, Center.Z - HalfHeight + Radius);
+	const FVector Start(Foot.X, Foot.Y, Foot.Z + UpReach);
+	const FVector End(Foot.X, Foot.Y, Foot.Z - DownReach);
+
+	FHitResult Hit;
+	if (!World->SweepSphereSingle(Start, End, Radius, Hit, GetOwner(), true) || Hit.bStartPenetrating)
+		return false;
+
+	const float SphereZ = Start.Z + (End.Z - Start.Z) * Hit.Time;
+	OutGap = Foot.Z - SphereZ;
+
+	const float NormalLength = Hit.ImpactNormal.Length();
+	if (!std::isfinite(OutGap) || !(NormalLength > 0.000001f))
+		return false;
+
+	bOutWalkable = Hit.ImpactNormal.Z / NormalLength >= WalkableFloorZ;
+	return true;
+}
+
+void UCharacterMovementComponent::FollowMeshFloor(const FVector& LocationBeforeMove)
+{
+	UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(UpdatedComponent);
+	if (!Capsule)
 		return;
 
-	bIsGrounded = FloorHit.Distance <= GroundContactDistance;
+	// 캡슐 높이만큼 위에서부터 보면, 이번 이동으로 표면 아래에 묻힌 경우에도 표면을 찾는다.
+	float Gap = 0.0f;
+	bool bWalkable = false;
+	if (!FindMeshFloor(Capsule->GetScaledCapsuleHalfHeight() * 2.0f, FloorSnapDistance, Gap, bWalkable))
+		return; // 바닥 메시가 없거나 한 번에 따라갈 수 없을 만큼 꺼졌다 → Box 바닥이나 낙하 처리에 맡긴다.
+
+	FVector Location = UpdatedComponent->GetWorldLocation();
+
+	// 한 걸음보다 높은 턱이나, 캡슐 바닥보다 위에 있는 가파른 면은 벽처럼 막는다.
+	if (Gap < -MaxStepHeight || (!bWalkable && Gap < 0.0f))
+	{
+		UpdatedComponent->SetWorldLocation(FVector(LocationBeforeMove.X, LocationBeforeMove.Y, Location.Z), false);
+		return;
+	}
+	if (!bWalkable || Gap > FloorSnapDistance)
+		return;
+
+	Location.Z -= Gap;
+	UpdatedComponent->SetWorldLocation(Location, false);
+}
+
+bool UCharacterMovementComponent::LandOnMeshFloor(float FallDistance)
+{
+	// 이번 프레임에 내려온 거리에 한 걸음을 더한 높이부터 캡슐 바닥까지 본다.
+	float Gap = 0.0f;
+	bool bWalkable = false;
+	if (!FindMeshFloor(FallDistance + MaxStepHeight, 0.0f, Gap, bWalkable) || !bWalkable || Gap > 0.0f)
+		return false;
+
+	FVector Location = UpdatedComponent->GetWorldLocation();
+	Location.Z -= Gap;
+	UpdatedComponent->SetWorldLocation(Location, false);
+	return true;
 }

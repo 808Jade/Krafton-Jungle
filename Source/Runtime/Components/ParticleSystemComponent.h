@@ -5,7 +5,7 @@
 #include "Particles/ParticleEmitterInstance.h"
 #include "Particles/ParticleSystem.h"
 #include "ParticleSystemComponent.generated.h"
-
+class UPointLightComponent;
  UCLASS()
 class UParticleSystemComponent : public UPrimitiveComponent
 {
@@ -44,7 +44,24 @@ public:
 	// 이벤트가 만들어진 다음 프레임에 반응하므로 이미터 갱신 순서와 상관없이 같은 결과가 나온다.
 	const TArray<FParticleCollisionEvent>& GetReceivedCollisionEvents() const { return ReceivedCollisionEvents; }
 
+	// 한 컴포넌트가 동시에 켤 수 있는 파티클 라이트(Light 모듈)의 최대 개수. 라이트 하나하나가 렌더 비용이라 상한을 둔다.
+	static constexpr int32 MaxParticleLights = 64;
+
+	// Light 모듈이 부르는 함수. 이번 프레임에 쓸 포인트 라이트를 풀에서 하나 빌려 준다. (켜 둔 상태로 돌려주고, 위치·색·세기는 부른 쪽이 정한다)
+	// 풀이 가득 차면 nullptr이다. 이번 프레임에 빌려 가지 않은 라이트는 프레임 끝에 꺼진다.
+	// 풀의 라이트는 이 컴포넌트가 소유하는 런타임 전용 컴포넌트라 액터의 컴포넌트 목록(씬 저장)에 들어가지 않고, 그림자도 만들지 않는다.
+	UPointLightComponent* AcquireParticleLight();
+
+protected:
+	void OnUnregister() override;
+
 private:
+	void BeginParticleLights();
+	void EndParticleLights();
+	void DestroyParticleLights();
+	TArray<UPointLightComponent*> ParticleLights;
+	int32 ParticleLightsUsed = 0;
+
 	void FlushCollisionEvents();
 	void RefreshEventReceivers();
 	// 이번 프레임에 쌓이는 이벤트와, 직전 프레임에 만들어져 Event Receiver가 읽는 이벤트

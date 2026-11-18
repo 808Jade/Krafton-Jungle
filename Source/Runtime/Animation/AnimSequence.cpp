@@ -208,6 +208,42 @@ void UAnimSequence::BuildFromTracks(const FFrameRate& FrameRate, int32 NumFrames
 	}
 	// 트랙 순서가 바뀌었으니 같은 메시라도 본→트랙 맵을 다시 만들게 한다.
 	CachedMesh = nullptr;
+	CachedRootMotionSpeed = -1.0f;
+}
+
+float UAnimSequence::GetRootMotionSpeed() const
+{
+	if (CachedRootMotionSpeed >= 0.0f)
+	{
+		return CachedRootMotionSpeed;
+	}
+	CachedRootMotionSpeed = 0.0f;
+
+	const USkeletalMesh* Mesh = GetSkeletalMesh();
+	const float Length = DataModel ? GetPlayLength() : 0.0f;
+	if (!Mesh || !std::isfinite(Length) || Length <= 0.0f)
+	{
+		return CachedRootMotionSpeed;
+	}
+	if (CachedMesh != Mesh)
+	{
+		RebuildBoneTrackMap(*Mesh);
+	}
+	if (RootBoneIndex < 0 || BoneToTrackIndex[RootBoneIndex] < 0)
+	{
+		return CachedRootMotionSpeed;
+	}
+
+	FVector StartPos, EndPos;
+	FQuat StartRot, EndRot;
+	SampleRootTransform(0.0f, StartPos, StartRot);
+	SampleRootTransform(Length, EndPos, EndRot);
+	const float Distance = (EndPos - StartPos).Length();
+	if (std::isfinite(Distance))
+	{
+		CachedRootMotionSpeed = Distance / Length;
+	}
+	return CachedRootMotionSpeed;
 }
 
 FRootMotionParams UAnimSequence::ExtractRootMotion(const USkeletalMesh& Mesh, float StartTime, float DeltaTime, bool bLoop) const

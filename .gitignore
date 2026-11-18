@@ -441,14 +441,16 @@ FodyWeavers.xsd
 imgui.ini
 editor.ini
 
-# 3D .obj 파일은 커밋 허용
+# 3D .obj ?뚯씪? 而ㅻ컠 ?덉슜
 !Assets/**/*.obj
 
-# Bake 결과 (실행 시 자동 생성, 원본을 수정하면 지우고 다시 실행)
+# Bake 寃곌낵 (?ㅽ뻾 ???먮룞 ?앹꽦, ?먮낯???섏젙?섎㈃ 吏?곌퀬 ?ㅼ떆 ?ㅽ뻾)
 *.obj.bin
 *.fbx.bin
+# FBX SDK가 임포트할 때 FBX에 내장된 텍스처를 꺼내 두는 폴더 (실행 시 자동 생성)
+*.fbm/
 
-# 셰이더 컴파일 캐시 (실행 시 자동 생성)
+# ?곗씠??而댄뙆??罹먯떆 (?ㅽ뻾 ???먮룞 ?앹꽦)
 /Intermediate/
 
 # vcpkg generated dependencies

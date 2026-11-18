@@ -308,6 +308,7 @@ void UAssetManager::Init(const FAssetLoadProgress& OnProgress)
 	Get().CreateDefaultMeshes();
 	Get().CreateParticleMaterial();
 	Get().CreateDefaultParticleMaterial();
+	Get().CreateParticleEffectMaterials();
 	Get().CreateDefaultParticleSystem();
 	// .particle은 기본 메시·머티리얼을 참조하므로 그것들이 등록된 뒤에 읽는다.
 	Get().LoadParticleSystemAssets("Assets");
@@ -523,6 +524,71 @@ void UAssetManager::CreateDefaultParticleMaterial()
 	DefaultParticleMat->DepthStencilState = EDepthStencilState::ReadOnly;
 	DefaultParticleMat->SamplerState = ESamplerState::LinearClamp;
 	RegisterAsset("DefaultParticleMaterial", DefaultParticleMat);
+}
+
+// 파티클 이미터가 이름으로 고를 수 있는 효과용 재질. .particle은 재질을 이름 문자열로만 참조하므로 여기서 등록한다.
+// 텍스처는 Assets/Textures/Particle/에 둔다. 흰색 RGB + 알파로 모양만 담고, 색은 Color 모듈이 입힌다.
+//
+//  SubUVAdditiveMaterial     별빛 스프라이트(SubUVMaterial과 같은 텍스처)를 Additive로. 겹칠수록 밝아지는 불꽃·불똥용
+//  GlowAdditiveMaterial      부드러운 원형 글로우. 섬광·후광·번쩍임용
+//  RainStreakMaterial        가는 빗줄기(AlphaBlend). Velocity 정렬 스프라이트에서 텍스처 위쪽이 이동 방향이다
+//  LightningGlowMaterial     Beam/Ribbon용 폭 방향 글로우 띠(Additive). U는 길이, V는 폭 방향이다
+//  LightningBoltAtlasMaterial 가지 친 번개 4종 아틀라스 2x2(Additive). Required의 SubImages를 2x2로 쓴다
+//  Fire1~5Material           불길 4x4 스프라이트 시트(Additive). 1·2 주황·빨강, 3 밝은 노랑 심지, 4·5 가는 불길. SubImages 4x4
+//  SmokeAtlasMaterial        연기 뭉치 4종 아틀라스 2x2(AlphaBlend). 색 모듈로 회색을 입힌다
+void UAssetManager::CreateParticleEffectMaterials()
+{
+	UMaterial* SubUVBase = GetAssetByPath<UMaterial>("SubUVMaterial");
+	if (!SubUVBase)
+	{
+		return;
+	}
+
+	const auto Register = [&](const char* Name, const char* TexturePath, EBlendState Blend)
+	{
+		UTexture2D* Texture = TexturePath ? GetAssetByPath<UTexture2D>(TexturePath) : nullptr;
+		if (!Texture && TexturePath)
+		{
+			Texture = LoadTexture(TexturePath);
+		}
+		if (!Texture && TexturePath)
+		{
+			HTR_LOG(Warning, "[Particle] texture '{}' not found for material '{}', using the white texture", TexturePath, Name);
+		}
+		if (!Texture)
+		{
+			Texture = GetAssetByPath<UTexture2D>("WhiteTexture");
+		}
+
+		UMaterial* Material = UMaterial::CreateInstance(SubUVBase);
+		Material->Textures.Reset();
+		Material->Textures.Add(Texture);
+		Material->SetBlendState(Blend);
+		Material->DepthStencilState = EDepthStencilState::ReadOnly;
+		Material->SamplerState = ESamplerState::LinearClamp;
+		RegisterAsset(Name, Material);
+	};
+
+	// 기존 별빛 스프라이트를 그대로 쓰되 블렌드만 Additive
+	{
+		UMaterial* Material = UMaterial::CreateInstance(SubUVBase);
+		Material->SetBlendState(EBlendState::Additive);
+		Material->DepthStencilState = EDepthStencilState::ReadOnly;
+		Material->SamplerState = ESamplerState::LinearClamp;
+		RegisterAsset("SubUVAdditiveMaterial", Material);
+	}
+	Register("GlowAdditiveMaterial", "Assets/Textures/Particle/SoftGlow.png", EBlendState::Additive);
+	Register("RainStreakMaterial", "Assets/Textures/Particle/RainStreak.png", EBlendState::AlphaBlend);
+	Register("LightningGlowMaterial", "Assets/Textures/Particle/LightningGlow.png", EBlendState::Additive);
+	Register("LightningBoltAtlasMaterial", "Assets/Textures/Particle/LightningBoltAtlas.png", EBlendState::Additive);
+	for (int32 Index = 1; Index <= 5; ++Index)
+	{
+		// Fire1~5: 4x4 불길 스프라이트 시트(검은 배경 JPG). Additive라 검은 부분은 더해지지 않는다
+		const FString Name = "Fire" + std::to_string(Index) + "Material";
+		const FString Path = "Assets/Textures/Particle/Fire" + std::to_string(Index) + ".jpg";
+		Register(Name.c_str(), Path.c_str(), EBlendState::Additive);
+	}
+	Register("SmokeAtlasMaterial", "Assets/Textures/Particle/SmokeAtlas.png", EBlendState::AlphaBlend);
 }
 
 void UAssetManager::CreateDefaultParticleSystem()

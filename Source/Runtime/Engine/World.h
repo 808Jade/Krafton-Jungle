@@ -176,7 +176,8 @@ public:
 	// 성공하면 OutHit에 Time(0~1), Distance(월드 길이), Location(닿는 순간의 구 중심), ImpactPoint(표면 위의 점),
 	// 표면에서 구 쪽을 향하는 월드 법선(Normal/ImpactNormal), HitComponent를 채운다.
 	// 시작부터 겹쳐 있는 경우는 구가 면 쪽으로 움직일 때만 bStartPenetrating 충돌(Time 0)로 알린다. 반경이 0 이하이면 LineTraceSegment로 처리한다.
-	bool SweepSphereSingle(const FVector& Start, const FVector& End, float Radius, FHitResult& OutHit, const AActor* IgnoreActor = nullptr);
+	// bBlockingOnly: bBlockComponent가 켜진 메시만 본다. (캐릭터가 밟는 바닥 메시처럼 충돌하라고 지정한 메시)
+	bool SweepSphereSingle(const FVector& Start, const FVector& End, float Radius, FHitResult& OutHit, const AActor* IgnoreActor = nullptr, bool bBlockingOnly = false);
 
 	void BeginPlay();
 	void EndPlay();

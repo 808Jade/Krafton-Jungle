@@ -4,6 +4,7 @@
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModule.h"
+#include "Components/PointLightComponent.h"
 #include "Engine/ParticleSystemSceneProxy.h"
 
 #include "Asset/AssetManager.h"
@@ -24,6 +25,73 @@ UParticleSystemComponent::UParticleSystemComponent()
 UParticleSystemComponent::~UParticleSystemComponent()
 {
 	ResetParticles();
+	DestroyParticleLights();
+}
+
+UPointLightComponent* UParticleSystemComponent::AcquireParticleLight()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	if (ParticleLightsUsed >= ParticleLights.Num())
+	{
+		if (ParticleLights.Num() >= MaxParticleLights)
+		{
+			return nullptr;
+		}
+
+		// 액터의 컴포넌트 목록에 넣지 않고 월드에만 등록한다. 씬 저장에 들어가지 않는다.
+		UPointLightComponent* NewLight = NewObject<UPointLightComponent>(this);
+		NewLight->SetCastShadows(false);
+		NewLight->RegisterComponentWithWorld(World);
+		ParticleLights.Add(NewLight);
+	}
+
+	UPointLightComponent* Light = ParticleLights[ParticleLightsUsed++];
+	Light->SetVisibility(true);
+	return Light;
+}
+
+void UParticleSystemComponent::BeginParticleLights()
+{
+	ParticleLightsUsed = 0;
+}
+
+void UParticleSystemComponent::EndParticleLights()
+{
+	// 이번 프레임에 빌려 가지 않은 라이트는 끈다. (칸은 유지하고 영향만 없앤다)
+	for (int32 i = ParticleLightsUsed; i < ParticleLights.Num(); ++i)
+	{
+		ParticleLights[i]->SetVisibility(false);
+	}
+}
+
+void UParticleSystemComponent::DestroyParticleLights()
+{
+	for (UPointLightComponent* Light : ParticleLights)
+	{
+		if (!Light)
+		{
+			continue;
+		}
+		if (Light->IsRegistered())
+		{
+			Light->UnregisterComponent();
+		}
+		delete Light;
+	}
+	ParticleLights.Empty();
+	ParticleLightsUsed = 0;
+}
+
+void UParticleSystemComponent::OnUnregister()
+{
+	// 월드가 아직 살아 있을 때 라이트를 씬에서 뺀다. (소멸자에서는 월드가 이미 없을 수 있다)
+	DestroyParticleLights();
+	Super::OnUnregister();
 }
 
 void UParticleSystemComponent::TickComponent(float DeltaTime)
@@ -47,10 +115,12 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 		InitParticles();
 	}
 
+	BeginParticleLights();
 	for (auto* EmitterInstance : EmitterInstances)
 	{
 		EmitterInstance->Tick(DeltaTime);
 	}
+	EndParticleLights();
 
 	// 이번 프레임에 모인 충돌 이벤트는 모든 이미터 갱신이 끝난 뒤에 전달한다.
 	FlushCollisionEvents();

@@ -294,6 +294,48 @@
                                         "bEnabled": true
                                     }
                                 }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF200",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 4.0,
+                                        "MaxLights": 6,
+                                        "MaxRadius": 7.0,
+                                        "RadiusScale": 14.0,
+                                        "SpawnFraction": 1.0,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": false,
+                                        "bUseBrightnessOverLife": false,
+                                        "bUseParticleColor": true
+                                    }
+                                }
                             }
                         ],
                         "ObjectLabel": "UParticleLODLevel_FF11",
@@ -614,6 +656,48 @@
                                         "TrailEventName": "RocketTrail",
                                         "TrailRate": 60.0,
                                         "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF201",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 4.0,
+                                        "MaxLights": 6,
+                                        "MaxRadius": 7.0,
+                                        "RadiusScale": 14.0,
+                                        "SpawnFraction": 1.0,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": false,
+                                        "bUseBrightnessOverLife": false,
+                                        "bUseParticleColor": true
                                     }
                                 }
                             }
@@ -938,6 +1022,48 @@
                                         "bEnabled": true
                                     }
                                 }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF202",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 4.0,
+                                        "MaxLights": 6,
+                                        "MaxRadius": 7.0,
+                                        "RadiusScale": 14.0,
+                                        "SpawnFraction": 1.0,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": false,
+                                        "bUseBrightnessOverLife": false,
+                                        "bUseParticleColor": true
+                                    }
+                                }
                             }
                         ],
                         "ObjectLabel": "UParticleLODLevel_FF33",
@@ -1258,6 +1384,48 @@
                                         "TrailEventName": "RocketTrail",
                                         "TrailRate": 60.0,
                                         "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF203",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 4.0,
+                                        "MaxLights": 6,
+                                        "MaxRadius": 7.0,
+                                        "RadiusScale": 14.0,
+                                        "SpawnFraction": 1.0,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": false,
+                                        "bUseBrightnessOverLife": false,
+                                        "bUseParticleColor": true
                                     }
                                 }
                             }
@@ -1582,6 +1750,48 @@
                                         "bEnabled": true
                                     }
                                 }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF204",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 4.0,
+                                        "MaxLights": 6,
+                                        "MaxRadius": 7.0,
+                                        "RadiusScale": 14.0,
+                                        "SpawnFraction": 1.0,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": false,
+                                        "bUseBrightnessOverLife": false,
+                                        "bUseParticleColor": true
+                                    }
+                                }
                             }
                         ],
                         "ObjectLabel": "UParticleLODLevel_FF55",
@@ -1902,6 +2112,48 @@
                                         "TrailEventName": "RocketTrail",
                                         "TrailRate": 60.0,
                                         "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF205",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 4.0,
+                                        "MaxLights": 6,
+                                        "MaxRadius": 7.0,
+                                        "RadiusScale": 14.0,
+                                        "SpawnFraction": 1.0,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": false,
+                                        "bUseBrightnessOverLife": false,
+                                        "bUseParticleColor": true
                                     }
                                 }
                             }
@@ -2466,6 +2718,48 @@
                                         "bSpawnAtEventLocation": true
                                     }
                                 }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF207",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 25.0,
+                                        "MaxLights": 8,
+                                        "MaxRadius": 30.0,
+                                        "RadiusScale": 6.0,
+                                        "SpawnFraction": 1.0,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": true,
+                                        "bUseBrightnessOverLife": false,
+                                        "bUseParticleColor": true
+                                    }
+                                }
                             }
                         ],
                         "ObjectLabel": "UParticleLODLevel_FF84",
@@ -2734,6 +3028,55 @@
                                         "SurfaceOffset": 0.0,
                                         "bEnabled": true,
                                         "bSpawnAtEventLocation": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 0.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.08,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 0.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF206",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 10.0,
+                                        "MaxLights": 8,
+                                        "MaxRadius": 22.0,
+                                        "RadiusScale": 3.0,
+                                        "SpawnFraction": 1.0,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": false,
+                                        "bUseBrightnessOverLife": true,
+                                        "bUseParticleColor": true
                                     }
                                 }
                             }
@@ -5868,6 +6211,48 @@
                                         "SurfaceOffset": 0.0,
                                         "bEnabled": true,
                                         "bSpawnAtEventLocation": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF208",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 5.0,
+                                        "MaxLights": 6,
+                                        "MaxRadius": 5.0,
+                                        "RadiusScale": 8.0,
+                                        "SpawnFraction": 1.0,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": true,
+                                        "bUseBrightnessOverLife": false,
+                                        "bUseParticleColor": true
                                     }
                                 }
                             }

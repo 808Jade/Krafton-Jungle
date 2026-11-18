@@ -36,6 +36,7 @@ namespace
 		}
 		Validated.SetSkeletalMesh(Mesh);
 		Validated.NotifyTriggerMode = Definition.NotifyTriggerMode;
+		Validated.bSyncPlayRateToAxis = Definition.bSyncPlayRateToAxis;
 		const FBlendParameter* Axis = Definition.GetBlendParameter(0);
 		if (!Axis || !Validated.SetBlendParameter(0, *Axis))
 		{
@@ -131,6 +132,8 @@ UBlendSpace1D* UAssetManager::LoadBlendSpace(const FString& Path, FString& Error
 		{
 			Error = "Unknown NotifyTriggerMode: " + ModeIt->get<FString>(); return nullptr;
 		}
+		if (auto SyncIt = Data.find("SyncPlayRateToAxis"); SyncIt != Data.end() && SyncIt->is_boolean())
+			Definition->bSyncPlayRateToAxis = SyncIt->get<bool>();
 		if (!Data.at("Samples").is_array()) { Error = "Samples must be an array."; return nullptr; }
 		for (const json& Entry : Data.at("Samples"))
 		{
@@ -175,6 +178,7 @@ bool UAssetManager::SaveBlendSpace(const FString& Path, const UBlendSpace1D& Def
 		{"SkeletalMeshAssetKey", Validated->GetSkeletalMesh()->GetPath()},
 		{"Axis", {{"Name", Axis.Name.ToString()}, {"Min", Axis.Min}, {"Max", Axis.Max}}},
 		{"NotifyTriggerMode", NotifyTriggerModeToString(Validated->NotifyTriggerMode)},
+		{"SyncPlayRateToAxis", Validated->bSyncPlayRateToAxis},
 		{"Samples", json::array()}};
 	for (const FBlendSample& Sample : Validated->GetSamples())
 		Data["Samples"].push_back({{"AnimationAssetKey", Sample.Animation->GetPath()}, {"X", Sample.SampleValue.X}});

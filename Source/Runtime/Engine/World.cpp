@@ -1324,7 +1324,7 @@ bool UWorld::LineTraceSegment(const FVector& Start, const FVector& End, FHitResu
 	return true;
 }
 
-bool UWorld::SweepSphereSingle(const FVector& Start, const FVector& End, float Radius, FHitResult& OutHit, const AActor* IgnoreActor)
+bool UWorld::SweepSphereSingle(const FVector& Start, const FVector& End, float Radius, FHitResult& OutHit, const AActor* IgnoreActor, bool bBlockingOnly)
 {
 	if (Radius <= 0.0f)
 	{
@@ -1353,6 +1353,8 @@ bool UWorld::SweepSphereSingle(const FVector& Start, const FVector& End, float R
 		[&](FPrimitiveSceneProxy* Proxy)
 		{
 			if (!Proxy || !Proxy->GetComponent() || !Proxy->IsVisible())
+				return;
+			if (bBlockingOnly && !Proxy->GetComponent()->IsBlockComponent())
 				return;
 
 			// LineTraceSingle과 같은 규칙: 무시할 액터와 그 자식 액터는 건너뛴다.

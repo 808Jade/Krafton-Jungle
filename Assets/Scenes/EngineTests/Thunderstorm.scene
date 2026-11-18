@@ -14,7 +14,7 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
-                                "Template": "Particles/Thunderstorm.particle",
+                                "Template": "Particles/Rain.particle",
                                 "Transform": {
                                     "Location": {
                                         "X": 0.0,
@@ -95,8 +95,104 @@
                             }
                         }
                     ],
-                    "Name": "AParticleSystemActor_0",
-                    "ObjectLabel": "AParticleSystemActor_0",
+                    "Name": "RainParticle_0",
+                    "ObjectLabel": "RainParticle_0",
+                    "Properties": {},
+                    "RootComponent": "ParticleSystemComponent"
+                },
+                {
+                    "Class": "AParticleSystemActor",
+                    "Components": [
+                        {
+                            "Class": "UParticleSystemComponent",
+                            "Name": "ParticleSystemComponent",
+                            "ObjectLabel": "ParticleSystemComponent",
+                            "Parent": "",
+                            "Properties": {
+                                "CustomTimeDilation": 1.0,
+                                "Template": "Particles/Thunder.particle",
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+ "Y": 0.0,
+ "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
+                        },
+                        {
+                            "Class": "UBillboardComponent",
+                            "Material": {
+                                "Base": "SubUVMaterial",
+                                "Instance": {
+                                    "BaseColor": {
+                                        "W": 1.0,
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    },
+                                    "BlendState": "AlphaBlend",
+                                    "ObjectLabel": "UMaterial_1172",
+                                    "Properties": {},
+                                    "SamplerState": "LinearClamp",
+                                    "Shininess": 32.0,
+                                    "Textures": [
+                                        "Resources/Icons/ParticleSystem.png"
+                                    ],
+                                    "UVScrollSpeed": [
+                                        0.0,
+                                        0.0
+                                    ]
+                                }
+                            },
+                            "Name": "BillboardComponent",
+                            "ObjectLabel": "BillboardComponent",
+                            "Parent": "ParticleSystemComponent",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
+                        }
+                    ],
+                    "Name": "ThunderParticle_0",
+                    "ObjectLabel": "ThunderParticle_0",
                     "Properties": {},
                     "RootComponent": "ParticleSystemComponent"
                 },
