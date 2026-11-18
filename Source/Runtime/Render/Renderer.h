@@ -285,7 +285,8 @@ public:
 
 	// 수집이 끝난 작업 목록을 인수하여 타깃 준비와 그림자 맵 생성을 수행한다.
 	// 목록은 화면 조명·Preview 소비가 끝날 때까지 유지한다.
-	void RenderShadowMaps(TArray<FProjectedShadowInfo>&& InShadows, FShadowViewRenderer& InShadowViewRenderer);
+	void RenderShadowMaps(TArray<FProjectedShadowInfo>&& InShadows, FShadowViewRenderer& InShadowViewRenderer,
+		const FMeshParticlePacketDraw& DrawMeshParticlePacket = {});
 
 	// 지정한 투영의 GPU 그림자 정보 번호를 반환한다. 없으면 INDEX_NONE이다.
 	int32 GetShadowIndex(const FLightSceneProxy& LightProxy, uint32 ProjectionIndex = 0, uint32 ViewId = 0) const;
@@ -463,6 +464,6 @@ private:
 	void PrepareShadowDepthTargets(TArray<FProjectedShadowInfo>& ShadowInfos);
 
 	// 타깃이 배정된 투영 작업 하나의 Depth 패스를 실행한다.
-	void RenderShadowDepth(FProjectedShadowInfo& ShadowInfo);
+	void RenderShadowDepth(FProjectedShadowInfo& ShadowInfo, const FMeshParticlePacketDraw& DrawMeshParticlePacket);
 
 };

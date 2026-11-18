@@ -22,6 +22,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/ParticleSystemComponent.h"
 #include "Render/SkinningSettings.h"
 #include "Components/ShapeComponent.h"
 #include "Asset/LOD/StaticMeshLODSelector.h"
@@ -851,7 +852,7 @@ void UWorld::GatherShadowCasters(FProjectedShadowInfo& ShadowInfo, const FLODVie
 	uint64 SphereCasterSkips = 0;
 
 	// QueryCull에서 처리할 함수
-	const auto Visit = [&ShadowInfo, &MeshPackets, Views, ViewCount,
+	const auto Visit = [this, &ShadowInfo, &MeshPackets, Views, ViewCount,
 		MinScreenRadiusSquared, &SmallCasterSkips, LocalLight,
 		CasterSphereRadius, &SphereCasterSkips](FPrimitiveSceneProxy* Proxy)
 		{
@@ -862,7 +863,10 @@ void UWorld::GatherShadowCasters(FProjectedShadowInfo& ShadowInfo, const FLODVie
 			UPrimitiveComponent* CasterComponent = Proxy->GetComponent();
 			auto* StaticComponent = Cast<UStaticMeshComponent>(CasterComponent);
 			auto* SkeletalComponent = StaticComponent ? nullptr : Cast<USkeletalMeshComponent>(CasterComponent);
-			if (!StaticComponent && !SkeletalComponent)
+			auto* ParticleSystemComponent = SkeletalComponent ? nullptr : Cast<UParticleSystemComponent>(CasterComponent);
+			if (!StaticComponent && !SkeletalComponent && !ParticleSystemComponent)
+				return;
+			if (ParticleSystemComponent && !bDrawParticles)
 				return;
 			if (StaticComponent && StaticComponent->IsEditorIcon())
 				return;
@@ -875,8 +879,16 @@ void UWorld::GatherShadowCasters(FProjectedShadowInfo& ShadowInfo, const FLODVie
 				return;
 			}
 
+			FLODSphere CasterSphere = Proxy->GetLODSphere();
+			if (ParticleSystemComponent)
+			{
+				const FAABB& Bounds = Proxy->GetBounds();
+				CasterSphere.Center = Bounds.Center;
+				CasterSphere.RadiusSquared = Bounds.Extent.SizeSquared();
+			}
+
 			// 월드 Sphere를 이용, 섹션마다 반복검사하지 않는다.
-			if (IsSmallShadowCaster(Proxy->GetLODSphere(), Views, ViewCount, MinScreenRadiusSquared))
+			if (IsSmallShadowCaster(CasterSphere, Views, ViewCount, MinScreenRadiusSquared))
 			{
 				++SmallCasterSkips;
 				return;
@@ -887,15 +899,23 @@ void UWorld::GatherShadowCasters(FProjectedShadowInfo& ShadowInfo, const FLODVie
 			MeshPackets.Reset();
 			if (StaticComponent)
 				StaticComponent->SubmitToRenderQueue(MeshPackets, 0);
-			else
+			else if (SkeletalComponent)
 				SkeletalComponent->SubmitToRenderQueue(MeshPackets);
+			else if (ParticleSystemComponent)
+			{
+				Proxy->PrepareDynamicData();
+				FRenderViewContext LightView{};
+				LightView.CameraLocation = LocalLight ? LocalLight->Position : FVector::ZeroVector;
+				Proxy->GatherDynamicRenderPackets(MeshPackets, nullptr, LightView, {}, nullptr,
+					ParticleOrder, ParticleDistances);
+			}
 
 			bool bPacketAdded = false;
 			for (const FRenderPacket& Packet : MeshPackets)
 			{
 				// 불투명 섹션만 그림자 작업에 등록한다.
 				// IndexCount 0은 Renderer에서 전체 인덱스 버퍼를 뜻하므로 제외한다.
-				if (!Packet.Material || Packet.Material->BlendState != EBlendState::Opaque || Packet.IndexCount == 0)
+				if ((ParticleSystemComponent && !Packet.IsMeshParticle()) || !Packet.Material || Packet.Material->BlendState != EBlendState::Opaque || Packet.IndexCount == 0)
 					continue;
 
 				ShadowInfo.AddCasterPacket(Packet);

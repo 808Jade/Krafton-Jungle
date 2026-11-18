@@ -128,6 +128,7 @@ private:
 	// 화면 합성과 View 설정 보관으로 프레임을 마무리한다.
 	void EndFrame();
 
+	FRenderer::FMeshParticlePacketDraw MakeMeshParticleDraw();
 	//불투명 물체에 대한 Pass
 	void RenderOpaquePass(const FEditorSceneView& View, const FRenderingInfo& ViewRenderingInfo,	const FViewConstants& ViewConstants, FRenderQueue& RenderQueue, UWorld& ViewWorld);
 	//안개에 대한 Pass

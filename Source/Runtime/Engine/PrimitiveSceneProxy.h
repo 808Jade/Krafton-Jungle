@@ -64,6 +64,7 @@ public:
     const FCachedMeshSection& GetSection(uint32 Index) const { return RenderState->Sections[Index]; }
     FScene* GetScene() const { return Scene; }
     uint64 GetShadowVersion() const { return ShadowVersion; }
+    void MarkShadowDirty();
 
 protected:
     // 파생 Proxy만 자신의 렌더 스냅샷을 갱신한다.

@@ -14,6 +14,7 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(
 void FParticleSystemSceneProxy::UpdateDynamicData()
 {
 	SCOPE_CYCLE_COUNTER(ParticleStats::STAT_RenderDataCPU);
+	MarkShadowDirty();
 	const auto* Component =
 		static_cast<const UParticleSystemComponent*>(GetComponent());
 

@@ -899,7 +899,7 @@ void UEditorEngine::RenderAllViews()
 
 	// 모든 World·View의 작업을 모은 뒤 Atlas 배정과 Depth 실행을 한 번 수행한다.
 	// 빈 목록도 전달해 이전 프레임의 작업·바인딩·타일 할당을 정리한다.
-	Renderer->RenderShadowMaps(std::move(ShadowInfos), *ShadowViewRenderer);
+	Renderer->RenderShadowMaps(std::move(ShadowInfos), *ShadowViewRenderer, MakeMeshParticleDraw());
 
 	// 4. View마다 렌더. 레벨 View·프리뷰·별도 PIE 창이 같은 경로를 쓴다.
 	UWorld* PreparedWorld = nullptr;
@@ -1044,6 +1044,20 @@ FWorldContext* UEditorEngine::GetPIEWorldContext(int32 WorldPIEInstance)
 }
 
 // 입력 View의 Ray와 피킹으로 Gizmo·공유 선택을 갱신한다.
+FRenderer::FMeshParticlePacketDraw UEditorEngine::MakeMeshParticleDraw()
+{
+	return [this](const FRenderPacket& Packet, const FMatrix&, bool bDepthOnly)
+	{
+		if (!ParticleMeshRenderer)
+			return;
+
+		if (!ParticleMeshRenderer->Draw(Packet, Renderer->GetViewMode(), bDepthOnly))
+		{
+			HTR_LOG(Error, "Failed to draw mesh particle batch.");
+		}
+	};
+}
+
 void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRenderingInfo& ViewRenderingInfo, const FViewConstants& ViewConstants, 
 	FRenderQueue& RenderQueue, UWorld& ViewWorld)
 {
@@ -1062,23 +1076,7 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 	Renderer->SetViewMode(View.Client->GetViewMode());
 
 	// 메시 파티클 콜백
-	const FRenderer::FMeshParticlePacketDraw DrawMeshParticle =
-	    [this](
-	        const FRenderPacket& Packet,
-	        const FMatrix& ViewProjection,
-	        bool bDepthOnly)
-	{
-		if (!ParticleMeshRenderer)
-			return;
-
-		if (!ParticleMeshRenderer->Draw(
-		        Packet,
-		        Renderer->GetViewMode(),
-		        bDepthOnly))
-		{
-			HTR_LOG(Error, "Failed to draw mesh particle batch.");
-		}
-	};
+	const FRenderer::FMeshParticlePacketDraw DrawMeshParticle = MakeMeshParticleDraw();
 
 	// 렌더 루프 — 반드시 RenderAll보다 먼저
 	// 직교는 시선이 모두 평행해 파노라마의 한 점만 확대되므로 하늘을 그리지 않고 지우기 색을 배경으로 쓴다.

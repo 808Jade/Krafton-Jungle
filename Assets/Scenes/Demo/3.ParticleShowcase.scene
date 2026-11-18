@@ -807,7 +807,7 @@
                                         "Z": 1.0
                                     }
                                 },
-                                "bCastShadows": false,
+                                "bCastShadows": true,
                                 "bUsePCSS": false,
                                 "bVisible": true
                             }
@@ -931,7 +931,7 @@
                                         "Z": 1.0
                                     }
                                 },
-                                "bCastShadows": false,
+                                "bCastShadows": true,
                                 "bUsePCSS": false,
                                 "bVisible": true
                             }
@@ -1055,7 +1055,7 @@
                                         "Z": 1.0
                                     }
                                 },
-                                "bCastShadows": false,
+                                "bCastShadows": true,
                                 "bUsePCSS": false,
                                 "bVisible": true
                             }
@@ -1179,7 +1179,7 @@
                                         "Z": 1.0
                                     }
                                 },
-                                "bCastShadows": false,
+                                "bCastShadows": true,
                                 "bUsePCSS": false,
                                 "bVisible": true
                             }
@@ -1303,7 +1303,7 @@
                                         "Z": 1.0
                                     }
                                 },
-                                "bCastShadows": false,
+                                "bCastShadows": true,
                                 "bUsePCSS": false,
                                 "bVisible": true
                             }
@@ -1427,7 +1427,7 @@
                                         "Z": 1.0
                                     }
                                 },
-                                "bCastShadows": false,
+                                "bCastShadows": true,
                                 "bUsePCSS": false,
                                 "bVisible": true
                             }
@@ -1553,7 +1553,7 @@
                                         "Z": 1.0
                                     }
                                 },
-                                "bCastShadows": false,
+                                "bCastShadows": true,
                                 "bUseCSM": false,
                                 "bUsePCSS": false,
                                 "bVisible": true
