@@ -14,62 +14,23 @@
       "Children": [],
       "Float": 0.0,
       "Op": 2,
-      "Parameter": "IsGrounded",
+      "Parameter": "None",
       "Tolerance": 0.0010000000474974513,
-      "Type": 1
+      "Type": 4
     },
     {
       "Bool": true,
       "Children": [],
       "Float": 0.0,
       "Op": 2,
-      "Parameter": "AttackRequested",
+      "Parameter": "IsGrounded",
       "Tolerance": 0.0010000000474974513,
-      "Type": 3
+      "Type": 1
     },
     {
       "Bool": true,
       "Children": [
-        1,
         2
-      ],
-      "Float": 0.0,
-      "Op": 2,
-      "Parameter": "None",
-      "Tolerance": 0.0010000000474974513,
-      "Type": 6
-    },
-    {
-      "Bool": true,
-      "Children": [],
-      "Float": 0.0,
-      "Op": 2,
-      "Parameter": "None",
-      "Tolerance": 0.0010000000474974513,
-      "Type": 4
-    },
-    {
-      "Bool": true,
-      "Children": [],
-      "Float": 0.0,
-      "Op": 2,
-      "Parameter": "None",
-      "Tolerance": 0.0010000000474974513,
-      "Type": 4
-    },
-    {
-      "Bool": true,
-      "Children": [],
-      "Float": 0.0,
-      "Op": 2,
-      "Parameter": "IsGrounded",
-      "Tolerance": 0.0010000000474974513,
-      "Type": 1
-    },
-    {
-      "Bool": true,
-      "Children": [
-        6
       ],
       "Float": 0.0,
       "Op": 2,
@@ -152,8 +113,8 @@
     {
       "Bool": true,
       "Children": [
-        14,
-        15
+        10,
+        11
       ],
       "Float": 0.0,
       "Op": 2,
@@ -164,8 +125,8 @@
     {
       "Bool": true,
       "Children": [
-        13,
-        16
+        9,
+        12
       ],
       "Float": 0.0,
       "Op": 2,
@@ -217,6 +178,90 @@
       "Parameter": "IsGrounded",
       "Tolerance": 0.0010000000474974513,
       "Type": 1
+    },
+    {
+      "Bool": true,
+      "Children": [],
+      "Float": 0.0,
+      "Op": 2,
+      "Parameter": "IsGrounded",
+      "Tolerance": 0.0010000000474974513,
+      "Type": 1
+    },
+    {
+      "Bool": true,
+      "Children": [],
+      "Float": 0.0,
+      "Op": 2,
+      "Parameter": "AttackReady",
+      "Tolerance": 0.0010000000474974513,
+      "Type": 2
+    },
+    {
+      "Bool": true,
+      "Children": [
+        19,
+        20
+      ],
+      "Float": 0.0,
+      "Op": 2,
+      "Parameter": "None",
+      "Tolerance": 0.0010000000474974513,
+      "Type": 6
+    },
+    {
+      "Bool": true,
+      "Children": [],
+      "Float": 0.0,
+      "Op": 2,
+      "Parameter": "AttackRequested",
+      "Tolerance": 0.0010000000474974513,
+      "Type": 3
+    },
+    {
+      "Bool": true,
+      "Children": [],
+      "Float": 0.0,
+      "Op": 2,
+      "Parameter": "None",
+      "Tolerance": 0.0010000000474974513,
+      "Type": 4
+    },
+    {
+      "Bool": true,
+      "Children": [],
+      "Float": 0.0,
+      "Op": 1,
+      "Parameter": "AttackReady",
+      "Tolerance": 0.0010000000474974513,
+      "Type": 2
+    },
+    {
+      "Bool": true,
+      "Children": [],
+      "Float": 0.0,
+      "Op": 2,
+      "Parameter": "AttackRequested",
+      "Tolerance": 0.0010000000474974513,
+      "Type": 3
+    },
+    {
+      "Bool": true,
+      "Children": [],
+      "Float": 0.0,
+      "Op": 2,
+      "Parameter": "None",
+      "Tolerance": 0.0010000000474974513,
+      "Type": 4
+    },
+    {
+      "Bool": true,
+      "Children": [],
+      "Float": 0.0,
+      "Op": 2,
+      "Parameter": "None",
+      "Tolerance": 0.0010000000474974513,
+      "Type": 4
     }
   ],
   "Editor": {
@@ -375,7 +420,7 @@
         ],
         "Nodes": [
           {
-            "Asset": "Models/UAL1_Standard_RM.fbx#Anim/Armature|Sword_Attack",
+            "Asset": "Models/UAL1_Standard_RM.fbx#Anim/Armature|Spell_Simple_Shoot",
             "Id": 1,
             "Loop": false,
             "Parameter": "",
@@ -395,14 +440,14 @@
             "Rate": 1.0,
             "Type": 4,
             "Value": 0.0,
-            "X": 300.0,
-            "Y": 0.0
+            "X": 330.0,
+            "Y": -15.0
           }
         ]
       },
       "Rate": 1.0,
-      "X": 544.0,
-      "Y": 218.0
+      "X": 721.0,
+      "Y": 224.0
     },
     {
       "Asset": "Models/UAL1_Standard_RM.fbx#Anim/Armature|Hit_Chest",
@@ -739,6 +784,150 @@
       "Rate": 1.399999976158142,
       "X": 96.0,
       "Y": 436.0
+    },
+    {
+      "Asset": "Models/UAL1_Standard_RM.fbx#Anim/Armature|A_TPose",
+      "BlendSpace": false,
+      "Id": 10,
+      "Loop": true,
+      "Name": "AttackReady",
+      "Parameter": "",
+      "Playing": true,
+      "PoseGraph": {
+        "Links": [
+          {
+            "From": 1,
+            "Id": 1,
+            "Input": 0,
+            "To": 2
+          }
+        ],
+        "Nodes": [
+          {
+            "Asset": "Models/UAL1_Standard_RM.fbx#Anim/Armature|Spell_Simple_Enter",
+            "Id": 1,
+            "Loop": false,
+            "Parameter": "",
+            "Playing": true,
+            "Rate": 1.0,
+            "Type": 0,
+            "Value": 0.0,
+            "X": -98.0,
+            "Y": -12.0
+          },
+          {
+            "Asset": "",
+            "Id": 2,
+            "Loop": true,
+            "Parameter": "",
+            "Playing": true,
+            "Rate": 1.0,
+            "Type": 4,
+            "Value": 0.0,
+            "X": 314.0,
+            "Y": -15.0
+          }
+        ]
+      },
+      "Rate": 1.0,
+      "X": 512.0,
+      "Y": 96.0
+    },
+    {
+      "Asset": "Models/UAL1_Standard_RM.fbx#Anim/Armature|A_TPose",
+      "BlendSpace": false,
+      "Id": 11,
+      "Loop": true,
+      "Name": "AttackEnd",
+      "Parameter": "",
+      "Playing": true,
+      "PoseGraph": {
+        "Links": [
+          {
+            "From": 1,
+            "Id": 1,
+            "Input": 0,
+            "To": 2
+          }
+        ],
+        "Nodes": [
+          {
+            "Asset": "Models/UAL1_Standard_RM.fbx#Anim/Armature|Spell_Simple_Exit",
+            "Id": 1,
+            "Loop": false,
+            "Parameter": "",
+            "Playing": true,
+            "Rate": 1.0,
+            "Type": 0,
+            "Value": 0.0,
+            "X": 0.0,
+            "Y": 0.0
+          },
+          {
+            "Asset": "",
+            "Id": 2,
+            "Loop": true,
+            "Parameter": "",
+            "Playing": true,
+            "Rate": 1.0,
+            "Type": 4,
+            "Value": 0.0,
+            "X": 300.0,
+            "Y": 0.0
+          }
+        ]
+      },
+      "Rate": 1.0,
+      "X": 512.0,
+      "Y": 352.0
+    },
+    {
+      "Asset": "Models/UAL1_Standard_RM.fbx#Anim/Armature|A_TPose",
+      "BlendSpace": false,
+      "Id": 12,
+      "Loop": true,
+      "Name": "AttackIdle",
+      "Parameter": "",
+      "Playing": true,
+      "PoseGraph": {
+        "Links": [
+          {
+            "From": 1,
+            "Id": 1,
+            "Input": 0,
+            "To": 2
+          }
+        ],
+        "Nodes": [
+          {
+            "Asset": "Models/UAL1_Standard_RM.fbx#Anim/Armature|Spell_Simple_Idle_Loop",
+            "Id": 1,
+            "Loop": true,
+            "Parameter": "",
+            "Playing": true,
+            "Rate": 1.0,
+            "Type": 0,
+            "Value": 0.0,
+            "X": 0.0,
+            "Y": 0.0
+          },
+          {
+            "Asset": "",
+            "Id": 2,
+            "Loop": true,
+            "Parameter": "",
+            "Playing": true,
+            "Rate": 1.0,
+            "Type": 4,
+            "Value": 0.0,
+            "X": 300.0,
+            "Y": 0.0
+          }
+        ]
+      },
+      "Rate": 1.0,
+      "X": 513.0,
+      "Y": 224.0
     }
   ],
   "Transitions": [
@@ -799,155 +988,7 @@
       "To": 3
     },
     {
-      "Condition": 3,
-      "Consume": [
-        "AttackRequested"
-      ],
-      "Curve": 1,
-      "Duration": 0.20000000298023224,
-      "Editor": {
-        "Rule": {
-          "Links": [
-            {
-              "From": 3,
-              "Id": 1,
-              "Input": 0,
-              "To": 2
-            },
-            {
-              "From": 4,
-              "Id": 2,
-              "Input": 1,
-              "To": 2
-            },
-            {
-              "From": 2,
-              "Id": 3,
-              "Input": 0,
-              "To": 1
-            }
-          ],
-          "Nodes": [
-            {
-              "Bool": true,
-              "Float": 0.0,
-              "Id": 1,
-              "Inputs": 1,
-              "Op": 2,
-              "Parameter": "None",
-              "Result": true,
-              "Tolerance": 0.0010000000474974513,
-              "Type": 0,
-              "X": 907.0,
-              "Y": 25.0
-            },
-            {
-              "Bool": true,
-              "Float": 0.0,
-              "Id": 2,
-              "Inputs": 2,
-              "Op": 2,
-              "Parameter": "None",
-              "Result": false,
-              "Tolerance": 0.0010000000474974513,
-              "Type": 6,
-              "X": 534.0,
-              "Y": -4.0
-            },
-            {
-              "Bool": true,
-              "Float": 0.0,
-              "Id": 3,
-              "Inputs": 0,
-              "Op": 2,
-              "Parameter": "IsGrounded",
-              "Result": false,
-              "Tolerance": 0.0010000000474974513,
-              "Type": 1,
-              "X": 263.0,
-              "Y": -267.0
-            },
-            {
-              "Bool": true,
-              "Float": 0.0,
-              "Id": 4,
-              "Inputs": 0,
-              "Op": 2,
-              "Parameter": "AttackRequested",
-              "Result": false,
-              "Tolerance": 0.0010000000474974513,
-              "Type": 3,
-              "X": 122.0,
-              "Y": 222.0
-            }
-          ]
-        },
-        "X": 509.0,
-        "Y": 321.0
-      },
-      "From": 1,
-      "Id": 2,
-      "Interrupt": 0,
-      "Priority": 50,
-      "Restart": false,
-      "To": 2
-    },
-    {
-      "Condition": 4,
-      "Consume": [],
-      "Curve": 0,
-      "Duration": 0.20000000298023224,
-      "Editor": {
-        "Rule": {
-          "Links": [
-            {
-              "From": 2,
-              "Id": 1,
-              "Input": 0,
-              "To": 1
-            }
-          ],
-          "Nodes": [
-            {
-              "Bool": true,
-              "Float": 0.0,
-              "Id": 1,
-              "Inputs": 1,
-              "Op": 2,
-              "Parameter": "None",
-              "Result": true,
-              "Tolerance": 0.0010000000474974513,
-              "Type": 0,
-              "X": 650.0,
-              "Y": 0.0
-            },
-            {
-              "Bool": true,
-              "Float": 0.0,
-              "Id": 2,
-              "Inputs": 0,
-              "Op": 2,
-              "Parameter": "None",
-              "Result": false,
-              "Tolerance": 0.0010000000474974513,
-              "Type": 4,
-              "X": 400.0,
-              "Y": 0.0
-            }
-          ]
-        },
-        "X": 811.0,
-        "Y": 161.0
-      },
-      "From": 2,
-      "Id": 3,
-      "Interrupt": 0,
-      "Priority": 0,
-      "Restart": false,
-      "To": 1
-    },
-    {
-      "Condition": 5,
+      "Condition": 1,
       "Consume": [],
       "Curve": 0,
       "Duration": 0.20000000298023224,
@@ -1001,7 +1042,7 @@
       "To": 1
     },
     {
-      "Condition": 7,
+      "Condition": 3,
       "Consume": [],
       "Curve": 0,
       "Duration": 0.20000000298023224,
@@ -1074,7 +1115,7 @@
       "To": 4
     },
     {
-      "Condition": 8,
+      "Condition": 4,
       "Consume": [
         "DeathRequested"
       ],
@@ -1130,7 +1171,7 @@
       "To": 5
     },
     {
-      "Condition": 9,
+      "Condition": 5,
       "Consume": [],
       "Curve": 0,
       "Duration": 0.5,
@@ -1184,7 +1225,7 @@
       "To": 6
     },
     {
-      "Condition": 10,
+      "Condition": 6,
       "Consume": [],
       "Curve": 0,
       "Duration": 0.20000000298023224,
@@ -1238,7 +1279,7 @@
       "To": 1
     },
     {
-      "Condition": 11,
+      "Condition": 7,
       "Consume": [],
       "Curve": 0,
       "Duration": 0.20000000298023224,
@@ -1292,7 +1333,7 @@
       "To": 7
     },
     {
-      "Condition": 12,
+      "Condition": 8,
       "Consume": [],
       "Curve": 0,
       "Duration": 0.20000000298023224,
@@ -1346,7 +1387,7 @@
       "To": 8
     },
     {
-      "Condition": 17,
+      "Condition": 13,
       "Consume": [],
       "Curve": 0,
       "Duration": 0.5,
@@ -1476,7 +1517,7 @@
       "To": 1
     },
     {
-      "Condition": 18,
+      "Condition": 14,
       "Consume": [],
       "Curve": 0,
       "Duration": 0.20000000298023224,
@@ -1530,7 +1571,7 @@
       "To": 8
     },
     {
-      "Condition": 19,
+      "Condition": 15,
       "Consume": [],
       "Curve": 0,
       "Duration": 0.20000000298023224,
@@ -1584,7 +1625,7 @@
       "To": 4
     },
     {
-      "Condition": 20,
+      "Condition": 16,
       "Consume": [
         "RollRequested"
       ],
@@ -1640,7 +1681,7 @@
       "To": 9
     },
     {
-      "Condition": 21,
+      "Condition": 17,
       "Consume": [],
       "Curve": 0,
       "Duration": 0.20000000298023224,
@@ -1694,7 +1735,7 @@
       "To": 1
     },
     {
-      "Condition": 22,
+      "Condition": 18,
       "Consume": [],
       "Curve": 0,
       "Duration": 0.5,
@@ -1746,6 +1787,426 @@
       "Priority": 0,
       "Restart": false,
       "To": 7
+    },
+    {
+      "Condition": 21,
+      "Consume": [],
+      "Curve": 0,
+      "Duration": 0.20000000298023224,
+      "Editor": {
+        "Rule": {
+          "Links": [
+            {
+              "From": 3,
+              "Id": 1,
+              "Input": 0,
+              "To": 1
+            },
+            {
+              "From": 4,
+              "Id": 2,
+              "Input": 0,
+              "To": 3
+            },
+            {
+              "From": 5,
+              "Id": 3,
+              "Input": 1,
+              "To": 3
+            }
+          ],
+          "Nodes": [
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 1,
+              "Inputs": 1,
+              "Op": 2,
+              "Parameter": "None",
+              "Result": true,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 0,
+              "X": 699.0,
+              "Y": -71.0
+            },
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 3,
+              "Inputs": 2,
+              "Op": 2,
+              "Parameter": "None",
+              "Result": false,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 6,
+              "X": 485.0,
+              "Y": -46.0
+            },
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 4,
+              "Inputs": 0,
+              "Op": 2,
+              "Parameter": "IsGrounded",
+              "Result": false,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 1,
+              "X": -90.0,
+              "Y": -153.0
+            },
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 5,
+              "Inputs": 0,
+              "Op": 2,
+              "Parameter": "AttackReady",
+              "Result": false,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 2,
+              "X": -90.0,
+              "Y": 62.0
+            }
+          ]
+        },
+        "X": 321.5500183105469,
+        "Y": 215.0264892578125
+      },
+      "From": 1,
+      "Id": 19,
+      "Interrupt": 2,
+      "Priority": 0,
+      "Restart": false,
+      "To": 10
+    },
+    {
+      "Condition": 22,
+      "Consume": [
+        "AttackRequested"
+      ],
+      "Curve": 0,
+      "Duration": 0.20000000298023224,
+      "Editor": {
+        "Rule": {
+          "Links": [
+            {
+              "From": 2,
+              "Id": 1,
+              "Input": 0,
+              "To": 1
+            }
+          ],
+          "Nodes": [
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 1,
+              "Inputs": 1,
+              "Op": 2,
+              "Parameter": "None",
+              "Result": true,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 0,
+              "X": 320.0,
+              "Y": 0.0
+            },
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 2,
+              "Inputs": 0,
+              "Op": 2,
+              "Parameter": "AttackRequested",
+              "Result": false,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 3,
+              "X": -42.0,
+              "Y": -32.0
+            }
+          ]
+        },
+        "X": 878.0,
+        "Y": 124.0
+      },
+      "From": 2,
+      "Id": 23,
+      "Interrupt": 2,
+      "Priority": 0,
+      "Restart": true,
+      "To": 2
+    },
+    {
+      "Condition": 23,
+      "Consume": [],
+      "Curve": 0,
+      "Duration": 0.20000000298023224,
+      "Editor": {
+        "Rule": {
+          "Links": [
+            {
+              "From": 2,
+              "Id": 1,
+              "Input": 0,
+              "To": 1
+            }
+          ],
+          "Nodes": [
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 1,
+              "Inputs": 1,
+              "Op": 2,
+              "Parameter": "None",
+              "Result": true,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 0,
+              "X": 320.0,
+              "Y": 0.0
+            },
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 2,
+              "Inputs": 0,
+              "Op": 2,
+              "Parameter": "None",
+              "Result": false,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 4,
+              "X": 6.0,
+              "Y": -7.0
+            }
+          ]
+        },
+        "X": 452.0,
+        "Y": 152.0
+      },
+      "From": 10,
+      "Id": 24,
+      "Interrupt": 2,
+      "Priority": 0,
+      "Restart": false,
+      "To": 12
+    },
+    {
+      "Condition": 24,
+      "Consume": [],
+      "Curve": 0,
+      "Duration": 0.20000000298023224,
+      "Editor": {
+        "Rule": {
+          "Links": [
+            {
+              "From": 2,
+              "Id": 1,
+              "Input": 0,
+              "To": 1
+            }
+          ],
+          "Nodes": [
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 1,
+              "Inputs": 1,
+              "Op": 2,
+              "Parameter": "None",
+              "Result": true,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 0,
+              "X": 320.0,
+              "Y": 0.0
+            },
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 2,
+              "Inputs": 0,
+              "Op": 1,
+              "Parameter": "AttackReady",
+              "Result": false,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 2,
+              "X": -42.0,
+              "Y": -66.0
+            }
+          ]
+        },
+        "X": 452.0,
+        "Y": 280.0
+      },
+      "From": 12,
+      "Id": 25,
+      "Interrupt": 2,
+      "Priority": 0,
+      "Restart": false,
+      "To": 11
+    },
+    {
+      "Condition": 25,
+      "Consume": [
+        "AttackRequested"
+      ],
+      "Curve": 0,
+      "Duration": 0.20000000298023224,
+      "Editor": {
+        "Rule": {
+          "Links": [
+            {
+              "From": 2,
+              "Id": 1,
+              "Input": 0,
+              "To": 1
+            }
+          ],
+          "Nodes": [
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 1,
+              "Inputs": 1,
+              "Op": 2,
+              "Parameter": "None",
+              "Result": true,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 0,
+              "X": 320.0,
+              "Y": 0.0
+            },
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 2,
+              "Inputs": 0,
+              "Op": 2,
+              "Parameter": "AttackRequested",
+              "Result": false,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 3,
+              "X": -42.0,
+              "Y": -16.0
+            }
+          ]
+        },
+        "X": 617.0,
+        "Y": 284.0
+      },
+      "From": 12,
+      "Id": 26,
+      "Interrupt": 2,
+      "Priority": 0,
+      "Restart": false,
+      "To": 2
+    },
+    {
+      "Condition": 26,
+      "Consume": [],
+      "Curve": 0,
+      "Duration": 0.20000000298023224,
+      "Editor": {
+        "Rule": {
+          "Links": [
+            {
+              "From": 2,
+              "Id": 1,
+              "Input": 0,
+              "To": 1
+            }
+          ],
+          "Nodes": [
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 1,
+              "Inputs": 1,
+              "Op": 2,
+              "Parameter": "None",
+              "Result": true,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 0,
+              "X": 320.0,
+              "Y": 0.0
+            },
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 2,
+              "Inputs": 0,
+              "Op": 2,
+              "Parameter": "None",
+              "Result": false,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 4,
+              "X": 70.0,
+              "Y": 9.0
+            }
+          ]
+        },
+        "X": 617.0,
+        "Y": 164.0
+      },
+      "From": 2,
+      "Id": 27,
+      "Interrupt": 2,
+      "Priority": 0,
+      "Restart": false,
+      "To": 12
+    },
+    {
+      "Condition": 27,
+      "Consume": [],
+      "Curve": 0,
+      "Duration": 0.20000000298023224,
+      "Editor": {
+        "Rule": {
+          "Links": [
+            {
+              "From": 2,
+              "Id": 1,
+              "Input": 0,
+              "To": 1
+            }
+          ],
+          "Nodes": [
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 1,
+              "Inputs": 1,
+              "Op": 2,
+              "Parameter": "None",
+              "Result": true,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 0,
+              "X": 320.0,
+              "Y": 0.0
+            },
+            {
+              "Bool": true,
+              "Float": 0.0,
+              "Id": 2,
+              "Inputs": 0,
+              "Op": 2,
+              "Parameter": "None",
+              "Result": false,
+              "Tolerance": 0.0010000000474974513,
+              "Type": 4,
+              "X": 38.0,
+              "Y": 25.0
+            }
+          ]
+        },
+        "X": 322.8115234375,
+        "Y": 228.362548828125
+      },
+      "From": 11,
+      "Id": 28,
+      "Interrupt": 2,
+      "Priority": 0,
+      "Restart": false,
+      "To": 1
     }
   ],
   "Type": "AnimStateMachine",

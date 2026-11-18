@@ -21,6 +21,13 @@
                 "Time": 0.0
             }
         ],
+        "Armature|Spell_Simple_Shoot": [
+            {
+                "Duration": 0.0,
+                "Name": "SpellShoot",
+                "Time": 0.13333334028720856
+            }
+        ],
         "Armature|Sword_Attack": [
             {
                 "Duration": 0.30000001192092896,
