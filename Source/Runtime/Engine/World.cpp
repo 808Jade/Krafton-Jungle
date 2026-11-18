@@ -52,6 +52,16 @@ DECLARE_CYCLE_STAT("Gather - Submit", STAT_GatherSubmit);
 
 UWorld::~UWorld() = default;
 
+void UWorld::AddViewLocationRendered(const FVector& Location)
+{
+	ViewLocationsRenderedLastFrame.Add(Location);
+}
+
+const TArray<FVector>* UWorld::GetViewLocationsRenderedLastFrame() const
+{
+	return ViewLocationsRenderedLastFrame.IsEmpty() ? nullptr : &ViewLocationsRenderedLastFrame;
+}
+
 void UWorld::SetVignette(float Intensity, float Radius, float Softness, const FVector& Color)
 {
 	VignetteSettings.Intensity = std::clamp(Intensity, 0.0f, 1.0f);
@@ -193,6 +203,7 @@ void UWorld::Tick(float DeltaTime) {
 		}
 	}
 
+	ViewLocationsRenderedLastFrame.Empty();
 
 }
 
@@ -568,7 +579,7 @@ void UWorld::GatherRenderPackets(FRenderQueue& RenderQueue, const FLODViewContex
 					FRenderPacket& Packet = RenderQueue[p];
 
 					// Sprite는 인스턴스 데이터와 뷰 상수만 사용한다.
-					if (Packet.IsSpriteParticle())
+					if (Packet.IsSpriteParticle() || Packet.IsStripParticle())
 					{
 						continue;
 					}

@@ -7,6 +7,8 @@ enum class EDynamicEmitterType : uint8
 {
 	Sprite,
 	Mesh,
+	Beam,
+	Ribbon,
 };
 
 enum class EParticleSortMode : uint8

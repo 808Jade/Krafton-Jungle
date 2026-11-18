@@ -19,7 +19,8 @@ public:
 	FParticleEditorContext(const FParticleEditorContext&) = delete;
 	FParticleEditorContext& operator=(const FParticleEditorContext&) = delete;
 
-	bool Init();
+	// WorldName: 탭마다 다른 이름을 주어 프리뷰 월드끼리 구분한다.
+	bool Init(FName WorldName = FName("ParticlePreviewWorld"));
 	// 프리뷰 월드를 해제한다. 전역 UObject 일괄 삭제 전에 호스트가 호출한다. 여러 번 호출해도 안전하다.
 	void Release();
 	// 일시정지 중에도 Transform 갱신과 삭제 대기 처리를 위해 0초로 Tick한다.
@@ -54,10 +55,19 @@ public:
 	int32 RestartLevelInstances();
 
 	// --- LOD ---
-	// 이미터들 가운데 가장 많은 LOD 레벨 수. 에셋이 없거나 LOD가 없으면 1이다.
+	// 파티클 시스템의 LOD 수(LODDistances 칸 수). 에셋이 없거나 LOD가 없으면 1이다.
 	int32 GetLODCount() const;
 	// CurrentLODIndex를 0 ~ GetLODCount()-1 안으로 맞춰 설정한다.
 	void SetCurrentLOD(int32 NewLODIndex);
+	bool CanEditModuleStructure() const { return CurrentLODIndex == 0; }
+	bool CanAddLODBefore() const { return GetTemplate() && CurrentLODIndex > 0; }
+	bool CanAddLODAfter() const { return GetTemplate() != nullptr; }
+	bool CanDeleteLOD() const { return GetTemplate() && CurrentLODIndex > 0; }
+	bool AddLOD(bool bAfterCurrent);
+	bool DeleteCurrentLOD();
+	bool CanRegenerateLowestLOD() const { return GetTemplate() != nullptr; }
+	bool RegenerateLowestLOD(bool bDuplicateHighest);
+	bool NormalizeLODSetup();
 
 	// --- 에셋 편집 (이미터 패널 우클릭 메뉴) ---
 	// 편집 대상은 EmitterIndex 이미터의 현재 LOD 레벨이다. 편집이 끝나면 이미터 캐시를 다시 만들고
@@ -67,11 +77,22 @@ public:
 	// ModuleClass 모듈을 새로 만들어 모듈 목록 끝에 붙이고 선택한다. 같은 종류가 이미 있으면 실패한다.
 	bool AddModule(int32 EmitterIndex, UClass* ModuleClass);
 	// Required·Spawn은 이미터에 꼭 하나씩 있어야 하므로 지울 수 없다. (언리얼도 같다)
+	bool CanAddModule(int32 EmitterIndex, UClass* ModuleClass) const;
 	static bool CanDeleteModule(const UParticleModule* Module);
 	// 모듈 목록 또는 TypeData에서 Module을 빼고 삭제한다.
 	bool DeleteModule(int32 EmitterIndex, UParticleModule* Module);
 	// 메시 TypeData를 붙여 메시 이미터로 바꾼다. 기본 메시는 엔진의 "Cube"다. TypeData가 이미 있으면 실패한다.
 	bool AddMeshTypeData(int32 EmitterIndex);
+	bool AddBeamTypeData(int32 EmitterIndex);
+	bool AddRibbonTypeData(int32 EmitterIndex);
+	// Cascade의 "New Particle Sprite Emitter". 기본 모듈 구성(Required·Spawn·Lifetime·Initial Size·
+	// Initial Velocity·Initial Color)을 가진 스프라이트 이미터를 Emitters 끝에 붙이고 선택한다.
+	// 새 이미터의 인덱스를 돌려준다. 에셋이 없으면 INDEX_NONE이다.
+	int32 AddSpriteEmitter();
+	// 이미터가 하나뿐이면 지울 수 없다. (빈 파티클 시스템은 아무것도 재생하지 않는다)
+	bool CanDeleteEmitter() const;
+	// EmitterIndex 이미터를 에셋에서 빼고, 그 이미터가 소유한 LOD 레벨·모듈까지 함께 삭제한다.
+	bool DeleteEmitter(int32 EmitterIndex);
 	// 디테일 패널에서 모듈 값을 고친 뒤 부른다. NeedsUpdate·MaxActiveParticles·Mesh처럼
 	// 이미터 캐시에 들어가는 값이 바뀌었을 수 있으므로 캐시를 다시 만들고 컴포넌트를 다시 시작한다.
 	void NotifyModuleEdited(int32 EmitterIndex) { ApplyEmitterChange(EmitterIndex); }
@@ -90,12 +111,13 @@ public:
 	UParticleModule* SelectedModule = nullptr;
 	bool bSimulationPaused = false;
 	// 툴바에 보이는 현재 LOD 번호. 이미터 패널이 이 번호의 LOD 레벨 모듈을 보여 준다.
-	// 바꿀 때는 SetCurrentLOD로 범위를 맞춘다. 런타임 시뮬레이션은 아직 LOD 0만 쓴다.
+	// 바꿀 때는 SetCurrentLOD로 범위를 맞춘다. 프리뷰 컴포넌트도 이 LOD로 재생한다.
 	int32 CurrentLODIndex = 0;
 
 private:
 	// 에셋 구성이 바뀐 이미터의 모듈 캐시를 다시 만들고, 이 에셋을 쓰는 컴포넌트를 다시 시작한다.
 	void ApplyEmitterChange(int32 EmitterIndex);
+	void RebuildAllEmitters();
 	// 프리뷰 컴포넌트가 재생할 에셋을 바꾸고 선택 상태를 비운다. nullptr이면 기본 에셋이다.
 	void ApplyPreviewTemplate(UParticleSystem* Asset);
 	void SetSaveStatus(const FString& Message, bool bError);

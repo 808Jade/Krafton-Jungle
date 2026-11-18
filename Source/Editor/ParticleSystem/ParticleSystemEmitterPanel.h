@@ -12,12 +12,14 @@ class UClass;
 class FParticleSystemEmitterPanel : public IEditorPanel
 {
 public:
-	explicit FParticleSystemEmitterPanel(FParticleEditorContext& InContext) : Context(InContext) {}
+	// InTabId: 소속 탭의 ID. 같은 에디터 탭이 여러 개 열려도 창 ID가 겹치지 않게 이름 뒤에 붙인다.
+	FParticleSystemEmitterPanel(FParticleEditorContext& InContext, const FString& InTabId)
+		: PanelName("Emitters###Emitters_" + InTabId), Context(InContext) {}
 
 	bool Init() override { return true; }
 	void Tick(float DeltaTime) override {}
 	void OnRender() override;
-	const char* GetPanelName() const override { return "Emitters##Particle"; }
+	const char* GetPanelName() const override { return PanelName.c_str(); }
 
 private:
 	void DrawEmitterColumn(int32 EmitterIndex, UParticleEmitter* Emitter);
@@ -25,6 +27,8 @@ private:
 	void DrawModuleRow(int32 EmitterIndex, UParticleModule* Module);
 	// 우클릭 메뉴 본문. ClickedModule이 있으면 맨 위에 그 모듈 삭제 항목을 둔다.
 	void DrawContextMenu(int32 EmitterIndex, UParticleModule* ClickedModule);
+	// 이미터 추가 항목. 이미터 열 메뉴와 패널 빈 곳 메뉴가 함께 쓴다.
+	void DrawNewEmitterMenuItem();
 	// 그리는 동안 모듈 배열을 바꾸면 순회가 깨지므로, 메뉴에서 고른 편집은 모아 두었다가 다 그린 뒤 적용한다.
 	void ApplyPendingEdit();
 
@@ -33,7 +37,13 @@ private:
 		None,
 		AddModule,
 		DeleteModule,
+
 		AddMeshTypeData,
+		AddBeamTypeData,
+		AddRibbonTypeData,
+
+		AddEmitter,
+		DeleteEmitter,
 	};
 	struct FPendingEdit
 	{
@@ -44,6 +54,8 @@ private:
 	};
 	// 소유(값): 한 프레임 동안만 유지되는 편집 요청
 	FPendingEdit PendingEdit;
+
+	FString PanelName;
 
 	// 참조(집약): 호스트가 소유하는 공유 상태
 	FParticleEditorContext& Context;

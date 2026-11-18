@@ -5,6 +5,13 @@
 
 class UParticleEmitter;
 
+enum class EParticleSystemLODMethod : uint8
+{
+	Automatic,
+	DirectSet,
+	ActivateAutomatic
+};
+
 // 파티클 이펙트 에셋. 에미터 목록을 소유한다.
 class UParticleSystem : public URenderAsset
 {
@@ -20,6 +27,12 @@ public:
 	void Serialize(FStructuredArchive::FRecord Record) override;
 
 	TArray<UParticleEmitter*> Emitters;
-	bool bUseFixedRelativeBoundingBox = false;
-	FBox FixedRelativeBoundingBox{ FVector(-1.0f, -1.0f, -1.0f), FVector(1.0f, 1.0f, 1.0f) };
+	bool	bUseFixedRelativeBoundingBox = false;
+	FBox	FixedRelativeBoundingBox{ FVector(-1.0f, -1.0f, -1.0f), FVector(1.0f, 1.0f, 1.0f) };
+	TArray<float>				LODDistances;
+	EParticleSystemLODMethod	LODMethod = EParticleSystemLODMethod::Automatic;
+	float						LODDistanceCheckTime = 0.25f;
+
+	int32 GetLODLevelCount() const { return LODDistances.Num(); }
+
 };

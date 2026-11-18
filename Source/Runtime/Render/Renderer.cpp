@@ -190,7 +190,9 @@ void FRenderer::UploadPerObjectConstants()
 		FRenderPacket& P = RenderPackets[Index];
 
 		// 파티클은 인스턴스 버퍼로 그리므로 World를 올리지 않는다. (인스턴스마다 World가 다르다)
-		if (P.IsSpriteParticle() || P.IsMeshParticle())
+		if (P.IsSpriteParticle() || 
+			P.IsMeshParticle() ||
+			P.IsStripParticle())
 		{
 			P.Slot = InvalidObjectSlot;
 			continue;
@@ -602,7 +604,8 @@ void FRenderer::RenderOpaque(const FMatrix& ViewProjection, const FMeshParticleP
 void FRenderer::RenderTranslucent(
 	const FMatrix& ViewProjection, 
 	const FSpritePacketDraw& DrawSpritePacket,
-	const FMeshParticlePacketDraw& DrawMeshParticlePacket)
+	const FMeshParticlePacketDraw& DrawMeshParticlePacket,
+	const FStripPacketDraw& DrawStripPacket)
 {
 	RenderCommand::BindConstantBuffer(4, LightingCB.get(), EShaderBindFlagBits::Pixel | EShaderBindFlagBits::Vertex);
 	RenderCommand::BindShaderResource(10, LocalLightBuffer.get(), EShaderBindFlagBits::Pixel | EShaderBindFlagBits::Vertex);
@@ -612,7 +615,14 @@ void FRenderer::RenderTranslucent(
 	RenderCommand::BindConstantBuffer(5, GridCB, EShaderBindFlagBits::Pixel | EShaderBindFlagBits::Vertex);
 
 	BindShadowResources();
-	DrawPackets(FirstTranslucentIndex, SortEntries.Num(), ViewProjection, DrawSpritePacket, DrawMeshParticlePacket);
+	DrawPackets(
+		FirstTranslucentIndex, 
+		SortEntries.Num(), 
+		ViewProjection, 
+		DrawSpritePacket, 
+		DrawMeshParticlePacket, 
+		DrawStripPacket);
+
 	RenderPackets.Reset();
 	FirstTranslucentIndex = 0;
 	StaticGroups.clear();   // 묶음 메모리는 World 것이므로 이번 프레임이 끝나면 놓는다
@@ -694,7 +704,7 @@ void FRenderer::RenderQueueSorting(FRenderQueue& InQueue, const FViewConstants& 
 			const FRenderPacket& P = RenderPackets[i];
 			if (!P.Material) continue;
 
-			if (P.IsSpriteParticle())
+			if (P.IsSpriteParticle() || P.IsStripParticle())
 			{
 				assert(P.Material->BlendState == EBlendState::AlphaBlend ||
 						P.Material->BlendState == EBlendState::Additive);
@@ -1109,7 +1119,8 @@ void FRenderer::DrawPackets(
 	uint32 End, 
 	const FMatrix& ViewProjection, 
 	const FSpritePacketDraw& DrawSpritePacket,
-	const FMeshParticlePacketDraw& DrawMeshParticlePacket)
+	const FMeshParticlePacketDraw& DrawMeshParticlePacket,
+	const FStripPacketDraw& DrawStripPacket)
 {
 	SCOPE_CYCLE_COUNTER(STAT_DrawRenderPackets);
 
@@ -1129,9 +1140,21 @@ void FRenderer::DrawPackets(
 		const FRenderPacket& RenderPacket = RenderPackets[PacketIndex];
 
 		if (RenderPacket.IsSpriteParticle() ||
-			RenderPacket.IsMeshParticle())
+			RenderPacket.IsMeshParticle() ||
+			RenderPacket.IsStripParticle())
 		{
-			if (RenderPacket.IsMeshParticle())
+			if (RenderPacket.IsStripParticle())
+			{
+				if (DrawStripPacket)
+				{
+					DrawStripPacket(RenderPacket);
+				}
+				else
+				{
+					HTR_LOG(Error, "Strip particle draw callback is missing.");
+				}
+			}
+			else if (RenderPacket.IsMeshParticle())
 			{
 				if (DrawMeshParticlePacket)
 				{

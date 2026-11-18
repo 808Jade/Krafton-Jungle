@@ -31,13 +31,18 @@
 #include "Particles/Modules/ParticleModuleVelocity.h"
 #include "Particles/Modules/ParticleModuleSize.h"
 #include "Particles/Modules/ParticleModuleColor.h"
+#include "Particles/Modules/ParticleModuleTypeDataMesh.h"
+#include "Particles/Modules/ParticleModuleTypeDataBeam.h"
+#include "Particles/Modules/ParticleModuleTypeDataRibbon.h"
+#include "Particles/Modules/ParticleModuleBeamSource.h"
+#include "Particles/Modules/ParticleModuleBeamTarget.h"
+#include "Particles/Modules/ParticleModuleBeamNoise.h"
 
 #include "Render/ImageLoader.h"
 #include "Core/ResourcePaths.h"
 #include <algorithm>
 #include <cctype>
 #include "Core/Misc/FileHelper.h"
-#include "Particles/Modules/ParticleModuleTypeDataMesh.h"
 
 
 namespace
@@ -524,12 +529,28 @@ void UAssetManager::CreateDefaultParticleSystem()
 {
 	RegisterAsset("DefaultParticleSystem", BuildDefaultParticleSystem(false));
 	RegisterAsset("DefaultMeshParticleSystem", BuildDefaultParticleSystem(true));
+	RegisterAsset("DefaultBeamParticleSystem", BuildDefaultBeamParticleSystem());
+	RegisterAsset("DefaultRibbonParticleSystem", BuildDefaultRibbonParticleSystem());
 }
 
 UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
 {
 	UParticleSystem* System = NewObject<UParticleSystem>();
 	UParticleEmitter* Emitter = NewObject<UParticleEmitter>(System);
+
+	Emitter->LODLevels.Add(BuildDefaultParticleLODLevel(Emitter, 0, bMesh, 20.0f,
+		FLinearColor(1.0f, 0.4f, 0.1f, 1.0f), FLinearColor(1.0f, 0.9f, 0.3f, 1.0f)));
+	Emitter->LODLevels.Add(BuildDefaultParticleLODLevel(Emitter, 1, bMesh, 5.0f,
+		FLinearColor(0.1f, 0.4f, 1.0f, 1.0f), FLinearColor(0.3f, 0.9f, 1.0f, 1.0f)));
+	System->Emitters.Add(Emitter);
+	System->LODDistances = { 0.0f, 25.0f };
+
+	return System;
+}
+
+UParticleLODLevel* UAssetManager::BuildDefaultParticleLODLevel(UParticleEmitter* Emitter, int32 Level, bool bMesh,
+	float SpawnRate, const FLinearColor& StartColorMin, const FLinearColor& StartColorMax)
+{
 	UParticleLODLevel* LODLevel = NewObject<UParticleLODLevel>(Emitter);
 
 	UParticleModuleRequired* Required = NewObject<UParticleModuleRequired>(LODLevel);
@@ -542,7 +563,7 @@ UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
 	Required->ScreenAlignment = EParticleScreenAlignment::Velocity;
 
 	UParticleModuleSpawn* Spawn = NewObject<UParticleModuleSpawn>(LODLevel);
-	Spawn->SpawnRate = 20.0f;
+	Spawn->SpawnRate = SpawnRate;
 
 	UParticleModuleLifetime* Lifetime = NewObject<UParticleModuleLifetime>(LODLevel);
 	Lifetime->Lifetime = FParticleFloatRange(1.0f, 2.0f);
@@ -557,10 +578,10 @@ UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
 	Size->StartSize = FParticleVectorRange(FVector(0.7f, 0.7f, 0.7f));
 
 	UParticleModuleColor* Color = NewObject<UParticleModuleColor>(LODLevel);
-	Color->StartColor = FParticleColorRange(FLinearColor(1.0f, 0.4f, 0.1f, 1.0f), FLinearColor(1.0f, 0.9f, 0.3f, 1.0f));
+	Color->StartColor = FParticleColorRange(StartColorMin, StartColorMax);
 	Color->bUseColorOverLife = true;
 
-	LODLevel->Level = 0;
+	LODLevel->Level = Level;
 	LODLevel->RequiredModule = Required;
 	LODLevel->Modules.Add(Spawn);
 	LODLevel->Modules.Add(Lifetime);
@@ -575,6 +596,180 @@ UParticleSystem* UAssetManager::BuildDefaultParticleSystem(bool bMesh)
 		MeshTypeData->Mesh = GetAssetByPath<UStaticMesh>("Cube");
 		LODLevel->TypeDataModule = MeshTypeData;
 	}
+
+	return LODLevel;
+}
+
+UParticleSystem* UAssetManager::BuildDefaultBeamParticleSystem()
+{
+	UParticleSystem* System =
+	    NewObject<UParticleSystem>();
+
+	// 이제 BeamEmitterInstance가 동적 Bounds를 계산한다.
+	System->bUseFixedRelativeBoundingBox = false;
+
+	UParticleEmitter* Emitter =
+	    NewObject<UParticleEmitter>(System);
+
+	UParticleLODLevel* LODLevel =
+	    NewObject<UParticleLODLevel>(Emitter);
+
+	UParticleModuleRequired* Required =
+	    NewObject<UParticleModuleRequired>(LODLevel);
+
+	Required->Material =
+	    GetAssetByPath<UMaterial>("DefaultParticleMaterial");
+
+	Required->bUseLocalSpace = true;
+	Required->SortMode = EParticleSortMode::None;
+	Required->EmitterDuration = 05.5f;
+	Required->EmitterLoops = 0;
+	Required->MaxActiveParticles = 3;
+
+	UParticleModuleTypeDataBeam* BeamTypeData =
+	    NewObject<UParticleModuleTypeDataBeam>(LODLevel);
+
+	BeamTypeData->MaxBeamCount = 1;
+	BeamTypeData->SegmentCount = 64;
+	BeamTypeData->TextureTileDistance = 0.0f;
+
+	UParticleModuleBeamSource* Source =
+	    NewObject<UParticleModuleBeamSource>(LODLevel);
+
+	Source->SourcePosition = FVector(0.0f, 0.0f, 2.0f);
+	Source->bLockOnSpawn = true;
+
+	UParticleModuleBeamTarget* Target =
+	    NewObject<UParticleModuleBeamTarget>(LODLevel);
+
+	Target->TargetPosition = FVector(5.0f, 0.0f, 2.0f);
+	Target->bLockOnSpawn = true;
+
+	UParticleModuleBeamNoise* Noise =
+	    NewObject<UParticleModuleBeamNoise>(LODLevel);
+
+	Noise->Amplitude = 0.2f;
+	Noise->NoiseSegmentCount = 8;
+	Noise->UpdateInterval = 0.0f;
+	Noise->RandomSeed = 12345;
+	Noise->bSmoothNoise = true;
+
+	UParticleModuleSpawn* Spawn =
+	    NewObject<UParticleModuleSpawn>(LODLevel);
+
+	Spawn->SpawnRate = 0.0f;
+
+	FParticleBurst Burst{};
+	Burst.Time = 0.0f;
+	Burst.Count = 3;
+	Spawn->Bursts.Add(Burst);
+
+	UParticleModuleLifetime* Lifetime =
+	    NewObject<UParticleModuleLifetime>(LODLevel);
+
+	Lifetime->Lifetime = FParticleFloatRange(05.4f, 05.4f);
+
+	UParticleModuleSize* Size =
+	    NewObject<UParticleModuleSize>(LODLevel);
+
+	Size->StartSize =
+	    FParticleVectorRange(FVector(0.08f, 0.08f, 0.08f));
+
+	UParticleModuleColor* Color =
+	    NewObject<UParticleModuleColor>(LODLevel);
+
+	const FLinearColor StartColor(
+	    0.1f, 0.7f, 1.0f, 0.8f);
+
+	Color->StartColor =
+	    FParticleColorRange(StartColor, StartColor);
+
+	Color->bUseColorOverLife = false;
+
+	LODLevel->Level = 0;
+	LODLevel->RequiredModule = Required;
+	LODLevel->TypeDataModule = BeamTypeData;
+
+	LODLevel->Modules.Add(Spawn);
+	LODLevel->Modules.Add(Lifetime);
+	LODLevel->Modules.Add(Size);
+	LODLevel->Modules.Add(Color);
+	LODLevel->Modules.Add(Source);
+	LODLevel->Modules.Add(Target);
+	LODLevel->Modules.Add(Noise);
+
+	Emitter->LODLevels.Add(LODLevel);
+	System->Emitters.Add(Emitter);
+
+	return System;
+}
+
+UParticleSystem* UAssetManager::BuildDefaultRibbonParticleSystem()
+{
+	UParticleSystem* System =
+	    NewObject<UParticleSystem>();
+
+	System->bUseFixedRelativeBoundingBox = false;
+
+	UParticleEmitter* Emitter =
+	    NewObject<UParticleEmitter>(System);
+
+	UParticleLODLevel* LODLevel =
+	    NewObject<UParticleLODLevel>(Emitter);
+
+	UParticleModuleRequired* Required =
+	    NewObject<UParticleModuleRequired>(LODLevel);
+
+	Required->Material =
+	    GetAssetByPath<UMaterial>("DefaultParticleMaterial");
+
+	Required->bUseLocalSpace = false;
+	Required->EmitterDuration = 1.0f;
+	Required->EmitterLoops = 0;
+	Required->MaxActiveParticles = 128;
+	Required->SortMode = EParticleSortMode::None;
+
+	UParticleModuleTypeDataRibbon* RibbonTypeData =
+	    NewObject<UParticleModuleTypeDataRibbon>(LODLevel);
+
+	RibbonTypeData->MaxTrailCount = 1;
+	RibbonTypeData->MaxPointsPerTrail = 128;
+	RibbonTypeData->MinSpawnDistance = 1.0f;
+	RibbonTypeData->TextureTileDistance = 0.0f;
+	RibbonTypeData->bClipSourceSegment = false;
+
+	UParticleModuleLifetime* Lifetime =
+	    NewObject<UParticleModuleLifetime>(LODLevel);
+
+	Lifetime->Lifetime = FParticleFloatRange(2.0f, 2.0f);
+
+	UParticleModuleSize* Size =
+	    NewObject<UParticleModuleSize>(LODLevel);
+
+	Size->StartSize =
+	    FParticleVectorRange(FVector(0.2f, 0.2f, 0.2f));
+
+	UParticleModuleColor* Color =
+	    NewObject<UParticleModuleColor>(LODLevel);
+
+	const FLinearColor StartColor(1.0f, 0.35f, 0.05f, 1.0f);
+
+	Color->StartColor =
+	    FParticleColorRange(StartColor, StartColor);
+
+	Color->bUseColorOverLife = true;
+	// 색은 그대로 두고 수명 끝에서 투명해진다.
+	Color->SetFadeOut();
+
+	LODLevel->RequiredModule = Required;
+	LODLevel->TypeDataModule = RibbonTypeData;
+
+	LODLevel->Modules.Add(Lifetime);
+	LODLevel->Modules.Add(Size);
+	LODLevel->Modules.Add(Color);
+
+	// Spawn 모듈은 추가하지 않는다.
+	// Ribbon의 Spawn()이 이동 거리로 생성 개수를 결정한다.
 
 	Emitter->LODLevels.Add(LODLevel);
 	System->Emitters.Add(Emitter);

@@ -22,6 +22,8 @@ public:
 	void SetOpenSkeletalMeshCallback(std::function<void(const FString&)> Callback) { OnOpenSkeletalMesh = std::move(Callback); }
 
 	void SetOpenBlendSpaceCallback(std::function<void(const FString&)> Callback) { OnOpenBlendSpace = std::move(Callback); }
+	// .particle 더블클릭. 파티클 시스템 에디터를 여는 일은 호출부(엔진)가 맡는다.
+	void SetOpenParticleSystemCallback(std::function<void(const FString&)> Callback) { OnOpenParticleSystem = std::move(Callback); }
 void SetOpenStateMachineCallback(std::function<void(const FString&)> C) { OnOpenStateMachine=std::move(C); }
 void SetCreateStateMachineCallback(std::function<void(const FString&)> C) { OnCreateStateMachine=std::move(C); }
 void SetOpenAnimGraphCallback(std::function<void(const FString&)> C) { OnOpenAnimGraph=std::move(C); }
@@ -31,6 +33,7 @@ private:
  std::function<void(const FString&)> OnOpenStateMachine, OnCreateStateMachine;
 	void DrawBlendSpaceCreation();
 	std::function<void(const FString&)> OnOpenBlendSpace;
+	std::function<void(const FString&)> OnOpenParticleSystem;
 	char NewBlendSpaceName[128] = "BS_Locomotion";
 	FString NewBlendSpaceMeshKey, CreateError;
 	fs::path CreateFolder;

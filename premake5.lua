@@ -38,6 +38,8 @@ workspace "Hitori"
 	{
 		"Debug",
 		"Release",
+		-- 배포·시연·제출용. Release와 같게 빌드하고, 빌드 후에 소스 인덱싱 + 심볼 서버 업로드를 한다. (Setup/PublishBuild.ps1)
+		"Publish",
 		"ObjViewer",
 		"Executable",
 		"Benchmark",
@@ -95,6 +97,13 @@ function CommonSettings()
 
 	filter "configurations:Release"
 		defines  { "ENGINE_RELEASE", "NDEBUG" }
+		runtime  "Release"
+		optimize "on"
+		symbols  "on"
+
+	-- Release와 같은 코드. 크래시 덤프를 풀려면 PDB가 반드시 있어야 하므로 symbols는 켠다.
+	filter "configurations:Publish"
+		defines  { "ENGINE_RELEASE", "NDEBUG", "ENGINE_PUBLISH" }
 		runtime  "Release"
 		optimize "on"
 		symbols  "on"
@@ -232,7 +241,7 @@ project "HitoriEngine"
 				.. '/lib/x64/debug/libfbxsdk.dll" "%{cfg.targetdir}/libfbxsdk.dll"',
 		}
 
-	filter "configurations:Release or Benchmark or ObjViewer or Executable"
+	filter "configurations:Release or Publish or Benchmark or ObjViewer or Executable"
 		libdirs
 		{
 			FbxSdkRoot .. "/lib/x64/release",
@@ -361,7 +370,7 @@ project "HitoriEditor"
 			"{COPYFILE} %[vcpkg_installed/x64-windows/debug/bin/lua51.dll] %[%{!cfg.targetdir}/lua51.dll]",
 		}
 
-	filter "configurations:Release or Benchmark or ObjViewer or Executable"
+	filter "configurations:Release or Publish or Benchmark or ObjViewer or Executable"
 		libdirs
 		{
 			"vcpkg_installed/x64-windows/lib",
@@ -385,6 +394,16 @@ project "HitoriEditor"
 
 	filter "configurations:Benchmark_Debug"
 		targetname "Benchmark_Debug"
+
+	-- 배포용: 링크가 끝나면 PDB에 소스 인덱스를 넣고 exe·pdb를 심볼 서버에 올린다.
+	-- 심볼 서버 경로는 Setup/SymbolStore.txt에서 읽는다. 커밋·푸시가 안 됐거나 경로가 없으면 경고만 하고 빌드는 성공으로 끝낸다.
+	filter "configurations:Publish"
+		postbuildmessage "Publishing symbols (source index + symstore)"
+		postbuildcommands
+		{
+			"powershell -NoProfile -ExecutionPolicy Bypass -File " .. Shell(RepoRoot .. "/Setup/PublishBuild.ps1")
+				.. " -SkipBuild -Configuration Publish -FromBuild",
+		}
 
 	filter {}
 

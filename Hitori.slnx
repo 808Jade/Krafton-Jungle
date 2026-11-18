@@ -5,6 +5,7 @@
     <BuildType Name="Debug" />
     <BuildType Name="Executable" />
     <BuildType Name="ObjViewer" />
+    <BuildType Name="Publish" />
     <BuildType Name="Release" />
     <Platform Name="x64" />
   </Configurations>

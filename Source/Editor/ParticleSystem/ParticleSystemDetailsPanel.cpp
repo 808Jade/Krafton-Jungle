@@ -4,7 +4,11 @@
 
 #include "Components/ParticleSystemComponent.h"
 #include "Particles/ParticleModule.h"
+#include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleRange.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/Modules/ParticleModuleRequired.h"
+#include "Particles/Modules/ParticleModuleTypeDataRibbon.h"
 #include "Render/MaterialInterface.h"
 #include "Render/Mesh.h"
 #include "UObject/Class.h"
@@ -140,6 +144,53 @@ void FParticleSystemDetailsPanel::DrawParticleSystemProperties()
 		}
 	}
 
+	if (Template && ImGui::CollapsingHeader("LOD", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		bool bLODChanged = false;
+
+		static const char* LODMethodNames[] = { "Automatic", "DirectSet", "ActivateAutomatic" };
+		int32 LODMethodIndex = static_cast<int32>(Template->LODMethod);
+		if (ImGui::Combo("LOD Method", &LODMethodIndex, LODMethodNames, IM_ARRAYSIZE(LODMethodNames)))
+		{
+			Template->LODMethod = static_cast<EParticleSystemLODMethod>(LODMethodIndex);
+			bLODChanged = true;
+		}
+
+		if (ImGui::DragFloat("Distance Check Time", &Template->LODDistanceCheckTime, 0.01f, 0.01f, 10.0f, "%.2f s"))
+		{
+			Template->LODDistanceCheckTime = std::max(Template->LODDistanceCheckTime, 0.01f);
+			bLODChanged = true;
+		}
+
+		TArray<float>& Distances = Template->LODDistances;
+		for (int32 Index = 0; Index < Distances.Num(); ++Index)
+		{
+			ImGui::PushID(Index);
+			const FString Label = "LOD " + std::to_string(Index) + " Distance";
+			if (Index == 0)
+			{
+				ImGui::BeginDisabled();
+				float Zero = 0.0f;
+				ImGui::DragFloat(Label.c_str(), &Zero);
+				ImGui::EndDisabled();
+			}
+			else
+			{
+				const float MinDistance = Distances[Index - 1];
+				const float MaxDistance = Index + 1 < Distances.Num() ? Distances[Index + 1] : FLT_MAX;
+				if (ImGui::DragFloat(Label.c_str(), &Distances[Index], 0.5f, MinDistance, MaxDistance, "%.1f"))
+				{
+					Distances[Index] = std::clamp(Distances[Index], MinDistance, MaxDistance);
+					bLODChanged = true;
+				}
+			}
+			ImGui::PopID();
+		}
+
+		if (bLODChanged)
+			Context.MarkDirty();
+	}
+
 	if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		ImGui::Checkbox("Paused", &Context.bSimulationPaused);
@@ -155,7 +206,45 @@ void FParticleSystemDetailsPanel::DrawEmitterProperties()
 	{
 		ImGui::Text("Index: %d", Context.SelectedEmitterIndex);
 		ImGui::Text("Active Particles: %d / %d", Instance->ActiveParticles, Instance->MaxActiveParticles);
-		ImGui::Checkbox("Use Local Space", &Instance->bUseLocalSpace);
+		UParticleLODLevel* LODLevel =
+		    Context.GetLODLevel(Context.SelectedEmitterIndex);
+
+		if (LODLevel && LODLevel->RequiredModule)
+		{
+			const bool bRibbon =
+			    Cast<UParticleModuleTypeDataRibbon>(
+			        LODLevel->TypeDataModule) != nullptr;
+
+			bool bLocalSpace =
+			    LODLevel->RequiredModule->bUseLocalSpace;
+
+			ImGui::BeginDisabled(bRibbon);
+
+			const bool bChanged =
+			    ImGui::Checkbox("Use Local Space", &bLocalSpace);
+
+			ImGui::EndDisabled();
+
+			if (bRibbon)
+			{
+				ImGui::TextDisabled(
+				    "Ribbon currently supports world space only.");
+			}
+
+			if (bChanged)
+			{
+				LODLevel->RequiredModule->bUseLocalSpace = bLocalSpace;
+				Context.NotifyModuleEdited(Context.SelectedEmitterIndex);
+				return;
+			}
+		}
+
+		if (LODLevel)
+		{
+			const FString Label = "Enabled in LOD " + std::to_string(Context.CurrentLODIndex);
+			if (ImGui::Checkbox(Label.c_str(), &LODLevel->bEnabled))
+				Context.NotifyModuleEdited(Context.SelectedEmitterIndex);
+		}
 	}
 
 	if (ImGui::CollapsingHeader("Bounds", ImGuiTreeNodeFlags_DefaultOpen))
@@ -190,7 +279,20 @@ void FParticleSystemDetailsPanel::DrawModuleProperties(UParticleModule* Module)
 			if (!Property.HasAnyFlags(CPF_Edit) || !Module->IsPropertyVisibleInDetails(Property))
 				continue;
 
-			const bool bReadOnly = Property.HasAnyFlags(CPF_EditConst);
+			const UParticleLODLevel* LODLevel =
+			    Context.GetLODLevel(Context.SelectedEmitterIndex);
+
+			const bool bRibbonLocalSpace =
+			    LODLevel &&
+			    Cast<UParticleModuleTypeDataRibbon>(
+			        LODLevel->TypeDataModule) &&
+			    Cast<UParticleModuleRequired>(Module) &&
+			    Property.Name.ToString() == "bUseLocalSpace";
+
+			const bool bReadOnly =
+			    Property.HasAnyFlags(CPF_EditConst) ||
+			    bRibbonLocalSpace;
+
 			if (bReadOnly) ImGui::BeginDisabled();
 			bCommitted |= DrawModuleProperty(Module, Property);
 			if (bReadOnly) ImGui::EndDisabled();

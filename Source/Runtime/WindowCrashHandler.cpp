@@ -1,12 +1,46 @@
 #include "EnginePCH.h"
 #include "WindowCrashHandler.h"
 #include <DbgHelp.h>
-
+#include <cstdlib>
+#include <cstring>
+#include <stdexcept>
+#include <csignal>
+#include <exception>
 
 static wchar_t GCrashDir[MAX_PATH] = {};
 
 namespace
 {
+	// 덤프에서 어느 경로로 죽었는지 구분하는 사용자 정의 예외 코드. (0xE로 시작하면 OS 코드와 겹치지 않는다)
+	constexpr DWORD CrashCodeAbort = 0xE0000001;        // abort(), assert 실패
+	constexpr DWORD CrashCodePureCall = 0xE0000002;     // 순수 가상 함수 호출
+	constexpr DWORD CrashCodeInvalidParam = 0xE0000003; // CRT 잘못된 인자 (strcpy_s 넘침 등)
+	constexpr DWORD CrashCodeTerminate = 0xE0000004;    // std::terminate
+
+	// 예외 정보가 없는 경로: 지금 위치의 레지스터를 잡아 예외 정보를 만들고 기존 덤프 경로로 보낸다.
+	[[noreturn]] void WriteDumpHere(DWORD Code)
+	{
+		if (IsDebuggerPresent())
+			__debugbreak();
+
+		CONTEXT Context{};
+		RtlCaptureContext(&Context);
+		EXCEPTION_RECORD Record{};
+		Record.ExceptionCode = Code;
+		Record.ExceptionAddress = reinterpret_cast<PVOID>(Context.Rip);
+		EXCEPTION_POINTERS Pointers{ &Record, &Context };
+		FWindowCrashHandler::OnUnhandledException(&Pointers); // 덤프 + 메시지 박스
+		TerminateProcess(GetCurrentProcess(), Code);          // CRT 기본 처리로 돌아가지 않고 끝낸다
+	}
+
+	void OnSigAbort(int) { WriteDumpHere(CrashCodeAbort); }
+	void OnPureCall() { WriteDumpHere(CrashCodePureCall); }
+	void OnInvalidParameter(const wchar_t*, const wchar_t*, const wchar_t*, unsigned, uintptr_t)
+	{
+		WriteDumpHere(CrashCodeInvalidParam);
+	}
+	void OnTerminate() { WriteDumpHere(CrashCodeTerminate); }
+
 	// 콘솔 입력은 대소문자를 구분하지 않는다.
 	bool EqualsIgnoreCase(const FString& A, const char* B)
 	{
@@ -62,6 +96,54 @@ namespace
 		CrashStackOverflow(Depth + 1); // 0xC00000FD
 	}
 	#pragma warning(pop)
+
+	// ---- 아래는 SEH 예외가 아니라 CRT가 직접 종료하는 경로다. (SetUnhandledExceptionFilter로는 잡히지 않는다) ----
+
+	// abort(): SIGABRT를 일으킨 뒤 종료한다. assert 실패도 이 경로를 탄다.
+	__declspec(noinline) void CrashAbort()
+	{
+		std::abort();
+	}
+
+	// 잘못된 인자: 버퍼보다 긴 문자열을 strcpy_s로 복사하면 CRT의 invalid parameter handler가 불린다.
+	__declspec(noinline) void CrashInvalidParameter()
+	{
+		char Buffer[4];
+		const char* volatile Source = "this string is too long"; // volatile: 컴파일러가 미리 길이를 판단하지 못하게
+		strcpy_s(Buffer, sizeof(Buffer), Source);
+	}
+
+	// 순수 가상 함수 호출: 기반 클래스 생성자가 도는 동안에는 가상 함수 표가 아직 기반 클래스 것이라
+	// 순수 가상 함수 자리(_purecall)로 들어간다. 생성자에서 직접 부르면 컴파일러가 막으므로 일반 함수를 한 번 거친다.
+	struct FPureCallBase
+	{
+		FPureCallBase() { CallPure(); }
+		virtual ~FPureCallBase() = default;
+		__declspec(noinline) void CallPure() { Pure(); }
+		virtual void Pure() = 0;
+	};
+	struct FPureCallDerived : FPureCallBase
+	{
+		void Pure() override {}
+	};
+	__declspec(noinline) void CrashPureCall()
+	{
+		FPureCallDerived Object;
+		(void)Object;
+	}
+
+	// std::terminate: noexcept 함수 밖으로 예외가 나가려 하면 C++ 런타임이 terminate를 부른다. (기본 동작은 abort)
+	#pragma warning(push)
+	#pragma warning(disable : 4297) // "noexcept 함수에서 throw" 경고 끄기 (일부러 내는 크래시)
+	__declspec(noinline) void ThrowFromNoexcept() noexcept
+	{
+		throw std::runtime_error("CauseCrash terminate");
+	}
+	#pragma warning(pop)
+	__declspec(noinline) void CrashTerminate()
+	{
+		ThrowFromNoexcept();
+	}
 }
 
 void FWindowCrashHandler::Install()
@@ -78,6 +160,11 @@ void FWindowCrashHandler::Install()
 	// OS에 크래시 콜백을 등록한다.
 	SetUnhandledExceptionFilter(&OnUnhandledException);
 
+	signal(SIGABRT, &OnSigAbort);                                 // abort(), assert
+	_set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT); // abort가 창을 띄우거나 WER로 바로 넘기지 않게
+	_set_purecall_handler(&OnPureCall);
+	_set_invalid_parameter_handler(&OnInvalidParameter);
+	std::set_terminate(&OnTerminate);
 }
 
 LONG __stdcall FWindowCrashHandler::OnUnhandledException(EXCEPTION_POINTERS* ExceptionInfo)
@@ -107,7 +194,7 @@ LONG __stdcall FWindowCrashHandler::OnUnhandledException(EXCEPTION_POINTERS* Exc
 		Info.ExceptionPointers = ExceptionInfo;
 		Info.ClientPointers = FALSE;
 
-		MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), File,
+		bDumpWritten = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), File,
 		                  MINIDUMP_TYPE(MiniDumpWithIndirectlyReferencedMemory |
 		                                MiniDumpWithThreadInfo),
 		                  &Info, nullptr, nullptr);
@@ -146,8 +233,16 @@ bool FWindowCrashHandler::ExecCommand(const FString& CommandLine, FString& OutMe
 		CrashDivideByZero();
 	else if (EqualsIgnoreCase(Tokens[1], "stack"))
 		CrashStackOverflow(0);
+	else if (EqualsIgnoreCase(Tokens[1], "abort"))
+		CrashAbort();
+	else if (EqualsIgnoreCase(Tokens[1], "invalidparam"))
+		CrashInvalidParameter();
+	else if (EqualsIgnoreCase(Tokens[1], "purecall"))
+		CrashPureCall();
+	else if (EqualsIgnoreCase(Tokens[1], "terminate"))
+		CrashTerminate();
 
 	//여기까지 왔다면 모르는 인자다
-	OutMessage = "usage: CauseCrash [null|div|stack]";
+	OutMessage = "usage: CauseCrash [null|div|stack|abort|invalidparam|purecall|terminate]";
 	return true;
 }

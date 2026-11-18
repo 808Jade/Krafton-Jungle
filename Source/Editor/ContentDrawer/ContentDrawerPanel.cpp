@@ -166,6 +166,10 @@ void FContentDrawerPanel::OnRender()
 					{
 						OnOpenBlendSpace(PathString);
 					}
+					else if (OnOpenParticleSystem && _stricmp(Path.extension().string().c_str(), ".particle") == 0)
+					{
+						OnOpenParticleSystem(PathString);
+					}
 					else if (OnOpenSkeletalMesh && (_stricmp(Path.extension().string().c_str(), ".fbx") == 0 ||
 						UAssetManager::IsFbxBakePath(Path)))
 					{

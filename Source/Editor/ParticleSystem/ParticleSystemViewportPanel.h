@@ -11,14 +11,16 @@ class FTexture2D;
 class FParticleSystemViewportPanel : public IEditorPanel
 {
 public:
-	explicit FParticleSystemViewportPanel(FParticleEditorContext& InContext) : Context(InContext) {}
+	// InTabId: 소속 탭의 ID. 같은 에디터 탭이 여러 개 열려도 창 ID가 겹치지 않게 이름 뒤에 붙인다.
+	FParticleSystemViewportPanel(FParticleEditorContext& InContext, const FString& InTabId)
+		: Context(InContext), PanelName("Viewport###Viewport_" + InTabId) {}
 	~FParticleSystemViewportPanel() override;
 
 	bool Init() override;
 	void Tick(float DeltaTime) override { LastDeltaTime = DeltaTime; }
 	void OnRender() override;
-	// ##Particle: 레벨 에디터의 같은 이름 창과 구분한다. 화면에는 앞부분만 보인다.
-	const char* GetPanelName() const override { return "Viewport##Particle"; }
+	// ### 앞부분만 화면에 보이고, 뒷부분이 창 ID다.
+	const char* GetPanelName() const override { return PanelName.c_str(); }
 
 	// GPU 타깃을 해제한다. Device 종료 전에 호스트가 호출한다.
 	void ReleaseResources();
@@ -44,6 +46,7 @@ private:
 
 	// 참조(집약): 호스트가 소유하는 공유 상태
 	FParticleEditorContext& Context;
+	FString PanelName;
 
 	// 소유(합성): 이 뷰포트의 카메라·ViewMode·ShowFlags. 레벨 View의 Client와 같은 클래스다.
 	FEditorViewportClient ViewportClient;

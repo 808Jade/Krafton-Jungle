@@ -1,6 +1,8 @@
 #include "EnginePCH.h"
 #include "Editor/EditorUI/EditorUI.h"
 
+#include "Editor/LevelEditor/LevelEditorTab.h"
+
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -11,7 +13,22 @@ bool FEditorUI::Init(bool bInUseDockSpace, bool bInPassthruCentralNode)
 
 	Toolbar = MakeUnique<FLevelEditorToolbar>();
 
+	// 탭 0은 항상 레벨 탭이다. 메뉴바와 PIE 툴바는 다른 탭·패널 목록을 알아야 하므로 여기서 그려 준다.
+	auto LevelTab = MakeUnique<FLevelEditorTab>();
+	LevelTab->SetHostContentsDrawer([this]()
+	{
+		DrawMainMenuBar();
+		if (Toolbar)
+			Toolbar->Draw();
+	});
+	Tabs.Add(std::move(LevelTab));
+
 	return true;
+}
+
+FLevelEditorTab* FEditorUI::GetLevelTab() const
+{
+	return static_cast<FLevelEditorTab*>(Tabs[0].get());
 }
 
 void FEditorUI::Tick(float DeltaTime)
@@ -19,6 +36,68 @@ void FEditorUI::Tick(float DeltaTime)
 	for (auto& Panel : Panels)
 	{
 		Panel->Tick(DeltaTime);
+	}
+	for (auto& Tab : Tabs)
+	{
+		Tab->Tick(DeltaTime);
+	}
+}
+
+bool FEditorUI::IsAnyTabHoveredOrInteracting() const
+{
+	for (const auto& Tab : Tabs)
+	{
+		if (Tab->IsVisible() && Tab->IsHoveredOrInteracting())
+			return true;
+	}
+	return false;
+}
+
+void FEditorUI::CollectTabViews(TArray<FEditorTabView>& OutViews) const
+{
+	for (const auto& Tab : Tabs)
+	{
+		if (Tab->IsVisible())
+			Tab->CollectViews(OutViews);
+	}
+}
+
+void FEditorUI::ReleaseTabResources()
+{
+	for (auto& Tab : Tabs)
+		Tab->ReleaseResources();
+	// 레벨 탭(닫을 수 없는 탭)은 남긴다. 그 패널을 엔진이 종료 끝까지 참조한다.
+	for (int32 Index = Tabs.Num() - 1; Index >= 0; --Index)
+	{
+		if (Tabs[Index]->CanClose())
+			Tabs.RemoveAt(Index);
+	}
+}
+
+void FEditorUI::RenderTabs(const ImGuiID RootWorkspaceDockId)
+{
+	// 처음 뜨는 탭은 레벨 에디터와 같은 탭 묶음에 붙인다. 이후 위치는 imgui.ini가 기억한다.
+	const ImGuiWindow* LevelWindow = ImGui::FindWindowByName("Level Editor");
+	const ImGuiID DefaultDockId = LevelWindow && LevelWindow->DockId ? LevelWindow->DockId : RootWorkspaceDockId;
+
+	// 레벨 탭(0)은 OnRender 앞부분에서 이미 그렸다.
+	// 탭 안의 메뉴(File > Open 등)가 그리는 도중에 AddTab으로 새 탭을 붙일 수 있다.
+	// 배열이 재할당되면 범위 기반 for의 반복자가 무효가 되므로 인덱스로 돈다.
+	// 탭 객체 자체는 힙에 있어 재할당 뒤에도 그대로이고, 새로 붙은 탭은 같은 프레임에 이어서 그려진다.
+	for (int32 Index = 1; Index < Tabs.Num(); ++Index)
+	{
+		// 숨겨 둔 탭(bKeepWhenClosed)은 다시 열 때까지 그리지 않는다.
+		if (Tabs[Index]->IsOpen())
+			Tabs[Index]->Render(DefaultDockId);
+	}
+
+	// 닫힌 탭은 그리기가 끝난 뒤에 지운다. 프리뷰 월드·GPU 타깃을 먼저 놓는다.
+	for (int32 Index = Tabs.Num() - 1; Index >= 1; --Index)
+	{
+		if (Tabs[Index]->IsOpen() || Tabs[Index]->KeepWhenClosed())
+			continue;
+		Tabs[Index]->ReleaseResources();
+		Tabs.RemoveAt(Index);
 	}
 }
 
@@ -81,11 +160,9 @@ void FEditorUI::OnRender()
 				ImGui::DockBuilderSetNodeSize(rootDockId, rootSize);
 
 				ImGui::DockBuilderDockWindow("Level Editor", rootDockId);
-				ImGui::DockBuilderDockWindow("Skeletal Mesh Viewer", rootDockId);
 				ImGui::DockBuilderDockWindow("Blend Space Editor", rootDockId);
 				ImGui::DockBuilderDockWindow("State Machine Editor", rootDockId);
                 ImGui::DockBuilderDockWindow("AnimGraph Editor", rootDockId);
-				ImGui::DockBuilderDockWindow("Particle System Editor", rootDockId);
 				ImGui::DockBuilderFinish(rootDockId);
 			}
 
@@ -95,26 +172,20 @@ void FEditorUI::OnRender()
 		ImGui::End();
 	}
 
-	// 1. 레벨 에디터 전용 WindowClass 정의 (스켈레탈 메시 창들과 완전히 분리)
-	ImGuiWindowClass LevelEditorClass;
-	LevelEditorClass.ClassId = ImHashStr("LevelEditorClass");
-	LevelEditorClass.DockingAllowUnclassed = false;
+	// 1. 레벨 탭(탭 0). 레벨 패널은 이 탭이 소유하고 자기 클래스로 자기 DockSpace에만 붙인다.
+	// 루트 DockSpace를 처음 만들 때 이미 붙여 두므로 기본 도킹 위치는 넘기지 않는다.
+	GetLevelTab()->Render(0);
 
-	ImGuiWindowClass LevelViewportClass = LevelEditorClass;
-	LevelViewportClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoUndocking;
+	// 아래 에셋 에디터가 레벨 탭 안에 잘못 붙었는지 판정할 때 쓴다. (레벨 탭의 WindowClass 이름과 같다)
+	const ImGuiID LevelEditorClassId = ImHashStr("LevelEditorClass");
 
-	// 2. [ Level Editor ] 마스터 컨테이너 창 렌더링
-	DrawLevelEditorWorkspace(LevelEditorClass);
-
-	// 3. 서브 패널 렌더링
+	// 2. 아직 탭으로 옮기지 않은 에셋 에디터 패널 (Skeletal Mesh Viewer, Blend Space, State Machine, AnimGraph)
 	for (auto& Panel : Panels)
 	{
 		if (!Panel->IsOpen())
 			continue;
 
 		const char* Name = Panel->GetPanelName();
-		const bool bIsSkelViewer = (strcmp(Name, "Skeletal Mesh Viewer") == 0);
-		const bool bIsMainViewport = (strcmp(Name, "Viewports") == 0);
 		const bool bIsAnimGraphEditor = (strcmp(Name, "AnimGraph Editor") == 0);
 
 		if (strcmp(Name, "State Machine Editor") == 0 || bIsAnimGraphEditor)
@@ -131,8 +202,8 @@ void FEditorUI::OnRender()
 			{
 				ImGuiDockNode* Root = ImGui::DockNodeGetRootNode(Node);
 				bWrongGroup = (Node->MergedFlags & ImGuiDockNodeFlags_NoUndocking) != 0 ||
-					Root->WindowClass.ClassId == LevelEditorClass.ClassId ||
-					(Window && Window->WindowClass.ClassId == LevelEditorClass.ClassId);
+					Root->WindowClass.ClassId == LevelEditorClassId ||
+					(Window && Window->WindowClass.ClassId == LevelEditorClassId);
 			}
 			if (bWrongGroup || (bIsAnimGraphEditor && bAnimGraphInitialDockPending && !Node))
 			{
@@ -150,96 +221,12 @@ void FEditorUI::OnRender()
 			ImGuiWindowClass AssetEditorClass;
 			ImGui::SetNextWindowClass(&AssetEditorClass);
 		}
-		else if (bIsMainViewport)
-		{
-			ImGui::SetNextWindowClass(&LevelViewportClass);
-		}
-		else if (strcmp(Name, "Particle System Editor") == 0)
-		{
-			// 애셋 에디터이므로 Level Editor 창에 가두지 않는다. 저장된 위치가 없는 첫 실행에만
-			// Level Editor와 같은 루트 탭 묶음에 붙인다.
-			const ImGuiWindow* LevelWindow = ImGui::FindWindowByName("Level Editor");
-			const ImGuiID Target = LevelWindow && LevelWindow->DockId ? LevelWindow->DockId : RootWorkspaceDockId;
-			if (Target)
-				ImGui::SetNextWindowDockID(Target, ImGuiCond_FirstUseEver);
-		}
-		else if (!bIsSkelViewer && strcmp(Name, "Blend Space Editor") != 0)
-		{
-			// 레벨 에디터 서브 패널들은 LevelEditorClass를 적용하여 오직 Level Editor 창 안에만 도킹됨!
-			ImGui::SetNextWindowClass(&LevelEditorClass);
-		}
 
 		Panel->OnRender();
 	}
-}
 
-void FEditorUI::DrawLevelEditorWorkspace(const ImGuiWindowClass& WindowClass)
-{
-	// Level Editor 창 자체는 루트 DockSpace(HitoriEngineRootDockSpace)에 탭으로 도킹됨
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-	const bool bVisible = ImGui::Begin("Level Editor", nullptr,
-		ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-	ImGui::PopStyleVar();
-
-	if (bVisible)
-	{
-		// 레벨 에디터 전용 상단 메뉴바 (File / Window)
-		DrawMainMenuBar();
-
-		// 레벨 에디터 전용 상단 PIE 툴바
-		if (Toolbar)
-		{
-			Toolbar->Draw();
-		}
-	}
-
-	// 레벨 에디터 내부 전용 DockSpace
-	ImGuiID levelDockId = ImGui::GetID("LevelEditorInnerDockSpace");
-
-	ImGuiDockNode* LevelNode = ImGui::DockBuilderGetNode(levelDockId);
-	ImGuiWindow* ViewportsWin = ImGui::FindWindowByName("Viewports");
-	const bool bViewportsOrphaned = (ViewportsWin != nullptr && ViewportsWin->DockNode == nullptr && ViewportsWin->WasActive);
-
-	// 초기 상태이거나, 이전 크래시 ini로 인해 Viewports가 도킹에서 이탈했거나, 리셋 요청 시 레이아웃 재구성
-	const bool bNeedBuild = (LevelNode == nullptr)
-		|| bResetLevelLayout
-		|| (LevelNode->IsLeafNode() && LevelNode->Windows.Size == 0)
-		|| bViewportsOrphaned;
-
-	if (bNeedBuild)
-	{
-		bResetLevelLayout = false;
-		const ImGuiViewport* vp = ImGui::GetMainViewport();
-		ImVec2 avail = ImGui::GetContentRegionAvail();
-		ImVec2 dockSize(
-			avail.x > 100.0f ? avail.x : std::max(vp->WorkSize.x, 800.0f),
-			avail.y > 100.0f ? avail.y : std::max(vp->WorkSize.y, 600.0f));
-
-		ImGui::DockBuilderRemoveNode(levelDockId);
-		ImGui::DockBuilderAddNode(levelDockId, ImGuiDockNodeFlags_DockSpace);
-		ImGui::DockBuilderSetNodeSize(levelDockId, dockSize);
-
-		ImGuiID CenterNode = levelDockId;
-		ImGuiID DownNode = ImGui::DockBuilderSplitNode(CenterNode, ImGuiDir_Down, 0.25f, nullptr, &CenterNode);
-		ImGuiID RightNode = ImGui::DockBuilderSplitNode(CenterNode, ImGuiDir_Right, 0.25f, nullptr, &CenterNode);
-		ImGuiID RightBottomNode = ImGui::DockBuilderSplitNode(RightNode, ImGuiDir_Down, 0.65f, nullptr, &RightNode);
-		ImGuiID DownRightNode = ImGui::DockBuilderSplitNode(DownNode, ImGuiDir_Right, 0.40f, nullptr, &DownNode);
-
-		ImGui::DockBuilderDockWindow("Viewports", CenterNode);
-		ImGui::DockBuilderDockWindow("Outliner", RightNode);
-		ImGui::DockBuilderDockWindow("Details", RightBottomNode);
-		ImGui::DockBuilderDockWindow("Editor Controls", RightNode);
-		ImGui::DockBuilderDockWindow("Settings", RightNode);
-		ImGui::DockBuilderDockWindow("Content Drawer", DownNode);
-		ImGui::DockBuilderDockWindow("Sequence", DownNode);
-		ImGui::DockBuilderDockWindow("Output Log", DownRightNode);
-		ImGui::DockBuilderFinish(levelDockId);
-	}
-
-	// 중요: Level Editor 탭이 비활성(SkipItems) 상태이더라도 DockSpace()는 매 프레임 호출해야
-	// 내부적으로 KeepAliveOnly가 동작하여 자식 패널들이 도킹 해제(Undock)되지 않음
-	ImGui::DockSpace(levelDockId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None, &WindowClass);
-	ImGui::End();
+	// 3. 에셋 에디터 탭 (레벨 탭 제외)
+	RenderTabs(RootWorkspaceDockId);
 }
 
 void FEditorUI::DrawMainMenuBar()
@@ -261,20 +248,47 @@ void FEditorUI::DrawMainMenuBar()
 
 		if (ImGui::BeginMenu("Window"))
 		{
-			for (auto& Panel : Panels)
+			// 레벨 탭의 패널, 그다음 아직 패널 방식인 에셋 에디터
+			const auto DrawPanelToggle = [](IEditorPanel& Panel)
 			{
-				const char* Name = Panel->GetPanelName();
-				bool bOpen = Panel->IsOpen();
-				if (ImGui::MenuItem(Name, nullptr, bOpen))
+				const bool bOpen = Panel.IsOpen();
+				if (ImGui::MenuItem(Panel.GetPanelName(), nullptr, bOpen))
+					Panel.SetOpen(!bOpen);
+			};
+			for (const auto& Panel : GetLevelTab()->GetPanels())
+				DrawPanelToggle(*Panel);
+			ImGui::Separator();
+			for (auto& Panel : Panels)
+				DrawPanelToggle(*Panel);
+
+			// 열려 있는 에셋 에디터 탭(레벨 탭 제외). 누르면 그 탭을 앞으로 가져온다.
+			if (Tabs.Num() > 1)
+			{
+				ImGui::Separator();
+				for (int32 Index = 1; Index < Tabs.Num(); ++Index)
 				{
-					Panel->SetOpen(!bOpen);
+					FEditorTab& Tab = *Tabs[Index];
+					ImGui::PushID(Tab.GetId().c_str());
+					if (ImGui::MenuItem(Tab.GetTitle().c_str()))
+						Tab.RequestFocus();
+					ImGui::PopID();
+				}
+			}
+
+			if (!WindowMenuCommands.IsEmpty())
+			{
+				ImGui::Separator();
+				for (const FWindowMenuCommand& Entry : WindowMenuCommands)
+				{
+					if (ImGui::MenuItem(Entry.Label.c_str()) && Entry.Command)
+						Entry.Command();
 				}
 			}
 
 			ImGui::Separator();
 			if (ImGui::MenuItem("Reset Level Editor Layout"))
 			{
-				bResetLevelLayout = true;
+				GetLevelTab()->RequestLayoutReset();
 			}
 
 			ImGui::EndMenu();

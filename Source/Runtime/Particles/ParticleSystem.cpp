@@ -17,6 +17,26 @@ void UParticleSystem::Serialize(FStructuredArchive::FRecord Record)
 		BoxRecord << SA_VALUE("Min", FixedRelativeBoundingBox.Min) << SA_VALUE("Max", FixedRelativeBoundingBox.Max);
 	}
 
+	int32 LODMethodValue = static_cast<int32>(LODMethod);
+	Record << SA_VALUE("LODMethod", LODMethodValue);
+	if (bLoading)
+	{
+		LODMethod = static_cast<EParticleSystemLODMethod>(LODMethodValue);
+	}
+	Record << SA_VALUE("LODDistanceCheckTime", LODDistanceCheckTime);
+	{
+		int32 LODDistanceNum = LODDistances.Num();
+		FStructuredArchive::FArray LODDistanceArray = Record.EnterArray("LODDistances", LODDistanceNum);
+		if (bLoading)
+		{
+			LODDistances.SetNum(LODDistanceNum);
+		}
+		for (int32 Index = 0; Index < LODDistanceNum; ++Index)
+		{
+			LODDistanceArray << LODDistances[Index];
+		}
+	}
+
 	int32 Num = 0;
 	if (!bLoading)
 	{

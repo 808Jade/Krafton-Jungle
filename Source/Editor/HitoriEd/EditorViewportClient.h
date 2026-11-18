@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Editor/LevelEditor/MultipleViewports/Adapter/MultipleViewportsAdapterTypes.h"
+#include "Editor/Viewports/ViewportTypes.h"
 #include "Containers/Array.h"
 #include "Math/Frustum.h"
 #include "Render/ViewMode.h"

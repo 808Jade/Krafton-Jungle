@@ -1,22 +1,22 @@
 #include "EnginePCH.h"
 #include "AnimationPreviewSession.h"
-bool FAnimationPreviewSession::Compile(FSkeletalMeshViewerPanel& Services, const FAnimGraphAssetData& Data, FString& Error)
+bool FAnimationPreviewSession::Compile(FSkeletalPreviewTabBase& Services, const FAnimGraphAssetData& Data, FString& Error)
 {
     auto Candidate=Services.CreateAnimationPreviewBackend();
-    if(!Candidate->PreviewAnimGraph(Data,Error)) return false;
+    if(!Candidate->Animation.PreviewAnimGraph(Data,Error)) return false;
     Backend=std::move(Candidate); return true;
 }
-bool FAnimationPreviewSession::Compile(FSkeletalMeshViewerPanel& Services, const FAnimStateMachineAssetData& Data, FString& Error)
+bool FAnimationPreviewSession::Compile(FSkeletalPreviewTabBase& Services, const FAnimStateMachineAssetData& Data, FString& Error)
 {
     auto Candidate=Services.CreateAnimationPreviewBackend();
-    if(!Candidate->PreviewStateMachine(Data,Error)) return false;
+    if(!Candidate->Animation.PreviewStateMachine(Data,Error)) return false;
     Backend=std::move(Candidate); return true;
 }
 UAnimInstance* FAnimationPreviewSession::GetInstance() const
 {
     if(!Backend) return nullptr;
-    if(auto* Graph=Backend->GetAnimGraphPreview()) return Graph;
-    return Backend->GetStateMachinePreview();
+    if(auto* Graph=Backend->Animation.GetAnimGraphPreview()) return Graph;
+    return Backend->Animation.GetStateMachinePreview();
 }
 bool FAnimationPreviewSession::IsPaused() const
 {

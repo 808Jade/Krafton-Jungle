@@ -12,7 +12,7 @@ namespace NodeEditor
 struct EditorContext;
 }
 } // namespace ax
-class FSkeletalMeshViewerPanel;
+class FSkeletalPreviewTabBase;
 class UAssetAnimInstance;
 class FStateMachineEditorPanel : public IEditorPanel
 {
@@ -35,7 +35,7 @@ class FStateMachineEditorPanel : public IEditorPanel
 	void SetOpen(bool Open) override;
 	void OpenAsset(const FString &Path);
 	void NewAsset(const FString &Folder);
-	void SetViewer(FSkeletalMeshViewerPanel *V)
+	void SetViewer(FSkeletalPreviewTabBase *V)
 	{
 		Viewer = V;
 	}
@@ -103,7 +103,7 @@ class FStateMachineEditorPanel : public IEditorPanel
 	uintptr_t ContextObject = 0, CreateFromPin = 0;
 	ImVec2 CreationPosition{};
 	std::map<int, FGraphSession> Sessions;
-	FSkeletalMeshViewerPanel *Viewer = nullptr;
+	FSkeletalPreviewTabBase *Viewer = nullptr;
 	FStateMachinePIEProvider PIEProvider;
 	uint64 ObservedSession = 0;
 	uint32 ObservedActor = 0, ObservedComponent = 0;
