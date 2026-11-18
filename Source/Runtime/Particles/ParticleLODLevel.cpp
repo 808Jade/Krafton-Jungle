@@ -8,6 +8,9 @@
 #include "Particles/Modules/ParticleModuleLifetime.h"
 #include "UObject/Casts.h"
 #include "UObject/UObjectHash.h"
+#include "UObject/UObjectGlobals.h"
+
+#include <algorithm>
 
 namespace
 {
@@ -117,6 +120,37 @@ void UParticleLODLevel::Serialize(FStructuredArchive::FRecord Record)
 			}
 		}
 	}
+}
+
+UParticleLODLevel* UParticleLODLevel::Duplicate(UObject* Outer)
+{
+	return Cast<UParticleLODLevel>(StaticDuplicateObject(this, Outer));
+}
+
+void UParticleLODLevel::GenerateFromLODLevel(const UParticleLODLevel* SourceLODLevel, const float Percentage)
+{
+	if (!SourceLODLevel)
+		return;
+
+	const int32 ModuleCount = std::min(Modules.Num(), SourceLODLevel->Modules.Num());
+	for (int32 ModuleIndex = 0; ModuleIndex < ModuleCount; ++ModuleIndex)
+	{
+		UParticleModule* DestModule = Modules[ModuleIndex];
+		const UParticleModule* SourceModule = SourceLODLevel->Modules[ModuleIndex];
+		if (DestModule && SourceModule)
+			DestModule->GenerateLODModuleValues(SourceModule, Percentage);
+	}
+}
+
+void UParticleLODLevel::Destroy(UParticleLODLevel* LODLevel)
+{
+	if (!LODLevel)
+		return;
+	for (UParticleModule* Module : LODLevel->Modules)
+		delete Module;
+	delete LODLevel->RequiredModule;
+	delete LODLevel->TypeDataModule;
+	delete LODLevel;
 }
 
 int32 UParticleLODLevel::CalculateMaxActiveParticleCount() const

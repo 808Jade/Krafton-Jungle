@@ -24,6 +24,12 @@ public:
 	// 모듈이나 LODLevel 구성이 바뀐 뒤 다시 호출해야 한다.
 	void CacheEmitterModuleInfo();
 
+	UParticleLODLevel* DuplicateLODLevel(int32 SourceIndex);
+	void InsertLODLevel(int32 InsertIndex, UParticleLODLevel* LODLevel);
+	[[nodiscard]] UParticleLODLevel* DetachLODLevel(int32 LODIndex);
+	bool AutogenerateLowestLODLevel(bool bDuplicateHighest, TArray<UParticleLODLevel*>& OutDetachedLODLevels);
+	void RenumberLODLevels();
+
 	TArray<UParticleLODLevel*> LODLevels;
 
 	// ---- CacheEmitterModuleInfo 결과 ----
