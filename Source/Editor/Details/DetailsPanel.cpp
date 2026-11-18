@@ -40,6 +40,32 @@
 
 namespace
 {
+	struct FEnumDisplay
+	{
+		const char* PropertyName;
+		const char* Items;
+	};
+	constexpr FEnumDisplay EnumDisplays[] = {
+		{ "LODMethod", "Automatic\0DirectSet\0ActivateAutomatic\0" },
+	};
+
+	const char* FindEnumItems(const FString& PropertyName)
+	{
+		for (const FEnumDisplay& Entry : EnumDisplays)
+		{
+			if (PropertyName == Entry.PropertyName)
+				return Entry.Items;
+		}
+		return nullptr;
+	}
+
+	bool ShouldDrawProperty(const UObject* Object, const FProperty& Property)
+	{
+		if (!Property.HasAnyFlags(CPF_Edit) || !Object->IsPropertyVisibleInDetails(Property))
+			return false;
+		return Property.Type != EPropertyType::Enum || FindEnumItems(Property.Name.ToString()) != nullptr;
+	}
+
 	bool DrawAxisControl(const FString& _label, float& _value, float _speed, float _minValue, float _maxValue, float _resetValue, FVector4 _color)
 	{
 		bool isValueChanged = false;
@@ -1159,6 +1185,21 @@ void FDetailsPanel::DrawProperty(UObject* Object, const FProperty& Property, ImF
 		if (ImGui::Checkbox(Label.c_str(), &Value)) Object->ApplyPropertyValue(Property.Name, &Value);
 		break;
 	}
+	case EPropertyType::Enum:
+	{
+		int64 Raw = 0;
+		std::memcpy(&Raw, ValuePtr, Property.Size);
+		int Current = static_cast<int>(Raw);
+		const char* Items = FindEnumItems(Property.Name.ToString());
+		if (Items && ImGui::Combo(Label.c_str(), &Current, Items))
+		{
+			const int64 NewRaw = Current;
+			alignas(int64) uint8 Buffer[sizeof(int64)] = {};
+			std::memcpy(Buffer, &NewRaw, Property.Size);
+			Object->ApplyPropertyValue(Property.Name, Buffer);
+		}
+		break;
+	}
 	case EPropertyType::Vector:
 	{
 		FVector Value = *static_cast<const FVector*>(ValuePtr);
@@ -1339,7 +1380,7 @@ void FDetailsPanel::DrawProperties(UObject* Object, ImFont* CustomFont)
 		bool bHasVisibleProperty = false;
 		for (const FProperty& Property : Class->GetProperties())
 		{
-			if (Property.HasAnyFlags(CPF_Edit) && Object->IsPropertyVisibleInDetails(Property))
+			if (ShouldDrawProperty(Object, Property))
 			{
 				bHasVisibleProperty = true;
 				break;
@@ -1355,7 +1396,7 @@ void FDetailsPanel::DrawProperties(UObject* Object, ImFont* CustomFont)
 		{
 			for (const FProperty& Property : Class->GetProperties())
 			{
-				if (!Property.HasAnyFlags(CPF_Edit) || !Object->IsPropertyVisibleInDetails(Property))
+				if (!ShouldDrawProperty(Object, Property))
 				{
 					continue;
 				}
