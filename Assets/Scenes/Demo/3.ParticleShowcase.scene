@@ -17,9 +17,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.32,
-                                            "Y": 0.32,
-                                            "Z": 0.35
+                                            "X": 0.3199999928474426,
+                                            "Y": 0.3199999928474426,
+                                            "Z": 0.3499999940395355
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -44,7 +44,7 @@
                                     "Location": {
                                         "X": 0.0,
                                         "Y": 18.0,
-                                        "Z": -0.52
+                                        "Z": -0.5199999809265137
                                     },
                                     "Rotation": {
                                         "Pitch": 0.0,
@@ -111,10 +111,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_0",
-                    "ObjectLabel": "Title",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_0",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -122,7 +118,7 @@
                             "ObjectLabel": "Title",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
+                                "Font": "Assets/Fonts/CookieRun.json",
                                 "Text": "Particle Showcase",
                                 "TextSize": 1.5,
                                 "Transform": {
@@ -142,10 +138,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_0",
+                    "ObjectLabel": "Title",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_0"
                 },
                 {
                     "Class": "AStaticMeshActor",
@@ -160,9 +165,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.86,
-                                            "Y": 0.86,
-                                            "Z": 0.84
+                                            "X": 0.8600000143051147,
+                                            "Y": 0.8600000143051147,
+                                            "Z": 0.8399999737739563
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -185,7 +190,7 @@
                                 "StaticMesh": "Cube",
                                 "Transform": {
                                     "Location": {
-                                        "X": -9.85,
+                                        "X": -9.850000381469727,
                                         "Y": 18.0,
                                         "Z": 3.75
                                     },
@@ -265,9 +270,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.86,
-                                            "Y": 0.86,
-                                            "Z": 0.84
+                                            "X": 0.8600000143051147,
+                                            "Y": 0.8600000143051147,
+                                            "Z": 0.8399999737739563
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -290,7 +295,7 @@
                                 "StaticMesh": "Cube",
                                 "Transform": {
                                     "Location": {
-                                        "X": 9.85,
+                                        "X": 9.850000381469727,
                                         "Y": 18.0,
                                         "Z": 3.75
                                     },
@@ -370,9 +375,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.86,
-                                            "Y": 0.86,
-                                            "Z": 0.84
+                                            "X": 0.8600000143051147,
+                                            "Y": 0.8600000143051147,
+                                            "Z": 0.8399999737739563
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -405,7 +410,7 @@
                                         "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 20.2,
+                                        "X": 20.200000762939453,
                                         "Y": 0.5,
                                         "Z": 7.5
                                     }
@@ -475,9 +480,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.86,
-                                            "Y": 0.86,
-                                            "Z": 0.84
+                                            "X": 0.8600000143051147,
+                                            "Y": 0.8600000143051147,
+                                            "Z": 0.8399999737739563
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -510,7 +515,7 @@
                                         "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 20.2,
+                                        "X": 20.200000762939453,
                                         "Y": 0.5,
                                         "Z": 7.5
                                     }
@@ -580,9 +585,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.86,
-                                            "Y": 0.86,
-                                            "Z": 0.84
+                                            "X": 0.8600000143051147,
+                                            "Y": 0.8600000143051147,
+                                            "Z": 0.8399999737739563
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -615,7 +620,7 @@
                                         "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 20.2,
+                                        "X": 20.200000762939453,
                                         "Y": 57.0,
                                         "Z": 0.5
                                     }
@@ -673,20 +678,118 @@
                     "RootComponent": "UStaticMeshComponent"
                 },
                 {
-                    "ObjectLabel": "Sky Light",
                     "Class": "ASkyLightActor",
                     "Components": [
                         {
-                            "ObjectLabel": "USkyLightComponent",
                             "Class": "USkyLightComponent",
                             "Name": "USkyLightComponent",
+                            "ObjectLabel": "USkyLightComponent",
                             "Parent": "",
                             "Properties": {
-                                "Intensity": 0.6,
+                                "Intensity": 0.6000000238418579,
                                 "LightColor": 4294967295,
-                                "ShadowBias": 0.001,
+                                "ShadowBias": 0.0010000000474974513,
                                 "ShadowMapResolution": 1024,
                                 "ShadowPCFKernelSize": 2,
+                                "Transform": {
+                                    "Location": {
+                                        "X": -0.19815874099731445,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bCastShadows": false,
+                                "bUsePCSS": false,
+                                "bVisible": true
+                            }
+                        },
+                        {
+                            "Class": "UBillboardComponent",
+                            "Material": {
+                                "Base": "SubUVMaterial",
+                                "Instance": {
+                                    "BaseColor": {
+                                        "W": 1.0,
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    },
+                                    "BlendState": "AlphaBlend",
+                                    "ObjectLabel": "UMaterial_184",
+                                    "Properties": {},
+                                    "SamplerState": "LinearClamp",
+                                    "Shininess": 32.0,
+                                    "Textures": [
+                                        "Resources/Icons/Sky.png"
+                                    ],
+                                    "UVScrollSpeed": [
+                                        0.0,
+                                        0.0
+                                    ]
+                                }
+                            },
+                            "Name": "UBillboardComponent",
+                            "ObjectLabel": "UBillboardComponent",
+                            "Parent": "USkyLightComponent",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
+                        }
+                    ],
+                    "Name": "ASkyLightActor_0",
+                    "ObjectLabel": "Sky Light",
+                    "Properties": {},
+                    "RootComponent": "USkyLightComponent"
+                },
+                {
+                    "Class": "APointLightActor",
+                    "Components": [
+                        {
+                            "Class": "UPointLightComponent",
+                            "Name": "UPointLightComponent",
+                            "ObjectLabel": "UPointLightComponent",
+                            "Parent": "DefaultSceneRoot",
+                            "Properties": {
+                                "AttenuationRadius": 14.0,
+                                "Intensity": 1.600000023841858,
+                                "LightColor": 4294967295,
+                                "LightFalloffExponent": 1.0,
+                                "ShadowBias": 0.0010000000474974513,
+                                "ShadowMapResolution": 4096,
+                                "ShadowPCFKernelSize": 2,
+                                "SourceRadius": 0.029999999329447746,
                                 "Transform": {
                                     "Location": {
                                         "X": 0.0,
@@ -708,21 +811,65 @@
                                 "bUsePCSS": false,
                                 "bVisible": true
                             }
-                        }
-                    ],
-                    "Properties": {},
-                    "RootComponent": "USkyLightComponent",
-                    "Name": "ASkyLightActor_0"
-                },
-                {
-                    "RootComponent": "DefaultSceneRoot",
-                    "ObjectLabel": "Tunnel Light 0",
-                    "Class": "APointLightActor",
-                    "Components": [
+                        },
                         {
-                            "ObjectLabel": "DefaultSceneRoot",
+                            "Class": "UBillboardComponent",
+                            "Material": {
+                                "Base": "SubUVMaterial",
+                                "Instance": {
+                                    "BaseColor": {
+                                        "W": 1.0,
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    },
+                                    "BlendState": "AlphaBlend",
+                                    "ObjectLabel": "",
+                                    "Properties": {},
+                                    "SamplerState": "LinearClamp",
+                                    "Shininess": 32.0,
+                                    "Textures": [
+                                        "Resources/Icons/Point.png"
+                                    ],
+                                    "UVScrollSpeed": [
+                                        0.0,
+                                        0.0
+                                    ]
+                                }
+                            },
+                            "Name": "UBillboardComponent",
+                            "ObjectLabel": "UBillboardComponent",
+                            "Parent": "UPointLightComponent",
+                            "Properties": {
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
+                        },
+                        {
                             "Class": "USceneComponent",
                             "Name": "DefaultSceneRoot",
+                            "ObjectLabel": "DefaultSceneRoot",
                             "Parent": "",
                             "Properties": {
                                 "Transform": {
@@ -743,20 +890,30 @@
                                     }
                                 }
                             }
-                        },
+                        }
+                    ],
+                    "Name": "APointLightActor_0",
+                    "ObjectLabel": "Tunnel Light 0",
+                    "Properties": {},
+                    "RootComponent": "DefaultSceneRoot"
+                },
+                {
+                    "Class": "APointLightActor",
+                    "Components": [
                         {
-                            "ObjectLabel": "UPointLightComponent",
                             "Class": "UPointLightComponent",
                             "Name": "UPointLightComponent",
+                            "ObjectLabel": "UPointLightComponent",
                             "Parent": "DefaultSceneRoot",
                             "Properties": {
                                 "AttenuationRadius": 14.0,
-                                "Intensity": 1.6,
+                                "Intensity": 1.600000023841858,
                                 "LightColor": 4294967295,
                                 "LightFalloffExponent": 1.0,
                                 "ShadowBias": 0.0010000000474974513,
                                 "ShadowMapResolution": 4096,
                                 "ShadowPCFKernelSize": 2,
+                                "SourceRadius": 0.029999999329447746,
                                 "Transform": {
                                     "Location": {
                                         "X": 0.0,
@@ -775,16 +932,15 @@
                                     }
                                 },
                                 "bCastShadows": false,
+                                "bUsePCSS": false,
                                 "bVisible": true
                             }
                         },
                         {
-                            "ObjectLabel": "UBillboardComponent",
                             "Class": "UBillboardComponent",
                             "Material": {
                                 "Base": "SubUVMaterial",
                                 "Instance": {
-                                    "ObjectLabel": "",
                                     "BaseColor": {
                                         "W": 1.0,
                                         "X": 1.0,
@@ -792,6 +948,7 @@
                                         "Z": 1.0
                                     },
                                     "BlendState": "AlphaBlend",
+                                    "ObjectLabel": "",
                                     "Properties": {},
                                     "SamplerState": "LinearClamp",
                                     "Shininess": 32.0,
@@ -805,6 +962,7 @@
                                 }
                             },
                             "Name": "UBillboardComponent",
+                            "ObjectLabel": "UBillboardComponent",
                             "Parent": "UPointLightComponent",
                             "Properties": {
                                 "Transform": {
@@ -824,24 +982,18 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
                                 "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
                             }
-                        }
-                    ],
-                    "Properties": {},
-                    "Name": "APointLightActor_0"
-                },
-                {
-                    "RootComponent": "DefaultSceneRoot",
-                    "ObjectLabel": "Tunnel Light 1",
-                    "Class": "APointLightActor",
-                    "Components": [
+                        },
                         {
-                            "ObjectLabel": "DefaultSceneRoot",
                             "Class": "USceneComponent",
                             "Name": "DefaultSceneRoot",
+                            "ObjectLabel": "DefaultSceneRoot",
                             "Parent": "",
                             "Properties": {
                                 "Transform": {
@@ -862,20 +1014,30 @@
                                     }
                                 }
                             }
-                        },
+                        }
+                    ],
+                    "Name": "APointLightActor_1",
+                    "ObjectLabel": "Tunnel Light 1",
+                    "Properties": {},
+                    "RootComponent": "DefaultSceneRoot"
+                },
+                {
+                    "Class": "APointLightActor",
+                    "Components": [
                         {
-                            "ObjectLabel": "UPointLightComponent",
                             "Class": "UPointLightComponent",
                             "Name": "UPointLightComponent",
+                            "ObjectLabel": "UPointLightComponent",
                             "Parent": "DefaultSceneRoot",
                             "Properties": {
                                 "AttenuationRadius": 14.0,
-                                "Intensity": 1.6,
+                                "Intensity": 1.600000023841858,
                                 "LightColor": 4294967295,
                                 "LightFalloffExponent": 1.0,
                                 "ShadowBias": 0.0010000000474974513,
                                 "ShadowMapResolution": 4096,
                                 "ShadowPCFKernelSize": 2,
+                                "SourceRadius": 0.029999999329447746,
                                 "Transform": {
                                     "Location": {
                                         "X": 0.0,
@@ -894,16 +1056,15 @@
                                     }
                                 },
                                 "bCastShadows": false,
+                                "bUsePCSS": false,
                                 "bVisible": true
                             }
                         },
                         {
-                            "ObjectLabel": "UBillboardComponent",
                             "Class": "UBillboardComponent",
                             "Material": {
                                 "Base": "SubUVMaterial",
                                 "Instance": {
-                                    "ObjectLabel": "",
                                     "BaseColor": {
                                         "W": 1.0,
                                         "X": 1.0,
@@ -911,6 +1072,7 @@
                                         "Z": 1.0
                                     },
                                     "BlendState": "AlphaBlend",
+                                    "ObjectLabel": "",
                                     "Properties": {},
                                     "SamplerState": "LinearClamp",
                                     "Shininess": 32.0,
@@ -924,6 +1086,7 @@
                                 }
                             },
                             "Name": "UBillboardComponent",
+                            "ObjectLabel": "UBillboardComponent",
                             "Parent": "UPointLightComponent",
                             "Properties": {
                                 "Transform": {
@@ -943,24 +1106,18 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
                                 "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
                             }
-                        }
-                    ],
-                    "Properties": {},
-                    "Name": "APointLightActor_1"
-                },
-                {
-                    "RootComponent": "DefaultSceneRoot",
-                    "ObjectLabel": "Tunnel Light 2",
-                    "Class": "APointLightActor",
-                    "Components": [
+                        },
                         {
-                            "ObjectLabel": "DefaultSceneRoot",
                             "Class": "USceneComponent",
                             "Name": "DefaultSceneRoot",
+                            "ObjectLabel": "DefaultSceneRoot",
                             "Parent": "",
                             "Properties": {
                                 "Transform": {
@@ -981,20 +1138,30 @@
                                     }
                                 }
                             }
-                        },
+                        }
+                    ],
+                    "Name": "APointLightActor_2",
+                    "ObjectLabel": "Tunnel Light 2",
+                    "Properties": {},
+                    "RootComponent": "DefaultSceneRoot"
+                },
+                {
+                    "Class": "APointLightActor",
+                    "Components": [
                         {
-                            "ObjectLabel": "UPointLightComponent",
                             "Class": "UPointLightComponent",
                             "Name": "UPointLightComponent",
+                            "ObjectLabel": "UPointLightComponent",
                             "Parent": "DefaultSceneRoot",
                             "Properties": {
                                 "AttenuationRadius": 14.0,
-                                "Intensity": 1.6,
+                                "Intensity": 1.600000023841858,
                                 "LightColor": 4294967295,
                                 "LightFalloffExponent": 1.0,
                                 "ShadowBias": 0.0010000000474974513,
                                 "ShadowMapResolution": 4096,
                                 "ShadowPCFKernelSize": 2,
+                                "SourceRadius": 0.029999999329447746,
                                 "Transform": {
                                     "Location": {
                                         "X": 0.0,
@@ -1013,16 +1180,15 @@
                                     }
                                 },
                                 "bCastShadows": false,
+                                "bUsePCSS": false,
                                 "bVisible": true
                             }
                         },
                         {
-                            "ObjectLabel": "UBillboardComponent",
                             "Class": "UBillboardComponent",
                             "Material": {
                                 "Base": "SubUVMaterial",
                                 "Instance": {
-                                    "ObjectLabel": "",
                                     "BaseColor": {
                                         "W": 1.0,
                                         "X": 1.0,
@@ -1030,6 +1196,7 @@
                                         "Z": 1.0
                                     },
                                     "BlendState": "AlphaBlend",
+                                    "ObjectLabel": "",
                                     "Properties": {},
                                     "SamplerState": "LinearClamp",
                                     "Shininess": 32.0,
@@ -1043,6 +1210,7 @@
                                 }
                             },
                             "Name": "UBillboardComponent",
+                            "ObjectLabel": "UBillboardComponent",
                             "Parent": "UPointLightComponent",
                             "Properties": {
                                 "Transform": {
@@ -1062,24 +1230,18 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
                                 "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
                             }
-                        }
-                    ],
-                    "Properties": {},
-                    "Name": "APointLightActor_2"
-                },
-                {
-                    "RootComponent": "DefaultSceneRoot",
-                    "ObjectLabel": "Tunnel Light 3",
-                    "Class": "APointLightActor",
-                    "Components": [
+                        },
                         {
-                            "ObjectLabel": "DefaultSceneRoot",
                             "Class": "USceneComponent",
                             "Name": "DefaultSceneRoot",
+                            "ObjectLabel": "DefaultSceneRoot",
                             "Parent": "",
                             "Properties": {
                                 "Transform": {
@@ -1100,20 +1262,30 @@
                                     }
                                 }
                             }
-                        },
+                        }
+                    ],
+                    "Name": "APointLightActor_3",
+                    "ObjectLabel": "Tunnel Light 3",
+                    "Properties": {},
+                    "RootComponent": "DefaultSceneRoot"
+                },
+                {
+                    "Class": "APointLightActor",
+                    "Components": [
                         {
-                            "ObjectLabel": "UPointLightComponent",
                             "Class": "UPointLightComponent",
                             "Name": "UPointLightComponent",
+                            "ObjectLabel": "UPointLightComponent",
                             "Parent": "DefaultSceneRoot",
                             "Properties": {
                                 "AttenuationRadius": 14.0,
-                                "Intensity": 1.6,
+                                "Intensity": 1.600000023841858,
                                 "LightColor": 4294967295,
                                 "LightFalloffExponent": 1.0,
                                 "ShadowBias": 0.0010000000474974513,
                                 "ShadowMapResolution": 4096,
                                 "ShadowPCFKernelSize": 2,
+                                "SourceRadius": 0.029999999329447746,
                                 "Transform": {
                                     "Location": {
                                         "X": 0.0,
@@ -1132,16 +1304,15 @@
                                     }
                                 },
                                 "bCastShadows": false,
+                                "bUsePCSS": false,
                                 "bVisible": true
                             }
                         },
                         {
-                            "ObjectLabel": "UBillboardComponent",
                             "Class": "UBillboardComponent",
                             "Material": {
                                 "Base": "SubUVMaterial",
                                 "Instance": {
-                                    "ObjectLabel": "",
                                     "BaseColor": {
                                         "W": 1.0,
                                         "X": 1.0,
@@ -1149,6 +1320,7 @@
                                         "Z": 1.0
                                     },
                                     "BlendState": "AlphaBlend",
+                                    "ObjectLabel": "",
                                     "Properties": {},
                                     "SamplerState": "LinearClamp",
                                     "Shininess": 32.0,
@@ -1162,6 +1334,7 @@
                                 }
                             },
                             "Name": "UBillboardComponent",
+                            "ObjectLabel": "UBillboardComponent",
                             "Parent": "UPointLightComponent",
                             "Properties": {
                                 "Transform": {
@@ -1181,24 +1354,18 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
                                 "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
                             }
-                        }
-                    ],
-                    "Properties": {},
-                    "Name": "APointLightActor_3"
-                },
-                {
-                    "RootComponent": "DefaultSceneRoot",
-                    "ObjectLabel": "Tunnel Light 4",
-                    "Class": "APointLightActor",
-                    "Components": [
+                        },
                         {
-                            "ObjectLabel": "DefaultSceneRoot",
                             "Class": "USceneComponent",
                             "Name": "DefaultSceneRoot",
+                            "ObjectLabel": "DefaultSceneRoot",
                             "Parent": "",
                             "Properties": {
                                 "Transform": {
@@ -1219,20 +1386,30 @@
                                     }
                                 }
                             }
-                        },
+                        }
+                    ],
+                    "Name": "APointLightActor_4",
+                    "ObjectLabel": "Tunnel Light 4",
+                    "Properties": {},
+                    "RootComponent": "DefaultSceneRoot"
+                },
+                {
+                    "Class": "APointLightActor",
+                    "Components": [
                         {
-                            "ObjectLabel": "UPointLightComponent",
                             "Class": "UPointLightComponent",
                             "Name": "UPointLightComponent",
+                            "ObjectLabel": "UPointLightComponent",
                             "Parent": "DefaultSceneRoot",
                             "Properties": {
                                 "AttenuationRadius": 14.0,
-                                "Intensity": 1.6,
+                                "Intensity": 1.600000023841858,
                                 "LightColor": 4294967295,
                                 "LightFalloffExponent": 1.0,
                                 "ShadowBias": 0.0010000000474974513,
                                 "ShadowMapResolution": 4096,
                                 "ShadowPCFKernelSize": 2,
+                                "SourceRadius": 0.029999999329447746,
                                 "Transform": {
                                     "Location": {
                                         "X": 0.0,
@@ -1251,16 +1428,15 @@
                                     }
                                 },
                                 "bCastShadows": false,
+                                "bUsePCSS": false,
                                 "bVisible": true
                             }
                         },
                         {
-                            "ObjectLabel": "UBillboardComponent",
                             "Class": "UBillboardComponent",
                             "Material": {
                                 "Base": "SubUVMaterial",
                                 "Instance": {
-                                    "ObjectLabel": "",
                                     "BaseColor": {
                                         "W": 1.0,
                                         "X": 1.0,
@@ -1268,6 +1444,7 @@
                                         "Z": 1.0
                                     },
                                     "BlendState": "AlphaBlend",
+                                    "ObjectLabel": "",
                                     "Properties": {},
                                     "SamplerState": "LinearClamp",
                                     "Shininess": 32.0,
@@ -1281,6 +1458,7 @@
                                 }
                             },
                             "Name": "UBillboardComponent",
+                            "ObjectLabel": "UBillboardComponent",
                             "Parent": "UPointLightComponent",
                             "Properties": {
                                 "Transform": {
@@ -1300,24 +1478,18 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
                                 "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
                             }
-                        }
-                    ],
-                    "Properties": {},
-                    "Name": "APointLightActor_4"
-                },
-                {
-                    "RootComponent": "DefaultSceneRoot",
-                    "ObjectLabel": "Tunnel Light 5",
-                    "Class": "APointLightActor",
-                    "Components": [
+                        },
                         {
-                            "ObjectLabel": "DefaultSceneRoot",
                             "Class": "USceneComponent",
                             "Name": "DefaultSceneRoot",
+                            "ObjectLabel": "DefaultSceneRoot",
                             "Parent": "",
                             "Properties": {
                                 "Transform": {
@@ -1338,95 +1510,12 @@
                                     }
                                 }
                             }
-                        },
-                        {
-                            "ObjectLabel": "UPointLightComponent",
-                            "Class": "UPointLightComponent",
-                            "Name": "UPointLightComponent",
-                            "Parent": "DefaultSceneRoot",
-                            "Properties": {
-                                "AttenuationRadius": 14.0,
-                                "Intensity": 1.6,
-                                "LightColor": 4294967295,
-                                "LightFalloffExponent": 1.0,
-                                "ShadowBias": 0.0010000000474974513,
-                                "ShadowMapResolution": 4096,
-                                "ShadowPCFKernelSize": 2,
-                                "Transform": {
-                                    "Location": {
-                                        "X": 0.0,
-                                        "Y": 0.0,
-                                        "Z": 0.0
-                                    },
-                                    "Rotation": {
-                                        "Pitch": 0.0,
-                                        "Roll": 0.0,
-                                        "Yaw": 0.0
-                                    },
-                                    "Scale": {
-                                        "X": 1.0,
-                                        "Y": 1.0,
-                                        "Z": 1.0
-                                    }
-                                },
-                                "bCastShadows": false,
-                                "bVisible": true
-                            }
-                        },
-                        {
-                            "ObjectLabel": "UBillboardComponent",
-                            "Class": "UBillboardComponent",
-                            "Material": {
-                                "Base": "SubUVMaterial",
-                                "Instance": {
-                                    "ObjectLabel": "",
-                                    "BaseColor": {
-                                        "W": 1.0,
-                                        "X": 1.0,
-                                        "Y": 1.0,
-                                        "Z": 1.0
-                                    },
-                                    "BlendState": "AlphaBlend",
-                                    "Properties": {},
-                                    "SamplerState": "LinearClamp",
-                                    "Shininess": 32.0,
-                                    "Textures": [
-                                        "Resources/Icons/Point.png"
-                                    ],
-                                    "UVScrollSpeed": [
-                                        0.0,
-                                        0.0
-                                    ]
-                                }
-                            },
-                            "Name": "UBillboardComponent",
-                            "Parent": "UPointLightComponent",
-                            "Properties": {
-                                "Transform": {
-                                    "Location": {
-                                        "X": 0.0,
-                                        "Y": 0.0,
-                                        "Z": 0.0
-                                    },
-                                    "Rotation": {
-                                        "Pitch": 0.0,
-                                        "Roll": 0.0,
-                                        "Yaw": 0.0
-                                    },
-                                    "Scale": {
-                                        "X": 1.0,
-                                        "Y": 1.0,
-                                        "Z": 1.0
-                                    }
-                                },
-                                "bCastShadow": true,
-                                "bReceiveShadow": true,
-                                "bVisible": true
-                            }
                         }
                     ],
+                    "Name": "APointLightActor_5",
+                    "ObjectLabel": "Tunnel Light 5",
                     "Properties": {},
-                    "Name": "APointLightActor_5"
+                    "RootComponent": "DefaultSceneRoot"
                 },
                 {
                     "Class": "ADirectionalLightActor",
@@ -1699,6 +1788,7 @@
                             "Parent": "CapsuleComponent",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "DefaultRibbonParticleSystem",
                                 "Transform": {
                                     "Location": {
@@ -1720,6 +1810,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -1731,6 +1822,21 @@
                             "ObjectLabel": "SpringArmComponent",
                             "Parent": "CapsuleComponent",
                             "Properties": {
+                                "CameraLagMaxDistance": 0.0,
+                                "CameraLagSpeed": 10.0,
+                                "CameraRotationLagSpeed": 10.0,
+                                "ProbeSize": 0.30000001192092896,
+                                "SocketOffset": {
+                                    "X": 0.0,
+                                    "Y": 0.0,
+                                    "Z": 0.0
+                                },
+                                "TargetArmLength": 3.5,
+                                "TargetOffset": {
+                                    "X": 0.0,
+                                    "Y": 0.0,
+                                    "Z": 0.0
+                                },
                                 "Transform": {
                                     "Location": {
                                         "X": 0.0,
@@ -1748,12 +1854,12 @@
                                         "Z": 1.0
                                     }
                                 },
-                                "TargetArmLength": 3.5,
-                                "ProbeSize": 0.3,
                                 "bDoCollisionTest": true,
+                                "bEnableCameraLag": false,
+                                "bEnableCameraRotationLag": false,
                                 "bInheritPitch": true,
-                                "bInheritYaw": true,
-                                "bInheritRoll": true
+                                "bInheritRoll": true,
+                                "bInheritYaw": true
                             }
                         },
                         {
@@ -1763,6 +1869,7 @@
                             "Parent": "CapsuleComponent",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_BeamFollow.particle",
                                 "Transform": {
                                     "Location": {
@@ -1781,6 +1888,12 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         },
@@ -1791,6 +1904,7 @@
                             "Parent": "SkeletalMeshComponent",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/HandBeam.particle",
                                 "Transform": {
                                     "Location": {
@@ -1812,6 +1926,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": false,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": false,
                                 "bReceiveShadow": false,
                                 "bVisible": true
@@ -1825,149 +1940,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_1",
-                    "ObjectLabel": "Booth 1.A",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_1",
-                    "Components": [
-                        {
-                            "Class": "UStaticMeshComponent",
-                            "Name": "UStaticMeshComponent_AActor_1",
-                            "ObjectLabel": "Booth 1.A",
-                            "OverrideMaterials": [
-                                {
-                                    "Base": "DefaultMaterial",
-                                    "Instance": {
-                                        "BaseColor": {
-                                            "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
-                                        },
-                                        "BlendState": "Opaque",
-                                        "ObjectLabel": "UMaterial_Showcase",
-                                        "Properties": {},
-                                        "SamplerState": "LinearWrap",
-                                        "Shininess": 16.0,
-                                        "Textures": [
-                                            "WhiteTexture",
-                                            "FlatNormalTexture"
-                                        ],
-                                        "UVScrollSpeed": [
-                                            0.0,
-                                            0.0
-                                        ]
-                                    }
-                                },
-                                {
-                                    "Base": "DefaultMaterial",
-                                    "Instance": {
-                                        "BaseColor": {
-                                            "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
-                                        },
-                                        "BlendState": "Opaque",
-                                        "ObjectLabel": "UMaterial_Showcase",
-                                        "Properties": {},
-                                        "SamplerState": "LinearWrap",
-                                        "Shininess": 16.0,
-                                        "Textures": [
-                                            "WhiteTexture",
-                                            "FlatNormalTexture"
-                                        ],
-                                        "UVScrollSpeed": [
-                                            0.0,
-                                            0.0
-                                        ]
-                                    }
-                                },
-                                {
-                                    "Base": "DefaultMaterial",
-                                    "Instance": {
-                                        "BaseColor": {
-                                            "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
-                                        },
-                                        "BlendState": "Opaque",
-                                        "ObjectLabel": "UMaterial_Showcase",
-                                        "Properties": {},
-                                        "SamplerState": "LinearWrap",
-                                        "Shininess": 16.0,
-                                        "Textures": [
-                                            "WhiteTexture",
-                                            "FlatNormalTexture"
-                                        ],
-                                        "UVScrollSpeed": [
-                                            0.0,
-                                            0.0
-                                        ]
-                                    }
-                                },
-                                {
-                                    "Base": "DefaultMaterial",
-                                    "Instance": {
-                                        "BaseColor": {
-                                            "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
-                                        },
-                                        "BlendState": "Opaque",
-                                        "ObjectLabel": "UMaterial_Showcase",
-                                        "Properties": {},
-                                        "SamplerState": "LinearWrap",
-                                        "Shininess": 16.0,
-                                        "Textures": [
-                                            "WhiteTexture",
-                                            "FlatNormalTexture"
-                                        ],
-                                        "UVScrollSpeed": [
-                                            0.0,
-                                            0.0
-                                        ]
-                                    }
-                                }
-                            ],
-                            "Parent": "",
-                            "Properties": {
-                                "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
-                                "Transform": {
-                                    "Location": {
-                                        "X": 5.4,
-                                        "Y": -3.0,
-                                        "Z": 0.0
-                                    },
-                                    "Rotation": {
-                                        "Pitch": 0.0,
-                                        "Roll": 0.0,
-                                        "Yaw": 180.0
-                                    },
-                                    "Scale": {
-                                        "X": 1.0,
-                                        "Y": 1.0,
-                                        "Z": 1.0
-                                    }
-                                },
-                                "bBlockComponent": true,
-                                "bCastShadow": true,
-                                "bGenerateOverlapEvents": false,
-                                "bReceiveDecal": true,
-                                "bReceiveShadow": true,
-                                "bVisible": true
-                            }
-                        }
-                    ]
-                },
-                {
-                    "Class": "AActor",
-                    "Name": "AActor_2",
-                    "ObjectLabel": "Label 1.A",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_2",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -1975,12 +1947,12 @@
                             "ObjectLabel": "Label 1.A",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
-                                "Text": "1.A  Sprite + SubUV",
-                                "TextSize": 0.42,
+                                "Font": "Assets/Fonts/CookieRun.json",
+                                "Text": "1.A  SubUV Movie(time)",
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": 8.4,
+                                        "X": 8.399999618530273,
                                         "Y": -3.0,
                                         "Z": 3.0
                                     },
@@ -1995,10 +1967,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_2",
+                    "ObjectLabel": "Label 1.A",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_2"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -2010,10 +1991,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_Sparks.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": 6.2,
+                                        "X": 6.199999809265137,
                                         "Y": -3.0,
                                         "Z": 1.0
                                     },
@@ -2031,6 +2013,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -2098,10 +2081,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_3",
-                    "ObjectLabel": "Booth 1.B",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_3",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -2113,9 +2092,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2137,9 +2116,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2161,9 +2140,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2185,9 +2164,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2210,7 +2189,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": 5.4,
+                                        "X": 5.400000095367432,
                                         "Y": 4.0,
                                         "Z": 0.0
                                     },
@@ -2233,14 +2212,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_3",
+                    "ObjectLabel": "Booth 1.B",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_3"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_4",
-                    "ObjectLabel": "Label 1.B",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_4",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -2248,12 +2227,12 @@
                             "ObjectLabel": "Label 1.B",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
-                                "Text": "1.B  SubUV Flipbook",
-                                "TextSize": 0.42,
+                                "Font": "Assets/Fonts/CookieRun.json",
+                                "Text": "1.B  SubUV (lifetime)",
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": 8.4,
+                                        "X": 8.399999618530273,
                                         "Y": 4.0,
                                         "Z": 3.0
                                     },
@@ -2268,10 +2247,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_4",
+                    "ObjectLabel": "Label 1.B",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_4"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -2283,10 +2271,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_Flipbook.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": 6.2,
+                                        "X": 6.199999809265137,
                                         "Y": 4.0,
                                         "Z": 1.0
                                     },
@@ -2304,6 +2293,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -2371,10 +2361,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_5",
-                    "ObjectLabel": "Booth 1.C",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_5",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -2386,9 +2372,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2410,9 +2396,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2434,9 +2420,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2458,9 +2444,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2483,7 +2469,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": 5.4,
+                                        "X": 5.400000095367432,
                                         "Y": 11.0,
                                         "Z": 0.0
                                     },
@@ -2506,14 +2492,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_5",
+                    "ObjectLabel": "Booth 1.C",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_5"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_6",
-                    "ObjectLabel": "Label 1.C",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_6",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -2521,12 +2507,12 @@
                             "ObjectLabel": "Label 1.C",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
+                                "Font": "Assets/Fonts/CookieRun.json",
                                 "Text": "1.C  Size by Speed",
-                                "TextSize": 0.42,
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": 8.4,
+                                        "X": 8.399999618530273,
                                         "Y": 11.0,
                                         "Z": 3.0
                                     },
@@ -2541,10 +2527,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_6",
+                    "ObjectLabel": "Label 1.C",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_6"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -2556,10 +2551,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_SpeedStreaks.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": 6.2,
+                                        "X": 6.199999809265137,
                                         "Y": 11.0,
                                         "Z": 1.0
                                     },
@@ -2577,6 +2573,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -2644,10 +2641,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_7",
-                    "ObjectLabel": "Booth 1.D",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_7",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -2659,9 +2652,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2683,9 +2676,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2707,9 +2700,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2731,9 +2724,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2756,7 +2749,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": 5.4,
+                                        "X": 5.400000095367432,
                                         "Y": 18.0,
                                         "Z": 0.0
                                     },
@@ -2779,14 +2772,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_7",
+                    "ObjectLabel": "Booth 1.D",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_7"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_8",
-                    "ObjectLabel": "Label 1.D",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_8",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -2794,12 +2787,12 @@
                             "ObjectLabel": "Label 1.D",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
+                                "Font": "Assets/Fonts/CookieRun.json",
                                 "Text": "1.D  Mesh Emitter",
-                                "TextSize": 0.42,
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": 8.4,
+                                        "X": 8.399999618530273,
                                         "Y": 18.0,
                                         "Z": 3.0
                                     },
@@ -2814,10 +2807,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_8",
+                    "ObjectLabel": "Label 1.D",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_8"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -2829,10 +2831,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_MeshCubes.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": 6.2,
+                                        "X": 6.199999809265137,
                                         "Y": 18.0,
                                         "Z": 1.0
                                     },
@@ -2850,6 +2853,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -2917,10 +2921,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_9",
-                    "ObjectLabel": "Booth 1.E",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_9",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -2932,9 +2932,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2956,9 +2956,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -2980,9 +2980,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3004,9 +3004,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3029,7 +3029,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": 5.4,
+                                        "X": 5.400000095367432,
                                         "Y": 25.0,
                                         "Z": 0.0
                                     },
@@ -3052,14 +3052,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_9",
+                    "ObjectLabel": "Booth 1.E",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_9"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_10",
-                    "ObjectLabel": "Label 1.E",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_10",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -3067,12 +3067,12 @@
                             "ObjectLabel": "Label 1.E",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
+                                "Font": "Assets/Fonts/CookieRun.json",
                                 "Text": "1.E  Beam (come closer)",
-                                "TextSize": 0.42,
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": 8.4,
+                                        "X": 8.399999618530273,
                                         "Y": 25.0,
                                         "Z": 3.0
                                     },
@@ -3087,10 +3087,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_10",
+                    "ObjectLabel": "Label 1.E",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_10"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -3102,10 +3111,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_Beam.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": 6.2,
+                                        "X": 6.199999809265137,
                                         "Y": 25.0,
                                         "Z": 1.0
                                     },
@@ -3123,6 +3133,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -3190,10 +3201,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_11",
-                    "ObjectLabel": "Booth 1.F",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_11",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -3205,9 +3212,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3229,9 +3236,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3253,9 +3260,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3277,9 +3284,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3302,7 +3309,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": 5.4,
+                                        "X": 5.400000095367432,
                                         "Y": 32.0,
                                         "Z": 0.0
                                     },
@@ -3325,14 +3332,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_11",
+                    "ObjectLabel": "Booth 1.F",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_11"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_12",
-                    "ObjectLabel": "Label 1.F",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_12",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -3340,47 +3347,14 @@
                             "ObjectLabel": "Label 1.F",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
+                                "Font": "Assets/Fonts/CookieRun.json",
                                 "Text": "1.F  Ribbon Emitter",
-                                "TextSize": 0.42,
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": 8.4,
+                                        "X": 8.399999618530273,
                                         "Y": 32.0,
                                         "Z": 3.0
-                                    },
-                                    "Rotation": {
-                                        "Pitch": 0.0,
-                                        "Roll": 0.0,
-                                        "Yaw": 0.0
-                                    },
-                                    "Scale": {
-                                        "X": 1.0,
-                                        "Y": 1.0,
-                                        "Z": 1.0
-                                    }
-                                },
-                                "bVisible": true
-                            }
-                        }
-                    ]
-                },
-                {
-                    "Class": "AParticleSystemActor",
-                    "Components": [
-                        {
-                            "Class": "UParticleSystemComponent",
-                            "Name": "ParticleSystemComponent",
-                            "ObjectLabel": "ParticleSystemComponent",
-                            "Parent": "",
-                            "Properties": {
-                                "CustomTimeDilation": 1.0,
-                                "Template": "Particles/Showcase_Ribbon.particle",
-                                "Transform": {
-                                    "Location": {
-                                        "X": 5.2,
-                                        "Y": 32.0,
-                                        "Z": 1.8
                                     },
                                     "Rotation": {
                                         "Pitch": 0.0,
@@ -3396,6 +3370,50 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
+                        }
+                    ],
+                    "Name": "AActor_12",
+                    "ObjectLabel": "Label 1.F",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_12"
+                },
+                {
+                    "Class": "AParticleSystemActor",
+                    "Components": [
+                        {
+                            "Class": "UParticleSystemComponent",
+                            "Name": "ParticleSystemComponent",
+                            "ObjectLabel": "ParticleSystemComponent",
+                            "Parent": "",
+                            "Properties": {
+                                "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
+                                "Template": "Particles/Showcase_Ribbon.particle",
+                                "Transform": {
+                                    "Location": {
+                                        "X": 5.199999809265137,
+                                        "Y": 32.0,
+                                        "Z": 1.7999999523162842
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -3482,10 +3500,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_13",
-                    "ObjectLabel": "Booth 1.G",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_13",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -3497,9 +3511,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3521,9 +3535,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3545,9 +3559,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3569,9 +3583,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3594,7 +3608,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": 5.4,
+                                        "X": 5.400000095367432,
                                         "Y": 39.0,
                                         "Z": 0.0
                                     },
@@ -3617,14 +3631,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_13",
+                    "ObjectLabel": "Booth 1.G",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_13"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_14",
-                    "ObjectLabel": "Label 1.G",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_14",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -3632,12 +3646,12 @@
                             "ObjectLabel": "Label 1.G",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
+                                "Font": "Assets/Fonts/CookieRun.json",
                                 "Text": "1.G  Attractor Point",
-                                "TextSize": 0.42,
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": 8.4,
+                                        "X": 8.399999618530273,
                                         "Y": 39.0,
                                         "Z": 3.0
                                     },
@@ -3652,10 +3666,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_14",
+                    "ObjectLabel": "Label 1.G",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_14"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -3667,10 +3690,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_Attractor.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": 6.2,
+                                        "X": 6.199999809265137,
                                         "Y": 39.0,
                                         "Z": 1.0
                                     },
@@ -3688,6 +3712,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -3755,10 +3780,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_15",
-                    "ObjectLabel": "Booth 2.A",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_15",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -3770,9 +3791,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3794,9 +3815,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3818,9 +3839,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3842,9 +3863,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -3867,7 +3888,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": -5.4,
+                                        "X": -5.400000095367432,
                                         "Y": -3.0,
                                         "Z": 0.0
                                     },
@@ -3890,14 +3911,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_15",
+                    "ObjectLabel": "Booth 2.A",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_15"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_16",
-                    "ObjectLabel": "Label 2.A",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_16",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -3905,12 +3926,12 @@
                             "ObjectLabel": "Label 2.A",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
+                                "Font": "Assets/Fonts/CookieRun.json",
                                 "Text": "2.A  Burst",
-                                "TextSize": 0.42,
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.4,
+                                        "X": -8.399999618530273,
                                         "Y": -3.0,
                                         "Z": 3.0
                                     },
@@ -3925,10 +3946,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_16",
+                    "ObjectLabel": "Label 2.A",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_16"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -3940,10 +3970,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_Fireworks.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.2,
+                                        "X": -6.199999809265137,
                                         "Y": -3.0,
                                         "Z": 1.0
                                     },
@@ -3961,6 +3992,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -4028,10 +4060,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_17",
-                    "ObjectLabel": "Booth 2.B",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_17",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -4043,9 +4071,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4067,9 +4095,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4091,9 +4119,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4115,9 +4143,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4140,7 +4168,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": -5.4,
+                                        "X": -5.400000095367432,
                                         "Y": 4.0,
                                         "Z": 0.0
                                     },
@@ -4163,14 +4191,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_17",
+                    "ObjectLabel": "Booth 2.B",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_17"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_18",
-                    "ObjectLabel": "Label 2.B",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_18",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -4178,12 +4206,12 @@
                             "ObjectLabel": "Label 2.B",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
+                                "Font": "Assets/Fonts/CookieRun.json",
                                 "Text": "2.B  Collision: Kill",
-                                "TextSize": 0.42,
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.4,
+                                        "X": -8.399999618530273,
                                         "Y": 4.0,
                                         "Z": 3.0
                                     },
@@ -4198,10 +4226,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_18",
+                    "ObjectLabel": "Label 2.B",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_18"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -4213,10 +4250,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_CollisionKill.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.2,
+                                        "X": -6.199999809265137,
                                         "Y": 4.0,
                                         "Z": 1.0
                                     },
@@ -4234,6 +4272,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -4301,10 +4340,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_19",
-                    "ObjectLabel": "Booth 2.C",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_19",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -4316,9 +4351,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4340,9 +4375,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4364,9 +4399,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4388,9 +4423,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4413,7 +4448,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": -5.4,
+                                        "X": -5.400000095367432,
                                         "Y": 11.0,
                                         "Z": 0.0
                                     },
@@ -4436,14 +4471,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_19",
+                    "ObjectLabel": "Booth 2.C",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_19"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_20",
-                    "ObjectLabel": "Label 2.C",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_20",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -4451,12 +4486,12 @@
                             "ObjectLabel": "Label 2.C",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
+                                "Font": "Assets/Fonts/CookieRun.json",
                                 "Text": "2.C  Collision: Freeze",
-                                "TextSize": 0.42,
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.4,
+                                        "X": -8.399999618530273,
                                         "Y": 11.0,
                                         "Z": 3.0
                                     },
@@ -4471,10 +4506,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_20",
+                    "ObjectLabel": "Label 2.C",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_20"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -4486,10 +4530,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_CollisionFreeze.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.2,
+                                        "X": -6.199999809265137,
                                         "Y": 11.0,
                                         "Z": 1.0
                                     },
@@ -4507,6 +4552,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -4574,10 +4620,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_21",
-                    "ObjectLabel": "Booth 2.D",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_21",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -4589,9 +4631,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4613,9 +4655,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4637,9 +4679,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4661,9 +4703,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4686,7 +4728,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": -5.4,
+                                        "X": -5.400000095367432,
                                         "Y": 18.0,
                                         "Z": 0.0
                                     },
@@ -4709,14 +4751,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_21",
+                    "ObjectLabel": "Booth 2.D",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_21"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_22",
-                    "ObjectLabel": "Label 2.D",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_22",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -4724,12 +4766,12 @@
                             "ObjectLabel": "Label 2.D",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
+                                "Font": "Assets/Fonts/CookieRun.json",
                                 "Text": "2.D  Collision: Halt",
-                                "TextSize": 0.42,
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.4,
+                                        "X": -8.399999618530273,
                                         "Y": 18.0,
                                         "Z": 3.0
                                     },
@@ -4744,10 +4786,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_22",
+                    "ObjectLabel": "Label 2.D",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_22"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -4759,10 +4810,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_CollisionHalt.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.2,
+                                        "X": -6.199999809265137,
                                         "Y": 18.0,
                                         "Z": 1.0
                                     },
@@ -4780,6 +4832,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -4847,10 +4900,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_23",
-                    "ObjectLabel": "Booth 2.E",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_23",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -4862,9 +4911,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4886,9 +4935,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4910,9 +4959,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4934,9 +4983,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -4959,7 +5008,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": -5.4,
+                                        "X": -5.400000095367432,
                                         "Y": 25.0,
                                         "Z": 0.0
                                     },
@@ -4982,14 +5031,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_23",
+                    "ObjectLabel": "Booth 2.E",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_23"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_24",
-                    "ObjectLabel": "Label 2.E",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_24",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -4997,12 +5046,12 @@
                             "ObjectLabel": "Label 2.E",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
-                                "Text": "2.E  Sort ?",
-                                "TextSize": 0.42,
+                                "Font": "Assets/Fonts/CookieRun.json",
+                                "Text": "2.E  Sort ON",
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.4,
+                                        "X": -8.399999618530273,
                                         "Y": 25.0,
                                         "Z": 3.0
                                     },
@@ -5017,10 +5066,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_24",
+                    "ObjectLabel": "Label 2.E",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_24"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -5032,10 +5090,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_Translucent.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.2,
+                                        "X": -6.199999809265137,
                                         "Y": 25.0,
                                         "Z": 1.0
                                     },
@@ -5053,6 +5112,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -5120,10 +5180,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_25",
-                    "ObjectLabel": "Booth 2.F",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_25",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -5135,9 +5191,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -5159,9 +5215,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -5183,9 +5239,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -5207,9 +5263,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -5232,7 +5288,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": -5.4,
+                                        "X": -5.400000095367432,
                                         "Y": 32.0,
                                         "Z": 0.0
                                     },
@@ -5255,14 +5311,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_25",
+                    "ObjectLabel": "Booth 2.F",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_25"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_26",
-                    "ObjectLabel": "Label 2.F",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_26",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -5270,12 +5326,12 @@
                             "ObjectLabel": "Label 2.F",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
-                                "Text": "2.F  Sort ?",
-                                "TextSize": 0.42,
+                                "Font": "Assets/Fonts/CookieRun.json",
+                                "Text": "2.F  Sort OFF",
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.4,
+                                        "X": -8.399999618530273,
                                         "Y": 32.0,
                                         "Z": 3.0
                                     },
@@ -5290,10 +5346,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_26",
+                    "ObjectLabel": "Label 2.F",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_26"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -5305,10 +5370,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_TranslucentNoSort.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.2,
+                                        "X": -6.199999809265137,
                                         "Y": 32.0,
                                         "Z": 1.0
                                     },
@@ -5326,6 +5392,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -5393,10 +5460,6 @@
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_27",
-                    "ObjectLabel": "Booth 2.G",
-                    "Properties": {},
-                    "RootComponent": "UStaticMeshComponent_AActor_27",
                     "Components": [
                         {
                             "Class": "UStaticMeshComponent",
@@ -5408,9 +5471,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.92,
-                                            "Y": 0.92,
-                                            "Z": 0.9
+                                            "X": 0.9200000166893005,
+                                            "Y": 0.9200000166893005,
+                                            "Z": 0.8999999761581421
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -5432,9 +5495,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.85,
-                                            "Y": 0.85,
-                                            "Z": 0.83
+                                            "X": 0.8500000238418579,
+                                            "Y": 0.8500000238418579,
+                                            "Z": 0.8299999833106995
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -5456,9 +5519,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.9,
-                                            "Y": 0.9,
-                                            "Z": 0.88
+                                            "X": 0.8999999761581421,
+                                            "Y": 0.8999999761581421,
+                                            "Z": 0.8799999952316284
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -5480,9 +5543,9 @@
                                     "Instance": {
                                         "BaseColor": {
                                             "W": 1.0,
-                                            "X": 0.22,
-                                            "Y": 0.47,
-                                            "Z": 0.68
+                                            "X": 0.2199999988079071,
+                                            "Y": 0.4699999988079071,
+                                            "Z": 0.6800000071525574
                                         },
                                         "BlendState": "Opaque",
                                         "ObjectLabel": "UMaterial_Showcase",
@@ -5505,7 +5568,7 @@
                                 "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
                                 "Transform": {
                                     "Location": {
-                                        "X": -5.4,
+                                        "X": -5.400000095367432,
                                         "Y": 39.0,
                                         "Z": 0.0
                                     },
@@ -5528,14 +5591,14 @@
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_27",
+                    "ObjectLabel": "Booth 2.G",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent_AActor_27"
                 },
                 {
                     "Class": "AActor",
-                    "Name": "AActor_28",
-                    "ObjectLabel": "Label 2.G",
-                    "Properties": {},
-                    "RootComponent": "UTextRenderComponent_AActor_28",
                     "Components": [
                         {
                             "Class": "UTextRenderComponent",
@@ -5543,12 +5606,12 @@
                             "ObjectLabel": "Label 2.G",
                             "Parent": "",
                             "Properties": {
-                                "Font": "Fonts/CookieRun.json",
+                                "Font": "Assets/Fonts/CookieRun.json",
                                 "Text": "2.G  LOD (distance)",
-                                "TextSize": 0.42,
+                                "TextSize": 0.41999998688697815,
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.4,
+                                        "X": -8.399999618530273,
                                         "Y": 39.0,
                                         "Z": 3.0
                                     },
@@ -5563,10 +5626,19 @@
                                         "Z": 1.0
                                     }
                                 },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
                                 "bVisible": true
                             }
                         }
-                    ]
+                    ],
+                    "Name": "AActor_28",
+                    "ObjectLabel": "Label 2.G",
+                    "Properties": {},
+                    "RootComponent": "UTextRenderComponent_AActor_28"
                 },
                 {
                     "Class": "AParticleSystemActor",
@@ -5578,10 +5650,11 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Showcase_LOD.particle",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.2,
+                                        "X": -6.199999809265137,
                                         "Y": 39.0,
                                         "Z": 1.0
                                     },
@@ -5599,6 +5672,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -5663,6 +5737,145 @@
                     "ObjectLabel": "2.G  LOD (distance)",
                     "Properties": {},
                     "RootComponent": "ParticleSystemComponent"
+                },
+                {
+                    "Class": "AStaticMeshActor",
+                    "Components": [
+                        {
+                            "Class": "UStaticMeshComponent",
+                            "Name": "UStaticMeshComponent",
+                            "ObjectLabel": "UStaticMeshComponent",
+                            "OverrideMaterials": [
+                                {
+                                    "Base": "DefaultMaterial",
+                                    "Instance": {
+                                        "BaseColor": {
+                                            "W": 1.0,
+                                            "X": 0.9215686321258545,
+                                            "Y": 0.9215686321258545,
+                                            "Z": 0.9019607901573181
+                                        },
+                                        "BlendState": "Opaque",
+                                        "ObjectLabel": "UMaterial_711",
+                                        "Properties": {},
+                                        "SamplerState": "LinearClamp",
+                                        "Shininess": 16.0,
+                                        "Textures": [
+                                            "WhiteTexture",
+                                            "FlatNormalTexture"
+                                        ],
+                                        "UVScrollSpeed": [
+                                            0.0,
+                                            0.0
+                                        ]
+                                    }
+                                },
+                                {
+                                    "Base": "DefaultMaterial",
+                                    "Instance": {
+                                        "BaseColor": {
+                                            "W": 1.0,
+                                            "X": 0.8509804010391235,
+                                            "Y": 0.8509804010391235,
+                                            "Z": 0.8313725590705872
+                                        },
+                                        "BlendState": "Opaque",
+                                        "ObjectLabel": "UMaterial_713",
+                                        "Properties": {},
+                                        "SamplerState": "LinearClamp",
+                                        "Shininess": 32.0,
+                                        "Textures": [
+                                            "WhiteTexture",
+                                            "FlatNormalTexture"
+                                        ],
+                                        "UVScrollSpeed": [
+                                            0.0,
+                                            0.0
+                                        ]
+                                    }
+                                },
+                                {
+                                    "Base": "DefaultMaterial",
+                                    "Instance": {
+                                        "BaseColor": {
+                                            "W": 1.0,
+                                            "X": 0.9019607901573181,
+                                            "Y": 0.9019607901573181,
+                                            "Z": 0.8784313797950745
+                                        },
+                                        "BlendState": "Opaque",
+                                        "ObjectLabel": "UMaterial_712",
+                                        "Properties": {},
+                                        "SamplerState": "LinearClamp",
+                                        "Shininess": 16.0,
+                                        "Textures": [
+                                            "WhiteTexture",
+                                            "FlatNormalTexture"
+                                        ],
+                                        "UVScrollSpeed": [
+                                            0.0,
+                                            0.0
+                                        ]
+                                    }
+                                },
+                                {
+                                    "Base": "DefaultMaterial",
+                                    "Instance": {
+                                        "BaseColor": {
+                                            "W": 1.0,
+                                            "X": 0.21960784494876862,
+                                            "Y": 0.47058823704719543,
+                                            "Z": 0.6784313917160034
+                                        },
+                                        "BlendState": "Opaque",
+                                        "ObjectLabel": "UMaterial_714",
+                                        "Properties": {},
+                                        "SamplerState": "LinearClamp",
+                                        "Shininess": 16.0,
+                                        "Textures": [
+                                            "WhiteTexture",
+                                            "FlatNormalTexture"
+                                        ],
+                                        "UVScrollSpeed": [
+                                            0.0,
+                                            0.0
+                                        ]
+                                    }
+                                }
+                            ],
+                            "Parent": "",
+                            "Properties": {
+                                "StaticMesh": "Models/DemoRoom/SM_Base.fbx#Static/0/SM_Base_SM_Base",
+                                "Transform": {
+                                    "Location": {
+                                        "X": 5.400000095367432,
+                                        "Y": -3.2091543674468994,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 180.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": true,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": true,
+                                "bReceiveShadow": true,
+                                "bVisible": true
+                            }
+                        }
+                    ],
+                    "Name": "AStaticMeshActor_6",
+                    "ObjectLabel": "AStaticMeshActor_6",
+                    "Properties": {},
+                    "RootComponent": "UStaticMeshComponent"
                 }
             ],
             "ObjectLabel": "ULevel_0",
