@@ -7324,6 +7324,7 @@
                             "Parent": "CapsuleComponent",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Rain.particle",
                                 "Transform": {
                                     "Location": {
@@ -7345,6 +7346,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -8757,6 +8759,7 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/Campfire.particle",
                                 "Transform": {
                                     "Location": {
@@ -8778,6 +8781,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -8853,6 +8857,7 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/WireSparks.particle",
                                 "Transform": {
                                     "Location": {
@@ -8874,6 +8879,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -8949,6 +8955,7 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/WireSparks.particle",
                                 "Transform": {
                                     "Location": {
@@ -8970,6 +8977,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -9045,6 +9053,7 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/WireSparks.particle",
                                 "Transform": {
                                     "Location": {
@@ -9066,6 +9075,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -9141,6 +9151,7 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/LightningStrike.particle",
                                 "Transform": {
                                     "Location": {
@@ -9162,6 +9173,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -9246,6 +9258,7 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/LightningStrike.particle",
                                 "Transform": {
                                     "Location": {
@@ -9267,6 +9280,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -9351,6 +9365,7 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/LightningStrike.particle",
                                 "Transform": {
                                     "Location": {
@@ -9372,6 +9387,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -9456,6 +9472,7 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/LightningStrike.particle",
                                 "Transform": {
                                     "Location": {
@@ -9477,6 +9494,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
@@ -9561,6 +9579,7 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
+                                "LODMethod": 0,
                                 "Template": "Particles/LightningStrike.particle",
                                 "Transform": {
                                     "Location": {
@@ -9582,6 +9601,7 @@
                                 "bBlockComponent": false,
                                 "bCastShadow": true,
                                 "bGenerateOverlapEvents": false,
+                                "bOverrideLODMethod": false,
                                 "bReceiveDecal": true,
                                 "bReceiveShadow": true,
                                 "bVisible": true
