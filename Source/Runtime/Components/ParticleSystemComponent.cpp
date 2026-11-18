@@ -2,6 +2,8 @@
 #include "ParticleSystemComponent.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModule.h"
 #include "Engine/ParticleSystemSceneProxy.h"
 
 #include "Asset/AssetManager.h"
@@ -50,6 +52,9 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 		EmitterInstance->Tick(DeltaTime);
 	}
 
+	// 이번 프레임에 모인 충돌 이벤트는 모든 이미터 갱신이 끝난 뒤에 전달한다.
+	FlushCollisionEvents();
+
 	FPrimitiveSceneProxy* Proxy = GetSceneProxy();
 	FBox NewBox{};
 	const bool bUseFixedBounds = Template && Template->bUseFixedRelativeBoundingBox;
@@ -66,6 +71,63 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 		if (!bInside)
 		{
 			OnTransformDirty();
+		}
+	}
+}
+
+void UParticleSystemComponent::QueueCollisionEvent(FParticleCollisionEvent&& Event)
+{
+	// 개수 제한은 이벤트를 만드는 Collision 모듈의 MaxEventsPerFrame이 맡는다.
+	PendingCollisionEvents.Add(std::move(Event));
+}
+
+void UParticleSystemComponent::FlushCollisionEvents()
+{
+	// 이번 프레임에 이미터가 읽은 이벤트는 여기서 버린다. (이벤트는 만들어진 다음 프레임 한 번만 읽힌다)
+	ReceivedCollisionEvents.Reset();
+	if (PendingCollisionEvents.IsEmpty())
+	{
+		return;
+	}
+
+	// 콜백 안에서 새 이벤트가 쌓여도 이번 순회에 섞이지 않게, 목록을 먼저 꺼내 둔다.
+	// 같은 목록을 다음 프레임의 Event Receiver 모듈이 읽도록 보관한다.
+	ReceivedCollisionEvents = std::move(PendingCollisionEvents);
+	PendingCollisionEvents.Reset();
+	for (int32 Index = 0; Index < ReceivedCollisionEvents.Num(); ++Index)
+	{
+		OnParticleCollide.Broadcast(ReceivedCollisionEvents[Index]);
+	}
+}
+
+void UParticleSystemComponent::RefreshEventReceivers()
+{
+	bHasEventReceivers = false;
+	if (!Template)
+	{
+		return;
+	}
+
+	for (UParticleEmitter* Emitter : Template->Emitters)
+	{
+		if (!Emitter)
+		{
+			continue;
+		}
+		for (UParticleLODLevel* LODLevelData : Emitter->LODLevels)
+		{
+			if (!LODLevelData)
+			{
+				continue;
+			}
+			for (UParticleModule* Module : LODLevelData->Modules)
+			{
+				if (Module && Module->bEnabled && Module->ReceivesParticleEvents())
+				{
+					bHasEventReceivers = true;
+					return;
+				}
+			}
 		}
 	}
 }
@@ -234,6 +296,7 @@ void UParticleSystemComponent::InitParticles()
 	}
 
 	ResetParticles();
+	RefreshEventReceivers();
 	LODLevel = ClampLODLevel(LODLevel);
 
 	for (auto* Emitter : Template->Emitters)

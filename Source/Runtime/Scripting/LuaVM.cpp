@@ -15,6 +15,7 @@
 #include "Math/Vector2.h"
 #include "Math/Rotator.h"
 #include "Collision/HitResult.h"
+#include "Particles/ParticleTypes.h"
 #include "Audio/AudioSystem.h"
 #include "Engine/Engine.h"
 #include "Core/ResourcePaths.h"
@@ -962,6 +963,19 @@ void FLuaVM::BindEngineAPI()
 		"Normal", &FHitResult::Normal,
 		"ImpactNormal", &FHitResult::ImpactNormal,
 		"PenetrationDepth", &FHitResult::PenetrationDepth
+	);
+	// 파티클 충돌 이벤트. 스크립트의 OnParticleCollide(Event)로 전달된다. 위치와 방향은 월드 좌표다.
+	State->new_usertype<FParticleCollisionEvent>(
+		"FParticleCollisionEvent",
+		sol::no_constructor,
+		"EventName", &FParticleCollisionEvent::EventName,
+		"EmitterTime", &FParticleCollisionEvent::EmitterTime,
+		"ParticleRelativeTime", &FParticleCollisionEvent::ParticleRelativeTime,
+		"CollisionCount", &FParticleCollisionEvent::CollisionCount,
+		"Location", &FParticleCollisionEvent::Location,
+		"Velocity", &FParticleCollisionEvent::Velocity,
+		"Normal", &FParticleCollisionEvent::Normal,
+		"HitActor", &FParticleCollisionEvent::HitActor
 	);
 	BindLightAPI(*State);
 	BindCameraAPI(*State);

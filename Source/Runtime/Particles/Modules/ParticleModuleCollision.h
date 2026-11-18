@@ -17,6 +17,9 @@ class UParticleModuleCollision : public UParticleModule
 		PROPERTY(ParticleRadiusScale)
 		PROPERTY(MaxCollisions)
 		PROPERTY(CollisionCompletionOption)
+		PROPERTY(bGenerateEvents)
+		PROPERTY(EventName)
+		PROPERTY(MaxEventsPerFrame)
 	REFLECT_END()
 
 public:
@@ -40,4 +43,16 @@ public:
 	int32 MaxCollisions = 3;
 
 	EParticleCollisionComplete CollisionCompletionOption = EParticleCollisionComplete::Kill;
+
+	// true이면 충돌할 때마다 충돌 이벤트를 만든다. (마지막 충돌 포함)
+	// 이벤트는 UParticleSystemComponent::OnParticleCollide(스크립트 포함)와, 같은 시스템의 Event Receiver 모듈로 전달된다.
+	// 받는 쪽이 없으면 만들지 않는다. 한 프레임에 모으는 수에는 상한이 있다.
+	bool bGenerateEvents = false;
+
+	// 이벤트에 실어 보내는 이름. 이미터마다 다르게 주면 받는 쪽에서 어느 충돌인지 구분할 수 있다.
+	FString EventName = "ParticleCollision";
+
+	// 이 모듈이 한 프레임에 만드는 이벤트의 최대 개수. 파티클이 많을 때 이벤트가 쏟아져 느려지는 것을 막는다.
+	// 넘으면 그 프레임의 나머지 이벤트는 버려진다. (Event Receiver의 스폰도 그만큼 빠진다) 0 이하이면 제한이 없다.
+	int32 MaxEventsPerFrame = 128;
 };
