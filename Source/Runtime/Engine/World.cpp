@@ -1,4 +1,5 @@
 #include "EnginePCH.h"
+#include "Components/ParticleSystemComponent.h"
 #include "World.h"
 #include "Level.h"
 #include "Engine/Engine.h"
@@ -297,8 +298,9 @@ void UWorld::CleanupWorld()
 }
 
 // Tick 이후의 Scene 상태를 반영하고 새 캡처 구간의 동적 데이터 준비를 예약한다.
-void UWorld::BeginRenderViews()
+void UWorld::BeginRenderViews(bool bInDrawParticles)
 {
+	bDrawParticles = bInDrawParticles;
 	Scene.UpdateAllTransforms();
 	for (FPrimitiveSceneProxy* Proxy : Scene.PrimitiveSceneProxies)
 		Proxy->InvalidateDynamicData();
@@ -309,6 +311,9 @@ bool UWorld::GatherDynamicRenderPackets(FPrimitiveSceneProxy& Proxy, FRenderQueu
 	const FRenderViewContext& View, FBillboardMatrixBuilder ResolveBillboard,
 	const void* ViewContext, FRenderQueue* IconQueue)
 {
+	// Handled empty results also prevent component fallback submission.
+	if (!bDrawParticles && Cast<UParticleSystemComponent>(Proxy.GetComponent()))
+		return true;
 	Proxy.PrepareDynamicData();
 	return Proxy.GatherDynamicRenderPackets(RenderQueue, IconQueue, View,
 		ResolveBillboard, ViewContext, ParticleOrder, ParticleDistances);

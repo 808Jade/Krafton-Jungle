@@ -1,4 +1,6 @@
 #include "EnginePCH.h"
+#include "Render/RenderPacket.h"
+#include "Core/Stats/ParticleStats.h"
 #include "ParticleSystemSceneProxy.h"
 
 #include "Components/ParticleSystemComponent.h"
@@ -11,6 +13,7 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(
 
 void FParticleSystemSceneProxy::UpdateDynamicData()
 {
+	SCOPE_CYCLE_COUNTER(ParticleStats::STAT_RenderDataCPU);
 	const auto* Component =
 		static_cast<const UParticleSystemComponent*>(GetComponent());
 
@@ -38,10 +41,16 @@ bool FParticleSystemSceneProxy::GatherDynamicRenderPackets(
     TArray<int32>&,
     TArray<float>&) const
 {
+	FStatRegistry::AddCounter(ParticleStats::STAT_VisibleSystems);
 	for (const TUniquePtr<FDynamicEmitterDataBase>& Data : DynamicEmitterData)
 	{
 		if (Data)
+		{
+			const uint32 Before = RenderQueue.Num();
 			Data->GatherRenderPackets(*this, RenderQueue, View);
+			if (RenderQueue.Num() > Before)
+				FStatRegistry::AddCounter(ParticleStats::STAT_SubmittedEmitters);
+		}
 	}
 	return true;
 }

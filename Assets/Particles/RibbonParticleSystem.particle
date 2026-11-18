@@ -1,0 +1,138 @@
+{
+    "System": {
+        "Emitters": [
+            {
+                "LODLevels": [
+                    {
+                        "Level": 0,
+                        "Modules": [
+                            {
+                                "Class": "UParticleModuleLifetime",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLifetime_3",
+                                    "Properties": {
+                                        "Lifetime": {
+                                            "Max": 5.0,
+                                            "Min": 5.0
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSize",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSize_3",
+                                    "Properties": {
+                                        "EndSize": {
+                                            "X": 1.0,
+                                            "Y": 1.0,
+                                            "Z": 1.0
+                                        },
+                                        "StartSize": {
+                                            "Max": {
+                                                "X": 0.20000000298023224,
+                                                "Y": 0.20000000298023224,
+                                                "Z": 0.20000000298023224
+                                            },
+                                            "Min": {
+                                                "X": 0.20000000298023224,
+                                                "Y": 0.20000000298023224,
+                                                "Z": 0.20000000298023224
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseSizeOverLife": false
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleColor",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleColor_3",
+                                    "Properties": {
+                                        "EndColor": {
+                                            "A": 0.0,
+                                            "B": 0.05000000074505806,
+                                            "G": 0.3499999940395355,
+                                            "R": 1.0
+                                        },
+                                        "StartColor": {
+                                            "Max": {
+                                                "A": 1.0,
+                                                "B": 0.05000000074505806,
+                                                "G": 0.3499999940395355,
+                                                "R": 1.0
+                                            },
+                                            "Min": {
+                                                "A": 1.0,
+                                                "B": 0.05000000074505806,
+                                                "G": 0.3499999940395355,
+                                                "R": 1.0
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseColorOverLife": true
+                                    }
+                                }
+                            }
+                        ],
+                        "ObjectLabel": "UParticleLODLevel_3",
+                        "Properties": {},
+                        "Required": {
+                            "Class": "UParticleModuleRequired",
+                            "Data": {
+                                "ObjectLabel": "UParticleModuleRequired_3",
+                                "Properties": {
+                                    "EmitterDuration": 1.0,
+                                    "EmitterLoops": 0,
+                                    "LockAxis": 0,
+                                    "Material": "DefaultParticleMaterial",
+                                    "MaxActiveParticles": 128,
+                                    "ScreenAlignment": 2,
+                                    "SortMode": 0,
+                                    "bEnabled": true,
+                                    "bUseLocalSpace": false
+                                }
+                            }
+                        },
+                        "TypeData": {
+                            "Class": "UParticleModuleTypeDataRibbon",
+                            "Data": {
+                                "ObjectLabel": "UParticleModuleTypeDataRibbon_0",
+                                "Properties": {
+                                    "MaxPointsPerTrail": 128,
+                                    "MaxTrailCount": 1,
+                                    "MinSpawnDistance": 10.0,
+                                    "TextureTileDistance": 0.0,
+                                    "bClipSourceSegment": true,
+                                    "bEnabled": true
+                                }
+                            }
+                        },
+                        "bEnabled": true
+                    }
+                ],
+                "ObjectLabel": "UParticleEmitter_3",
+                "Properties": {}
+            }
+        ],
+        "FixedRelativeBoundingBox": {
+            "Max": {
+                "X": 1.0,
+                "Y": 1.0,
+                "Z": 1.0
+            },
+            "Min": {
+                "X": -1.0,
+                "Y": -1.0,
+                "Z": -1.0
+            }
+        },
+        "ObjectLabel": "UParticleSystem_3",
+        "Properties": {},
+        "bUseFixedRelativeBoundingBox": false
+    },
+    "Type": "ParticleSystem",
+    "Version": 1
+}

@@ -1,4 +1,5 @@
 #include "EnginePCH.h"
+#include "Core/Stats/ParticleStats.h"
 #include "ParticleRenderData.h"
 
 #include <algorithm>
@@ -64,6 +65,10 @@ void FDynamicSpriteEmitterDataBase::SortParticles(
 	const FDynamicSpriteEmitterReplayDataBase& Source = GetSource();
 
 	assert(Source.ActiveParticleCount >= 0);
+	const bool bSort = Source.SortMode != EParticleSortMode::None;
+	FScopeCycleCounter SortTimer(bSort ? ParticleStats::STAT_SortCPU : TStatId{});
+	if (bSort)
+		FStatRegistry::AddCounter(ParticleStats::STAT_SortedParticles, Source.ActiveParticleCount);
 
 	ParticleOrder.Reset();
 	ParticleOrder.Reserve(Source.ActiveParticleCount);
@@ -206,6 +211,7 @@ void FDynamicSpriteEmitterData::GatherRenderPackets(
 	    &ParticleOrder);
 
 	FRenderPacket Packet{};
+	Packet.Proxy = &Proxy;
 
 	Packet.Material = Material;
 	Packet.ParticleScreenAlignment = Source.ScreenAlignment;

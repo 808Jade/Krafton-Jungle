@@ -1,4 +1,5 @@
 #include "EnginePCH.h"
+#include "Core/Stats/ParticleStats.h"
 #include "Render/ParticleStripRenderer.h"
 
 #include "Render/ParticleSpriteRenderer.h"
@@ -282,6 +283,7 @@ bool FParticleStripRenderer::Draw(
     UMaterial* Material,
     const FParticleSpriteView& View)
 {
+	SCOPE_CYCLE_COUNTER(ParticleStats::STAT_RenderSubmitCPU);
 	if (!Material || !Shader || !ConstantsBuffer)
 	{
 		return false;
@@ -314,6 +316,7 @@ bool FParticleStripRenderer::Draw(
 		return false;
 	}
 
+	FScopeCycleCounter UploadTimer(ParticleStats::STAT_UploadCPU);
 	void* Dest =
 	    RenderCommand::MapWriteDiscard(VertexBuffer.get());
 
@@ -329,6 +332,8 @@ bool FParticleStripRenderer::Draw(
 	        sizeof(FParticleStripVertex));
 
 	RenderCommand::Unmap(VertexBuffer.get());
+	UploadTimer.Finish();
+	FStatRegistry::AddCounter(ParticleStats::STAT_UploadBytes, uint64(Vertices.Num()) * sizeof(FParticleStripVertex));
 
 	const bool bUseTexture =
 	    Material->Textures.Num() > 0 &&
@@ -339,9 +344,11 @@ bool FParticleStripRenderer::Draw(
 	Constants.MaterialColor = Material->BaseColor;
 	Constants.UseTexture = bUseTexture ? 1u : 0u;
 
-	RenderCommand::UpdateBufferData(
-	    ConstantsBuffer.get(),
-	    &Constants);
+	{
+		SCOPE_CYCLE_COUNTER(ParticleStats::STAT_UploadCPU);
+		RenderCommand::UpdateBufferData(ConstantsBuffer.get(), &Constants);
+		FStatRegistry::AddCounter(ParticleStats::STAT_UploadBytes, ConstantsBuffer->GetBufferSize());
+	}
 
 	RenderCommand::BindConstantBuffer(
 	    3,
@@ -400,6 +407,7 @@ bool FParticleStripRenderer::Draw(
 		Context->PSSetShaderResources(0, 1, &NullSRV);
 	}
 
+	FStatRegistry::AddCounter(ParticleStats::STAT_DrawCalls);
 	RenderCommand::DrawIndexed((PointCount - 1) * 6);
 
 	return true;

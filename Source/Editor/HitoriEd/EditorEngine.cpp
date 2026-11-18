@@ -1,4 +1,6 @@
 #include "EnginePCH.h"
+#include "Components/ParticleSystemComponent.h"
+#include "Core/Stats/ParticleStats.h"
 
 #include "Editor/HitoriEd/EditorEngine.h"
 
@@ -463,6 +465,7 @@ bool UEditorEngine::Init()
 // 입력·창 메시지는 FEngineLoop가 먼저 처리하고 Present는 호출 직후에 한다.
 void UEditorEngine::Tick(const float DeltaTime)
 {
+	ParticleStats::BeginFrame();
 	// PIE 창의 닫기 버튼은 앱이 아니라 PIE 세션만 끝낸다.
 	if (PIEWindow && PIEWindow->ConsumeCloseRequest())
 		RequestEndPlayMap();
@@ -764,7 +767,28 @@ void UEditorEngine::RenderAllViews()
 		if (PreparedWorlds.Find(TabView.World) == INDEX_NONE)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_PrepareRenderViews);
-			TabView.World->BeginRenderViews();
+			TabView.World->BeginRenderViews(bDrawPrimitives && ShowFlags.IsEnabled(EEngineShowFlag::Particles));
+			// Count world-owned simulation storage once, independent of view visibility.
+			for (const FPrimitiveSceneProxy* Proxy : TabView.World->GetScene().PrimitiveSceneProxies)
+			{
+				const auto* Component = Cast<UParticleSystemComponent>(Proxy->GetComponent());
+				if (!Component) continue;
+				FStatRegistry::AddCounter(ParticleStats::STAT_Systems);
+				for (const FParticleEmitterInstance* Emitter : Component->EmitterInstances)
+				{
+					if (!Emitter) continue;
+					FStatRegistry::AddCounter(ParticleStats::STAT_Emitters);
+					FStatRegistry::AddCounter(ParticleStats::STAT_ActiveParticles, Emitter->ActiveParticles);
+					FStatRegistry::AddCounter(ParticleStats::STAT_Capacity, Emitter->MaxActiveParticles);
+					if (Emitter->ParticleData)
+					{
+						const uint64 Bytes = uint64(Emitter->MaxActiveParticles) *
+							(uint64(Emitter->ParticleStride) + sizeof(uint16));
+						FStatRegistry::SetMemory(ParticleStats::STAT_CPUMemory,
+							FStatRegistry::GetMemory(ParticleStats::STAT_CPUMemory) + Bytes);
+					}
+				}
+			}
 			PreparedWorlds.Add(TabView.World);
 		}
 
@@ -905,6 +929,11 @@ void UEditorEngine::RenderAllViews()
 		if (ViewIndex == PIEWindowViewIndex)
 			CopyPIEWindowToBackbuffer();
 	}
+	const uint64 ParticleGPUBytes =
+		(ParticleSpriteRenderer ? ParticleSpriteRenderer->GetAllocatedBufferBytes() : 0) +
+		(ParticleMeshRenderer ? ParticleMeshRenderer->GetAllocatedBufferBytes() : 0) +
+		(ParticleStripRenderer ? ParticleStripRenderer->GetAllocatedBufferBytes() : 0);
+	FStatRegistry::SetMemory(ParticleStats::STAT_GPUBufferMemory, ParticleGPUBytes);
 }
 
 FEditorTabView UEditorEngine::MakeLevelTabView(const FViewport& Viewport) const
@@ -1156,7 +1185,8 @@ void UEditorEngine::RenderOpaquePass(const FEditorSceneView& View, const FRender
 			            Packet.Material,
 			            ParticleView,
 			            Packet.ParticleScreenAlignment,
-			            Packet.ParticleAxisLock);
+			            Packet.ParticleAxisLock,
+			            Packet.Proxy && Cast<UParticleSystemComponent>(Packet.Proxy->GetComponent()));
 
 				if (!bSuccess)
 				{

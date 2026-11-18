@@ -1,4 +1,5 @@
 #include "EnginePCH.h"
+#include "Core/Stats/ParticleStats.h"
 
 #include "Core/HAL/UnrealMemory.h"
 
@@ -115,6 +116,7 @@ FParticleEmitterInstance::~FParticleEmitterInstance()
 
 void FParticleEmitterInstance::Tick(float DeltaTime)
 {
+	SCOPE_CYCLE_COUNTER(ParticleStats::STAT_SimulationCPU);
 	// 컴포넌트 트랜스폼으로 EmitterToSimulation, SimulationToWorld 갱신
 	UpdateTransforms();
 	// EmitterTime을 진행시키고 루프 수를 세서, 정해진 루프를 다 돌면 스폰 중단
@@ -383,6 +385,7 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
 	{
 		if (ActiveParticles >= MaxActiveParticles)
 		{
+			FStatRegistry::AddCounter(ParticleStats::STAT_SpawnDropped, Count - Index);
 			return;
 		}
 		uint16 NextFreeIndex = ParticleIndices[ActiveParticles];
@@ -406,6 +409,7 @@ void FParticleEmitterInstance::SpawnParticles(int32 Count, float StartTime, floa
 		PostSpawn(Particle, InterpolationPercentage, SpawnTime);
 		InterpolationPercentage = InterpolationPercentage != 0 ? InterpolationPercentage - 1.0f / Count : 0;
 		ActiveParticles++;
+		FStatRegistry::AddCounter(ParticleStats::STAT_Spawned);
 	}
 }
 
@@ -417,10 +421,12 @@ void FParticleEmitterInstance::KillParticle(int32 Index)
 	}
 	std::swap(ParticleIndices[Index], ParticleIndices[ActiveParticles - 1]);
 	ActiveParticles--;
+	FStatRegistry::AddCounter(ParticleStats::STAT_Killed);
 }
 
 void FParticleEmitterInstance::KillParticlesForced()
 {
+	FStatRegistry::AddCounter(ParticleStats::STAT_Killed, ActiveParticles);
 	ActiveParticles = 0;
 }
 

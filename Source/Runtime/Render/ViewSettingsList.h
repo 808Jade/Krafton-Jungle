@@ -22,4 +22,5 @@
     X(Wireframe,     1u << 8, "Wireframe",              false, View,   Viewport)  \
     X(DynamicShadows, 1u << 9, "Dynamic Shadows",        true,  Global, Rendering) \
     X(ShadowCascades, 1u << 10, "Shadow Cascades", false, View,   Viewport)  \
-    X(Decals,         1u << 11, "Decals",          true,  Global, Rendering)
+    X(Decals,         1u << 11, "Decals",          true,  Global, Rendering) \
+    X(Particles,      1u << 12, "Particles",       true,  Global, Rendering)
