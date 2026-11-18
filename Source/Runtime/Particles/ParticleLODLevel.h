@@ -24,6 +24,10 @@ public:
 
 	int32 CalculateMaxActiveParticleCount() const;
 
+	UParticleLODLevel* Duplicate(UObject* Outer);
+	void GenerateFromLODLevel(const UParticleLODLevel* SourceLODLevel, float Percentage);
+	static void Destroy(UParticleLODLevel* LODLevel);
+
 	int32 Level = 0;
 	bool bEnabled = true;
 

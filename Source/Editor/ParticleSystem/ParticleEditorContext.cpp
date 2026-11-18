@@ -23,94 +23,15 @@
 #include "Asset/AssetManager.h"
 #include "Render/Mesh.h"
 #include "UObject/UObjectIterator.h"
-#include "Serialization/MemoryReader.h"
-#include "Serialization/MemoryWriter.h"
-#include "Serialization/StructuredArchive.h"
-#include "Serialization/Formatter/JsonArchiveInputFormatter.h"
-#include "Serialization/Formatter/JsonArchiveOutputFormatter.h"
+#include "UObject/UObjectGlobals.h"
 
 #include <algorithm>
 
 namespace
 {
-	template <typename TObject, typename TCreate>
-	TObject* DuplicateBySerialization(TObject* Source, TCreate&& CreateTarget)
-	{
-		if (!Source)
-			return nullptr;
-
-		TArray<uint8> Bytes;
-		{
-			FMemoryWriter Writer(Bytes);
-			{
-				FJsonArchiveOutputFormatter Formatter(Writer);
-				FStructuredArchive Ar(Formatter);
-				Source->Serialize(Ar.Open().EnterRecord());
-				Ar.Close();
-			}
-			if (Writer.IsError())
-				return nullptr;
-		}
-
-		FMemoryReader Reader(Bytes);
-		FJsonArchiveInputFormatter Formatter(Reader);
-		if (Reader.IsError())
-			return nullptr;
-
-		TObject* Copy = CreateTarget();
-		if (!Copy)
-			return nullptr;
-		{
-			FStructuredArchive Ar(Formatter);
-			Copy->Serialize(Ar.Open().EnterRecord());
-			Ar.Close();
-		}
-		return Copy;
-	}
-
-	UParticleLODLevel* DuplicateLODLevel(UParticleLODLevel* Source, UParticleEmitter* Outer)
-	{
-		return DuplicateBySerialization(Source, [Outer]() { return NewObject<UParticleLODLevel>(Outer); });
-	}
-
 	UParticleModule* DuplicateModule(UParticleModule* Source, UParticleLODLevel* Outer)
 	{
-		if (!Source)
-			return nullptr;
-		UClass* Class = Source->GetClass();
-		return DuplicateBySerialization(Source, [Outer, Class]() { return NewObject<UParticleModule>(Outer, Class); });
-	}
-
-	void DestroyLODLevel(UParticleLODLevel* LODLevel)
-	{
-		if (!LODLevel)
-			return;
-		for (UParticleModule* Module : LODLevel->Modules)
-			delete Module;
-		delete LODLevel->RequiredModule;
-		delete LODLevel->TypeDataModule;
-		delete LODLevel;
-	}
-
-	void RenumberLODLevels(UParticleEmitter* Emitter)
-	{
-		for (int32 Index = 0; Index < Emitter->LODLevels.Num(); ++Index)
-		{
-			if (Emitter->LODLevels[Index])
-				Emitter->LODLevels[Index]->Level = Index;
-		}
-	}
-
-	float MakeAppendedLODDistance(const TArray<float>& Distances)
-	{
-		constexpr float DefaultLODDistanceStep = 25.0f;
-		const int32 Num = Distances.Num();
-		if (Num == 0)
-			return 0.0f;
-		if (Num == 1)
-			return Distances[0] + DefaultLODDistanceStep;
-		const float Step = Distances[Num - 1] - Distances[Num - 2];
-		return Distances[Num - 1] + (Step > 0.0f ? Step : DefaultLODDistanceStep);
+		return Source ? Cast<UParticleModule>(StaticDuplicateObject(Source, Outer)) : nullptr;
 	}
 }
 
@@ -607,7 +528,7 @@ int32 FParticleEditorContext::AddSpriteEmitter()
 	const int32 LODCount = GetLODCount();
 	for (int32 LODIndex = 1; LODIndex < LODCount; ++LODIndex)
 	{
-		if (UParticleLODLevel* Copy = DuplicateLODLevel(LODLevel, Emitter))
+		if (UParticleLODLevel* Copy = LODLevel->Duplicate(Emitter))
 		{
 			Copy->Level = LODIndex;
 			Emitter->LODLevels.Add(Copy);
@@ -661,15 +582,7 @@ bool FParticleEditorContext::DeleteEmitter(const int32 EmitterIndex)
 	if (Emitter)
 	{
 		for (UParticleLODLevel* LODLevel : Emitter->LODLevels)
-		{
-			if (!LODLevel)
-				continue;
-			for (UParticleModule* Module : LODLevel->Modules)
-				delete Module;
-			delete LODLevel->RequiredModule;
-			delete LODLevel->TypeDataModule;
-			delete LODLevel;
-		}
+			UParticleLODLevel::Destroy(LODLevel);
 		delete Emitter;
 	}
 	return true;
@@ -718,52 +631,7 @@ void FParticleEditorContext::RebuildAllEmitters()
 bool FParticleEditorContext::NormalizeLODSetup()
 {
 	UParticleSystem* Template = GetTemplate();
-	if (!Template)
-		return false;
-
-	int32 TargetCount = std::max(1, Template->LODDistances.Num());
-	for (const UParticleEmitter* Emitter : Template->Emitters)
-	{
-		if (Emitter)
-			TargetCount = std::max(TargetCount, Emitter->LODLevels.Num());
-	}
-
-	bool bChanged = false;
-	for (UParticleEmitter* Emitter : Template->Emitters)
-	{
-		if (!Emitter || Emitter->LODLevels.IsEmpty())
-			continue;
-		while (Emitter->LODLevels.Num() < TargetCount)
-		{
-			UParticleLODLevel* Copy = DuplicateLODLevel(Emitter->LODLevels[Emitter->LODLevels.Num() - 1], Emitter);
-			if (!Copy)
-				break;
-			Emitter->LODLevels.Add(Copy);
-			bChanged = true;
-		}
-		RenumberLODLevels(Emitter);
-	}
-
-	TArray<float>& Distances = Template->LODDistances;
-	while (Distances.Num() < TargetCount)
-	{
-		Distances.Add(MakeAppendedLODDistance(Distances));
-		bChanged = true;
-	}
-	if (Distances[0] != 0.0f)
-	{
-		Distances[0] = 0.0f;
-		bChanged = true;
-	}
-	for (int32 Index = 1; Index < Distances.Num(); ++Index)
-	{
-		if (Distances[Index] < Distances[Index - 1])
-		{
-			Distances[Index] = Distances[Index - 1];
-			bChanged = true;
-		}
-	}
-	return bChanged;
+	return Template && Template->NormalizeLODSetup();
 }
 
 bool FParticleEditorContext::AddLOD(const bool bAfterCurrent)
@@ -771,46 +639,9 @@ bool FParticleEditorContext::AddLOD(const bool bAfterCurrent)
 	if (bAfterCurrent ? !CanAddLODAfter() : !CanAddLODBefore())
 		return false;
 
-	UParticleSystem* Template = GetTemplate();
-	NormalizeLODSetup();
-
-	const int32 SourceIndex = CurrentLODIndex;
-	const int32 InsertIndex = bAfterCurrent ? SourceIndex + 1 : SourceIndex;
-
-	TArray<UParticleLODLevel*> Copies;
-	for (UParticleEmitter* Emitter : Template->Emitters)
-	{
-		UParticleLODLevel* Copy = nullptr;
-		if (Emitter && !Emitter->LODLevels.IsEmpty())
-		{
-			const int32 ClampedSource = std::clamp(SourceIndex, 0, Emitter->LODLevels.Num() - 1);
-			Copy = DuplicateLODLevel(Emitter->LODLevels[ClampedSource], Emitter);
-			if (!Copy)
-			{
-				for (UParticleLODLevel* Created : Copies)
-					DestroyLODLevel(Created);
-				return false;
-			}
-		}
-		Copies.Add(Copy);
-	}
-
-	for (int32 EmitterIndex = 0; EmitterIndex < Template->Emitters.Num(); ++EmitterIndex)
-	{
-		UParticleEmitter* Emitter = Template->Emitters[EmitterIndex];
-		UParticleLODLevel* Copy = Copies[EmitterIndex];
-		if (!Emitter || !Copy)
-			continue;
-		const int32 ClampedInsert = std::clamp(InsertIndex, 0, Emitter->LODLevels.Num());
-		Emitter->LODLevels.Insert(Copy, static_cast<uint32>(ClampedInsert));
-		RenumberLODLevels(Emitter);
-	}
-
-	TArray<float>& Distances = Template->LODDistances;
-	const float NewDistance = InsertIndex < Distances.Num()
-		? (Distances[InsertIndex - 1] + Distances[InsertIndex]) * 0.5f
-		: MakeAppendedLODDistance(Distances);
-	Distances.Insert(NewDistance, static_cast<uint32>(std::min(InsertIndex, Distances.Num())));
+	const int32 InsertIndex = bAfterCurrent ? CurrentLODIndex + 1 : CurrentLODIndex;
+	if (!GetTemplate()->InsertLOD(CurrentLODIndex, InsertIndex))
+		return false;
 
 	SelectedModule = nullptr;
 	MarkDirty();
@@ -824,27 +655,16 @@ bool FParticleEditorContext::DeleteCurrentLOD()
 	if (!CanDeleteLOD())
 		return false;
 
-	UParticleSystem* Template = GetTemplate();
-	NormalizeLODSetup();
-
 	const int32 DeleteIndex = CurrentLODIndex;
-	TArray<UParticleLODLevel*> RemovedLODLevels;
-	for (UParticleEmitter* Emitter : Template->Emitters)
-	{
-		if (!Emitter || DeleteIndex >= Emitter->LODLevels.Num())
-			continue;
-		RemovedLODLevels.Add(Emitter->LODLevels[DeleteIndex]);
-		Emitter->LODLevels.RemoveAt(static_cast<uint32>(DeleteIndex));
-		RenumberLODLevels(Emitter);
-	}
-	if (DeleteIndex < Template->LODDistances.Num())
-		Template->LODDistances.RemoveAt(static_cast<uint32>(DeleteIndex));
+	TArray<UParticleLODLevel*> DetachedLODLevels;
+	if (!GetTemplate()->DetachLOD(DeleteIndex, DetachedLODLevels))
+		return false;
 
 	SelectedModule = nullptr;
 	MarkDirty();
 	RebuildAllEmitters();
-	for (UParticleLODLevel* Removed : RemovedLODLevels)
-		DestroyLODLevel(Removed);
+	for (UParticleLODLevel* Detached : DetachedLODLevels)
+		UParticleLODLevel::Destroy(Detached);
 	SetCurrentLOD(DeleteIndex - 1);
 	return true;
 }
@@ -854,53 +674,15 @@ bool FParticleEditorContext::RegenerateLowestLOD(const bool bDuplicateHighest)
 	UParticleSystem* Template = GetTemplate();
 	if (!Template)
 		return false;
-	NormalizeLODSetup();
 
-	TArray<UParticleLODLevel*> RemovedLODLevels;
-	for (UParticleEmitter* Emitter : Template->Emitters)
-	{
-		if (!Emitter || Emitter->LODLevels.IsEmpty())
-			continue;
-
-		while (Emitter->LODLevels.Num() > 1)
-		{
-			const uint32 LastIndex = static_cast<uint32>(Emitter->LODLevels.Num() - 1);
-			RemovedLODLevels.Add(Emitter->LODLevels[LastIndex]);
-			Emitter->LODLevels.RemoveAt(LastIndex);
-		}
-
-		UParticleLODLevel* Source = Emitter->LODLevels[0];
-		UParticleLODLevel* Copy = Source ? DuplicateLODLevel(Source, Emitter) : nullptr;
-		if (!Copy)
-			continue;
-
-		const bool bBeam = Cast<UParticleModuleTypeDataBeam>(Source->TypeDataModule) != nullptr;
-		const float Percentage = (bDuplicateHighest || bBeam) ? 100.0f : 10.0f;
-		if (Percentage < 100.0f)
-		{
-			const int32 ModuleCount = std::min(Copy->Modules.Num(), Source->Modules.Num());
-			for (int32 ModuleIndex = 0; ModuleIndex < ModuleCount; ++ModuleIndex)
-			{
-				UParticleModule* DestModule = Copy->Modules[ModuleIndex];
-				const UParticleModule* SourceModule = Source->Modules[ModuleIndex];
-				if (DestModule && SourceModule)
-					DestModule->GenerateLODModuleValues(SourceModule, Percentage);
-			}
-		}
-
-		Emitter->LODLevels.Add(Copy);
-		RenumberLODLevels(Emitter);
-	}
-
-	Template->LODDistances.Empty();
-	Template->LODDistances.Add(0.0f);
-	Template->LODDistances.Add(25.0f);
+	TArray<UParticleLODLevel*> DetachedLODLevels;
+	Template->RegenerateLowestLOD(bDuplicateHighest, DetachedLODLevels);
 
 	SelectedModule = nullptr;
 	MarkDirty();
 	RebuildAllEmitters();
-	for (UParticleLODLevel* Removed : RemovedLODLevels)
-		DestroyLODLevel(Removed);
+	for (UParticleLODLevel* Detached : DetachedLODLevels)
+		UParticleLODLevel::Destroy(Detached);
 	SetCurrentLOD(1);
 	return true;
 }
