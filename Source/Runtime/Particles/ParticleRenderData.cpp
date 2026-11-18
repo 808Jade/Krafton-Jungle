@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstring>
 #include <utility>
 
 #include "Math/Transform.h"
@@ -131,6 +132,22 @@ void FDynamicSpriteEmitterDataBase::SortParticles(
 	    });
 }
 
+FVector4 MakeSubUVRect(int32 Frame, int32 Columns, int32 Rows)
+{
+	Columns = std::max(Columns, 1);
+	Rows = std::max(Rows, 1);
+	Frame = std::clamp(Frame, 0, Columns * Rows - 1);
+
+	// UV의 (0,0)이 텍스처 왼쪽 위라서 행 0이 맨 위, 프레임은 왼쪽→오른쪽, 위→아래로 센다.
+	const float CellW = 1.0f / static_cast<float>(Columns);
+	const float CellH = 1.0f / static_cast<float>(Rows);
+	return FVector4(
+	    static_cast<float>(Frame % Columns) * CellW,
+	    static_cast<float>(Frame / Columns) * CellH,
+	    CellW,
+	    CellH);
+}
+
 void FDynamicSpriteEmitterData::PrepareRenderData(const FParticleSystemSceneProxy& Proxy)
 {
 	// 이번 단계에서 지원하는 실제 재질 타입은 UMaterial이다.
@@ -173,8 +190,21 @@ void FDynamicSpriteEmitterData::PrepareRenderData(const FParticleSystemSceneProx
 		    Particle.Color.B,
 		    Particle.Color.A);
 
-		// 전체 텍스처를 사용.
+		// 기본은 전체 텍스처. 시트(가로x세로 > 1)이면 프레임 번호에 해당하는 칸만 쓴다.
 		Instance.UVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
+		const int32 Columns = std::max(Source.SubImagesHorizontal, 1);
+		const int32 Rows = std::max(Source.SubImagesVertical, 1);
+		if (Columns * Rows > 1)
+		{
+			int32 Frame = 0;
+			if (const uint8* Payload = Source.GetParticlePayload(ActiveIndex, Source.SubUVPayloadOffset))
+			{
+				float FrameValue = 0.0f;
+				std::memcpy(&FrameValue, Payload, sizeof(float));
+				Frame = std::clamp(static_cast<int32>(std::floor(FrameValue)), 0, Columns * Rows - 1);
+			}
+			Instance.UVRect = MakeSubUVRect(Frame, Columns, Rows);
+		}
 
 		Instance.Velocity =
 		    Source.bUseLocalSpace
@@ -195,9 +225,13 @@ void FDynamicSpriteEmitterData::GatherRenderPackets(
 		return;
 
 	// AlphaBlend/ Additive Sprite를 대상으로 한다.
-	assert(
-	    Material->BlendState == EBlendState::AlphaBlend ||
-	    Material->BlendState == EBlendState::Additive);
+	// 에디터에서 불투명 머티리얼을 고르거나 저장된 에셋이 그런 머티리얼을 가리킬 수 있으므로,
+	// assert로 멈추지 않고 이 이미터만 그리지 않는다.
+	if (Material->BlendState != EBlendState::AlphaBlend &&
+	    Material->BlendState != EBlendState::Additive)
+	{
+		return;
+	}
 
 	assert(Instances.Num() == Source.ActiveParticleCount);
 

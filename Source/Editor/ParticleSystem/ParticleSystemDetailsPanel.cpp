@@ -86,6 +86,10 @@ namespace
 			for (TObjectIterator<TAsset> It; It; ++It)
 			{
 				TAsset* Asset = *It;
+				// 경로가 없는 객체(런타임에 만든 머티리얼 인스턴스 등)는 이름이 비어 빈 칸으로 보이고,
+				// 에셋 파일에도 저장할 수 없으므로 목록에서 뺀다.
+				if (Asset->GetPath().empty())
+					continue;
 				ImGui::PushID(Asset);
 				if (ImGui::Selectable(GetAssetLabel(Asset).c_str(), Asset == Current))
 				{

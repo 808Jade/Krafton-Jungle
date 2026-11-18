@@ -10,6 +10,7 @@
 #include "Particles/ParticleModule.h"
 #include "Particles/Modules/ParticleModuleRequired.h"
 #include "Particles/Modules/ParticleModuleSpawn.h"
+#include "Particles/Modules/ParticleModuleSubUVBase.h"
 #include "Particles/Modules/ParticleModuleTypeDataMesh.h"
 #include "Particles/Modules/ParticleModuleTypeDataBeam.h"
 #include "Particles/Modules/ParticleModuleBeamSource.h"
@@ -530,6 +531,26 @@ void FParticleEmitterInstance::FillSpriteReplaySettings(
 	{
 		OutData.ScreenAlignment = Required->ScreenAlignment;
 		OutData.AxisLock = Required->LockAxis;
+		OutData.SubImagesHorizontal = std::max(Required->SubImagesHorizontal, 1);
+		OutData.SubImagesVertical = std::max(Required->SubImagesVertical, 1);
+	}
+
+	// SubUV 모듈이 있으면 그 payload 위치를 렌더러에 알려 준다. 없으면 시트의 0번 칸을 그린다.
+	OutData.SubUVPayloadOffset = InvalidPayloadOffset;
+	if (SpriteTemplate && CurrentLODLevel)
+	{
+		// 모듈 목록은 LOD 레벨이 가진다. payload 위치(ModuleOffsetMap)만 이미터 템플릿이 가진다.
+		for (UParticleModule* Module : CurrentLODLevel->UpdateModules)
+		{
+			if (Cast<UParticleModuleSubUVBase>(Module))
+			{
+				if (const int32* Offset = SpriteTemplate->ModuleOffsetMap.Find(Module))
+				{
+					OutData.SubUVPayloadOffset = *Offset;
+				}
+				break;
+			}
+		}
 	}
 }
 

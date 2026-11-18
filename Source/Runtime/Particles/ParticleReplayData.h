@@ -93,6 +93,13 @@ struct FDynamicSpriteEmitterReplayDataBase
 	    EParticleScreenAlignment::Rectangle;
 
 	EParticleAxisLock AxisLock = EParticleAxisLock::None;
+
+	// 스프라이트 시트 분할. 1x1이면 텍스처 전체를 그린다. (Required의 SubImages 설정)
+	int32 SubImagesHorizontal = 1;
+	int32 SubImagesVertical = 1;
+
+	// 파티클 안에서 SubUV 프레임(float, 맨 앞 값)이 저장된 위치. SubUV 모듈이 없으면 InvalidPayloadOffset.
+	int32 SubUVPayloadOffset = InvalidPayloadOffset;
 };
 
 struct FDynamicSpriteEmitterReplayData
