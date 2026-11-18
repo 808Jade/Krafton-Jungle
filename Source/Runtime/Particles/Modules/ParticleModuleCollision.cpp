@@ -15,9 +15,6 @@ namespace
 	constexpr float SurfaceOffset = 0.005f;
 	// 이동 구간이 이보다 짧으면 검사하지 않는다. (m)
 	constexpr float MinTraceDistance = 1e-5f;
-	// 비스듬히 닿을수록 구가 면에 닿기 전에 중심선이 면을 먼저 만난다. 그 거리는 반경 / cos(입사각)이다.
-	// 입사각이 이 값(cos)보다 더 눕는 경우는 이 값으로 잘라서 계산하고, 선분도 그만큼만 늘린다.
-	constexpr float MinContactCosine = 0.25f;
 
 	FVector Reflect(const FVector& V, const FVector& Normal)
 	{
@@ -88,55 +85,47 @@ void UParticleModuleCollision::Update(FParticleEmitterInstance& Owner, int32 Pay
 			Radius = 0.5f * SizeLength * MaxComponentScale * RadiusScale;
 		}
 
-		// 선분 끝을 반경만큼 더 늘려, 파티클 가장자리가 닿는 순간을 중심선 하나로 잡는다.
-		// 비스듬히 닿는 경우까지 잡으려고 반경 / MinContactCosine만큼 늘리고, 실제로 이번 틱에 닿는지는 아래에서 다시 거른다.
-		const FVector Direction = Delta * (1.0f / MoveLength);
-		const FVector SimStart = Particle->Location;
-		FVector Start = SimStart;
-		FVector End = Start + Direction * (MoveLength + Radius / MinContactCosine);
+		// 이번 틱에 움직일 구간(시뮬레이션 공간). 로컬 스페이스면 월드로 바꿔서 검사한다.
+		FVector Start = Particle->Location;
+		FVector End = Start + Delta;
 		if (bLocalSpace)
 		{
 			Start = SimulationToWorld.TransformPosition(Start);
 			End = SimulationToWorld.TransformPosition(End);
 		}
 
+		// 반경이 있으면 구를 쓸어서(sweep) 검사한다. 중심 레이 하나로는 곡면이나 모서리에서 가장자리가 먼저 닿는 것을 놓쳐 파고들고 튄다.
+		// 반경이 0이면 크기 없는 점이라 선분 레이로 충분하다.
 		FHitResult Hit;
-		if (!World->LineTraceSegment(Start, End, Hit, IgnoreActor))
+		const bool bHit = Radius > 0.0f
+			? World->SweepSphereSingle(Start, End, Radius, Hit, IgnoreActor)
+			: World->LineTraceSegment(Start, End, Hit, IgnoreActor);
+		if (!bHit)
 		{
 			continue;
 		}
 
-		FVector HitPoint = Hit.ImpactPoint;
+		// 구 스윕은 닿는 순간의 중심(Location)을, 점 검사는 표면 위의 충돌점(ImpactPoint)이 곧 중심이다.
+		FVector ContactCenter = Radius > 0.0f ? Hit.Location : Hit.ImpactPoint;
 		FVector Normal = Hit.ImpactNormal;
 		if (bLocalSpace)
 		{
-			HitPoint = WorldToSimulation.TransformPosition(HitPoint);
+			ContactCenter = WorldToSimulation.TransformPosition(ContactCenter);
 			Normal = WorldToSimulation.TransformVector(Normal).GetSafeNormal(1e-8f, Normal);
 		}
 
-		// 중심선이 면을 만나기까지의 거리 t에서, 구가 면에 닿는 지점까지의 이동 거리 s를 구한다.
-		// 면과의 거리가 반경이 되는 지점은 중심선이 면을 만나기 Radius / cos(입사각) 전이다.
-		const float Cosine = std::max(-Direction.Dot(Normal), MinContactCosine);
-		const float ContactDistance = std::max(Hit.Distance - Radius / Cosine, 0.0f);
-		if (ContactDistance > MoveLength + 1e-4f) // 끝점에 정확히 닿는 경우가 부동소수 오차로 걸러지지 않게 여유를 둔다.
+		// 이미 표면에서 멀어지는 중이면 충돌로 치지 않는다. (겹쳐서 빠져나오는 중이거나 모서리를 스치는 경우)
+		if (Particle->Velocity.Dot(Normal) >= 0.0f)
 		{
-			continue; // 이번 틱 안에는 가장자리가 면에 닿지 않는다.
+			continue;
 		}
 
 		int32& UsedCollisions = *reinterpret_cast<int32*>(reinterpret_cast<uint8*>(Particle) + PayloadOffset);
 		++UsedCollisions;
 		Particle->Flags |= STATE_Particle_CollisionHasOccurred;
 
-		// 원래 가던 경로 위의 접촉 지점에 놓는다. (면 위의 충돌점으로 옮기면 비스듬한 충돌에서 앞으로 튄다)
-		// 이미 면에 반경보다 가까우면(겹침) 법선 방향으로만 밀어내 반경 + 오프셋 거리를 확보한다.
-		FVector ContactCenter = SimStart + Direction * ContactDistance;
-		const float RequiredClearance = Radius + SurfaceOffset;
-		const float Clearance = (ContactCenter - HitPoint).Dot(Normal);
-		if (Clearance < RequiredClearance)
-		{
-			ContactCenter += Normal * (RequiredClearance - Clearance);
-		}
-		Particle->Location = ContactCenter;
+		// 닿는 순간의 중심에서 법선 방향으로 조금만 띄워 다음 틱에 같은 면에 다시 걸리지 않게 한다.
+		Particle->Location = ContactCenter + Normal * SurfaceOffset;
 
 		const bool bFinalCollision = UsedCollisions >= MaxCount;
 		if (bFinalCollision && CollisionCompletionOption == EParticleCollisionComplete::Kill)
