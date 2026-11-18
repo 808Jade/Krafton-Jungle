@@ -1,4 +1,6 @@
 #include "EnginePCH.h"
+#include "Core/Stats/ParticleStats.h"
+#include "Components/ParticleSystemComponent.h"
 #include "ParticleSpriteRenderer.h"
 
 #include "Render/Material.h"
@@ -206,8 +208,10 @@ bool FParticleSpriteRenderer::Draw(
     UMaterial* Material,
     const FParticleSpriteView& View,
     EParticleScreenAlignment ScreenAlignment,
-    EParticleAxisLock AxisLock)
+    EParticleAxisLock AxisLock,
+    bool bCollectStats)
 {
+	FScopeCycleCounter SubmitTimer(bCollectStats ? ParticleStats::STAT_RenderSubmitCPU : TStatId{});
 	if (Instances.Num() == 0)
 	{
 		return true;
@@ -228,6 +232,7 @@ bool FParticleSpriteRenderer::Draw(
 		return false;
 	}
 
+	FScopeCycleCounter UploadTimer(bCollectStats ? ParticleStats::STAT_UploadCPU : TStatId{});
 	void* Dest =
 	    RenderCommand::MapWriteDiscard(InstanceVB.get());
 
@@ -243,6 +248,8 @@ bool FParticleSpriteRenderer::Draw(
 	        sizeof(FParticleSpriteInstanceVertex));
 
 	RenderCommand::Unmap(InstanceVB.get());
+	UploadTimer.Finish();
+	if (bCollectStats) FStatRegistry::AddCounter(ParticleStats::STAT_UploadBytes, uint64(InstanceCount) * sizeof(FParticleSpriteInstanceVertex));
 
 	FParticleSpriteViewConstants Constants{};
 
@@ -256,9 +263,11 @@ bool FParticleSpriteRenderer::Draw(
 	Constants.AxisLock = static_cast<uint32>(AxisLock);
 	Constants.bOrthographic = View.bOrthographic ? 1u : 0u;
 
-	RenderCommand::UpdateBufferData(
-	    ViewCB.get(),
-	    &Constants);
+	{
+		FScopeCycleCounter ConstantsTimer(bCollectStats ? ParticleStats::STAT_UploadCPU : TStatId{});
+		RenderCommand::UpdateBufferData(ViewCB.get(), &Constants);
+		if (bCollectStats) FStatRegistry::AddCounter(ParticleStats::STAT_UploadBytes, ViewCB->GetBufferSize());
+	}
 
 	RenderCommand::BindConstantBuffer(
 	    3,
@@ -322,6 +331,7 @@ bool FParticleSpriteRenderer::Draw(
 	    Material->Textures[0],
 	    EShaderBindFlagBits::Pixel);
 
+	if (bCollectStats) FStatRegistry::AddCounter(ParticleStats::STAT_DrawCalls);
 	RenderCommand::DrawIndexedInstanced(
 	    6,
 	    InstanceCount);
@@ -404,7 +414,8 @@ void FParticleSpriteRenderer::OnRender(
 		        Packet.Material,
 		        View,
 		        Packet.ParticleScreenAlignment,
-		        Packet.ParticleAxisLock))
+		        Packet.ParticleAxisLock,
+		        Packet.Proxy && Cast<UParticleSystemComponent>(Packet.Proxy->GetComponent())))
 		{
 			HTR_LOG(
 			    Error,

@@ -8,6 +8,7 @@
 #include "GameFramework/Actor.h"
 #include "Components/SceneComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/ParticleSystemComponent.h"
 #include "Components/PointLightComponent.h"
 #include "Components/SpotLightComponent.h"
 #include "Camera/CameraComponent.h"
@@ -540,7 +541,18 @@ namespace
 	}
 
 	void BindCameraAPI(sol::state& LuaState) {
-		LuaState.new_usertype<USceneComponent>("USceneComponent", sol::no_constructor, "GetRelativeLocation", &GetSceneRelativeLocation, "SetRelativeLocation", &USceneComponent::SetRelativeLocation, "GetRelativeRotation", &GetSceneRelativeRotation, "SetRelativeRotation", &USceneComponent::SetRelativeRotation, "FindChildComponent", &FindChildSceneComponent);
+		LuaState.new_usertype<USceneComponent>("USceneComponent", sol::no_constructor,
+		    "GetRelativeLocation", &GetSceneRelativeLocation,
+		    "SetRelativeLocation", &USceneComponent::SetRelativeLocation,
+		    "GetRelativeRotation", &GetSceneRelativeRotation,
+		    "SetRelativeRotation", &USceneComponent::SetRelativeRotation,
+		    "FindChildComponent", &FindChildSceneComponent,
+		    "GetWorldLocation", &USceneComponent::GetWorldLocation,
+		    "TransformDirection", [](const USceneComponent& Component, const FVector& LocalDirection)
+		    {
+			    const FMatrix Rotation = FTransform(Component.GetWorldRotation(), FVector::ZeroVector).GetLocalMatrix();
+			    return Rotation.TransformVector(LocalDirection).GetSafeNormal();
+		    });
 		LuaState.new_usertype<UCameraComponent>("UCameraComponent", sol::no_constructor, sol::base_classes, sol::bases<USceneComponent>(), "GetRelativeLocation", &GetCameraRelativeLocation, "SetRelativeLocation", &UCameraComponent::SetRelativeLocation, "GetRelativeRotation", &GetCameraRelativeRotation, "SetRelativeRotation", &UCameraComponent::SetRelativeRotation, "GetFieldOfView", &UCameraComponent::GetFieldOfView, "SetFieldOfView", &UCameraComponent::SetFieldOfView, "CanSeeActor", &UCameraComponent::CanSeeActor);
 	}
 
@@ -701,6 +713,18 @@ namespace
 			sol::no_constructor,
 			"GetNavigationExtent", &GetActorNavigationExtent,
 			"GetPointLight", &GetActorPointLight,
+			"GetParticleSystemComponent", [](const AActor& Actor) -> UParticleSystemComponent*
+			{
+				for (UActorComponent* Component : Actor.GetComponents())
+				{
+					if (auto* Particles = Cast<UParticleSystemComponent>(Component)) return Particles;
+				}
+				return nullptr;
+			},
+			"FindParticleSystemComponentByName", [](const AActor& Actor, const FString& Name) -> UParticleSystemComponent*
+			{
+				return Cast<UParticleSystemComponent>(Actor.FindComponentByName(FName(Name.c_str())));
+			},
 		    "FindSceneComponentByName",
 		    [](const AActor& Actor, const FString& Name) -> USceneComponent*
 		    {
@@ -965,6 +989,42 @@ void FLuaVM::BindEngineAPI()
 	);
 	BindLightAPI(*State);
 	BindCameraAPI(*State);
+	State->new_usertype<USkinnedMeshComponent>(
+	    "USkinnedMeshComponent", sol::no_constructor,
+	    sol::base_classes, sol::bases<USceneComponent>(),
+	    "GetBoneIndex", &USkinnedMeshComponent::GetBoneIndex,
+	    "GetBoneComponentPosition", [](const USkinnedMeshComponent& Mesh, int32 BoneIndex) -> sol::optional<FVector>
+	    {
+		    FVector Position;
+		    if (!Mesh.GetBoneComponentPosition(BoneIndex, Position)) return sol::nullopt;
+		    return Position;
+	    });
+	State->new_usertype<USkeletalMeshComponent>(
+	    "USkeletalMeshComponent", sol::no_constructor,
+	    sol::base_classes, sol::bases<USkinnedMeshComponent, USceneComponent>());
+	State->new_usertype<UParticleSystemComponent>(
+	    "UParticleSystemComponent", sol::no_constructor,
+	    sol::base_classes, sol::bases<USceneComponent>(),
+	    "ActivateSystem", [](UParticleSystemComponent& PSC, sol::optional<bool> bReset)
+	    {
+		    PSC.ActivateSystem(bReset.value_or(false));
+	    },
+	    "DeactivateSystem", &UParticleSystemComponent::DeactivateSystem,
+	    "ResetSystem", &UParticleSystemComponent::ResetSystem,
+	    "HasCompleted", &UParticleSystemComponent::HasCompleted,
+	    "SetBeamSourcePoint", &UParticleSystemComponent::SetBeamSourcePoint,
+	    "SetBeamTargetPoint", &UParticleSystemComponent::SetBeamTargetPoint,
+	    "ClearBeamSourcePoint", &UParticleSystemComponent::ClearBeamSourcePoint,
+	    "ClearBeamTargetPoint", &UParticleSystemComponent::ClearBeamTargetPoint,
+	    "SetBeamActorParameter", [](UParticleSystemComponent& PSC, const FString& Name, sol::object Object)
+	    {
+		    return Object.is<AActor*>() && PSC.SetBeamActorParameter(Name, Object.as<AActor*>());
+	    },
+	    "SetBeamComponentParameter", [](UParticleSystemComponent& PSC, const FString& Name, sol::object Object)
+	    {
+		    return Object.is<USceneComponent*>() && PSC.SetBeamComponentParameter(Name, Object.as<USceneComponent*>());
+	    },
+	    "ClearBeamParameter", &UParticleSystemComponent::ClearBeamParameter);
 	BindAnimationAPI(*State);
 	BindActorAPI(*State);
 	BindMovementAPI(*State);

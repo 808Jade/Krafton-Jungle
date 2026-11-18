@@ -103,7 +103,7 @@ public:
 	void ClearWorld();
 	void CleanupWorld();
 	// 캡처 구간을 시작하고 첫 가시 View에서 동적 렌더 스냅샷을 준비하게 한다.
-	void BeginRenderViews();
+	void BeginRenderViews(bool bInDrawParticles = true);
 	// 메인 스레드에서 Proxy를 준비하고 World의 작업 버퍼로 동적 패킷을 추가한다.
 	bool GatherDynamicRenderPackets(FPrimitiveSceneProxy& Proxy, FRenderQueue& RenderQueue,
 		const FRenderViewContext& View, FBillboardMatrixBuilder ResolveBillboard,
@@ -171,6 +171,12 @@ public:
 	// Start에서 End까지 선분으로 스태틱 메시와의 가장 가까운 교차를 찾는다. 파티클 충돌처럼 이동 구간 검사용이다.
 	// 성공하면 OutHit에 Time(0~1), Distance(월드 길이), ImpactPoint/Location, 앞면 월드 법선(Normal/ImpactNormal), HitComponent를 채운다.
 	bool LineTraceSegment(const FVector& Start, const FVector& End, FHitResult& OutHit, const AActor* IgnoreActor = nullptr);
+
+	// 반경 Radius인 구를 Start에서 End까지 쓸어서 스태틱 메시와 처음 닿는 지점을 찾는다. 크기가 있는 파티클의 충돌용이다.
+	// 성공하면 OutHit에 Time(0~1), Distance(월드 길이), Location(닿는 순간의 구 중심), ImpactPoint(표면 위의 점),
+	// 표면에서 구 쪽을 향하는 월드 법선(Normal/ImpactNormal), HitComponent를 채운다.
+	// 시작부터 겹쳐 있는 경우는 구가 면 쪽으로 움직일 때만 bStartPenetrating 충돌(Time 0)로 알린다. 반경이 0 이하이면 LineTraceSegment로 처리한다.
+	bool SweepSphereSingle(const FVector& Start, const FVector& End, float Radius, FHitResult& OutHit, const AActor* IgnoreActor = nullptr);
 
 	void BeginPlay();
 	void EndPlay();
@@ -269,6 +275,7 @@ private:
 	TArray<ULevel*> Levels;
 
 	FScene Scene;
+	bool bDrawParticles = true;
 
 	// GatherRenderPackets가 매 프레임 채우는 컬링 결과. 용량을 재사용한다.
 	TArray<FPrimitiveSceneProxy*> VisibleProxies;

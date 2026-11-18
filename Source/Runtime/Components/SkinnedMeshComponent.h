@@ -23,6 +23,9 @@ public:
 	// 부모 본 기준의 현재 자세. 원본 RefPoseTransform은 수정하지 않는다.
 	bool GetBoneLocalTransform(int32 BoneIndex, FTransform& OutTransform) const;
 	bool SetBoneLocalTransform(int32 BoneIndex, const FTransform& InTransform);
+	// Current animated pose, accumulated through all parent bones, in component space.
+	int32 GetBoneIndex(const FString& BoneName) const;
+	bool GetBoneComponentPosition(int32 BoneIndex, FVector& OutPosition) const;
 	int32 GetNumMaterials() const override;
 	void UpdateSkinning();
 	void ResetPoseToBindPose();

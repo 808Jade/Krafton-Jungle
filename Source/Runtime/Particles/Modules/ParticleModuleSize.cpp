@@ -31,9 +31,9 @@ void UParticleModuleSize::Update(FParticleEmitterInstance& Owner, int32 PayloadO
 
 void UParticleModuleSize::GetCurves(TArray<FParticleCurveRef>& OutCurves)
 {
-	OutCurves.Add({ "Size Scale X", &SizeScaleX, { 1.0f, 0.3f, 0.3f, 1.0f } });
-	OutCurves.Add({ "Size Scale Y", &SizeScaleY, { 0.3f, 1.0f, 0.3f, 1.0f } });
-	OutCurves.Add({ "Size Scale Z", &SizeScaleZ, { 0.35f, 0.55f, 1.0f, 1.0f } });
+	OutCurves.Add({ "Size Scale X", &SizeScaleX, { 1.0f, 0.3f, 0.3f, 1.0f }, 0 });
+	OutCurves.Add({ "Size Scale Y", &SizeScaleY, { 0.3f, 1.0f, 0.3f, 1.0f }, 0 });
+	OutCurves.Add({ "Size Scale Z", &SizeScaleZ, { 0.35f, 0.55f, 1.0f, 1.0f }, 0 });
 }
 
 void UParticleModuleSize::Serialize(FStructuredArchive::FRecord Record)

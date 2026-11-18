@@ -6,6 +6,7 @@
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/Modules/ParticleModuleRequired.h"
+#include "Particles/Modules/ParticleModuleTypeDataBase.h"
 #include "Serialization/MemoryReader.h"
 #include "Serialization/MemoryWriter.h"
 #include "Serialization/StructuredArchive.h"

@@ -24,6 +24,10 @@
 #include "UObject/Casts.h"
 #include "Particles/Modules/ParticleModuleAccelerationConstant.h"
 #include "Particles/Modules/ParticleModuleCollision.h"
+#include "Particles/Modules/ParticleModuleAttractorPoint.h"
+#include "Particles/Modules/ParticleModuleSizeScaleBySpeed.h"
+#include "Particles/Modules/ParticleModuleSubUV.h"
+#include "Particles/Modules/ParticleModuleSubUVMovie.h"
 
 #include <algorithm>
 
@@ -42,6 +46,7 @@ namespace
 	};
 	const FAddableModule AddableModules[] = {
 		{ "Acceleration",  "Const Acceleration",    [] { return UParticleModuleAccelerationConstant::StaticClass(); } },
+		{ "Attraction",    "Point Attractor",       [] { return UParticleModuleAttractorPoint::StaticClass(); } },
 		{ "Collision",     "Collision",             [] { return UParticleModuleCollision::StaticClass(); } },
 		{ "Color",         "Initial Color",         [] { return UParticleModuleColor::StaticClass(); } },
 		{ "Lifetime",      "Lifetime",              [] { return UParticleModuleLifetime::StaticClass(); } },
@@ -49,6 +54,9 @@ namespace
 		{ "Rotation",      "Initial Rotation",      [] { return UParticleModuleRotation::StaticClass(); } },
 		{ "Rotation Rate", "Initial Rotation Rate", [] { return UParticleModuleRotationRate::StaticClass(); } },
 		{ "Size",          "Initial Size",          [] { return UParticleModuleSize::StaticClass(); } },
+		{ "Size",          "Size By Speed",         [] { return UParticleModuleSizeScaleBySpeed::StaticClass(); } },
+		{ "SubUV",         "SubImage Index",        [] { return UParticleModuleSubUV::StaticClass(); } },
+		{ "SubUV",         "SubUV Movie",           [] { return UParticleModuleSubUVMovie::StaticClass(); } },
 		{ "Velocity",      "Initial Velocity",      [] { return UParticleModuleVelocity::StaticClass(); } },
 		{ "Beam", "Source",
 		  []
@@ -87,6 +95,10 @@ namespace
 		{ "UParticleModuleBeamTarget",		"Beam Target" },
 		{ "UParticleModuleBeamNoise",		"Beam Noise" },
 		{ "UParticleModuleAccelerationConstant", "Const Acceleration" },
+		{ "UParticleModuleAttractorPoint", "Point Attractor" },
+		{ "UParticleModuleSizeScaleBySpeed", "Size By Speed" },
+		{ "UParticleModuleSubUV", "SubImage Index" },
+		{ "UParticleModuleSubUVMovie", "SubUV Movie" },
 	};
 
 	// 표에 없는 새 모듈은 클래스 이름에서 공통 접두사만 떼어 보여 준다. (UParticleModuleDrag → Drag)

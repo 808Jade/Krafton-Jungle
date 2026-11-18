@@ -1,4 +1,5 @@
 #include "EnginePCH.h"
+#include "Components/ParticleSystemComponent.h"
 #include "World.h"
 #include "Level.h"
 #include "Engine/Engine.h"
@@ -297,8 +298,9 @@ void UWorld::CleanupWorld()
 }
 
 // Tick 이후의 Scene 상태를 반영하고 새 캡처 구간의 동적 데이터 준비를 예약한다.
-void UWorld::BeginRenderViews()
+void UWorld::BeginRenderViews(bool bInDrawParticles)
 {
+	bDrawParticles = bInDrawParticles;
 	Scene.UpdateAllTransforms();
 	for (FPrimitiveSceneProxy* Proxy : Scene.PrimitiveSceneProxies)
 		Proxy->InvalidateDynamicData();
@@ -309,6 +311,9 @@ bool UWorld::GatherDynamicRenderPackets(FPrimitiveSceneProxy& Proxy, FRenderQueu
 	const FRenderViewContext& View, FBillboardMatrixBuilder ResolveBillboard,
 	const void* ViewContext, FRenderQueue* IconQueue)
 {
+	// Handled empty results also prevent component fallback submission.
+	if (!bDrawParticles && Cast<UParticleSystemComponent>(Proxy.GetComponent()))
+		return true;
 	Proxy.PrepareDynamicData();
 	return Proxy.GatherDynamicRenderPackets(RenderQueue, IconQueue, View,
 		ResolveBillboard, ViewContext, ParticleOrder, ParticleDistances);
@@ -1321,6 +1326,73 @@ bool UWorld::LineTraceSegment(const FVector& Start, const FVector& End, FHitResu
 	OutHit.TraceStart = Start;
 	OutHit.TraceEnd = End;
 	OutHit.bBlockingHit = true;
+	return true;
+}
+
+bool UWorld::SweepSphereSingle(const FVector& Start, const FVector& End, float Radius, FHitResult& OutHit, const AActor* IgnoreActor)
+{
+	if (Radius <= 0.0f)
+	{
+		return LineTraceSegment(Start, End, OutHit, IgnoreActor);
+	}
+
+	OutHit = FHitResult();
+
+	const FVector Delta = End - Start;
+	const float Length = Delta.Length();
+
+	// 구가 쓸고 지나가는 영역. 씬 BVH에서 이 영역과 겹치는 컴포넌트만 후보로 삼는다.
+	const FVector SweepMin(std::min(Start.X, End.X) - Radius, std::min(Start.Y, End.Y) - Radius, std::min(Start.Z, End.Z) - Radius);
+	const FVector SweepMax(std::max(Start.X, End.X) + Radius, std::max(Start.Y, End.Y) + Radius, std::max(Start.Z, End.Z) + Radius);
+
+	FSphereSweepHit Best;
+	FPrimitiveSceneProxy* BestProxy = nullptr;
+
+	Scene.BVH.Query(
+		[&](const FBox& Bounds)
+		{
+			return Bounds.Min.X <= SweepMax.X && Bounds.Max.X >= SweepMin.X
+				&& Bounds.Min.Y <= SweepMax.Y && Bounds.Max.Y >= SweepMin.Y
+				&& Bounds.Min.Z <= SweepMax.Z && Bounds.Max.Z >= SweepMin.Z;
+		},
+		[&](FPrimitiveSceneProxy* Proxy)
+		{
+			if (!Proxy || !Proxy->GetComponent() || !Proxy->IsVisible())
+				return;
+
+			// LineTraceSingle과 같은 규칙: 무시할 액터와 그 자식 액터는 건너뛴다.
+			const AActor* Owner{ Proxy->GetComponent()->GetOwner() };
+			while (Owner && IgnoreActor)
+			{
+				if (Owner == IgnoreActor)
+					return;
+				Owner = Owner->GetAttachParentActor();
+			}
+
+			UStaticMesh* Mesh = Proxy->GetMesh();
+			if (!Mesh)
+				return;
+
+			if (SweepSphereMesh(Proxy->GetLocalToWorld(), Proxy->GetWorldToLocal(), Mesh->GetMeshData(), Start, Delta, Radius, Best))
+			{
+				BestProxy = Proxy;
+			}
+		});
+
+	if (!BestProxy)
+		return false;
+
+	OutHit.HitComponent = BestProxy->GetComponent();
+	OutHit.Time = Best.Time;
+	OutHit.Distance = Best.Time * Length;
+	OutHit.Location = Start + Delta * Best.Time;
+	OutHit.ImpactPoint = Best.ImpactPoint;
+	OutHit.ImpactNormal = Best.Normal;
+	OutHit.Normal = Best.Normal;
+	OutHit.TraceStart = Start;
+	OutHit.TraceEnd = End;
+	OutHit.bBlockingHit = true;
+	OutHit.bStartPenetrating = Best.bStartPenetrating;
 	return true;
 }
 

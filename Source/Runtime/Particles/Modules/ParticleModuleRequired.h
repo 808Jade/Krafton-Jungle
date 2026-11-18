@@ -18,6 +18,8 @@ class UParticleModuleRequired : public UParticleModule
 		PROPERTY(EmitterDuration)
 		PROPERTY(EmitterLoops)
 		PROPERTY(MaxActiveParticles)
+		PROPERTY(SubImagesHorizontal)
+		PROPERTY(SubImagesVertical)
 	REFLECT_END()
 
 public:
@@ -38,4 +40,10 @@ public:
 	int32 EmitterLoops = 0;
 
 	int32 MaxActiveParticles = 100;
+
+	// 스프라이트 텍스처를 가로·세로 몇 칸으로 자른 시트로 볼지. 1x1이면 텍스처 전체를 쓴다.
+	// 칸 번호는 왼쪽→오른쪽, 위→아래 순서이다. 어느 칸을 보일지는 SubUV 모듈이 정하고, 모듈이 없으면 0번 칸이다.
+	// 텍스처가 균등한 격자일 때만 맞는다. (텍스처 크기에서 자동으로 알아내지 않는다)
+	int32 SubImagesHorizontal = 1;
+	int32 SubImagesVertical = 1;
 };

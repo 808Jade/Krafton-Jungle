@@ -23,6 +23,15 @@ struct alignas(16) FParticleStripConstants
 class FParticleStripRenderer
 {
 public:
+	uint64 GetAllocatedBufferBytes() const
+	{
+		uint64 Bytes = 0;
+		if (VertexBuffer && VertexBuffer->GetBuffer()) Bytes += VertexBuffer->GetBufferSize();
+		if (IndexBuffer && IndexBuffer->GetBuffer()) Bytes += IndexBuffer->GetBufferSize();
+		if (ConstantsBuffer && ConstantsBuffer->GetBuffer()) Bytes += ConstantsBuffer->GetBufferSize();
+		return Bytes;
+	}
+
 	bool Init();
 
 	bool Draw(
