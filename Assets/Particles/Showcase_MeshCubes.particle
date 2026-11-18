@@ -223,6 +223,8 @@
                                     "ScreenAlignment": 0,
                                     "SortMode": 0,
                                     "bUseLocalSpace": false,
+                                    "SubImagesHorizontal": 1,
+                                    "SubImagesVertical": 1,
                                     "bEnabled": true
                                 }
                             }

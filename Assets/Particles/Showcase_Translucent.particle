@@ -58,13 +58,13 @@
                                     "Properties": {
                                         "StartVelocity": {
                                             "Max": {
-                                                "X": 0.0,
-                                                "Y": 0.0,
+                                                "X": 0.25,
+                                                "Y": 0.25,
                                                 "Z": 1.100000023841858
                                             },
                                             "Min": {
-                                                "X": 0.0,
-                                                "Y": 0.0,
+                                                "X": -0.25,
+                                                "Y": -0.25,
                                                 "Z": 0.699999988079071
                                             }
                                         },
@@ -245,13 +245,13 @@
                                     "Properties": {
                                         "StartColor": {
                                             "Max": {
-                                                "A": 1.0,
+                                                "A": 0.8999999761581421,
                                                 "B": 1.0,
                                                 "G": 0.25,
                                                 "R": 0.05000000074505806
                                             },
                                             "Min": {
-                                                "A": 1.0,
+                                                "A": 0.8999999761581421,
                                                 "B": 0.05000000074505806,
                                                 "G": 0.05000000074505806,
                                                 "R": 1.0
@@ -303,6 +303,8 @@
                                     "MaxActiveParticles": 100,
                                     "ScreenAlignment": 0,
                                     "SortMode": 1,
+                                    "SubImagesHorizontal": 1,
+                                    "SubImagesVertical": 1,
                                     "bEnabled": true,
                                     "bUseLocalSpace": false
                                 }

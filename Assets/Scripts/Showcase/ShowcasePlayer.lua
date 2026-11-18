@@ -1,3 +1,5 @@
+local playerBeam = nil
+local beamActive = false
 local State = { Steps = 0, LastName = "", LastTime = -1, HitWindow = false, ChargeHandle = 0, Clock = 0 }
 
 local LandShake = {
@@ -25,10 +27,21 @@ print("BeginPlay!\n")
 	movement:SetBrakingDeceleration(30.0)
 	movement:SetGravityAcceleration(20.0)
 	movement:SetGravityScale(1.0)
+
+	playerBeam = self:FindParticleSystemComponentByName("PlayerBeam")
+	if playerBeam ~= nil then
+		playerBeam:SetBeamActorParameter("BeamTarget", self)
+		playerBeam:DeactivateSystem()
+		beamActive = false
+	end
 end
 
 function EndPlay()
 print("EndPlay!\n")
+	if playerBeam ~= nil then
+		playerBeam:ClearBeamParameter("BeamTarget")
+		playerBeam = nil
+	end
 end
 
 function OnOverlap(OtherActor)
@@ -58,6 +71,8 @@ local mousePitchSensitivity = 0.12
 local minCameraPitch = -30.0
 local maxCameraPitch = 60.0
 local cameraPitch = nil
+local beamBoothLocation = { X = 6.2, Y = 25.0 }
+local beamRange = 7.0
 
 local attackReady = 0
 
@@ -84,6 +99,20 @@ function Tick(dt)
         local actorRotation = self:GetActorRotation()
         actorRotation.Yaw = (actorRotation.Yaw + mouseDeltaX * mouseYawSensitivity + 180.0) % 360.0 - 180.0
         self:SetActorRotation(actorRotation)
+    end
+
+    if playerBeam ~= nil then
+        local actorLocation = self:GetActorLocation()
+        local deltaX = actorLocation.X - beamBoothLocation.X
+        local deltaY = actorLocation.Y - beamBoothLocation.Y
+        local bNearBeam = deltaX * deltaX + deltaY * deltaY < beamRange * beamRange
+        if bNearBeam and not beamActive then
+            playerBeam:ActivateSystem()
+            beamActive = true
+        elseif not bNearBeam and beamActive then
+            playerBeam:DeactivateSystem()
+            beamActive = false
+        end
     end
 
     local springArm = self:FindSceneComponentByName("SpringArmComponent")
