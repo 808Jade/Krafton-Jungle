@@ -86,6 +86,7 @@ namespace
 		volatile int Result = 1 / Zero; // 0xC0000094
 		(void)Result;
 	}
+	
 
 	#pragma warning(push)
 	#pragma warning(disable : 4717) // "모든 경로가 재귀" 경고 끄기

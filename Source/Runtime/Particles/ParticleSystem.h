@@ -4,6 +4,7 @@
 #include "Math/Box.h"
 
 class UParticleEmitter;
+class UParticleLODLevel;
 
 enum class EParticleSystemLODMethod : uint8
 {
@@ -34,5 +35,10 @@ public:
 	float						LODDistanceCheckTime = 0.25f;
 
 	int32 GetLODLevelCount() const { return LODDistances.Num(); }
+
+	bool NormalizeLODSetup();
+	bool InsertLOD(int32 SourceIndex, int32 InsertIndex);
+	bool DetachLOD(int32 LODIndex, TArray<UParticleLODLevel*>& OutDetachedLODLevels);
+	bool RegenerateLowestLOD(bool bDuplicateHighest, TArray<UParticleLODLevel*>& OutDetachedLODLevels);
 
 };

@@ -241,3 +241,67 @@ void UParticleEmitter::CacheEmitterModuleInfo()
 		MaxActiveParticles = Capacity;
 	}
 }
+
+UParticleLODLevel* UParticleEmitter::DuplicateLODLevel(const int32 SourceIndex)
+{
+	if (LODLevels.IsEmpty())
+		return nullptr;
+	UParticleLODLevel* Source = LODLevels[std::clamp(SourceIndex, 0, LODLevels.Num() - 1)];
+	return Source ? Source->Duplicate(this) : nullptr;
+}
+
+void UParticleEmitter::InsertLODLevel(const int32 InsertIndex, UParticleLODLevel* LODLevel)
+{
+	if (!LODLevel)
+		return;
+	const int32 ClampedIndex = std::clamp(InsertIndex, 0, LODLevels.Num());
+	LODLevels.Insert(LODLevel, static_cast<uint32>(ClampedIndex));
+	RenumberLODLevels();
+}
+
+UParticleLODLevel* UParticleEmitter::DetachLODLevel(const int32 LODIndex)
+{
+	if (LODIndex < 0 || LODIndex >= LODLevels.Num())
+		return nullptr;
+	UParticleLODLevel* Removed = LODLevels[LODIndex];
+	LODLevels.RemoveAt(static_cast<uint32>(LODIndex));
+	RenumberLODLevels();
+	return Removed;
+}
+
+bool UParticleEmitter::AutogenerateLowestLODLevel(const bool bDuplicateHighest, TArray<UParticleLODLevel*>& OutDetachedLODLevels)
+{
+	if (LODLevels.IsEmpty() || !LODLevels[0])
+		return false;
+
+	while (LODLevels.Num() > 1)
+	{
+		const uint32 LastIndex = static_cast<uint32>(LODLevels.Num() - 1);
+		OutDetachedLODLevels.Add(LODLevels[LastIndex]);
+		LODLevels.RemoveAt(LastIndex);
+	}
+
+	UParticleLODLevel* Source = LODLevels[0];
+	UParticleLODLevel* Copy = Source->Duplicate(this);
+	if (!Copy)
+		return false;
+
+	const bool bBeam = Cast<UParticleModuleTypeDataBeam>(Source->TypeDataModule) != nullptr;
+	const bool bRebon = Cast<UParticleModuleTypeDataRibbon>(Source->TypeDataModule) != nullptr;
+	const float Percentage = (bDuplicateHighest || bBeam || bRebon) ? 100.0f : 10.0f;
+	if (Percentage < 100.0f)
+		Copy->GenerateFromLODLevel(Source, Percentage);
+
+	LODLevels.Add(Copy);
+	RenumberLODLevels();
+	return true;
+}
+
+void UParticleEmitter::RenumberLODLevels()
+{
+	for (int32 Index = 0; Index < LODLevels.Num(); ++Index)
+	{
+		if (LODLevels[Index])
+			LODLevels[Index]->Level = Index;
+	}
+}

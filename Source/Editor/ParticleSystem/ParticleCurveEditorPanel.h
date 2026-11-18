@@ -37,6 +37,10 @@ private:
 		FString Label;
 		// 서브 커브 보이기 (1·0). TArray<bool>은 std::vector<bool>이라 참조를 돌려줄 수 없어 uint8을 쓴다.
 		TArray<uint8> SubVisible;
+		// 트랙 전체 보이기. (Cascade 트랙 오른쪽 끝 상자) 끄면 서브 커브 설정과 상관없이 그래프에서 모두 숨긴다.
+		bool bTrackVisible = true;
+		// 서브 커브 하나가 그래프에 보이는지: 트랙과 서브 커브가 둘 다 켜져 있어야 한다.
+		bool IsSubVisible(int32 Sub) const { return bTrackVisible && SubVisible.IsValidIndex(Sub) && SubVisible[Sub]; }
 	};
 	// 툴바 "현재 탭"으로 고르는 트랙 묶음. Default 탭은 지울 수 없다.
 	struct FCurveTab
@@ -59,6 +63,12 @@ private:
 	FCurveTab& CurrentTab() { return Tabs[CurrentTabIndex]; }
 	// 지워진 모듈의 트랙을 빼고, 이미터 패널에서 새로 고른 모듈을 현재 탭에 더한다.
 	void SyncTracks();
+	// 편집 대상 트랙(이미터 패널·트랙 목록에서 고른 모듈)을 정한다. 바뀌면 다른 트랙의 선택 키를 지운다.
+	void UpdateActiveTrack();
+	// 편집 대상 트랙이 없으면 모든 트랙이 편집 대상이다.
+	bool IsTrackActive(int32 TrackIndex) const { return ActiveTrack < 0 || TrackIndex == ActiveTrack; }
+	// 트랙(모듈)마다 다른 색. 트랙 목록의 색 막대와 그래프 이름표에 써서 Size·Color처럼 같은 R/G/B 커브를 구분한다.
+	static ImU32 GetTrackColor(int32 TrackIndex, float Alpha = 1.0f);
 	bool IsModuleInAsset(const UParticleModule* Module) const;
 	FInterpCurveFloat* GetCurve(const FKeyRef& Ref);
 	const FParticleCurveRef* GetCurveRef(int32 Track, int32 Sub);
@@ -77,6 +87,12 @@ private:
 	void FlattenSelectedTangents();
 	void StraightenSelectedTangents();
 	void DeleteSelectedKeys();
+	// 키 시간 연결(LinkGroup): Ref 키와 같은 그룹·같은 시간에 있는 다른 커브의 키를 OutKeys에 더한다. (중복 제외)
+	void AppendLinkedKeys(const FKeyRef& Ref, TArray<FKeyRef>& OutKeys);
+	// Sub 커브에 Time 키를 추가했을 때, 같은 그룹 커브에도 그 시간 키를 (현재 곡선 값으로) 추가한다.
+	void AddLinkedPoints(int32 Track, int32 Sub, float Time);
+	// 키 묶음을 지운다. 같은 커브 안 인덱스가 밀리지 않게 큰 인덱스부터 지우고, 커브마다 마지막 키는 남긴다.
+	void RemoveKeys(TArray<FKeyRef> Keys);
 	void MarkEdited();
 
 	// 커브 좌표 ↔ 화면 좌표
@@ -118,6 +134,8 @@ private:
 	int32 NextTabNumber = 1;
 	// 마지막으로 본 이미터 패널 선택. 바뀌었을 때만 자동 추가한다.
 	UParticleModule* LastSelectedModule = nullptr;
+	// 편집 대상 트랙 인덱스. (Cascade처럼 고른 트랙만 진하게 그리고 키를 잡을 수 있다) -1이면 모든 트랙이 대상이다.
+	int32 ActiveTrack = -1;
 
 	// 보이는 커브 범위. (가로 = 수명 비율 0~1)
 	float ViewMinX = -0.05f, ViewMaxX = 1.05f;

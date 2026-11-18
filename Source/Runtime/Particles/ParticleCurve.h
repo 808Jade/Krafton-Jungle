@@ -68,4 +68,7 @@ struct FParticleCurveRef
 	FInterpCurveFloat* Curve = nullptr;
 	// 그래프 선 색 (RGBA 0~1)
 	float Color[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+	// 키 시간 연결 그룹. 같은 모듈에서 값이 같은(0 이상) 커브끼리는 키 시간을 함께 쓴다.
+	// (언리얼의 Vector 분포처럼 R/G/B·X/Y/Z 중 하나의 키를 옮기거나 추가·삭제하면 나머지도 같은 시간에서 따라간다) -1이면 따로 논다.
+	int32 LinkGroup = -1;
 };
