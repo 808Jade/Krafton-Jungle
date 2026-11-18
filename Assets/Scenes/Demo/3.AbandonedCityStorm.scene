@@ -67,14 +67,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/0/abandoned_Cube.001",
                                 "Transform": {
                                     "Location": {
-                                        "X": 6.589230060577393,
-                                        "Y": 5.870669841766357,
-                                        "Z": 0.9569799900054932
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -125,14 +125,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/1/abandoned_Cube",
                                 "Transform": {
                                     "Location": {
-                                        "X": 3.964940071105957,
-                                        "Y": 6.045899868011475,
-                                        "Z": 0.9511460065841675
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -183,14 +183,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/2/abandoned_Cube.002",
                                 "Transform": {
                                     "Location": {
-                                        "X": 6.663479804992676,
-                                        "Y": 6.162260055541992,
-                                        "Z": 1.576159954071045
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -241,14 +241,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/3/abandoned_Cube.003",
                                 "Transform": {
                                     "Location": {
-                                        "X": 6.25570011138916,
-                                        "Y": 6.162260055541992,
-                                        "Z": 2.273319959640503
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -299,14 +299,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/4/abandoned_Cube.004",
                                 "Transform": {
                                     "Location": {
-                                        "X": 4.3913798332214355,
-                                        "Y": 6.162260055541992,
-                                        "Z": 2.273319959640503
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -357,14 +357,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/5/abandoned_Cube.005",
                                 "Transform": {
                                     "Location": {
-                                        "X": -4.553289890289307,
-                                        "Y": 6.509099960327148,
-                                        "Z": 0.4788919985294342
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -415,14 +415,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/6/abandoned_Cube.006",
                                 "Transform": {
                                     "Location": {
-                                        "X": -4.704919815063477,
-                                        "Y": 6.3391499519348145,
-                                        "Z": 1.373460054397583
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -473,14 +473,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/7/abandoned_Cube.007",
                                 "Transform": {
                                     "Location": {
-                                        "X": -1.5378299951553345,
-                                        "Y": 6.383389949798584,
-                                        "Z": 0.7095760107040405
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -531,14 +531,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/8/abandoned_Cube.008",
                                 "Transform": {
                                     "Location": {
-                                        "X": -1.1227200031280518,
-                                        "Y": 6.499750137329102,
-                                        "Z": 1.7471400499343872
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -589,14 +589,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/9/abandoned_Cube.009",
                                 "Transform": {
                                     "Location": {
-                                        "X": 3.5782899856567383,
-                                        "Y": -0.05113859847187996,
-                                        "Z": 0.6008849740028381
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -647,14 +647,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/10/abandoned_Cube.010",
                                 "Transform": {
                                     "Location": {
-                                        "X": 3.5782899856567383,
-                                        "Y": -0.05113840103149414,
-                                        "Z": 1.9110599756240845
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -705,14 +705,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/11/abandoned_Cube.011",
                                 "Transform": {
                                     "Location": {
-                                        "X": 1.1586600542068481,
-                                        "Y": 6.090260028839111,
-                                        "Z": 0.91668701171875
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -763,19 +763,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/12/abandoned_Cube.012",
                                 "Transform": {
                                     "Location": {
-                                        "X": 0.03627299889922142,
-                                        "Y": 4.53154993057251,
-                                        "Z": -0.09331099689006805
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 8.41802978515625,
-                                        "Yaw": -103.91999816894531
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 0.3897019922733307,
-                                        "Y": 0.6344590187072754,
-                                        "Z": 0.3407520055770874
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -821,14 +821,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/13/abandoned_Cube.013",
                                 "Transform": {
                                     "Location": {
-                                        "X": -7.34004020690918,
-                                        "Y": 5.195310115814209,
-                                        "Z": 0.9569799900054932
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": -129.6179962158203
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -879,14 +879,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/14/abandoned_Cube.014",
                                 "Transform": {
                                     "Location": {
-                                        "X": 5.972660064697266,
-                                        "Y": -6.716010093688965,
-                                        "Z": 0.7095760107040405
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -937,14 +937,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/15/abandoned_Cube.016",
                                 "Transform": {
                                     "Location": {
-                                        "X": 0.2342980057001114,
-                                        "Y": -6.299849987030029,
-                                        "Z": 0.9569799900054932
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -995,14 +995,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/16/abandoned_Cube.015",
                                 "Transform": {
                                     "Location": {
-                                        "X": 2.8585898876190186,
-                                        "Y": -6.4750800132751465,
-                                        "Z": 0.9511470198631287
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1053,14 +1053,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/17/abandoned_Cube.017",
                                 "Transform": {
                                     "Location": {
-                                        "X": 0.16005000472068787,
-                                        "Y": -6.591450214385986,
-                                        "Z": 1.576159954071045
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1111,14 +1111,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/18/abandoned_Cube.018",
                                 "Transform": {
                                     "Location": {
-                                        "X": 0.5678290128707886,
-                                        "Y": -6.591450214385986,
-                                        "Z": 2.273319959640503
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1169,14 +1169,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/19/abandoned_Cube.019",
                                 "Transform": {
                                     "Location": {
-                                        "X": 2.432149887084961,
-                                        "Y": -6.591450214385986,
-                                        "Z": 2.273319959640503
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1227,14 +1227,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/20/abandoned_Cube.032",
                                 "Transform": {
                                     "Location": {
-                                        "X": 4.286049842834473,
-                                        "Y": -1.9065799713134766,
-                                        "Z": 0.9511470198631287
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": -180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1285,14 +1285,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/21/abandoned_Cube.039",
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.18616008758545,
-                                        "Y": -3.691770076751709,
-                                        "Z": 0.9511460065841675
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -90.0,
-                                        "Yaw": -180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1343,14 +1343,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/22/abandoned_Cube.020",
                                 "Transform": {
                                     "Location": {
-                                        "X": -2.2739100456237793,
-                                        "Y": -6.959630012512207,
-                                        "Z": 0.7095760107040405
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1401,14 +1401,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/23/abandoned_Cube.021",
                                 "Transform": {
                                     "Location": {
-                                        "X": -5.234899997711182,
-                                        "Y": -6.959630012512207,
-                                        "Z": 0.7095760107040405
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1459,14 +1459,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/24/abandoned_Cube.022",
                                 "Transform": {
                                     "Location": {
-                                        "X": -2.2739100456237793,
-                                        "Y": -7.401189804077148,
-                                        "Z": 2.112649917602539
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1517,14 +1517,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/25/abandoned_Cube.023",
                                 "Transform": {
                                     "Location": {
-                                        "X": -5.281459808349609,
-                                        "Y": -7.401189804077148,
-                                        "Z": 2.112649917602539
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1575,14 +1575,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/26/abandoned_Cube.024",
                                 "Transform": {
                                     "Location": {
-                                        "X": -2.7515499591827393,
-                                        "Y": -1.6870299577713013,
-                                        "Z": 0.4788919985294342
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1633,14 +1633,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/27/abandoned_Cube.025",
                                 "Transform": {
                                     "Location": {
-                                        "X": -2.903179883956909,
-                                        "Y": -1.8569899797439575,
-                                        "Z": 1.373460054397583
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1691,14 +1691,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/28/abandoned_Cube.027",
                                 "Transform": {
                                     "Location": {
-                                        "X": -3.025239944458008,
-                                        "Y": 0.3833869993686676,
-                                        "Z": 0.9569799900054932
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1749,14 +1749,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/29/abandoned_Cube.026",
                                 "Transform": {
                                     "Location": {
-                                        "X": -0.4009549915790558,
-                                        "Y": 0.20815399289131165,
-                                        "Z": 0.9511470198631287
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1807,14 +1807,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/30/abandoned_Cube.028",
                                 "Transform": {
                                     "Location": {
-                                        "X": -3.09948992729187,
-                                        "Y": 0.09179209917783737,
-                                        "Z": 1.576159954071045
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1865,14 +1865,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/31/abandoned_Cube.029",
                                 "Transform": {
                                     "Location": {
-                                        "X": -2.6917099952697754,
-                                        "Y": 0.09179209917783737,
-                                        "Z": 2.273319959640503
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1923,14 +1923,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/32/abandoned_Cube.030",
                                 "Transform": {
                                     "Location": {
-                                        "X": -0.8273919820785522,
-                                        "Y": 0.09179259836673737,
-                                        "Z": 2.273319959640503
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -1981,14 +1981,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/33/abandoned_Cube.031",
                                 "Transform": {
                                     "Location": {
-                                        "X": 6.090559959411621,
-                                        "Y": -0.31612300872802734,
-                                        "Z": 0.7095760107040405
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -180.0
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2039,14 +2039,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/34/abandoned_Cube.033",
                                 "Transform": {
                                     "Location": {
-                                        "X": -0.8478509783744812,
-                                        "Y": -1.0838899612426758,
-                                        "Z": 0.4788919985294342
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": -137.02499389648438
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2097,14 +2097,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/35/abandoned_Cube.034",
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.179369926452637,
-                                        "Y": 2.84768009185791,
-                                        "Z": 0.9569799900054932
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": -90.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2155,14 +2155,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/36/abandoned_Cube.035",
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.470970153808594,
-                                        "Y": 2.9219300746917725,
-                                        "Z": 1.576159954071045
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": -90.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2213,14 +2213,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/37/abandoned_Cube.036",
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.179369926452637,
-                                        "Y": 0.8528050184249878,
-                                        "Z": 0.9569799900054932
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": -90.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2271,14 +2271,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/38/abandoned_Cube.037",
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.470970153808594,
-                                        "Y": 1.1246999502182007,
-                                        "Z": 1.576159954071045
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": -90.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2329,14 +2329,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/39/abandoned_Cube.038",
                                 "Transform": {
                                     "Location": {
-                                        "X": -7.618800163269043,
-                                        "Y": -1.0913000106811523,
-                                        "Z": 0.91668701171875
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -89.99980163574219,
-                                        "Roll": 0.8346400260925293,
-                                        "Yaw": 91.16280364990234
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2387,14 +2387,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/40/abandoned_Cube.040",
                                 "Transform": {
                                     "Location": {
-                                        "X": -7.076769828796387,
-                                        "Y": -7.301599979400635,
-                                        "Z": 0.4788919985294342
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": 132.70799255371094
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2445,14 +2445,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/41/abandoned_Cube.041",
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.016759872436523,
-                                        "Y": -7.301599979400635,
-                                        "Z": 1.5828200578689575
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": 132.70799255371094
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2503,14 +2503,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/42/abandoned_Cube.042",
                                 "Transform": {
                                     "Location": {
-                                        "X": 8.954879760742188,
-                                        "Y": 3.6318399906158447,
-                                        "Z": 0.7095760107040405
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -177.05799865722656,
-                                        "Yaw": 97.60790252685547
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2561,14 +2561,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/43/abandoned_Cube.043",
                                 "Transform": {
                                     "Location": {
-                                        "X": 9.145279884338379,
-                                        "Y": 3.2450499534606934,
-                                        "Z": 1.74714994430542
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -177.05799865722656,
-                                        "Yaw": 97.60790252685547
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2619,14 +2619,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/44/abandoned_Cube.044",
                                 "Transform": {
                                     "Location": {
-                                        "X": 8.799449920654297,
-                                        "Y": 0.6648759841918945,
-                                        "Z": 0.91668701171875
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -109.49400329589844
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2677,14 +2677,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/45/abandoned_Cube.045",
                                 "Transform": {
                                     "Location": {
-                                        "X": 7.706930160522461,
-                                        "Y": -3.7414700984954834,
-                                        "Z": 0.4788919985294342
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -65.31279754638672
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2735,14 +2735,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/46/abandoned_Cube.046",
                                 "Transform": {
                                     "Location": {
-                                        "X": 7.489170074462891,
-                                        "Y": -3.6746699810028076,
-                                        "Z": 1.373460054397583
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -65.31279754638672
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2793,14 +2793,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/47/abandoned_Cube.048",
                                 "Transform": {
                                     "Location": {
-                                        "X": -14.97719955444336,
-                                        "Y": 8.465970039367676,
-                                        "Z": 2.0797600746154785
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -165.08900451660156,
-                                        "Yaw": -128.15499877929688
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2851,14 +2851,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/48/abandoned_Cube.047",
                                 "Transform": {
                                     "Location": {
-                                        "X": -16.173900604248047,
-                                        "Y": 6.123839855194092,
-                                        "Z": 2.073930025100708
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -165.08900451660156,
-                                        "Yaw": -128.15499877929688
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2909,14 +2909,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/49/abandoned_Cube.049",
                                 "Transform": {
                                     "Location": {
-                                        "X": -15.215800285339355,
-                                        "Y": 8.649270057678223,
-                                        "Z": 2.6989400386810303
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -165.08900451660156,
-                                        "Yaw": -128.15499877929688
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -2967,14 +2967,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/50/abandoned_Cube.050",
                                 "Transform": {
                                     "Location": {
-                                        "X": -15.376700401306152,
-                                        "Y": 8.274589538574219,
-                                        "Z": 3.3961000442504883
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -165.08900451660156,
-                                        "Yaw": -128.15499877929688
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -3025,14 +3025,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/51/abandoned_Cube.051",
                                 "Transform": {
                                     "Location": {
-                                        "X": -16.112499237060547,
-                                        "Y": 6.561580181121826,
-                                        "Z": 3.3961000442504883
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -165.08900451660156,
-                                        "Yaw": -128.15499877929688
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -3083,14 +3083,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/52/abandoned_Cube.053",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.163730144500732,
-                                        "Y": 12.349300384521484,
-                                        "Z": 1.3299100399017334
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -164.80599975585938,
-                                        "Yaw": 179.88699340820313
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -3141,14 +3141,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/53/abandoned_Cube.052",
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.743229866027832,
-                                        "Y": 11.835700035095215,
-                                        "Z": 1.3240699768066406
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -164.80599975585938,
-                                        "Yaw": 179.88699340820313
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -3199,14 +3199,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/54/abandoned_Cube.054",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.167910099029541,
-                                        "Y": 12.650199890136719,
-                                        "Z": 1.949079990386963
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -164.80599975585938,
-                                        "Yaw": 179.88699340820313
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -3257,14 +3257,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/55/abandoned_Cube.055",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.561649799346924,
-                                        "Y": 12.544099807739258,
-                                        "Z": 2.646239995956421
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -164.80599975585938,
-                                        "Yaw": 179.88699340820313
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -3315,14 +3315,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/56/abandoned_Cube.056",
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.361749649047852,
-                                        "Y": 12.059000015258789,
-                                        "Z": 2.646239995956421
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -164.80599975585938,
-                                        "Yaw": 179.88699340820313
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -3373,14 +3373,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/57/abandoned_Cube.057",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.561649799346924,
-                                        "Y": 12.544099807739258,
-                                        "Z": 3.354949951171875
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -164.80599975585938,
-                                        "Yaw": 179.88699340820313
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -3431,14 +3431,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/58/abandoned_Cube.058",
                                 "Transform": {
                                     "Location": {
-                                        "X": -8.361749649047852,
-                                        "Y": 12.059000015258789,
-                                        "Z": 3.368459939956665
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -164.80599975585938,
-                                        "Yaw": 179.88699340820313
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -3489,19 +3489,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/59/abandoned_Cube.059",
                                 "Transform": {
                                     "Location": {
-                                        "X": -2.4717600345611572,
-                                        "Y": 11.927200317382813,
-                                        "Z": 3.176500082015991
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -175.88900756835938,
-                                        "Yaw": -179.86199951171875
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 1.427459955215454,
-                                        "Y": 1.427459955215454,
-                                        "Z": 1.427459955215454
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -3547,19 +3547,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/60/abandoned_Cube.060",
                                 "Transform": {
                                     "Location": {
-                                        "X": -2.3969099521636963,
-                                        "Y": 12.350099563598633,
-                                        "Z": 4.060349941253662
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -175.88900756835938,
-                                        "Yaw": -179.86199951171875
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 1.427459955215454,
-                                        "Y": 1.427459955215454,
-                                        "Z": 1.427459955215454
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -3605,19 +3605,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/61/abandoned_Cube.061",
                                 "Transform": {
                                     "Location": {
-                                        "X": -2.4717600345611572,
-                                        "Y": 11.927200317382813,
-                                        "Z": 1.3785500526428223
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -175.88900756835938,
-                                        "Yaw": -179.86199951171875
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 1.427459955215454,
-                                        "Y": 1.427459955215454,
-                                        "Z": 1.427459955215454
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -3663,19 +3663,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/62/abandoned_Cube.062",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.907110214233398,
-                                        "Y": 3.4754199981689453,
-                                        "Z": -0.09331099689006805
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 145.4759979248047
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 0.3897019922733307,
-                                        "Y": 0.6344590187072754,
-                                        "Z": 0.3407520055770874
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -3721,19 +3721,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/63/abandoned_Cube.063",
                                 "Transform": {
                                     "Location": {
-                                        "X": 2.0381600856781006,
-                                        "Y": 1.6016299724578857,
-                                        "Z": -0.09331080317497253
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -13.811699867248535,
-                                        "Yaw": 3.879189968109131
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 0.3897019922733307,
-                                        "Y": 0.6344590187072754,
-                                        "Z": 0.3407520055770874
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -3779,19 +3779,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/64/abandoned_Cube.064",
                                 "Transform": {
                                     "Location": {
-                                        "X": 2.5547900199890137,
-                                        "Y": -5.402589797973633,
-                                        "Z": -0.09331080317497253
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -84.99120330810547,
-                                        "Yaw": 136.03700256347656
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 0.3897019922733307,
-                                        "Y": 0.6344590187072754,
-                                        "Z": 0.3407520055770874
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -3837,19 +3837,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/65/abandoned_Cube.065",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.250010013580322,
-                                        "Y": -4.1373701095581055,
-                                        "Z": -0.09331099689006805
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -1.6488100290298462,
-                                        "Yaw": 47.74959945678711
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 0.3897019922733307,
-                                        "Y": 0.6344590187072754,
-                                        "Z": 0.3407520055770874
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -3895,19 +3895,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/66/abandoned_Cube.066",
                                 "Transform": {
                                     "Location": {
-                                        "X": -0.15232299268245697,
-                                        "Y": -7.62224006652832,
-                                        "Z": -0.09331099689006805
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 146.7220001220703,
-                                        "Yaw": -39.642799377441406
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 0.3897019922733307,
-                                        "Y": 0.6344590187072754,
-                                        "Z": 0.3407520055770874
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -3953,14 +3953,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/67/abandoned_Cube.068",
                                 "Transform": {
                                     "Location": {
-                                        "X": -14.97719955444336,
-                                        "Y": 8.465970039367676,
-                                        "Z": 0.7781670093536377
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -165.08900451660156,
-                                        "Yaw": -128.15499877929688
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -4011,14 +4011,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/68/abandoned_Cube.067",
                                 "Transform": {
                                     "Location": {
-                                        "X": -16.173900604248047,
-                                        "Y": 6.123839855194092,
-                                        "Z": 0.04191869869828224
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -165.08900451660156,
-                                        "Yaw": -128.15499877929688
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -4069,19 +4069,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/69/abandoned_Plane",
                                 "Transform": {
                                     "Location": {
-                                        "X": 0.6981689929962158,
-                                        "Y": 1.63742995262146,
-                                        "Z": -0.06894870102405548
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -1.0113099961017724e-05,
-                                        "Roll": 90.0,
-                                        "Yaw": -128.8489990234375
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 0.36500999331474304,
-                                        "Y": 0.36500999331474304,
-                                        "Z": 0.8559539914131165
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -4127,19 +4127,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/70/abandoned_Plane.001",
                                 "Transform": {
                                     "Location": {
-                                        "X": -0.8072789907455444,
-                                        "Y": 2.014470100402832,
-                                        "Z": -0.06894870102405548
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -4.895419806416612e-06,
-                                        "Roll": 90.0,
-                                        "Yaw": -80.1272964477539
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 0.36500999331474304,
-                                        "Y": 0.36500999331474304,
-                                        "Z": 0.8559539914131165
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -4185,19 +4185,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/71/abandoned_Plane.002",
                                 "Transform": {
                                     "Location": {
-                                        "X": 0.39396101236343384,
-                                        "Y": -0.33768001198768616,
-                                        "Z": -0.055364400148391724
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 7.919360160827637,
-                                        "Y": 7.919360160827637,
-                                        "Z": 7.919360160827637
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": true,
@@ -4243,19 +4243,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/72/abandoned_Plane.005",
                                 "Transform": {
                                     "Location": {
-                                        "X": -2.3711800575256348,
-                                        "Y": 1.4495799541473389,
-                                        "Z": -0.06894870102405548
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -3.6137901133770356e-06,
-                                        "Roll": 90.0,
-                                        "Yaw": -61.51559829711914
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 0.36500999331474304,
-                                        "Y": 0.36500999331474304,
-                                        "Z": 0.8559539914131165
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -4301,19 +4301,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/73/abandoned_Plane.006",
                                 "Transform": {
                                     "Location": {
-                                        "X": -3.043179988861084,
-                                        "Y": 4.389249801635742,
-                                        "Z": -0.06894870102405548
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": 7.040979710382089e-08,
-                                        "Roll": 90.0,
-                                        "Yaw": 178.16000366210938
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 0.36500999331474304,
-                                        "Y": 0.36500999331474304,
-                                        "Z": 0.8559539914131165
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -4359,19 +4359,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/74/abandoned_Plane.007",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.0023298263549805,
-                                        "Y": 4.483489990234375,
-                                        "Z": -0.06894870102405548
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": 7.040979710382089e-08,
-                                        "Roll": 90.0,
-                                        "Yaw": 178.16000366210938
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 0.36500999331474304,
-                                        "Y": 0.36500999331474304,
-                                        "Z": 0.8559539914131165
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -4417,19 +4417,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/75/abandoned_Plane.008",
                                 "Transform": {
                                     "Location": {
-                                        "X": -5.2125701904296875,
-                                        "Y": 3.7015700340270996,
-                                        "Z": -0.06894870102405548
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": 4.14653004554566e-06,
-                                        "Roll": 90.0,
-                                        "Yaw": 93.15989685058594
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 0.36500999331474304,
-                                        "Y": 0.36500999331474304,
-                                        "Z": 0.8559539914131165
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -4475,14 +4475,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/76/abandoned_Plane.009",
                                 "Transform": {
                                     "Location": {
-                                        "X": -1.2779799699783325,
-                                        "Y": 4.297220230102539,
-                                        "Z": 2.351370096206665
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -4533,14 +4533,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/77/abandoned_Plane.010",
                                 "Transform": {
                                     "Location": {
-                                        "X": -5.0744500160217285,
-                                        "Y": -4.770020008087158,
-                                        "Z": 2.351370096206665
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": -27.376300811767578,
-                                        "Yaw": 168.97900390625
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -4591,14 +4591,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/78/abandoned_Plane.011",
                                 "Transform": {
                                     "Location": {
-                                        "X": 5.572750091552734,
-                                        "Y": 5.409259796142578,
-                                        "Z": 2.351370096206665
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -4649,14 +4649,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/79/abandoned_Plane.012",
                                 "Transform": {
                                     "Location": {
-                                        "X": -6.932419776916504,
-                                        "Y": 2.101409912109375,
-                                        "Z": 2.351370096206665
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": 78.91200256347656
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -4707,19 +4707,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/80/abandoned_Plane.013",
                                 "Transform": {
                                     "Location": {
-                                        "X": -1.11558997631073,
-                                        "Y": 10.527799606323242,
-                                        "Z": 2.3690199851989746
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
-                                        "Yaw": -177.37100219726563
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": -0.007162749767303467,
-                                        "Y": 0.007162749767303467,
-                                        "Z": 1.3173400163650513
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -4765,19 +4765,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/81/abandoned_Plane.014",
                                 "Transform": {
                                     "Location": {
-                                        "X": 2.1702699661254883,
-                                        "Y": 0.2732029855251312,
-                                        "Z": 1.8877099752426147
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 4.914599895477295,
-                                        "Yaw": -99.34490203857422
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": -0.007162749767303467,
-                                        "Y": 0.007162749767303467,
-                                        "Z": 1.3173400163650513
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -4823,14 +4823,14 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/82/abandoned_Plane.015",
                                 "Transform": {
                                     "Location": {
-                                        "X": 5.601019859313965,
-                                        "Y": 5.399829864501953,
-                                        "Z": 2.351370096206665
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -90.0,
-                                        "Roll": 180.0,
-                                        "Yaw": 180.0
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
                                     },
                                     "Scale": {
                                         "X": 1.0,
@@ -4881,19 +4881,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/83/abandoned_node_0.001",
                                 "Transform": {
                                     "Location": {
-                                        "X": -1.4943499565124512,
-                                        "Y": -5.870950222015381,
-                                        "Z": -0.12937499582767487
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -4.3257100514892954e-06,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
                                         "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 3.657249927520752,
-                                        "Y": 3.657249927520752,
-                                        "Z": 3.657249927520752
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -4939,19 +4939,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/84/abandoned_node_0.003",
                                 "Transform": {
                                     "Location": {
-                                        "X": -7.225619792938232,
-                                        "Y": 3.649790048599243,
-                                        "Z": 7.105419919592934e-17
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -4.3257100514892954e-06,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
                                         "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 3.6653599739074707,
-                                        "Y": 3.6653599739074707,
-                                        "Z": 3.6653599739074707
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
@@ -4997,19 +4997,19 @@
                                 "StaticMesh": "Models/AbandonedCity/abandoned.fbx#Static/85/abandoned_node_0.004",
                                 "Transform": {
                                     "Location": {
-                                        "X": -0.4781779944896698,
-                                        "Y": 5.443709850311279,
-                                        "Z": -0.12937499582767487
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
                                     },
                                     "Rotation": {
-                                        "Pitch": -4.3257100514892954e-06,
+                                        "Pitch": 0.0,
                                         "Roll": 0.0,
                                         "Yaw": 0.0
                                     },
                                     "Scale": {
-                                        "X": 1.8006700277328491,
-                                        "Y": 1.8006700277328491,
-                                        "Z": 1.8006700277328491
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
                                     }
                                 },
                                 "bBlockComponent": false,
