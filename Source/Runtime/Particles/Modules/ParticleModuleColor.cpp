@@ -31,9 +31,9 @@ void UParticleModuleColor::Update(FParticleEmitterInstance& Owner, int32 Payload
 
 void UParticleModuleColor::GetCurves(TArray<FParticleCurveRef>& OutCurves)
 {
-	OutCurves.Add({ "Color Scale R", &ColorScaleR, { 1.0f, 0.3f, 0.3f, 1.0f } });
-	OutCurves.Add({ "Color Scale G", &ColorScaleG, { 0.3f, 1.0f, 0.3f, 1.0f } });
-	OutCurves.Add({ "Color Scale B", &ColorScaleB, { 0.35f, 0.55f, 1.0f, 1.0f } });
+	OutCurves.Add({ "Color Scale R", &ColorScaleR, { 1.0f, 0.3f, 0.3f, 1.0f }, 0 });
+	OutCurves.Add({ "Color Scale G", &ColorScaleG, { 0.3f, 1.0f, 0.3f, 1.0f }, 0 });
+	OutCurves.Add({ "Color Scale B", &ColorScaleB, { 0.35f, 0.55f, 1.0f, 1.0f }, 0 });
 	OutCurves.Add({ "Alpha Scale", &AlphaScale, { 0.85f, 0.85f, 0.85f, 1.0f } });
 }
 

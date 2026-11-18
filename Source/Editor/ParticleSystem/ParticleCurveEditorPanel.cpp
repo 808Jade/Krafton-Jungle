@@ -281,7 +281,7 @@ void FParticleCurveEditorPanel::FitView(const bool bHorizontal, const bool bVert
 			Tab.Tracks[t].Module->GetCurves(Curves);
 			for (int32 s = 0; s < Curves.Num(); ++s)
 			{
-				if (!Tab.Tracks[t].SubVisible.IsValidIndex(s) || !Tab.Tracks[t].SubVisible[s])
+				if (!Tab.Tracks[t].IsSubVisible(s))
 					continue;
 				float InMin, InMax, OutMin, OutMax;
 				if (Curves[s].Curve->GetInRange(InMin, InMax) && Curves[s].Curve->GetOutRange(OutMin, OutMax))
@@ -361,18 +361,139 @@ void FParticleCurveEditorPanel::StraightenSelectedTangents()
 
 void FParticleCurveEditorPanel::DeleteSelectedKeys()
 {
+	// 연결된 커브(R/G/B 등)의 같은 시간 키도 함께 지운다.
+	TArray<FKeyRef> Targets = SelectedKeys;
+	for (const FKeyRef& Ref : SelectedKeys)
+		AppendLinkedKeys(Ref, Targets);
+	RemoveKeys(Targets);
+	SelectedKeys.Reset();
+	MarkEdited();
+}
+
+void FParticleCurveEditorPanel::RemoveKeys(TArray<FKeyRef> Keys)
+{
 	// 같은 커브에서 여러 키를 지울 때 인덱스가 밀리지 않게 큰 인덱스부터 지운다.
-	TArray<FKeyRef> Sorted = SelectedKeys;
-	std::sort(Sorted.begin(), Sorted.end(), [](const FKeyRef& A, const FKeyRef& B) { return A.Key > B.Key; });
-	for (const FKeyRef& Ref : Sorted)
+	std::sort(Keys.begin(), Keys.end(), [](const FKeyRef& A, const FKeyRef& B) { return A.Key > B.Key; });
+	for (const FKeyRef& Ref : Keys)
 	{
 		FInterpCurveFloat* Curve = GetCurve(Ref);
 		// 마지막 키는 남긴다. 키가 없으면 커브가 기본값(배율 1)이 되어 편집할 손잡이가 사라진다.
 		if (Curve && Curve->Points.IsValidIndex(Ref.Key) && Curve->Points.Num() > 1)
 			Curve->RemovePoint(Ref.Key);
 	}
-	SelectedKeys.Reset();
-	MarkEdited();
+}
+
+// ---------------------------------------------------------------------------------------------
+// 키 시간 연결 (언리얼 Vector 분포처럼 R/G/B·X/Y/Z 키의 시간을 함께 움직인다)
+// ---------------------------------------------------------------------------------------------
+
+namespace
+{
+	// 이 차이 안의 시간이면 같은 키로 본다.
+	constexpr float LinkTimeTolerance = 1e-4f;
+}
+
+void FParticleCurveEditorPanel::AppendLinkedKeys(const FKeyRef& Ref, TArray<FKeyRef>& OutKeys)
+{
+	FCurveTab& Tab = CurrentTab();
+	if (!Tab.Tracks.IsValidIndex(Ref.Track))
+		return;
+	TArray<FParticleCurveRef> Curves;
+	Tab.Tracks[Ref.Track].Module->GetCurves(Curves);
+	if (!Curves.IsValidIndex(Ref.Sub))
+		return;
+	const FParticleCurveRef& Source = Curves[Ref.Sub];
+	if (Source.LinkGroup < 0 || !Source.Curve || !Source.Curve->Points.IsValidIndex(Ref.Key))
+		return;
+
+	const float Time = Source.Curve->Points[Ref.Key].InVal;
+	for (int32 s = 0; s < Curves.Num(); ++s)
+	{
+		if (s == Ref.Sub || Curves[s].LinkGroup != Source.LinkGroup || !Curves[s].Curve)
+			continue;
+		const TArray<FInterpCurvePointFloat>& Points = Curves[s].Curve->Points;
+		for (int32 k = 0; k < Points.Num(); ++k)
+		{
+			if (std::abs(Points[k].InVal - Time) <= LinkTimeTolerance)
+			{
+				const FKeyRef Linked{ Ref.Track, s, k };
+				if (OutKeys.Find(Linked) == INDEX_NONE)
+					OutKeys.Add(Linked);
+				break;
+			}
+		}
+	}
+}
+
+void FParticleCurveEditorPanel::AddLinkedPoints(const int32 Track, const int32 Sub, const float Time)
+{
+	FCurveTab& Tab = CurrentTab();
+	if (!Tab.Tracks.IsValidIndex(Track))
+		return;
+	TArray<FParticleCurveRef> Curves;
+	Tab.Tracks[Track].Module->GetCurves(Curves);
+	if (!Curves.IsValidIndex(Sub) || Curves[Sub].LinkGroup < 0)
+		return;
+
+	for (int32 s = 0; s < Curves.Num(); ++s)
+	{
+		if (s == Sub || Curves[s].LinkGroup != Curves[Sub].LinkGroup || !Curves[s].Curve)
+			continue;
+		FInterpCurveFloat& Curve = *Curves[s].Curve;
+		bool bExists = false;
+		for (const FInterpCurvePointFloat& P : Curve.Points)
+			bExists |= std::abs(P.InVal - Time) <= LinkTimeTolerance;
+		if (!bExists)
+		{
+			// 곡선 모양이 바뀌지 않게 지금 그 시간의 값으로 키를 넣는다.
+			Curve.AddPoint(Time, Curve.Eval(Time, 1.0f));
+			Curve.AutoSetTangents();
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------------------------
+// 트랙 구분 (Cascade처럼 고른 트랙만 편집 대상으로 강조한다)
+// ---------------------------------------------------------------------------------------------
+
+ImU32 FParticleCurveEditorPanel::GetTrackColor(const int32 TrackIndex, const float Alpha)
+{
+	// 커브 선 색(R/G/B 채널색)과 겹치지 않는 색 위주로 고른다.
+	static const ImVec4 Palette[] = {
+		ImVec4(1.00f, 0.62f, 0.15f, 1.0f),	// 주황
+		ImVec4(0.30f, 0.85f, 0.95f, 1.0f),	// 하늘
+		ImVec4(0.95f, 0.45f, 0.85f, 1.0f),	// 분홍
+		ImVec4(0.95f, 0.90f, 0.30f, 1.0f),	// 노랑
+		ImVec4(0.65f, 0.55f, 1.00f, 1.0f),	// 보라
+		ImVec4(0.55f, 0.95f, 0.55f, 1.0f),	// 연두
+	};
+	ImVec4 C = Palette[static_cast<uint32>(TrackIndex) % (sizeof(Palette) / sizeof(Palette[0]))];
+	C.w = Alpha;
+	return ImGui::ColorConvertFloat4ToU32(C);
+}
+
+void FParticleCurveEditorPanel::UpdateActiveTrack()
+{
+	const FCurveTab& Tab = CurrentTab();
+	int32 NewActive = -1;
+	for (int32 t = 0; t < Tab.Tracks.Num(); ++t)
+	{
+		if (Tab.Tracks[t].Module == Context.SelectedModule)
+		{
+			NewActive = t;
+			break;
+		}
+	}
+	if (NewActive == ActiveTrack)
+		return;
+
+	ActiveTrack = NewActive;
+	// 편집 대상이 아닌 트랙의 키는 선택에서 뺀다. (흐리게 그려지는 커브를 툴바 버튼이 건드리지 않게)
+	for (int32 i = SelectedKeys.Num() - 1; i >= 0; --i)
+	{
+		if (!IsTrackActive(SelectedKeys[i].Track))
+			SelectedKeys.RemoveAt(static_cast<uint32>(i));
+	}
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -391,6 +512,7 @@ void FParticleCurveEditorPanel::OnRender()
 	}
 
 	SyncTracks();
+	UpdateActiveTrack();
 	DrawToolbar();
 	ImGui::Separator();
 
@@ -555,15 +677,26 @@ void FParticleCurveEditorPanel::DrawTrackList()
 				Track.SubVisible[s] = 1;
 		}
 
-		// 트랙 머리: 모듈 이름. 클릭하면 이미터 패널에서도 그 모듈을 고른다.
-		ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(110, 110, 110, 255));
+		// 트랙 머리: 왼쪽 색 막대(트랙 색) + 모듈 이름. 클릭하면 이 트랙이 편집 대상이 되고 이미터 패널에서도 그 모듈을 고른다.
+		// 편집 대상 트랙은 머리 배경을 트랙 색으로 칠한다. (그래프에서 진하게 그려지는 커브가 이 트랙 것이다)
 		const bool bModuleSelected = Context.SelectedModule == Track.Module;
+		const ImVec2 HeaderMin = ImGui::GetCursorScreenPos();
+		const float HeaderHeight = ImGui::GetTextLineHeightWithSpacing();
+		ImDrawList* HeaderDraw = ImGui::GetWindowDrawList();
+		if (bModuleSelected)
+			HeaderDraw->AddRectFilled(HeaderMin, ImVec2(HeaderMin.x + ImGui::GetContentRegionAvail().x, HeaderMin.y + HeaderHeight), GetTrackColor(t, 0.85f));
+		HeaderDraw->AddRectFilled(HeaderMin, ImVec2(HeaderMin.x + 5.0f, HeaderMin.y + HeaderHeight), GetTrackColor(t));
+		ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(0, 0, 0, 0));
+		ImGui::Indent(8.0f);
 		if (ImGui::Selectable(Track.Label.c_str(), bModuleSelected))
 		{
 			Context.SelectedModule = Track.Module;
 			LastSelectedModule = Track.Module;
 		}
+		ImGui::Unindent(8.0f);
 		ImGui::PopStyleColor();
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(bModuleSelected ? "Editing this module's curves" : "Click to edit this module's curves (others are dimmed)");
 		if (ImGui::BeginPopupContextItem("##TrackMenu"))
 		{
 			if (ImGui::MenuItem("Remove from Curve Editor"))
@@ -571,27 +704,47 @@ void FParticleCurveEditorPanel::DrawTrackList()
 			ImGui::EndPopup();
 		}
 
-		// 서브 커브: 색 상자로 보이기·숨기기를 바꾼다.
+		// 표시 상자 줄 (Cascade처럼): 왼쪽은 서브 커브 색 상자를 가로로 나열해 하나씩 켜고 끄고,
+		// 오른쪽 끝 상자는 트랙 전체를 켜고 끈다. 꺼진 상자는 회색으로 비워 그린다.
+		const float Box = ImGui::GetTextLineHeight() - 4.0f;
+		const ImU32 BoxOff = IM_COL32(90, 90, 90, 255);
+		const ImU32 BoxBorder = IM_COL32(30, 30, 30, 255);
+		ImDrawList* DrawList = ImGui::GetWindowDrawList();
+		ImGui::Indent(8.0f);
 		for (int32 s = 0; s < Curves.Num(); ++s)
 		{
 			ImGui::PushID(s);
-			ImGui::Indent(10.0f);
+			if (s > 0)
+				ImGui::SameLine(0.0f, 3.0f);
 			const ImVec2 P = ImGui::GetCursorScreenPos();
-			const float Box = ImGui::GetTextLineHeight() - 2.0f;
-			if (ImGui::InvisibleButton("##Vis", ImVec2(Box, Box)))
+			if (ImGui::InvisibleButton("##SubVis", ImVec2(Box, Box)))
 				Track.SubVisible[s] = Track.SubVisible[s] ? 0 : 1;
-			ImDrawList* DrawList = ImGui::GetWindowDrawList();
-			if (Track.SubVisible[s])
-				DrawList->AddRectFilled(P, ImVec2(P.x + Box, P.y + Box), ToImColor(Curves[s].Color));
-			DrawList->AddRect(P, ImVec2(P.x + Box, P.y + Box), IM_COL32(30, 30, 30, 255));
+			const bool bOn = Track.SubVisible[s] != 0;
+			DrawList->AddRectFilled(P, ImVec2(P.x + Box, P.y + Box), bOn ? ToImColor(Curves[s].Color) : BoxOff);
+			DrawList->AddRect(P, ImVec2(P.x + Box, P.y + Box), BoxBorder);
 			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip(Track.SubVisible[s] ? "Hide this curve" : "Show this curve");
-			ImGui::SameLine();
-			ImGui::TextUnformatted(Curves[s].Name.c_str());
-			ImGui::Unindent(10.0f);
+				ImGui::SetTooltip("%s\n(click to %s)", Curves[s].Name.c_str(), bOn ? "hide" : "show");
 			ImGui::PopID();
 		}
-		ImGui::Spacing();
+		ImGui::Unindent(8.0f);
+
+		// 트랙 전체 상자: 오른쪽 끝에 붙인다.
+		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - Box - 4.0f);
+		{
+			const ImVec2 P = ImGui::GetCursorScreenPos();
+			if (ImGui::InvisibleButton("##TrackVis", ImVec2(Box, Box)))
+				Track.bTrackVisible = !Track.bTrackVisible;
+			DrawList->AddRectFilled(P, ImVec2(P.x + Box, P.y + Box), Track.bTrackVisible ? GetTrackColor(t) : BoxOff);
+			DrawList->AddRect(P, ImVec2(P.x + Box, P.y + Box), BoxBorder);
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip(Track.bTrackVisible ? "Hide all curves of this track" : "Show this track's curves");
+		}
+
+		// 트랙 사이 구분선
+		const ImVec2 SepPos = ImGui::GetCursorScreenPos();
+		DrawList->AddLine(ImVec2(SepPos.x - ImGui::GetStyle().WindowPadding.x, SepPos.y + 1.0f),
+			ImVec2(SepPos.x + ImGui::GetContentRegionAvail().x + ImGui::GetStyle().WindowPadding.x, SepPos.y + 1.0f), IM_COL32(60, 60, 60, 255));
+		ImGui::Dummy(ImVec2(0.0f, 3.0f));
 		ImGui::PopID();
 	}
 	if (RemoveIndex != INDEX_NONE)
@@ -657,6 +810,8 @@ void FParticleCurveEditorPanel::DrawGraph()
 		int32 Track;
 		int32 Sub;
 		FParticleCurveRef Ref;
+		// 편집 대상 트랙의 커브인지. 아니면 흐리게 그리고 키를 잡을 수 없다.
+		bool bActive;
 	};
 	TArray<FVisibleCurve> Visible;
 	for (int32 t = 0; t < Tab.Tracks.Num(); ++t)
@@ -665,10 +820,30 @@ void FParticleCurveEditorPanel::DrawGraph()
 		Tab.Tracks[t].Module->GetCurves(Curves);
 		for (int32 s = 0; s < Curves.Num(); ++s)
 		{
-			if (Tab.Tracks[t].SubVisible.IsValidIndex(s) && Tab.Tracks[t].SubVisible[s] && Curves[s].Curve)
-				Visible.Add({ t, s, Curves[s] });
+			if (Tab.Tracks[t].IsSubVisible(s) && Curves[s].Curve)
+				Visible.Add({ t, s, Curves[s], IsTrackActive(t) });
 		}
 	}
+
+	// 마우스 아래(세로 거리 CurvePickDistance 안)에서 가장 가까운 커브. bActiveOnly면 편집 대상 트랙만 본다.
+	const auto FindCurveNearMouse = [&](bool bActiveOnly) -> const FVisibleCurve*
+	{
+		const float X = ToCurveX(Mouse.x);
+		float BestDist = CurvePickDistance;
+		const FVisibleCurve* Best = nullptr;
+		for (const FVisibleCurve& VC : Visible)
+		{
+			if (bActiveOnly && !VC.bActive)
+				continue;
+			const float Dist = std::abs(ToScreen(X, VC.Ref.Curve->Eval(X, 1.0f)).y - Mouse.y);
+			if (Dist < BestDist)
+			{
+				BestDist = Dist;
+				Best = &VC;
+			}
+		}
+		return Best;
+	};
 
 	// ---- 1. 입력: 손잡이 → 키 → 빈 곳 순서로 맞힌다 ----
 	const bool bCtrl = IO.KeyCtrl;
@@ -678,6 +853,8 @@ void FParticleCurveEditorPanel::DrawGraph()
 		// 1-1. 탄젠트 손잡이
 		for (const FVisibleCurve& VC : Visible)
 		{
+			if (!VC.bActive)
+				continue;
 			const TArray<FInterpCurvePointFloat>& Points = VC.Ref.Curve->Points;
 			for (int32 k = 0; k < Points.Num() && Drag == EDrag::None; ++k)
 			{
@@ -707,6 +884,8 @@ void FParticleCurveEditorPanel::DrawGraph()
 			FKeyRef Hit;
 			for (const FVisibleCurve& VC : Visible)
 			{
+				if (!VC.bActive)
+					continue;
 				const TArray<FInterpCurvePointFloat>& Points = VC.Ref.Curve->Points;
 				for (int32 k = 0; k < Points.Num(); ++k)
 				{
@@ -733,27 +912,24 @@ void FParticleCurveEditorPanel::DrawGraph()
 			// 1-3. Ctrl+클릭: 가까운 곡선 위에 키 추가
 			else if (bCtrl)
 			{
-				const float X = ToCurveX(Mouse.x);
-				float BestDist = CurvePickDistance;
-				const FVisibleCurve* Best = nullptr;
-				for (const FVisibleCurve& VC : Visible)
+				if (const FVisibleCurve* Best = FindCurveNearMouse(true))
 				{
-					const float Dist = std::abs(ToScreen(X, VC.Ref.Curve->Eval(X, 1.0f)).y - Mouse.y);
-					if (Dist < BestDist)
-					{
-						BestDist = Dist;
-						Best = &VC;
-					}
-				}
-				if (Best)
-				{
+					const float X = ToCurveX(Mouse.x);
 					const int32 NewKey = Best->Ref.Curve->AddPoint(X, Best->Ref.Curve->Eval(X, 1.0f));
+					AddLinkedPoints(Best->Track, Best->Sub, X); // R에 키를 넣으면 G/B에도 같은 시간 키
 					SelectedKeys.Reset();
 					SelectedKeys.Add({ Best->Track, Best->Sub, NewKey });
 					MarkEdited();
 				}
 			}
-			// 1-4. 빈 곳: 선택 해제 후 패닝/줌
+			// 1-4. 흐리게 그려진(편집 대상이 아닌) 커브를 누르면 그 트랙을 편집 대상으로 바꾼다.
+			else if (const FVisibleCurve* Other = FindCurveNearMouse(false); Other && !Other->bActive)
+			{
+				Context.SelectedModule = Tab.Tracks[Other->Track].Module;
+				LastSelectedModule = Context.SelectedModule;
+				SelectedKeys.Reset();
+			}
+			// 1-5. 빈 곳: 선택 해제 후 패닝/줌
 			else
 			{
 				SelectedKeys.Reset();
@@ -768,18 +944,34 @@ void FParticleCurveEditorPanel::DrawGraph()
 		const float UnitsPerPixelY = (ViewMaxY - ViewMinY) / std::max(1.0f, GraphMax.y - GraphMin.y);
 		if (Drag == EDrag::Keys)
 		{
-			// 키는 이웃 키를 넘지 않게 가로 위치를 묶는다. (선택 인덱스가 바뀌지 않는다)
+			// 가로(시간)는 연결된 커브의 같은 시간 키까지 같은 양만큼 옮긴다. 세로(값)는 고른 키만 바꾼다.
+			TArray<FKeyRef> MoveKeys = SelectedKeys;
 			for (const FKeyRef& Ref : SelectedKeys)
+				AppendLinkedKeys(Ref, MoveKeys);
+
+			// 함께 옮기는 키는 이웃 키를 넘지 않게 이동량을 줄인다. (같이 움직이는 이웃은 막지 않는다. 선택 인덱스가 바뀌지 않는다)
+			float DX = IO.MouseDelta.x * UnitsPerPixelX;
+			for (const FKeyRef& Ref : MoveKeys)
 			{
 				FInterpCurveFloat* Curve = GetCurve(Ref);
 				if (!Curve || !Curve->Points.IsValidIndex(Ref.Key))
 					continue;
-				TArray<FInterpCurvePointFloat>& Points = Curve->Points;
-				FInterpCurvePointFloat& P = Points[Ref.Key];
-				const float Lo = Ref.Key > 0 ? Points[Ref.Key - 1].InVal + 1e-3f : -FLT_MAX;
-				const float Hi = Ref.Key + 1 < Points.Num() ? Points[Ref.Key + 1].InVal - 1e-3f : FLT_MAX;
-				P.InVal = std::clamp(P.InVal + IO.MouseDelta.x * UnitsPerPixelX, Lo, Hi);
-				P.OutVal -= IO.MouseDelta.y * UnitsPerPixelY;
+				const TArray<FInterpCurvePointFloat>& Points = Curve->Points;
+				const float InVal = Points[Ref.Key].InVal;
+				if (Ref.Key > 0 && MoveKeys.Find({ Ref.Track, Ref.Sub, Ref.Key - 1 }) == INDEX_NONE)
+					DX = std::max(DX, std::min(0.0f, Points[Ref.Key - 1].InVal + 1e-3f - InVal));
+				if (Ref.Key + 1 < Points.Num() && MoveKeys.Find({ Ref.Track, Ref.Sub, Ref.Key + 1 }) == INDEX_NONE)
+					DX = std::min(DX, std::max(0.0f, Points[Ref.Key + 1].InVal - 1e-3f - InVal));
+			}
+			for (const FKeyRef& Ref : MoveKeys)
+			{
+				FInterpCurveFloat* Curve = GetCurve(Ref);
+				if (!Curve || !Curve->Points.IsValidIndex(Ref.Key))
+					continue;
+				FInterpCurvePointFloat& P = Curve->Points[Ref.Key];
+				P.InVal += DX;
+				if (SelectedKeys.Find(Ref) != INDEX_NONE)
+					P.OutVal -= IO.MouseDelta.y * UnitsPerPixelY;
 				Curve->AutoSetTangents();
 			}
 			if (IO.MouseDelta.x != 0.0f || IO.MouseDelta.y != 0.0f)
@@ -846,6 +1038,8 @@ void FParticleCurveEditorPanel::DrawGraph()
 		{
 			for (const FVisibleCurve& VC : Visible)
 			{
+				if (!VC.bActive)
+					continue;
 				const TArray<FInterpCurvePointFloat>& Points = VC.Ref.Curve->Points;
 				for (int32 k = 0; k < Points.Num(); ++k)
 				{
@@ -879,23 +1073,69 @@ void FParticleCurveEditorPanel::DrawGraph()
 	if (ViewMaxY - ViewMinY < 1e-3f) ViewMaxY = ViewMinY + 1e-3f;
 
 	// ---- 2. 곡선 ----
-	for (const FVisibleCurve& VC : Visible)
+	// 편집 대상이 아닌 트랙은 가늘고 흐리게 먼저 그리고, 편집 대상 트랙을 그 위에 굵게 그린다.
+	for (const bool bDrawActive : { false, true })
 	{
-		const ImU32 Color = ToImColor(VC.Ref.Color);
-		const float Step = 3.0f;
-		ImVec2 Prev = ToScreen(ToCurveX(GraphMin.x), VC.Ref.Curve->Eval(ToCurveX(GraphMin.x), 1.0f));
-		for (float SX = GraphMin.x + Step; SX <= GraphMax.x + Step; SX += Step)
+		for (const FVisibleCurve& VC : Visible)
 		{
-			const float X = ToCurveX(SX);
-			const ImVec2 Cur = ToScreen(X, VC.Ref.Curve->Eval(X, 1.0f));
-			DrawList->AddLine(Prev, Cur, Color, 2.0f);
-			Prev = Cur;
+			if (VC.bActive != bDrawActive)
+				continue;
+			const ImU32 Color = ToImColor(VC.Ref.Color, VC.bActive ? 1.0f : 0.22f);
+			const float Thickness = VC.bActive ? 2.5f : 1.0f;
+			const float Step = 3.0f;
+			ImVec2 Prev = ToScreen(ToCurveX(GraphMin.x), VC.Ref.Curve->Eval(ToCurveX(GraphMin.x), 1.0f));
+			for (float SX = GraphMin.x + Step; SX <= GraphMax.x + Step; SX += Step)
+			{
+				const float X = ToCurveX(SX);
+				const ImVec2 Cur = ToScreen(X, VC.Ref.Curve->Eval(X, 1.0f));
+				DrawList->AddLine(Prev, Cur, Color, Thickness);
+				Prev = Cur;
+			}
 		}
 	}
 
-	// ---- 3. 탄젠트 손잡이와 키 ----
+	// ---- 2-1. 곡선 오른쪽 끝 이름표: "트랙 색 칩 + 커브 이름". 같은 높이면 아래로 밀어 겹치지 않게 한다 ----
+	{
+		const float LineHeight = ImGui::GetTextLineHeight();
+		TArray<float> UsedY;
+		for (const bool bDrawActive : { true, false })
+		{
+			for (const FVisibleCurve& VC : Visible)
+			{
+				if (VC.bActive != bDrawActive)
+					continue;
+				const FString Label = Tab.Tracks[VC.Track].Label.substr(0, Tab.Tracks[VC.Track].Label.find(':')) + " " + VC.Ref.Name;
+				const ImVec2 TextSize = ImGui::CalcTextSize(Label.c_str());
+				const float RightX = GraphMax.x - 6.0f;
+				float Y = ToScreen(ViewMaxX, VC.Ref.Curve->Eval(ViewMaxX, 1.0f)).y - LineHeight - 2.0f;
+				Y = std::clamp(Y, GraphMin.y + 2.0f, GraphMax.y - LineHeight * 2.0f);
+				for (bool bMoved = true; bMoved;)
+				{
+					bMoved = false;
+					for (const float Used : UsedY)
+					{
+						if (std::abs(Used - Y) < LineHeight + 1.0f)
+						{
+							Y = Used + LineHeight + 1.0f;
+							bMoved = true;
+						}
+					}
+				}
+				UsedY.Add(Y);
+				const float Alpha = VC.bActive ? 1.0f : 0.35f;
+				const ImVec2 ChipMin(RightX - TextSize.x - 12.0f, Y);
+				DrawList->AddRectFilled(ImVec2(ChipMin.x - 2.0f, Y - 1.0f), ImVec2(RightX + 2.0f, Y + LineHeight + 1.0f), IM_COL32(30, 30, 30, static_cast<int>(200 * Alpha)), 3.0f);
+				DrawList->AddRectFilled(ChipMin, ImVec2(ChipMin.x + 8.0f, Y + LineHeight), GetTrackColor(VC.Track, Alpha), 2.0f);
+				DrawList->AddText(ImVec2(ChipMin.x + 12.0f, Y), ToImColor(VC.Ref.Color, Alpha), Label.c_str());
+			}
+		}
+	}
+
+	// ---- 3. 탄젠트 손잡이와 키 (편집 대상 트랙만) ----
 	for (const FVisibleCurve& VC : Visible)
 	{
+		if (!VC.bActive)
+			continue;
 		const TArray<FInterpCurvePointFloat>& Points = VC.Ref.Curve->Points;
 		const ImU32 Color = ToImColor(VC.Ref.Color);
 		for (int32 k = 0; k < Points.Num(); ++k)
@@ -917,6 +1157,45 @@ void FParticleCurveEditorPanel::DrawGraph()
 			DrawList->AddRectFilled(ImVec2(KeyPos.x - Half, KeyPos.y - Half), ImVec2(KeyPos.x + Half, KeyPos.y + Half),
 				bSelected ? SelectedKeyColor : Color);
 			DrawList->AddRect(ImVec2(KeyPos.x - Half, KeyPos.y - Half), ImVec2(KeyPos.x + Half, KeyPos.y + Half), IM_COL32(20, 20, 20, 255));
+		}
+	}
+
+	// 마우스 오버 툴팁: 키(편집 대상) 또는 곡선이 어느 트랙·커브인지 보여 준다.
+	if (bHovered && Drag == EDrag::None && !ImGui::IsAnyMouseDown())
+	{
+		const FVisibleCurve* HoverCurve = nullptr;
+		int32 HoverKey = -1;
+		for (const FVisibleCurve& VC : Visible)
+		{
+			if (!VC.bActive)
+				continue;
+			const TArray<FInterpCurvePointFloat>& Points = VC.Ref.Curve->Points;
+			for (int32 k = 0; k < Points.Num(); ++k)
+			{
+				const ImVec2 KeyPos = ToScreen(Points[k].InVal, Points[k].OutVal);
+				if (std::abs(Mouse.x - KeyPos.x) <= KeyHitRadius && std::abs(Mouse.y - KeyPos.y) <= KeyHitRadius)
+				{
+					HoverCurve = &VC;
+					HoverKey = k;
+				}
+			}
+		}
+		if (!HoverCurve)
+			HoverCurve = FindCurveNearMouse(false);
+		if (HoverCurve)
+		{
+			const FString& TrackLabel = Tab.Tracks[HoverCurve->Track].Label;
+			if (HoverKey >= 0)
+			{
+				const FInterpCurvePointFloat& P = HoverCurve->Ref.Curve->Points[HoverKey];
+				ImGui::SetTooltip("%s - %s\nTime %.3f   Value %.3f   %s", TrackLabel.c_str(), HoverCurve->Ref.Name.c_str(),
+					P.InVal, P.OutVal, GetInterpModeName(P.InterpMode));
+			}
+			else
+			{
+				ImGui::SetTooltip(HoverCurve->bActive ? "%s - %s" : "%s - %s\n(click to edit this track)",
+					TrackLabel.c_str(), HoverCurve->Ref.Name.c_str());
+			}
 		}
 	}
 
@@ -966,10 +1245,31 @@ void FParticleCurveEditorPanel::DrawKeyPopup()
 	float Time = P.InVal;
 	if (ImGui::InputFloat("Time", &Time, 0.0f, 0.0f, "%.3f"))
 	{
-		const TArray<FInterpCurvePointFloat>& Points = Curve->Points;
-		const float Lo = PopupKey.Key > 0 ? Points[PopupKey.Key - 1].InVal + 1e-3f : -FLT_MAX;
-		const float Hi = PopupKey.Key + 1 < Points.Num() ? Points[PopupKey.Key + 1].InVal - 1e-3f : FLT_MAX;
-		P.InVal = std::clamp(Time, Lo, Hi);
+		// 연결된 커브의 같은 시간 키도 같은 시간으로 옮긴다. 모든 키가 이웃을 넘지 않는 범위로 묶는다.
+		TArray<FKeyRef> TimeKeys;
+		TimeKeys.Add(PopupKey);
+		AppendLinkedKeys(PopupKey, TimeKeys);
+		float Lo = -FLT_MAX, Hi = FLT_MAX;
+		for (const FKeyRef& Ref : TimeKeys)
+		{
+			const FInterpCurveFloat* C = GetCurve(Ref);
+			if (!C || !C->Points.IsValidIndex(Ref.Key))
+				continue;
+			if (Ref.Key > 0)
+				Lo = std::max(Lo, C->Points[Ref.Key - 1].InVal + 1e-3f);
+			if (Ref.Key + 1 < C->Points.Num())
+				Hi = std::min(Hi, C->Points[Ref.Key + 1].InVal - 1e-3f);
+		}
+		const float NewTime = std::max(Lo, std::min(Time, Hi));
+		for (const FKeyRef& Ref : TimeKeys)
+		{
+			FInterpCurveFloat* C = GetCurve(Ref);
+			if (!C || !C->Points.IsValidIndex(Ref.Key))
+				continue;
+			C->Points[Ref.Key].InVal = NewTime;
+			if (C != Curve)
+				C->AutoSetTangents();
+		}
 		bChanged = true;
 	}
 	ImGui::SetNextItemWidth(140.0f);
@@ -1009,7 +1309,10 @@ void FParticleCurveEditorPanel::DrawKeyPopup()
 	ImGui::Separator();
 	if (ImGui::MenuItem("Delete Key", nullptr, false, Curve->Points.Num() > 1))
 	{
-		Curve->RemovePoint(PopupKey.Key);
+		TArray<FKeyRef> Targets;
+		Targets.Add(PopupKey);
+		AppendLinkedKeys(PopupKey, Targets);
+		RemoveKeys(Targets);
 		SelectedKeys.Reset();
 		MarkEdited();
 		ImGui::CloseCurrentPopup();
