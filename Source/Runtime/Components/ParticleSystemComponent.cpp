@@ -154,6 +154,8 @@ bool UParticleSystemComponent::ClearBeamParameter(const FString& Name)
 UParticleSystemComponent::UParticleSystemComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	// Animated emitters may be repositioned by PostPhysics animation notifies.
+	PrimaryComponentTick.TickGroup = ETickingGroup::PostUpdateWork;
 }
 
 UParticleSystemComponent::~UParticleSystemComponent()

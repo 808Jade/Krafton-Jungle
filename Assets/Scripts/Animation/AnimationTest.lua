@@ -1,5 +1,45 @@
 local State = { Steps = 0, LastName = "", LastTime = -1, HitWindow = false, ChargeHandle = 0, Clock = 0 }
 
+local HandBeamConfig = { ComponentName = "HandBeam", BoneName = "hand_l", Length = 10.0 }
+
+local function FireHandBeam()
+    local beam = self:FindParticleSystemComponentByName(HandBeamConfig.ComponentName)
+    if beam == nil then
+        print("HandBeam: particle component not found: " .. HandBeamConfig.ComponentName)
+        return
+    end
+    -- Mesh/animation replacement can invalidate cached instances and bone indices.
+    local anim = self:GetAnimInstance()
+    local mesh = anim and anim:GetSkeletalMeshComponent()
+    if mesh == nil then
+        print("HandBeam: skeletal mesh component not found")
+        return
+    end
+    local boneIndex = mesh:GetBoneIndex(HandBeamConfig.BoneName)
+    if boneIndex < 0 then
+        print("HandBeam: bone not found: " .. HandBeamConfig.BoneName)
+        return
+    end
+    local position = mesh:GetBoneComponentPosition(boneIndex)
+    if position == nil then
+        print("HandBeam: current bone pose is unavailable: " .. HandBeamConfig.BoneName)
+        return
+    end
+    -- HandBeam is a direct child of the mesh; its local origin is the hand position.
+    local direction = mesh:TransformDirection(FVector.new(-1, 0, 0))
+    if direction.X * direction.X + direction.Y * direction.Y + direction.Z * direction.Z < 0.0001 then
+        print("HandBeam: mesh forward direction is invalid")
+        return
+    end
+    beam:SetRelativeLocation(position)
+    local target = beam:GetWorldLocation() + direction * HandBeamConfig.Length
+    if not beam:SetBeamTargetPoint(0, target) then
+        print("HandBeam: emitter 0 must be a Beam emitter")
+        return
+    end
+    beam:ActivateSystem(true)
+end
+
 local LandShake = {
     Type = "Perlin", Duration = 0.4, BlendInTime = 0.02, BlendOutTime = 0.3,
     Pitch = { Amplitude = 3.0, Frequency = 20.0 }, Roll = { Amplitude = 2.0, Frequency = 18.0 },
@@ -7,6 +47,12 @@ local LandShake = {
 
 function BeginPlay()
 print("BeginPlay!\n")
+    local beam = self:FindParticleSystemComponentByName(HandBeamConfig.ComponentName)
+    if beam ~= nil then
+        beam:DeactivateSystem()
+    else
+        print("HandBeam: particle component not found: " .. HandBeamConfig.ComponentName)
+    end
 	local camera = self:GetCamera()
 	local manager = GetPlayerCameraManager()
 
@@ -189,7 +235,9 @@ end
 
 function OnAnimNotify(Name)
     State.LastName, State.LastTime = Name, State.Clock
-    if Name == "LeftFoot" then
+    if Name == "SpellShoot" then
+        FireHandBeam()
+    elseif Name == "LeftFoot" then
         PlaySound("Assets/Sounds/FootstepLeft.wav", false, 0.8)
         State.Steps = State.Steps + 1
     elseif Name == "RightFoot" then

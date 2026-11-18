@@ -6,6 +6,7 @@
 #include "Render/RenderResourceManager.h"
 #include "Render/Material.h"
 #include "Core/Stats/SkinningStats.h"
+#include <cmath>
 
 namespace
 {
@@ -190,6 +191,29 @@ void USkinnedMeshComponent::FlushPendingPose()
 	}
 	bPoseDirty = false;
 	UpdateSkinning();
+}
+
+int32 USkinnedMeshComponent::GetBoneIndex(const FString& BoneName) const
+{
+	if (!SkeletalMesh || BoneName.empty()) return INDEX_NONE;
+	const auto& Bones = SkeletalMesh->MeshData.Bones;
+	for (int32 Index = 0; Index < Bones.Num(); ++Index)
+		if (Bones[Index].Name == BoneName) return Index;
+	return INDEX_NONE;
+}
+
+bool USkinnedMeshComponent::GetBoneComponentPosition(int32 BoneIndex, FVector& OutPosition) const
+{
+	// Notify dispatch occurs after FlushPendingPose; do not return an older pose
+	// if another caller queries between ApplyPose and its flush.
+	if (!SkeletalMesh || bPoseDirty || !SkeletalMesh->MeshData.Bones.IsValidIndex(BoneIndex) ||
+	    CurrentLocalTransforms.Num() != SkeletalMesh->MeshData.Bones.Num() ||
+	    CurrentGlobalMatrices.Num() != SkeletalMesh->MeshData.Bones.Num() ||
+	    !CurrentGlobalMatrices.IsValidIndex(BoneIndex)) return false;
+	const FVector Position = CurrentGlobalMatrices[BoneIndex].TransformPosition(FVector::ZeroVector);
+	if (!std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z)) return false;
+	OutPosition = Position;
+	return true;
 }
 
 bool USkinnedMeshComponent::GetBoneLocalTransform(int32 BoneIndex, FTransform& OutTransform) const
