@@ -103,7 +103,7 @@ public:
 	void ClearWorld();
 	void CleanupWorld();
 	// 캡처 구간을 시작하고 첫 가시 View에서 동적 렌더 스냅샷을 준비하게 한다.
-	void BeginRenderViews();
+	void BeginRenderViews(bool bInDrawParticles = true);
 	// 메인 스레드에서 Proxy를 준비하고 World의 작업 버퍼로 동적 패킷을 추가한다.
 	bool GatherDynamicRenderPackets(FPrimitiveSceneProxy& Proxy, FRenderQueue& RenderQueue,
 		const FRenderViewContext& View, FBillboardMatrixBuilder ResolveBillboard,
@@ -276,6 +276,7 @@ private:
 	TArray<ULevel*> Levels;
 
 	FScene Scene;
+	bool bDrawParticles = true;
 
 	// GatherRenderPackets가 매 프레임 채우는 컬링 결과. 용량을 재사용한다.
 	TArray<FPrimitiveSceneProxy*> VisibleProxies;

@@ -17,6 +17,15 @@ struct alignas(16) FParticleMeshBatchConstants
 class FParticleMeshRenderer
 {
 public:
+	uint64 GetAllocatedBufferBytes() const
+	{
+		uint64 Bytes = 0;
+		if (InstanceVB && InstanceVB->GetBuffer()) Bytes += InstanceVB->GetBufferSize();
+		if (MaterialCB && MaterialCB->GetBuffer()) Bytes += MaterialCB->GetBufferSize();
+		if (BatchCB && BatchCB->GetBuffer()) Bytes += BatchCB->GetBufferSize();
+		return Bytes;
+	}
+
 	bool Init();
 
 	bool Draw(

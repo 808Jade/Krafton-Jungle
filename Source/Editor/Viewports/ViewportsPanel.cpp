@@ -15,6 +15,7 @@
 #include "Core/Stats/EditorStats.h"
 #include "Core/Stats/ShadowStats.h"
 #include "Core/Stats/DecalStats.h"
+#include "Core/Stats/ParticleStats.h"
 #include "Core/Stats/SkinningStats.h"
 #include "Render/SkinningSettings.h"
 #include "Render/ShadowSettings.h"
@@ -546,6 +547,31 @@ void FViewportsPanel::DrawStatOverlay(ImDrawList* DrawList, const ImVec2& ViewMi
 	}
 
 	// Draw 수는 모든 View의 합이고 Fade로 건너뛴 Decal은 포함하지 않는다.
+	if (FStatOverlay::IsEnabled(EStatFlags::Particles))
+	{
+		using namespace ParticleStats;
+		Lines.Add({ "Particles / All Worlds (render work summed across views)", TitleColor });
+		Lines.Add({ std::format("  Systems: {}  Emitters: {}  Active: {}  Capacity: {}",
+			FStatRegistry::GetCounter(STAT_Systems), FStatRegistry::GetCounter(STAT_Emitters),
+			FStatRegistry::GetCounter(STAT_ActiveParticles), FStatRegistry::GetCounter(STAT_Capacity)), ValueColor });
+		Lines.Add({ std::format("  Visible Systems: {}  Submitted Emitters: {}  Draw Calls: {}",
+			FStatRegistry::GetCounter(STAT_VisibleSystems), FStatRegistry::GetCounter(STAT_SubmittedEmitters),
+			FStatRegistry::GetCounter(STAT_DrawCalls)), ValueColor });
+		Lines.Add({ std::format("  Spawned: {}  Killed: {}  Spawn Dropped: {}",
+			FStatRegistry::GetCounter(STAT_Spawned), FStatRegistry::GetCounter(STAT_Killed),
+			FStatRegistry::GetCounter(STAT_SpawnDropped)), ValueColor });
+		Lines.Add({ std::format("  Simulation: {:.3f} ms  Render Data: {:.3f} ms  Sort: {:.3f} ms",
+			FStatRegistry::GetCurrentFrameMs(STAT_SimulationCPU), FStatRegistry::GetCurrentFrameMs(STAT_RenderDataCPU),
+			FStatRegistry::GetCurrentFrameMs(STAT_SortCPU)), ValueColor });
+		Lines.Add({ std::format("  Render Submit: {:.3f} ms (includes Upload: {:.3f} ms)",
+			FStatRegistry::GetCurrentFrameMs(STAT_RenderSubmitCPU), FStatRegistry::GetCurrentFrameMs(STAT_UploadCPU)), ValueColor });
+		Lines.Add({ std::format("  Sorted Particles: {}  Upload: {} bytes/frame",
+			FStatRegistry::GetCounter(STAT_SortedParticles), FStatRegistry::GetCounter(STAT_UploadBytes)), ValueColor });
+		Lines.Add({ std::format("  CPU Particle Storage: {:.3f} MB  GPU Buffers: {:.3f} MB",
+			double(FStatRegistry::GetMemory(STAT_CPUMemory)) / BytesPerMegabyte,
+			double(FStatRegistry::GetMemory(STAT_GPUBufferMemory)) / BytesPerMegabyte), ValueColor });
+	}
+
 	if (FStatOverlay::IsEnabled(EStatFlags::Decal))
 	{
 		Lines.Add({ "Decal", TitleColor });

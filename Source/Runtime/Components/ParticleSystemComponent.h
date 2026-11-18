@@ -24,6 +24,15 @@ public:
 	void DeactivateSystem();
 	void ResetSystem();
 	bool HasCompleted() const;
+	// Positions follow endpoint Absolute; EmitterIndex indexes Template->Emitters (zero-based).
+	// Inputs are instance-owned. SetTemplate/ResetParticles clear them; restart preserves them.
+	bool SetBeamSourcePoint(int32 EmitterIndex, const FVector& Position);
+	bool SetBeamTargetPoint(int32 EmitterIndex, const FVector& Position);
+	bool ClearBeamSourcePoint(int32 EmitterIndex);
+	bool ClearBeamTargetPoint(int32 EmitterIndex);
+	bool SetBeamActorParameter(const FString& Name, AActor* Actor);
+	bool SetBeamComponentParameter(const FString& Name, USceneComponent* SceneComponent);
+	bool ClearBeamParameter(const FString& Name);
 	void PostApplyProperties(const FProperty* ChangedProperty = nullptr) override;
 	void SetLODLevel(int32 InLODLevel);
 	int32 GetLODLevel() const { return LODLevel; }
@@ -49,7 +58,7 @@ public:
 
 	// Light 모듈이 부르는 함수. 이번 프레임에 쓸 포인트 라이트를 풀에서 하나 빌려 준다. (켜 둔 상태로 돌려주고, 위치·색·세기는 부른 쪽이 정한다)
 	// 풀이 가득 차면 nullptr이다. 이번 프레임에 빌려 가지 않은 라이트는 프레임 끝에 꺼진다.
-	// 풀의 라이트는 이 컴포넌트가 소유하는 런타임 전용 컴포넌트라 액터의 컴포넌트 목록(씬 저장)에 들어가지 않고, 그림자도 만들지 않는다.
+	// 풀의 라이트는 이 컴포넌트가 소유하는 런타임 전용 컴포넌트라 액터의 컴포넌트 목록(씬 저장)에 들어가지 않는다. 그림자는 Light 모듈의 bCastShadows가 정한다.
 	UPointLightComponent* AcquireParticleLight();
 
 protected:
@@ -69,8 +78,15 @@ private:
 	TArray<FParticleCollisionEvent> ReceivedCollisionEvents;
 	bool bHasEventReceivers = false;
 
+	UParticleEmitter* GetBeamEmitterTemplate(int32 EmitterIndex) const;
+	FParticleBeamEmitterInstance* GetBeamInstance(int32 EmitterIndex);
+	void EnsureEmitterInstances();
+	// Explicit deactivation must also halt instances created later by setters.
+	bool bSystemDeactivated = false;
+
 	bool GetEmitterBoundingBox(FBox& OutBoundingBox) const;
 	int32 ClampLODLevel(int32 InLODLevel) const;
+	bool TryDetermineLODLevelForLocation(const FVector& EffectLocation, int32& OutLODLevel) const;
 
 	void InitializeMeshInstancingTest();
 
@@ -84,7 +100,11 @@ public:
 
 	int32	LODLevel = 0;
 	float	AccumLODDistanceCheckTime = 0.0f;
+	bool	bPendingActivateLOD = false;
+	UPROPERTY(EditAnywhere)
 	bool	bOverrideLODMethod = false;
+
+	UPROPERTY(EditAnywhere)
 	EParticleSystemLODMethod LODMethod = EParticleSystemLODMethod::Automatic;
 
 	// 테스트/디버깅 용

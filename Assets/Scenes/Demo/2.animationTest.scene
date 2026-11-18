@@ -50,7 +50,7 @@
                             "Parent": "CapsuleComponent",
                             "Properties": {
                                 "AnimGraphAssetPath": "Assets/NewAnimGraph.animgraph",
-                                "AnimationMode": 4,
+                                "AnimationMode": 3,
                                 "AnimationScriptPath": "Assets/Scripts/Animation/CharacterAnim.lua",
                                 "SkeletalMesh": "Models/UAL1_Standard_RM.fbx",
                                 "StateMachineAssetPath": "Assets/NewStateMachine.animsm",
@@ -127,6 +127,39 @@
                                 "mNearClipPlane": 0.10000000149011612,
                                 "mOrthoWidth": 16.0,
                                 "mWheelSpeed": 0.10000000149011612
+                            }
+                        },
+                        {
+                            "Class": "UParticleSystemComponent",
+                            "Name": "HandBeam",
+                            "ObjectLabel": "HandBeam",
+                            "Parent": "SkeletalMeshComponent",
+                            "Properties": {
+                                "CustomTimeDilation": 1.0,
+                                "Template": "Particles/HandBeam.particle",
+                                "Transform": {
+                                    "Location": {
+                                        "X": 0.0,
+                                        "Y": 0.0,
+                                        "Z": 0.0
+                                    },
+                                    "Rotation": {
+                                        "Pitch": 0.0,
+                                        "Roll": 0.0,
+                                        "Yaw": 0.0
+                                    },
+                                    "Scale": {
+                                        "X": 1.0,
+                                        "Y": 1.0,
+                                        "Z": 1.0
+                                    }
+                                },
+                                "bBlockComponent": false,
+                                "bCastShadow": false,
+                                "bGenerateOverlapEvents": false,
+                                "bReceiveDecal": false,
+                                "bReceiveShadow": false,
+                                "bVisible": true
                             }
                         },
                         {

@@ -853,6 +853,14 @@ void UAssetManager::CreateParticleMaterial()
 	ParticleMat->ParamLayout = EMaterialParamLayout::ParticleSubUV;
 	ParticleMat->ParamBuffer = RenderCommand::CreateConstantBuffer(256);
 	RegisterAsset("SubUVMaterial", ParticleMat);
+
+	// Give the time/lifetime comparison its own atlas without changing shared particles or icons.
+	if (UTexture2D* ComparisonAtlas = LoadTexture("Assets/SubUV/Showcase_FireBurst_4x4.png"))
+	{
+		UMaterial* ComparisonMaterial = UMaterial::CreateInstance(ParticleMat);
+		ComparisonMaterial->Textures[0] = ComparisonAtlas;
+		RegisterAsset("ShowcaseSubUVComparisonMaterial", ComparisonMaterial);
+	}
 }
 
 void UAssetManager::CreateEditorArrowMaterial() {

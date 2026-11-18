@@ -48,16 +48,21 @@ void FPrimitiveSceneProxy::OnMeshRenderDataChanged()
 void FPrimitiveSceneProxy::OnMeshDestroyed()
 {
 	// Shadow Cache 재생성
-	ShadowVersion = ++GlobalShadowVersion;
+	MarkShadowDirty();
 
 	Mesh = nullptr;
 	RenderState.reset();
 }
 
+void FPrimitiveSceneProxy::MarkShadowDirty()
+{
+	ShadowVersion = ++GlobalShadowVersion;
+}
+
 void FPrimitiveSceneProxy::UpdateTransform()
 {
 	// Shadow Cache 재생성
-	ShadowVersion = ++GlobalShadowVersion;
+	MarkShadowDirty();
 
 	LocalToWorld = Component->GetWorldMatrix();
 	WorldToLocal = LocalToWorld.Inverse();
@@ -73,7 +78,7 @@ void FPrimitiveSceneProxy::UpdateTransform()
 void FPrimitiveSceneProxy::UpdateRenderState()
 {
 	// Shadow Cache 재생성
-	ShadowVersion = ++GlobalShadowVersion;
+	MarkShadowDirty();
 
 	UStaticMesh* PreviousMesh = Mesh;
 	Mesh = nullptr;

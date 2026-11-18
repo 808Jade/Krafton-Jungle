@@ -7,37 +7,11 @@
                 "Time": 0.0
             }
         ],
-        "Armature|Hit_Chest": [
-            {
-                "Duration": 0.20000000298023224,
-                "Name": "SlowMo",
-                "Time": 0.03333333507180214
-            }
-        ],
-        "Armature|Jump_Land": [
+        "Armature|Spell_Simple_Shoot": [
             {
                 "Duration": 0.0,
-                "Name": "Land",
-                "Time": 0.0
-            }
-        ],
-        "Armature|Sword_Attack": [
-            {
-                "Duration": 0.30000001192092896,
-                "Name": "HitWindow",
-                "Time": 0.3333333432674408
-            }
-        ],
-        "Armature|Walk_Loop": [
-            {
-                "Duration": 0.0,
-                "Name": "LeftFoot",
-                "Time": 0.30000001192092896
-            },
-            {
-                "Duration": 0.0,
-                "Name": "RightFoot",
-                "Time": 0.9333333373069763
+                "Name": "SpellShoot",
+                "Time": 0.13333334028720856
             }
         ]
     },

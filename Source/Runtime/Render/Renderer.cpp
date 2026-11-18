@@ -896,7 +896,8 @@ void FRenderer::PrepareShadowDepthTargets(TArray<FProjectedShadowInfo>& ShadowIn
 	}
 }
 
-void FRenderer::RenderShadowMaps(TArray<FProjectedShadowInfo>&& InShadows, FShadowViewRenderer& InShadowViewRenderer)
+void FRenderer::RenderShadowMaps(TArray<FProjectedShadowInfo>&& InShadows, FShadowViewRenderer& InShadowViewRenderer,
+	const FMeshParticlePacketDraw& DrawMeshParticlePacket)
 {
 	SCOPE_CYCLE_COUNTER(ShadowStats::STAT_RenderCPU);
 
@@ -944,7 +945,7 @@ void FRenderer::RenderShadowMaps(TArray<FProjectedShadowInfo>&& InShadows, FShad
 		if (ShadowInfo.bShouldRenderShadow)
 		{
 			// 갱신 횟수는 실제 Depth 실행 함수에서 한 번만 집계한다.
-			RenderShadowDepth(ShadowInfo);
+			RenderShadowDepth(ShadowInfo, DrawMeshParticlePacket);
 			ShadowCachePrivate::AddCacheMissStat(ShadowInfo.CacheResult);
 
 			ShadowViewRenderer->UpdateShadowCache(AllocKey, ShadowInfo.CacheKey, ShadowFrameIndex);
@@ -1043,7 +1044,7 @@ bool FRenderer::GetShadowDepthViewport(const FLightSceneProxy& LightProxy, FView
 	return false;
 }
 
-void FRenderer::RenderShadowDepth(FProjectedShadowInfo& ShadowInfo)
+void FRenderer::RenderShadowDepth(FProjectedShadowInfo& ShadowInfo, const FMeshParticlePacketDraw& DrawMeshParticlePacket)
 {
 	// 큐 준비부터 상태 복원까지 해당 그룹의 Depth 제출 CPU 시간을 측정한다.
 	const ELightType LightType = ShadowInfo.LightProxy->GetLightComponent()->GetLightType();
@@ -1095,7 +1096,7 @@ void FRenderer::RenderShadowDepth(FProjectedShadowInfo& ShadowInfo)
 
 	// 실제 제출된 Draw 수를 전체 합계와 해당 그룹에 함께 기록한다.
 	const uint64 DrawStart = RenderCommand::GetDrawIndexedCount();
-	RenderDepth(ShadowInfo.LightViewProjection);
+	RenderDepth(ShadowInfo.LightViewProjection, DrawMeshParticlePacket);
 	const uint64 DrawCount = RenderCommand::GetDrawIndexedCount() - DrawStart;
 	FStatRegistry::AddCounter(ShadowStats::STAT_DrawCalls, DrawCount);
 	FStatRegistry::AddCounter(ShadowStats::DrawStats[Group], DrawCount);
@@ -1163,7 +1164,7 @@ void FRenderer::DrawPackets(
 					    ViewProjection,
 					    bDepthOnly);
 				}
-				else
+				else if (!bDepthOnly)
 				{
 					HTR_LOG(Error, "Mesh Particle draw callback is missing.");
 				}

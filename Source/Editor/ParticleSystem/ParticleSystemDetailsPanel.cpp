@@ -8,6 +8,7 @@
 #include "Particles/ParticleRange.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/Modules/ParticleModuleRequired.h"
+#include "Particles/Modules/ParticleModuleSpawn.h"
 #include "Particles/Modules/ParticleModuleTypeDataRibbon.h"
 #include "Render/MaterialInterface.h"
 #include "Render/Mesh.h"
@@ -15,6 +16,7 @@
 #include "UObject/UObjectIterator.h"
 
 #include <cstring>
+#include <cmath>
 
 namespace
 {
@@ -32,6 +34,8 @@ namespace
 		const char* Items;	// ImGui::Combo 형식 ('\0'으로 구분, 끝은 "\0\0")
 	};
 	constexpr FEnumDisplay EnumDisplays[] = {
+		{ "Method", "Distribution\0User Set\0Actor\0Component\0" },
+		{ "DistributionType", "Constant\0Uniform\0Constant Curve\0" },
 		{ "SortMode",        "None\0Distance To View\0View Depth\0" },
 		{ "ScreenAlignment", "Facing Camera Position\0Square\0Rectangle\0Velocity\0" },
 		{ "LockAxis",        "None\0X\0Y\0Z\0" },
@@ -299,6 +303,11 @@ void FParticleSystemDetailsPanel::DrawModuleProperties(UParticleModule* Module)
 			++DrawnCount;
 		}
 	}
+	if (auto* Spawn = Cast<UParticleModuleSpawn>(Module))
+	{
+		bCommitted |= DrawSpawnBursts(Spawn);
+		++DrawnCount;
+	}
 	ImGui::PopID();
 
 	if (DrawnCount == 0)
@@ -308,6 +317,62 @@ void FParticleSystemDetailsPanel::DrawModuleProperties(UParticleModule* Module)
 	// (매 프레임 다시 시작하면 드래그하는 동안 파티클이 계속 지워져 결과를 볼 수 없다.)
 	if (bCommitted)
 		Context.NotifyModuleEdited(Context.SelectedEmitterIndex);
+}
+
+bool FParticleSystemDetailsPanel::DrawSpawnBursts(UParticleModuleSpawn* Spawn)
+{
+	bool bCommitted = false;
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::TextUnformatted("Bursts");
+	ImGui::TextDisabled("Time is in seconds from the start of each emitter loop.");
+	if (Spawn->Bursts.IsEmpty())
+		ImGui::TextDisabled("No bursts. Add one to spawn a group of particles at once.");
+
+	int32 RemoveIndex = INDEX_NONE;
+	if (!Spawn->Bursts.IsEmpty() && ImGui::BeginTable("##Bursts", 3,
+	    ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp))
+	{
+		ImGui::TableSetupColumn("Time (seconds)");
+		ImGui::TableSetupColumn("Count");
+		ImGui::TableSetupColumn("##Actions", ImGuiTableColumnFlags_WidthFixed, ImGui::CalcTextSize("Remove").x + ImGui::GetStyle().FramePadding.x * 2.0f);
+		ImGui::TableHeadersRow();
+		for (int32 Index = 0; Index < Spawn->Bursts.Num(); ++Index)
+		{
+			FParticleBurst& Burst = Spawn->Bursts[Index];
+			ImGui::PushID(Index);
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::SetNextItemWidth(-1.0f);
+			float Time = Burst.Time;
+			if (ImGui::InputFloat("##Time", &Time, 0.0f, 0.0f, "%.3f") && std::isfinite(Time))
+				Burst.Time = std::max(Time, 0.0f);
+			bCommitted |= ImGui::IsItemDeactivatedAfterEdit();
+
+			ImGui::TableSetColumnIndex(1);
+			ImGui::SetNextItemWidth(-1.0f);
+			int Count = Burst.Count;
+			if (ImGui::InputInt("##Count", &Count)) Burst.Count = std::max(Count, 0);
+			bCommitted |= ImGui::IsItemDeactivatedAfterEdit();
+
+			ImGui::TableSetColumnIndex(2);
+			if (ImGui::SmallButton("Remove")) RemoveIndex = Index;
+			ImGui::PopID();
+		}
+		ImGui::EndTable();
+	}
+	// Defer removal until no widgets retain references into the array.
+	if (RemoveIndex != INDEX_NONE)
+	{
+		Spawn->Bursts.RemoveAt(RemoveIndex);
+		bCommitted = true;
+	}
+	if (ImGui::Button("Add Burst"))
+	{
+		Spawn->Bursts.Add({ 0.0f, 1 });
+		bCommitted = true;
+	}
+	return bCommitted;
 }
 
 bool FParticleSystemDetailsPanel::DrawModuleProperty(UParticleModule* Module, const FProperty& Property)
@@ -326,6 +391,19 @@ bool FParticleSystemDetailsPanel::DrawModuleProperty(UParticleModule* Module, co
 
 	switch (Property.Type)
 	{
+	case EPropertyType::Name:
+	{
+		FString Value = static_cast<const FName*>(ValuePtr)->ToString();
+		char Buffer[256] = {};
+		strncpy_s(Buffer, Value.c_str(), _TRUNCATE);
+		if (ImGui::InputText("##Value", Buffer, sizeof(Buffer)))
+		{
+			const FName NewValue(Buffer);
+			Module->ApplyPropertyValue(Property.Name, &NewValue);
+		}
+		CheckCommit();
+		break;
+	}
 	case EPropertyType::Float:
 	{
 		float Value = *static_cast<const float*>(ValuePtr);
