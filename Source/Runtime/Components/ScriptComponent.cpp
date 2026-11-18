@@ -7,6 +7,8 @@
 #include "Scripting/LuaVM.h"
 #include "Scripting/CameraManagerBindings.h"
 #include "Components/ShapeComponent.h"
+#include "Components/ParticleSystemComponent.h"
+#include "Particles/ParticleTypes.h"
 #include "GameFramework/Actor.h"
 
 #include <algorithm>
@@ -189,6 +191,21 @@ void UScriptComponent::OnHit(AActor* OtherActor, const FHitResult& Hit)
     }
 }
 
+void UScriptComponent::OnParticleCollide(const FParticleCollisionEvent& Event)
+{
+    if (!ParticleCollideFunction.valid())
+        return;
+
+    sol::protected_function Function = ParticleCollideFunction;
+    // 이벤트는 콜백이 끝난 뒤에는 쓰지 않으므로 값 복사본을 Lua에 넘겨 참조가 남지 않게 한다.
+    sol::protected_function_result Result = Function(FParticleCollisionEvent(Event));
+    if (!Result.valid())
+    {
+        sol::error Error = Result;
+        HTR_LOG(Error, "[Lua] OnParticleCollide: {}", Error.what());
+    }
+}
+
 void UScriptComponent::OnAnimNotify(const FString& NotifyName)
 {
     if (!AnimNotifyFunction.valid())
@@ -256,6 +273,21 @@ void UScriptComponent::BindCollisionEvents()
     TWeakPtr<bool> Lifetime = CollisionCallbackLifetime;
     for (UActorComponent* Component : Owner->GetComponents())
     {
+        // 파티클 시스템의 충돌 이벤트도 스크립트로 전달한다.
+        if (UParticleSystemComponent* Particles = Cast<UParticleSystemComponent>(Component))
+        {
+            FParticleCollisionBinding ParticleBinding{};
+            ParticleBinding.ComponentUUID = Particles->GetUUID();
+            ParticleBinding.Handle = Particles->OnParticleCollide.Add(
+                [this, Lifetime](const FParticleCollisionEvent& Event)
+                {
+                    if (!Lifetime.expired())
+                        OnParticleCollide(Event);
+                });
+            ParticleCollisionBindings.Add(ParticleBinding);
+            continue;
+        }
+
         UShapeComponent* Shape = Cast<UShapeComponent>(Component);
         if (!Shape)
             continue;
@@ -305,6 +337,23 @@ void UScriptComponent::UnbindCollisionEvents()
         }
     }
     CollisionBindings.Reset();
+
+    for (const FParticleCollisionBinding& Binding : ParticleCollisionBindings)
+    {
+        // 컴포넌트가 먼저 삭제되었을 수 있으므로 UUID로 다시 찾는다.
+        for (UObject* Object : GUObjectArray)
+        {
+            if (Object->GetUUID() != Binding.ComponentUUID)
+                continue;
+
+            if (UParticleSystemComponent* Particles = Cast<UParticleSystemComponent>(Object))
+            {
+                Particles->OnParticleCollide.RemoveHandler(Binding.Handle);
+            }
+            break;
+        }
+    }
+    ParticleCollisionBindings.Reset();
 }
 
 bool UScriptComponent::CreateScriptFromTemplate(const std::filesystem::path& NewScriptPath)
@@ -389,6 +438,7 @@ bool UScriptComponent::LoadScript()
     OverlapFunction = Environment["OnOverlap"];
     EndOverlapFunction = Environment["OnEndOverlap"];
     HitFunction = Environment["OnHit"];
+    ParticleCollideFunction = Environment["OnParticleCollide"];
     AnimNotifyFunction = Environment["OnAnimNotify"];
     AnimNotifyBeginFunction = Environment["OnAnimNotifyBegin"];
     AnimNotifyEndFunction = Environment["OnAnimNotifyEnd"];
@@ -618,6 +668,7 @@ bool UScriptComponent::ReloadScript()
 	OverlapFunction = Environment["OnOverlap"];
 	EndOverlapFunction = Environment["OnEndOverlap"];
 	HitFunction = Environment["OnHit"];
+	ParticleCollideFunction = Environment["OnParticleCollide"];
 	AnimNotifyFunction = Environment["OnAnimNotify"];
 	AnimNotifyBeginFunction = Environment["OnAnimNotifyBegin"];
 	AnimNotifyEndFunction = Environment["OnAnimNotifyEnd"];

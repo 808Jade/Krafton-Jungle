@@ -1,0 +1,26 @@
+{
+  "Axis": {
+    "Max": 10.0,
+    "Min": 0.0,
+    "Name": "Speed"
+  },
+  "NotifyTriggerMode": "HighestWeightedAnimation",
+  "SyncPlayRateToAxis": true,
+  "Samples": [
+    {
+      "AnimationAssetKey": "Models/UAL1_Standard_RM.fbx#Anim/Armature|Idle_Loop",
+      "X": 0.0
+    },
+    {
+      "AnimationAssetKey": "Models/UAL1_Standard_RM.fbx#Anim/Armature|Walk_Loop",
+      "X": 1.5
+    },
+    {
+      "AnimationAssetKey": "Models/UAL1_Standard_RM.fbx#Anim/Armature|Jog_Fwd_Loop",
+      "X": 5.357
+    }
+  ],
+  "SkeletalMeshAssetKey": "Models/UAL1_Standard_RM.fbx",
+  "Type": "BlendSpace1D",
+  "Version": 1
+}

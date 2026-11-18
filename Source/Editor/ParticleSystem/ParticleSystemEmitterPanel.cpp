@@ -26,6 +26,12 @@
 #include "Particles/Modules/ParticleModuleCollision.h"
 #include "Particles/Modules/ParticleModuleAttractorPoint.h"
 #include "Particles/Modules/ParticleModuleSizeScaleBySpeed.h"
+#include "Particles/Modules/ParticleModuleEventReceiverSpawn.h"
+#include "Particles/Modules/ParticleModuleEventReceiverKillAll.h"
+#include "Particles/Modules/ParticleModuleEventGenerator.h"
+#include "Particles/Modules/ParticleModuleDrag.h"
+#include "Particles/Modules/ParticleModuleVelocityRadial.h"
+#include "Particles/Modules/ParticleModuleLight.h"
 #include "Particles/Modules/ParticleModuleSubUV.h"
 #include "Particles/Modules/ParticleModuleSubUVMovie.h"
 
@@ -48,9 +54,14 @@ namespace
 		{ "Acceleration",  "Const Acceleration",    [] { return UParticleModuleAccelerationConstant::StaticClass(); } },
 		{ "Attraction",    "Point Attractor",       [] { return UParticleModuleAttractorPoint::StaticClass(); } },
 		{ "Collision",     "Collision",             [] { return UParticleModuleCollision::StaticClass(); } },
+		{ "Drag",          "Drag",                  [] { return UParticleModuleDrag::StaticClass(); } },
+		{ "Event",         "Event Generator",       [] { return UParticleModuleEventGenerator::StaticClass(); } },
+		{ "Event",         "Event Receiver Spawn",  [] { return UParticleModuleEventReceiverSpawn::StaticClass(); } },
+		{ "Event",         "Event Receiver Kill All", [] { return UParticleModuleEventReceiverKillAll::StaticClass(); } },
 		{ "Color",         "Initial Color",         [] { return UParticleModuleColor::StaticClass(); } },
 		{ "Lifetime",      "Lifetime",              [] { return UParticleModuleLifetime::StaticClass(); } },
 		{ "Location",      "Initial Location",      [] { return UParticleModuleLocation::StaticClass(); } },
+		{ "Light",         "Light",                 [] { return UParticleModuleLight::StaticClass(); } },
 		{ "Rotation",      "Initial Rotation",      [] { return UParticleModuleRotation::StaticClass(); } },
 		{ "Rotation Rate", "Initial Rotation Rate", [] { return UParticleModuleRotationRate::StaticClass(); } },
 		{ "Size",          "Initial Size",          [] { return UParticleModuleSize::StaticClass(); } },
@@ -58,6 +69,7 @@ namespace
 		{ "SubUV",         "SubImage Index",        [] { return UParticleModuleSubUV::StaticClass(); } },
 		{ "SubUV",         "SubUV Movie",           [] { return UParticleModuleSubUVMovie::StaticClass(); } },
 		{ "Velocity",      "Initial Velocity",      [] { return UParticleModuleVelocity::StaticClass(); } },
+		{ "Velocity",      "Radial Velocity",       [] { return UParticleModuleVelocityRadial::StaticClass(); } },
 		{ "Beam", "Source",
 		  []
 		  { return UParticleModuleBeamSource::StaticClass(); } },
@@ -97,6 +109,12 @@ namespace
 		{ "UParticleModuleAccelerationConstant", "Const Acceleration" },
 		{ "UParticleModuleAttractorPoint", "Point Attractor" },
 		{ "UParticleModuleSizeScaleBySpeed", "Size By Speed" },
+		{ "UParticleModuleEventGenerator", "Event Generator" },
+		{ "UParticleModuleDrag", "Drag" },
+		{ "UParticleModuleLight", "Light" },
+		{ "UParticleModuleVelocityRadial", "Radial Velocity" },
+		{ "UParticleModuleEventReceiverSpawn", "Event Receiver Spawn" },
+		{ "UParticleModuleEventReceiverKillAll", "Event Receiver Kill All" },
 		{ "UParticleModuleSubUV", "SubImage Index" },
 		{ "UParticleModuleSubUVMovie", "SubUV Movie" },
 	};

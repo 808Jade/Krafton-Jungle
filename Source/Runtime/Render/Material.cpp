@@ -20,6 +20,25 @@ namespace
 		}
 		return UAssetManager::Get().LoadTexture(Path);
 	}
+
+	// 블렌드 상태 <-> 저장 문자열. 파티클 재질이 쓰는 Additive도 저장되도록 세 곳이 같은 변환을 쓴다.
+	// (예전에는 AlphaBlend가 아니면 모두 Opaque로 저장해서, Additive 재질을 저장하면 파티클 렌더러가 그리지 않는 Opaque가 됐다)
+	const char* BlendStateToString(EBlendState State)
+	{
+		switch (State)
+		{
+		case EBlendState::AlphaBlend: return "AlphaBlend";
+		case EBlendState::Additive:   return "Additive";
+		default:                      return "Opaque";
+		}
+	}
+
+	EBlendState BlendStateFromString(const FString& Name)
+	{
+		if (Name == "AlphaBlend") return EBlendState::AlphaBlend;
+		if (Name == "Additive")   return EBlendState::Additive;
+		return EBlendState::Opaque;
+	}
 }
 
 void UMaterial::SetBlendState(EBlendState InBlendState)
@@ -103,7 +122,7 @@ json UMaterial::SaveMaterial(const UMaterial* Material)
 	Out["Shininess"] = Material->Shininess;
 	Out["WorldUVTileSize"] = Material->WorldUVTileSize;
 	Out["SamplerState"] = Material->SamplerState == ESamplerState::LinearWrap ? "LinearWrap" : "LinearClamp";
-	Out["BlendState"] = Material->BlendState == EBlendState::AlphaBlend ? "AlphaBlend" : "Opaque";
+	Out["BlendState"] = BlendStateToString(Material->BlendState);
 
 	json Textures = json::array();
 	for (UTexture2D* Texture : Material->Textures)
@@ -180,7 +199,7 @@ UMaterial* UMaterial::LoadMaterial(const json& In)
 	if (In.contains("BlendState"))
 	{
 		const FString State = In["BlendState"].get<FString>();
-		Instance->SetBlendState(State == "AlphaBlend" ? EBlendState::AlphaBlend : EBlendState::Opaque);
+		Instance->SetBlendState(BlendStateFromString(State));
 	}
 
 	return Instance;
@@ -256,10 +275,10 @@ void UMaterial::Serialize(FStructuredArchive::FRecord Record)
 	if (Ar.IsLoading())
 		SamplerState = Sampler == "LinearWrap" ? ESamplerState::LinearWrap : ESamplerState::LinearClamp;
 
-	FString Blend = BlendState == EBlendState::AlphaBlend ? "AlphaBlend" : "Opaque";
+	FString Blend = BlendStateToString(BlendState);
 	Record << SA_VALUE("BlendState", Blend);
 	if (Ar.IsLoading())
-		SetBlendState(Blend == "AlphaBlend" ? EBlendState::AlphaBlend : EBlendState::Opaque);
+		SetBlendState(BlendStateFromString(Blend));
 
 	// 텍스처: 경로 문자열 배열. 없는 칸은 빈 문자열
 	int32 Num = Textures.Num();

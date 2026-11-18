@@ -66,6 +66,9 @@ void BindMovementAPI(sol::state& LuaState)
 	    "SetGravityScale",
 	    &UCharacterMovementComponent::SetGravityScale,
 
+	    "SetWalkOnBlockingMeshes",
+	    &UCharacterMovementComponent::SetWalkOnBlockingMeshes,
+
 	    "StopMovementImmediately",
 	    &UCharacterMovementComponent::StopMovementImmediately);
 

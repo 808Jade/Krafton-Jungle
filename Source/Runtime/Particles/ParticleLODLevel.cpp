@@ -157,12 +157,14 @@ int32 UParticleLODLevel::CalculateMaxActiveParticleCount() const
 {
 	float MaxLifetime = 0.0f;
 	bool bHasLifetimeModule = false;
+	bool bReceivesEvents = false;
 	for (UParticleModule* Module : Modules)
 	{
 		if (!Module || !Module->bEnabled)
 		{
 			continue;
 		}
+		bReceivesEvents |= Module->ReceivesParticleEvents();
 		if (UParticleModuleLifetime* LifetimeModule = Cast<UParticleModuleLifetime>(Module))
 		{
 			MaxLifetime += LifetimeModule->GetMaxLifetime();
@@ -184,6 +186,13 @@ int32 UParticleLODLevel::CalculateMaxActiveParticleCount() const
 		}
 	}
 	int32 Slots = static_cast<int32>(std::ceil(Estimate)) + 1;
+
+	// 충돌 이벤트로 스폰하는 이미터는 스폰 비율로 필요한 수를 알 수 없다. 사용자가 정한 MaxActiveParticles를 용량으로 쓴다.
+	if (bReceivesEvents)
+	{
+		constexpr int32 DefaultEventSpawnSlots = 100;
+		Slots = std::max(Slots, RequiredModule && RequiredModule->MaxActiveParticles > 0 ? RequiredModule->MaxActiveParticles : DefaultEventSpawnSlots);
+	}
 
 	if (RequiredModule && RequiredModule->MaxActiveParticles > 0)
 	{

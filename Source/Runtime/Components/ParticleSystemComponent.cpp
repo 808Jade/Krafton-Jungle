@@ -3,6 +3,8 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModule.h"
+#include "Components/PointLightComponent.h"
 #include "Particles/Modules/ParticleModuleTypeDataBase.h"
 #include "Engine/ParticleSystemSceneProxy.h"
 
@@ -161,6 +163,73 @@ UParticleSystemComponent::UParticleSystemComponent()
 UParticleSystemComponent::~UParticleSystemComponent()
 {
 	ResetParticles();
+	DestroyParticleLights();
+}
+
+UPointLightComponent* UParticleSystemComponent::AcquireParticleLight()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	if (ParticleLightsUsed >= ParticleLights.Num())
+	{
+		if (ParticleLights.Num() >= MaxParticleLights)
+		{
+			return nullptr;
+		}
+
+		// 액터의 컴포넌트 목록에 넣지 않고 월드에만 등록한다. 씬 저장에 들어가지 않는다.
+		UPointLightComponent* NewLight = NewObject<UPointLightComponent>(this);
+		NewLight->SetCastShadows(false);
+		NewLight->RegisterComponentWithWorld(World);
+		ParticleLights.Add(NewLight);
+	}
+
+	UPointLightComponent* Light = ParticleLights[ParticleLightsUsed++];
+	Light->SetVisibility(true);
+	return Light;
+}
+
+void UParticleSystemComponent::BeginParticleLights()
+{
+	ParticleLightsUsed = 0;
+}
+
+void UParticleSystemComponent::EndParticleLights()
+{
+	// 이번 프레임에 빌려 가지 않은 라이트는 끈다. (칸은 유지하고 영향만 없앤다)
+	for (int32 i = ParticleLightsUsed; i < ParticleLights.Num(); ++i)
+	{
+		ParticleLights[i]->SetVisibility(false);
+	}
+}
+
+void UParticleSystemComponent::DestroyParticleLights()
+{
+	for (UPointLightComponent* Light : ParticleLights)
+	{
+		if (!Light)
+		{
+			continue;
+		}
+		if (Light->IsRegistered())
+		{
+			Light->UnregisterComponent();
+		}
+		delete Light;
+	}
+	ParticleLights.Empty();
+	ParticleLightsUsed = 0;
+}
+
+void UParticleSystemComponent::OnUnregister()
+{
+	// 월드가 아직 살아 있을 때 라이트를 씬에서 뺀다. (소멸자에서는 월드가 이미 없을 수 있다)
+	DestroyParticleLights();
+	Super::OnUnregister();
 }
 
 void UParticleSystemComponent::TickComponent(float DeltaTime)
@@ -198,10 +267,15 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 		}
 	}
 
+	BeginParticleLights();
 	for (auto* EmitterInstance : EmitterInstances)
 	{
 		EmitterInstance->Tick(DeltaTime);
 	}
+	EndParticleLights();
+
+	// 이번 프레임에 모인 충돌 이벤트는 모든 이미터 갱신이 끝난 뒤에 전달한다.
+	FlushCollisionEvents();
 
 	FPrimitiveSceneProxy* Proxy = GetSceneProxy();
 	FBox NewBox{};
@@ -219,6 +293,63 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 		if (!bInside)
 		{
 			OnTransformDirty();
+		}
+	}
+}
+
+void UParticleSystemComponent::QueueCollisionEvent(FParticleCollisionEvent&& Event)
+{
+	// 개수 제한은 이벤트를 만드는 Collision 모듈의 MaxEventsPerFrame이 맡는다.
+	PendingCollisionEvents.Add(std::move(Event));
+}
+
+void UParticleSystemComponent::FlushCollisionEvents()
+{
+	// 이번 프레임에 이미터가 읽은 이벤트는 여기서 버린다. (이벤트는 만들어진 다음 프레임 한 번만 읽힌다)
+	ReceivedCollisionEvents.Reset();
+	if (PendingCollisionEvents.IsEmpty())
+	{
+		return;
+	}
+
+	// 콜백 안에서 새 이벤트가 쌓여도 이번 순회에 섞이지 않게, 목록을 먼저 꺼내 둔다.
+	// 같은 목록을 다음 프레임의 Event Receiver 모듈이 읽도록 보관한다.
+	ReceivedCollisionEvents = std::move(PendingCollisionEvents);
+	PendingCollisionEvents.Reset();
+	for (int32 Index = 0; Index < ReceivedCollisionEvents.Num(); ++Index)
+	{
+		OnParticleCollide.Broadcast(ReceivedCollisionEvents[Index]);
+	}
+}
+
+void UParticleSystemComponent::RefreshEventReceivers()
+{
+	bHasEventReceivers = false;
+	if (!Template)
+	{
+		return;
+	}
+
+	for (UParticleEmitter* Emitter : Template->Emitters)
+	{
+		if (!Emitter)
+		{
+			continue;
+		}
+		for (UParticleLODLevel* LODLevelData : Emitter->LODLevels)
+		{
+			if (!LODLevelData)
+			{
+				continue;
+			}
+			for (UParticleModule* Module : LODLevelData->Modules)
+			{
+				if (Module && Module->bEnabled && Module->ReceivesParticleEvents())
+				{
+					bHasEventReceivers = true;
+					return;
+				}
+			}
 		}
 	}
 }
@@ -389,6 +520,8 @@ void UParticleSystemComponent::InitParticles()
 	// Reuse matching beam instances so their external inputs survive a restart.
 	TArray<FParticleEmitterInstance*> PreviousInstances = std::move(EmitterInstances);
 	EmitterInstances.Empty();
+	// 템플릿에 Event Receiver 모듈이 있는지 다시 확인한다. (충돌 이벤트를 모을지 결정)
+	RefreshEventReceivers();
 	LODLevel = ClampLODLevel(LODLevel);
 
 	for (auto* Emitter : Template->Emitters)

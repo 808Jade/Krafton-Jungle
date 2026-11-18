@@ -438,6 +438,20 @@ bool FParticleSystemDetailsPanel::DrawModuleProperty(UParticleModule* Module, co
 		CheckCommit();
 		break;
 	}
+	case EPropertyType::String:
+	{
+		// 문자열은 고정 길이 버퍼로 편집한다. (이벤트 이름처럼 짧은 값용)
+		char Buffer[128];
+		const FString& Current = *static_cast<const FString*>(ValuePtr);
+		std::snprintf(Buffer, sizeof(Buffer), "%s", Current.c_str());
+		if (ImGui::InputText("##Value", Buffer, sizeof(Buffer)))
+		{
+			FString NewValue = Buffer;
+			Module->ApplyPropertyValue(Property.Name, &NewValue);
+		}
+		CheckCommit();
+		break;
+	}
 	case EPropertyType::LinearColor:
 	{
 		FLinearColor Value = *static_cast<const FLinearColor*>(ValuePtr);

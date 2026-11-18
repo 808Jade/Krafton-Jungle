@@ -89,3 +89,65 @@ struct FBaseParticle
 	FLinearColor Color{ 1.0f, 1.0f, 1.0f, 1.0f };
 	FLinearColor BaseColor{ 1.0f, 1.0f, 1.0f, 1.0f };
 };
+
+class UPrimitiveComponent;
+class AActor;
+
+// 파티클이 다른 컴포넌트와 부딪혔을 때 만들어지는 이벤트 정보. 위치와 방향은 모두 월드 좌표다.
+// Collision 모듈의 bGenerateEvents를 켜면 충돌할 때마다 만들어져 UParticleSystemComponent::OnParticleCollide로 전달된다.
+struct FParticleCollisionEvent
+{
+	// Collision 모듈의 EventName. 이미터마다 다른 이름을 줘서 어느 충돌인지 구분한다.
+	FString EventName;
+	// 충돌 시점의 이미터 시간(초)과 파티클 수명 진행 비율(0~1)
+	float EmitterTime = 0.0f;
+	float ParticleRelativeTime = 0.0f;
+	// 이 파티클의 몇 번째 충돌인지 (1부터). 마지막 충돌의 이벤트도 만들어진다.
+	int32 CollisionCount = 0;
+	// 표면 위의 충돌점
+	FVector Location;
+	// 튕기기 전의 파티클 속도
+	FVector Velocity;
+	// 표면에서 파티클 쪽을 향하는 단위 법선
+	FVector Normal;
+	// 맞은 컴포넌트와 그 소유 액터. 이벤트를 받은 시점(같은 프레임)까지만 유효하다.
+	UPrimitiveComponent* HitComponent = nullptr;
+	AActor* HitActor = nullptr;
+};
+
+// Event Receiver가 이벤트 이름을 맞춰 보는 규칙. Filter가 비어 있으면 모두 맞고,
+// ';'로 여러 이름을 이어 쓰면 그중 하나만 같아도 맞다. (예: "Shell.Peony;Shell.Ring")
+inline bool ParticleEventNameMatches(const FString& Filter, const FString& Name)
+{
+	if (Filter.empty())
+	{
+		return true;
+	}
+
+	size_t Start = 0;
+	while (Start <= Filter.size())
+	{
+		size_t End = Filter.find(';', Start);
+		if (End == FString::npos)
+		{
+			End = Filter.size();
+		}
+
+		size_t Begin = Start;
+		size_t Last = End;
+		while (Begin < Last && Filter[Begin] == ' ')
+		{
+			++Begin;
+		}
+		while (Last > Begin && Filter[Last - 1] == ' ')
+		{
+			--Last;
+		}
+		if (Last > Begin && Filter.compare(Begin, Last - Begin, Name) == 0)
+		{
+			return true;
+		}
+		Start = End + 1;
+	}
+	return false;
+}

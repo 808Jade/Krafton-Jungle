@@ -60,6 +60,7 @@ public:
 	void CreateDefaultMeshes();
 	void CreateDefaultMaterial();
 	void CreateDefaultParticleMaterial();
+	void CreateParticleEffectMaterials();
 	void CreateDefaultParticleSystem();
 	UParticleSystem* BuildDefaultParticleSystem(bool bMesh);
 	UParticleLODLevel* BuildDefaultParticleLODLevel(UParticleEmitter* Emitter, int32 Level, bool bMesh,

@@ -12,7 +12,7 @@ namespace ResourcePaths
 	constexpr const char* DefaultFont = "Resources/Fonts/Pretendard.json";
 	constexpr const char* DefaultFontAtlas = "Resources/Fonts/Pretendard.png";
 
-	constexpr const char* DefaultSkyPanorama = "Resources/SkySphere/Sky.hdr";
+	constexpr const char* DefaultSkyPanorama = "Resources/SkySphere/NightSky2.png";
 	constexpr const char* DefaultParticleTexture = "Resources/SubUV/StarParticle.png";
 
 	// 라이트·안개·데칼 액터의 에디터 빌보드 아이콘

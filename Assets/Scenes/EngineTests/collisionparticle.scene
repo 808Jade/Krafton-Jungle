@@ -14,7 +14,7 @@
                             "Parent": "",
                             "Properties": {
                                 "CustomTimeDilation": 1.0,
-                                "Template": "Particles/BittenApple.particle",
+                                "Template": "Particles/BittenApple_Event.particle",
                                 "Transform": {
                                     "Location": {
                                         "X": -0.05302906036376953,
@@ -246,7 +246,32 @@
                             "Class": "UStaticMeshComponent",
                             "Name": "UStaticMeshComponent_0",
                             "ObjectLabel": "static",
-                            "OverrideMaterials": [],
+                            "OverrideMaterials": [
+                                {
+                                    "Base": "DefaultMaterial",
+                                    "Instance": {
+                                        "BaseColor": {
+                                            "W": 1.0,
+                                            "X": 1.0,
+                                            "Y": 1.0,
+                                            "Z": 1.0
+                                        },
+                                        "BlendState": "Opaque",
+                                        "ObjectLabel": "UMaterial_185",
+                                        "Properties": {},
+                                        "SamplerState": "LinearClamp",
+                                        "Shininess": 32.0,
+                                        "Textures": [
+                                            "Assets/Models/98K/98K_Base_Color.dds",
+                                            "FlatNormalTexture"
+                                        ],
+                                        "UVScrollSpeed": [
+                                            0.0,
+                                            0.0
+                                        ]
+                                    }
+                                }
+                            ],
                             "Parent": "",
                             "Properties": {
                                 "StaticMesh": "Cube",

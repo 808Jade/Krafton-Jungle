@@ -3,6 +3,7 @@
 #include "AnimSequence.h"
 
 #include <cmath>
+#include <algorithm>
 
 namespace
 {
@@ -307,6 +308,41 @@ float UBlendSpace::GetEffectivePlayLength(
 	return static_cast<float>(WeightedLength / TotalWeight);
 }
 
+float UBlendSpace::GetSyncedPlayRate(const TArray<FBlendSampleWeight>& Weights, float AxisValue) const
+{
+	if (!bSyncPlayRateToAxis || !std::isfinite(AxisValue) || AxisValue <= 0.0f)
+	{
+		return 1.0f;
+	}
+
+	// 섞인 포즈에서 디딘 발이 뒤로 가는 속도 ≈ 샘플 루트 속도의 가중 평균
+	double NaturalSpeed = 0.0;
+	double TotalWeight = 0.0;
+	for (const FBlendSampleWeight& Entry : Weights)
+	{
+		const FBlendSample* Sample = GetSample(Entry.SampleIndex);
+		if (!Sample || !Sample->Animation || !std::isfinite(Entry.Weight) || Entry.Weight <= 0.0f)
+		{
+			continue;
+		}
+		NaturalSpeed += static_cast<double>(Sample->Animation->GetRootMotionSpeed()) * Entry.Weight;
+		TotalWeight += Entry.Weight;
+	}
+	if (TotalWeight <= 0.0)
+	{
+		return 1.0f;
+	}
+	NaturalSpeed /= TotalWeight;
+
+	// 거의 제자리인 포즈(Idle 쪽)는 배율을 주지 않는다. 너무 느리거나 빠른 재생도 막는다.
+	if (NaturalSpeed < 0.05)
+	{
+		return 1.0f;
+	}
+	const double Rate = static_cast<double>(AxisValue) / NaturalSpeed;
+	return static_cast<float>(std::clamp(Rate, 0.25, 4.0));
+}
+
 UBlendSpace1D::UBlendSpace1D()
 {
 	BlendParameters.SetNum(1);
@@ -436,5 +472,6 @@ void UBlendSpace1D::CopyDefinitionFrom(const UBlendSpace1D& Other)
 	BlendParameters = Other.BlendParameters;
 	SampleData = Other.SampleData;
 	NotifyTriggerMode = Other.NotifyTriggerMode;
+	bSyncPlayRateToAxis = Other.bSyncPlayRateToAxis;
 	RebuildSampleData();
 }

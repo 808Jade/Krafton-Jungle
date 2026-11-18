@@ -69,6 +69,12 @@ public:
 		}
 	}
 
+	// 등록된 함수가 하나라도 있는지. 받는 쪽이 없을 때 이벤트 데이터 만들기를 건너뛰는 데 쓴다.
+	bool IsBound() const
+	{
+		return Handlers.Num() > 0;
+	}
+
 	// Handlers 목록에서 HandleNum을 기반으로 해당 Number의 함수 삭제
 	void RemoveHandler(uint32 HandleNumber)
 	{

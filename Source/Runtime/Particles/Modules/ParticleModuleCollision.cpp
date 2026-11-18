@@ -40,6 +40,10 @@ void UParticleModuleCollision::Update(FParticleEmitterInstance& Owner, int32 Pay
 
 	const float Damping = std::max(DampingFactor, 0.0f);
 	const int32 MaxCount = std::max(MaxCollisions, 1);
+	// 이벤트는 받는 쪽(델리게이트 구독자 또는 같은 시스템의 Event Receiver 모듈)이 있을 때만 만든다.
+	// 없는데 만들면 이벤트 정보 채우기와 문자열 복사가 낭비다.
+	const bool bEmitEvents = bGenerateEvents && Component->WantsCollisionEvents();
+	int32 EventsThisFrame = 0; // Update는 이미터당 프레임에 한 번 불리므로 이 값이 곧 프레임당 개수다.
 
 	// 파티클 반경 계산에 쓰는 값. 렌더러가 Size에 컴포넌트 월드 스케일을 곱해서 그리므로 같은 스케일을 쓴다.
 	const float RadiusScale = std::max(ParticleRadiusScale, 0.0f);
@@ -123,6 +127,24 @@ void UParticleModuleCollision::Update(FParticleEmitterInstance& Owner, int32 Pay
 		int32& UsedCollisions = *reinterpret_cast<int32*>(reinterpret_cast<uint8*>(Particle) + PayloadOffset);
 		++UsedCollisions;
 		Particle->Flags |= STATE_Particle_CollisionHasOccurred;
+
+		// 충돌 이벤트: 튕기기 전의 속도를 월드 좌표로 담아 컴포넌트의 이번 프레임 목록에 넣는다.
+		// 실제 전달은 컴포넌트가 모든 이미터 갱신을 마친 뒤에 한다. (파티클을 순회하는 도중에는 콜백을 부르지 않는다)
+		if (bEmitEvents && (MaxEventsPerFrame <= 0 || EventsThisFrame < MaxEventsPerFrame))
+		{
+			++EventsThisFrame;
+			FParticleCollisionEvent Event;
+			Event.EventName = EventName;
+			Event.EmitterTime = Owner.EmitterTime;
+			Event.ParticleRelativeTime = Particle->RelativeTime;
+			Event.CollisionCount = UsedCollisions;
+			Event.Location = Hit.ImpactPoint;
+			Event.Normal = Hit.ImpactNormal;
+			Event.Velocity = bLocalSpace ? SimulationToWorld.TransformVector(Particle->Velocity) : Particle->Velocity;
+			Event.HitComponent = Hit.HitComponent;
+			Event.HitActor = Hit.HitComponent ? Hit.HitComponent->GetOwner() : nullptr;
+			Component->QueueCollisionEvent(std::move(Event));
+		}
 
 		// 닿는 순간의 중심에서 법선 방향으로 조금만 띄워 다음 틱에 같은 면에 다시 걸리지 않게 한다.
 		Particle->Location = ContactCenter + Normal * SurfaceOffset;

@@ -110,6 +110,13 @@ public:
 
 	ENotifyTriggerMode NotifyTriggerMode = ENotifyTriggerMode::HighestWeightedAnimation;
 
+	// true면 재생 속도를 "축 값 ÷ 섞인 샘플들의 루트 이동 속도"로 맞춘다. (축이 이동 속도이고, 샘플이 루트 이동이 든 클립일 때)
+	// 샘플을 클립의 실제 속도 위치에 두면 범위 안에서는 1배로 재생되고, 마지막 샘플보다 빠를 때만 그만큼 빨라져 발이 미끄러지지 않는다.
+	bool bSyncPlayRateToAxis = false;
+
+	// bSyncPlayRateToAxis일 때의 재생 배율. 꺼져 있거나 섞인 샘플이 거의 제자리이면 1.
+	float GetSyncedPlayRate(const TArray<FBlendSampleWeight>& Weights, float AxisValue) const;
+
 protected:
 	bool ValidateSample(
 	    const FBlendSample& Sample,
