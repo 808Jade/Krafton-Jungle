@@ -181,7 +181,21 @@ void UParticleSystemComponent::TickComponent(float DeltaTime)
 
 	if (IsActive() && Template && EmitterInstances.IsEmpty())
 	{
-		InitParticles();
+		ActivateSystem();
+	}
+
+	if (bPendingActivateLOD)
+	{
+		int32 DesiredLODLevel = LODLevel;
+		if (GetCurrentLODMethod() != EParticleSystemLODMethod::ActivateAutomatic)
+		{
+			bPendingActivateLOD = false;
+		}
+		else if (TryDetermineLODLevelForLocation(GetWorldLocation(), DesiredLODLevel))
+		{
+			bPendingActivateLOD = false;
+			SetLODLevel(DesiredLODLevel);
+		}
 	}
 
 	for (auto* EmitterInstance : EmitterInstances)
@@ -454,7 +468,7 @@ void UParticleSystemComponent::PostApplyProperties(const FProperty* ChangedPrope
 		ResetParticles();
 		if (IsActive() && Template)
 		{
-			InitParticles();
+			ActivateSystem(true);
 		}
 		OnTransformDirty();
 	}
@@ -482,9 +496,11 @@ void UParticleSystemComponent::ActivateSystem(bool bReset)
 		return;
 	}
 
-	if (GetCurrentLODMethod() == EParticleSystemLODMethod::ActivateAutomatic)
+	if (GetCurrentLODMethod() != EParticleSystemLODMethod::DirectSet)
 	{
-		SetLODLevel(DetermineLODLevelForLocation(GetWorldLocation()));
+		int32 DesiredLODLevel = LODLevel;
+		bPendingActivateLOD = !TryDetermineLODLevelForLocation(GetWorldLocation(), DesiredLODLevel);
+		SetLODLevel(DesiredLODLevel);
 	}
 
 	if (bReset || EmitterInstances.IsEmpty())
@@ -553,15 +569,23 @@ void UParticleSystemComponent::SetLODLevel(int32 InLODLevel)
 
 int32 UParticleSystemComponent::DetermineLODLevelForLocation(const FVector& EffectLocation)
 {
+	int32 Result = LODLevel;
+	TryDetermineLODLevelForLocation(EffectLocation, Result);
+	return Result;
+}
+
+bool UParticleSystemComponent::TryDetermineLODLevelForLocation(const FVector& EffectLocation, int32& OutLODLevel) const
+{
 	if (!Template || Template->GetLODLevelCount() <= 1 || GetCurrentLODMethod() == EParticleSystemLODMethod::DirectSet)
 	{
-		return 0;
+		OutLODLevel = 0;
+		return true;
 	}
 
 	UWorld* World = GetWorld();
 	if (!World)
 	{
-		return LODLevel;
+		return false;
 	}
 
 	TArray<FVector> ViewLocations;
@@ -577,7 +601,7 @@ int32 UParticleSystemComponent::DetermineLODLevelForLocation(const FVector& Effe
 
 	if (ViewLocations.IsEmpty())
 	{
-		return LODLevel;
+		return false;
 	}
 
 	float ClosestDistanceSquared = FLT_MAX;
@@ -596,7 +620,8 @@ int32 UParticleSystemComponent::DetermineLODLevelForLocation(const FVector& Effe
 		}
 		Result = LODIndex;
 	}
-	return Result;
+	OutLODLevel = Result;
+	return true;
 }
 
 EParticleSystemLODMethod UParticleSystemComponent::GetCurrentLODMethod() const

@@ -47,6 +47,7 @@ private:
 
 	bool GetEmitterBoundingBox(FBox& OutBoundingBox) const;
 	int32 ClampLODLevel(int32 InLODLevel) const;
+	bool TryDetermineLODLevelForLocation(const FVector& EffectLocation, int32& OutLODLevel) const;
 
 	void InitializeMeshInstancingTest();
 
@@ -60,7 +61,11 @@ public:
 
 	int32	LODLevel = 0;
 	float	AccumLODDistanceCheckTime = 0.0f;
+	bool	bPendingActivateLOD = false;
+	UPROPERTY(EditAnywhere)
 	bool	bOverrideLODMethod = false;
+
+	UPROPERTY(EditAnywhere)
 	EParticleSystemLODMethod LODMethod = EParticleSystemLODMethod::Automatic;
 
 	// 테스트/디버깅 용

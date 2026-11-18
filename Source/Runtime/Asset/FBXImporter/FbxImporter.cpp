@@ -25,19 +25,31 @@ namespace
 		return std::filesystem::path(std::u8string(Path.begin(), Path.end()));
 	}
 
-	FStaticMeshData MakeStaticMeshData(const FSkeletalMesh& Part)
+	FStaticMeshData MakeStaticMeshData(const FSkeletalMesh& Part, const FMatrix& MeshTransform)
 	{
+		const FMatrix NormalTransform = MeshTransform.Inverse().GetTransposed();
+		const bool bMirrored = MeshTransform.Determinant() < 0.0f;
+
 		FStaticMeshData Data;
 		Data.Vertices.Reserve(Part.Vertices.Num());
 		Data.AABB = FBox{FVector(FLT_MAX, FLT_MAX, FLT_MAX), FVector(-FLT_MAX, -FLT_MAX, -FLT_MAX)};
 		for (const FSkeletalVertex& SourceVertex : Part.Vertices)
 		{
-			const FVertex& Vertex = SourceVertex.Vertex;
+			FVertex Vertex = SourceVertex.Vertex;
+			Vertex.Position = MeshTransform.TransformPosition(Vertex.Position);
+			Vertex.Normal = NormalTransform.TransformVector(Vertex.Normal).GetSafeNormal();
+			const FVector Tangent = MeshTransform.TransformVector(FVector(Vertex.Tangent.X, Vertex.Tangent.Y, Vertex.Tangent.Z)).GetSafeNormal();
+			Vertex.Tangent = FVector4(Tangent.X, Tangent.Y, Tangent.Z, bMirrored ? -Vertex.Tangent.W : Vertex.Tangent.W);
 			Data.Vertices.Add(Vertex);
 			Data.AABB.Expand(FBox{Vertex.Position, Vertex.Position});
 		}
 
 		Data.Indices = Part.Indices;
+		if (bMirrored)
+		{
+			for (int32 Index = 0; Index + 2 < Data.Indices.Num(); Index += 3)
+				std::swap(Data.Indices[Index + 1], Data.Indices[Index + 2]);
+		}
 		for (const FSkeletalMeshSection& Section : Part.Sections)
 			Data.Sections.Add(FStaticMeshSection{Section.StartIndex, Section.IndexCount, Section.MaterialSlotIndex});
 		for (const FSkeletalMaterialSlot& Slot : Part.MaterialSlots)
@@ -315,7 +327,7 @@ void FFbxImporter::ProcessMeshNode(FbxNode* Node, const TMap<FbxNode*, int32>& B
 				if (!AttachmentBone)
 				{
 					OutResult.StaticMeshes.Add(FFbxStaticMeshPart{
-						Node->GetName(), Part.MeshTransform, MakeStaticMeshData(Part)});
+						Node->GetName(), FMatrix::Identity, MakeStaticMeshData(Part, Part.MeshTransform)});
 					continue;
 				}
 
