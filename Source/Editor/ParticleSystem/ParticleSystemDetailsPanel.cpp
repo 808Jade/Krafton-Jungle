@@ -32,6 +32,8 @@ namespace
 		const char* Items;	// ImGui::Combo 형식 ('\0'으로 구분, 끝은 "\0\0")
 	};
 	constexpr FEnumDisplay EnumDisplays[] = {
+		{ "Method", "Distribution\0User Set\0Actor\0Component\0" },
+		{ "DistributionType", "Constant\0Uniform\0Constant Curve\0" },
 		{ "SortMode",        "None\0Distance To View\0View Depth\0" },
 		{ "ScreenAlignment", "Facing Camera Position\0Square\0Rectangle\0Velocity\0" },
 		{ "LockAxis",        "None\0X\0Y\0Z\0" },
@@ -322,6 +324,19 @@ bool FParticleSystemDetailsPanel::DrawModuleProperty(UParticleModule* Module, co
 
 	switch (Property.Type)
 	{
+	case EPropertyType::Name:
+	{
+		FString Value = static_cast<const FName*>(ValuePtr)->ToString();
+		char Buffer[256] = {};
+		strncpy_s(Buffer, Value.c_str(), _TRUNCATE);
+		if (ImGui::InputText("##Value", Buffer, sizeof(Buffer)))
+		{
+			const FName NewValue(Buffer);
+			Module->ApplyPropertyValue(Property.Name, &NewValue);
+		}
+		CheckCommit();
+		break;
+	}
 	case EPropertyType::Float:
 	{
 		float Value = *static_cast<const float*>(ValuePtr);

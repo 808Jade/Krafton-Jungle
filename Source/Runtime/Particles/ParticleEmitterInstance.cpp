@@ -17,6 +17,7 @@
 #include "Particles/Modules/ParticleModuleBeamNoise.h"
 
 #include "Components/ParticleSystemComponent.h"
+#include "GameFramework/Actor.h"
 
 #include "Asset/AssetManager.h"
 
@@ -663,6 +664,87 @@ FDynamicEmitterDataBase* FParticleMeshEmitterInstance::GetDynamicData() const
 	return new FDynamicMeshEmitterData(std::move(ReplayData));
 }
 
+bool FParticleBeamEmitterInstance::IsRegisteredObject(const UObject* Object)
+{
+	// Never dereference an externally supplied pointer before checking the registry.
+	return Object && GUObjectArray.Find(const_cast<UObject*>(Object)) != INDEX_NONE;
+}
+
+bool FParticleBeamEmitterInstance::SetSourcePoint(const FVector& Position)
+{
+	if (!std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z)) return false;
+	SourcePoint = Position;
+	bHasSourcePoint = true;
+	return true;
+}
+
+bool FParticleBeamEmitterInstance::SetTargetPoint(const FVector& Position)
+{
+	if (!std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z)) return false;
+	TargetPoint = Position;
+	bHasTargetPoint = true;
+	return true;
+}
+
+bool FParticleBeamEmitterInstance::SetActorParameter(FName Name, AActor* Actor)
+{
+	if (Name.IsNone() || !IsRegisteredObject(Actor) || !Cast<AActor>(Actor)) return false;
+	ObjectParameters.Add(Name, { Actor, Actor->GetUUID(), EBeamEndpointMethod::Actor });
+	return true;
+}
+
+bool FParticleBeamEmitterInstance::SetComponentParameter(FName Name, USceneComponent* SceneComponent)
+{
+	if (Name.IsNone() || !IsRegisteredObject(SceneComponent) || !Cast<USceneComponent>(SceneComponent)) return false;
+	ObjectParameters.Add(Name, { SceneComponent, SceneComponent->GetUUID(), EBeamEndpointMethod::Component });
+	return true;
+}
+
+FVector FParticleBeamEmitterInstance::ResolveEndpoint(bool bSource) const
+{
+	const EBeamEndpointMethod Method = bSource ? SourceModule->Method : TargetModule->Method;
+	const FName Name = bSource ? SourceModule->ParameterName : TargetModule->ParameterName;
+	const bool bAbsolute = bSource ? SourceModule->bAbsolute : TargetModule->bAbsolute;
+	FVector Position;
+	bool bWorldSpace = bAbsolute;
+	bool bResolved = false;
+	if (Method == EBeamEndpointMethod::UserSet)
+	{
+		bResolved = bSource ? bHasSourcePoint : bHasTargetPoint;
+		Position = bSource ? SourcePoint : TargetPoint;
+	}
+	else if (Method == EBeamEndpointMethod::Actor || Method == EBeamEndpointMethod::Component)
+	{
+		const auto* Parameter = ObjectParameters.Find(Name);
+		if (Parameter && Parameter->Method == Method && IsRegisteredObject(Parameter->Object) &&
+		    Parameter->Object->GetUUID() == Parameter->UUID)
+		{
+			if (Method == EBeamEndpointMethod::Actor)
+			{
+				if (const auto* Actor = Cast<AActor>(Parameter->Object))
+				{
+					Position = Actor->GetActorLocation();
+					bResolved = true;
+				}
+			}
+			else if (const auto* SceneComponent = Cast<USceneComponent>(Parameter->Object))
+			{
+				Position = SceneComponent->GetWorldLocation();
+				bResolved = true;
+			}
+		}
+		bWorldSpace = true;
+	}
+	FVector SimulationPosition;
+	if (bResolved && TryToSimulationPosition(Position, bWorldSpace, SimulationPosition)) return SimulationPosition;
+	Position = bSource ? SourceModule->EvaluateDistribution(EmitterTime) : TargetModule->EvaluateDistribution(EmitterTime);
+	if (TryToSimulationPosition(Position, bAbsolute, SimulationPosition)) return SimulationPosition;
+	// A singular PSC cannot represent an absolute world point in local simulation.
+	// Treat the fallback distribution as local in that case; never emit NaNs.
+	if (TryToSimulationPosition(Position, false, SimulationPosition)) return SimulationPosition;
+	return FVector::ZeroVector;
+}
+
 void FParticleBeamEmitterInstance::InitParameters(
     UParticleEmitter* InTemplate,
     UParticleSystemComponent* InComponent)
@@ -689,6 +771,8 @@ void FParticleBeamEmitterInstance::SetCurrentLODIndex(int32 LODIndex)
 	FParticleEmitterInstance::SetCurrentLODIndex(LODIndex);
 
 	CacheBeamModules();
+	if (CurrentLODLevel && CurrentLODLevel->RequiredModule)
+		bUseLocalSpace = CurrentLODLevel->RequiredModule->bUseLocalSpace;
 }
 
 void FParticleBeamEmitterInstance::CacheBeamModules()
@@ -779,11 +863,8 @@ void FParticleBeamEmitterInstance::PostSpawn(
 
 	FBeamParticlePayload Payload;
 
-	Payload.SourcePosition = ToSimulationPosition(
-	    Component->ResolveBeamSourcePoint(SpriteTemplate, SourceModule->SourcePosition));
-
-	Payload.TargetPosition = ToSimulationPosition(
-	    Component->ResolveBeamTargetPoint(SpriteTemplate, TargetModule->TargetPosition));
+	Payload.SourcePosition = ResolveEndpoint(true);
+	Payload.TargetPosition = ResolveEndpoint(false);
 
 	WriteBeamPayload(*Particle, Payload);
 
@@ -836,14 +917,12 @@ void FParticleBeamEmitterInstance::IntegrateParticles(
 		{
 			if (!SourceModule->bLockOnSpawn)
 			{
-				Payload.SourcePosition = ToSimulationPosition(
-				    Component->ResolveBeamSourcePoint(SpriteTemplate, SourceModule->SourcePosition));
+				Payload.SourcePosition = ResolveEndpoint(true);
 			}
 
 			if (!TargetModule->bLockOnSpawn)
 			{
-				Payload.TargetPosition = ToSimulationPosition(
-				    Component->ResolveBeamTargetPoint(SpriteTemplate, TargetModule->TargetPosition));
+				Payload.TargetPosition = ResolveEndpoint(false);
 			}
 		}
 
@@ -1027,16 +1106,22 @@ void FParticleBeamEmitterInstance::BuildBeamPoints(
 	}
 }
 
-FVector FParticleBeamEmitterInstance::ToSimulationPosition(
-    const FVector& ComponentLocalPosition) const
+bool FParticleBeamEmitterInstance::TryToSimulationPosition(
+    const FVector& Position, bool bWorldSpace, FVector& OutPosition) const
 {
-	if (bUseLocalSpace)
+	if (!Component || !std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z)) return false;
+	const FMatrix LocalToWorld = Component->GetWorldMatrix();
+	if (bWorldSpace && bUseLocalSpace)
 	{
-		return ComponentLocalPosition;
+		const float Determinant = LocalToWorld.Determinant();
+		if (!std::isfinite(Determinant) || std::abs(Determinant) < 1e-8f) return false;
+		OutPosition = LocalToWorld.Inverse().TransformPosition(Position);
 	}
-
-	return Component->GetWorldMatrix().TransformPosition(
-	    ComponentLocalPosition);
+	else if (!bWorldSpace && !bUseLocalSpace)
+		OutPosition = LocalToWorld.TransformPosition(Position);
+	else
+		OutPosition = Position;
+	return std::isfinite(OutPosition.X) && std::isfinite(OutPosition.Y) && std::isfinite(OutPosition.Z);
 }
 
 FBeamParticlePayload

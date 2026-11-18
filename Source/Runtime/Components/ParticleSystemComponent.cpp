@@ -2,6 +2,8 @@
 #include "ParticleSystemComponent.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleEmitter.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/Modules/ParticleModuleTypeDataBase.h"
 #include "Engine/ParticleSystemSceneProxy.h"
 
 #include "Asset/AssetManager.h"
@@ -11,9 +13,31 @@
 #include "Engine/World.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Camera/MinimalViewInfo.h"
+#include "GameFramework/Actor.h"
 
 #include <cassert>
 #include <cmath>
+
+namespace
+{
+	EDynamicEmitterType GetTemplateEmitterType(const UParticleEmitter* Emitter)
+	{
+		const auto* LOD = Emitter && !Emitter->LODLevels.IsEmpty() ? Emitter->LODLevels[0] : nullptr;
+		return LOD && LOD->TypeDataModule ? LOD->TypeDataModule->GetEmitterType() : EDynamicEmitterType::Sprite;
+	}
+
+	bool MatchesEmitterType(FParticleEmitterInstance* Instance, EDynamicEmitterType Type)
+	{
+		switch (Type)
+		{
+		case EDynamicEmitterType::Beam: return dynamic_cast<FParticleBeamEmitterInstance*>(Instance) != nullptr;
+		case EDynamicEmitterType::Ribbon: return dynamic_cast<FParticleRibbonEmitterInstance*>(Instance) != nullptr;
+		case EDynamicEmitterType::Mesh: return dynamic_cast<FParticleMeshEmitterInstance*>(Instance) != nullptr;
+		case EDynamicEmitterType::Sprite: return dynamic_cast<FParticleSpriteEmitterInstance*>(Instance) != nullptr;
+		default: return false;
+		}
+	}
+}
 
 UParticleEmitter* UParticleSystemComponent::GetBeamEmitterTemplate(int32 EmitterIndex) const
 {
@@ -22,57 +46,109 @@ UParticleEmitter* UParticleSystemComponent::GetBeamEmitterTemplate(int32 Emitter
 		return nullptr;
 	}
 	UParticleEmitter* Emitter = Template->Emitters[EmitterIndex];
-	return Emitter && Emitter->EmitterType == EDynamicEmitterType::Beam ? Emitter : nullptr;
+	return Emitter && GetTemplateEmitterType(Emitter) == EDynamicEmitterType::Beam ? Emitter : nullptr;
 }
 
 bool UParticleSystemComponent::SetBeamSourcePoint(int32 EmitterIndex, const FVector& Position)
 {
-	UParticleEmitter* Emitter = GetBeamEmitterTemplate(EmitterIndex);
-	if (!Emitter || !std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z))
-	{
-		return false;
-	}
-	BeamSourceOverrides.Add(Emitter, Position);
-	return true;
+	if (!std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z)) return false;
+	auto* Instance = GetBeamInstance(EmitterIndex);
+	return Instance && Instance->SetSourcePoint(Position);
 }
 
 bool UParticleSystemComponent::SetBeamTargetPoint(int32 EmitterIndex, const FVector& Position)
 {
-	UParticleEmitter* Emitter = GetBeamEmitterTemplate(EmitterIndex);
-	if (!Emitter || !std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z))
-	{
-		return false;
-	}
-	BeamTargetOverrides.Add(Emitter, Position);
-	return true;
+	if (!std::isfinite(Position.X) || !std::isfinite(Position.Y) || !std::isfinite(Position.Z)) return false;
+	auto* Instance = GetBeamInstance(EmitterIndex);
+	return Instance && Instance->SetTargetPoint(Position);
 }
 
 bool UParticleSystemComponent::ClearBeamSourcePoint(int32 EmitterIndex)
 {
-	UParticleEmitter* Emitter = GetBeamEmitterTemplate(EmitterIndex);
-	if (!Emitter) return false;
-	BeamSourceOverrides.Remove(Emitter);
+	auto* Instance = GetBeamInstance(EmitterIndex);
+	if (!Instance) return false;
+	Instance->ClearSourcePoint();
 	return true;
 }
 
 bool UParticleSystemComponent::ClearBeamTargetPoint(int32 EmitterIndex)
 {
-	UParticleEmitter* Emitter = GetBeamEmitterTemplate(EmitterIndex);
-	if (!Emitter) return false;
-	BeamTargetOverrides.Remove(Emitter);
+	auto* Instance = GetBeamInstance(EmitterIndex);
+	if (!Instance) return false;
+	Instance->ClearTargetPoint();
 	return true;
 }
 
-FVector UParticleSystemComponent::ResolveBeamSourcePoint(UParticleEmitter* Emitter, const FVector& DefaultPosition) const
+FParticleBeamEmitterInstance* UParticleSystemComponent::GetBeamInstance(int32 EmitterIndex)
 {
-	const FVector* Position = BeamSourceOverrides.Find(Emitter);
-	return Position ? *Position : DefaultPosition;
+	UParticleEmitter* Emitter = GetBeamEmitterTemplate(EmitterIndex);
+	if (!Emitter) return nullptr;
+	EnsureEmitterInstances();
+	for (auto* Instance : EmitterInstances)
+	{
+		if (Instance && Instance->SpriteTemplate == Emitter)
+			return dynamic_cast<FParticleBeamEmitterInstance*>(Instance);
+	}
+	return nullptr;
 }
 
-FVector UParticleSystemComponent::ResolveBeamTargetPoint(UParticleEmitter* Emitter, const FVector& DefaultPosition) const
+void UParticleSystemComponent::EnsureEmitterInstances()
 {
-	const FVector* Position = BeamTargetOverrides.Find(Emitter);
-	return Position ? *Position : DefaultPosition;
+	if (!Template) return;
+	int32 ExpectedCount = 0;
+	for (auto* Emitter : Template->Emitters)
+	{
+		if (!Emitter) continue;
+		++ExpectedCount;
+		bool bFound = false;
+		for (auto* Instance : EmitterInstances)
+			if (Instance && Instance->SpriteTemplate == Emitter && MatchesEmitterType(Instance, GetTemplateEmitterType(Emitter)))
+			{
+				bFound = true;
+				break;
+			}
+		if (!bFound) { InitParticles(); return; }
+	}
+	if (ExpectedCount != EmitterInstances.Num()) InitParticles();
+}
+
+bool UParticleSystemComponent::SetBeamActorParameter(const FString& Name, AActor* Actor)
+{
+	const FName ParameterName(Name);
+	if (Name.empty() || ParameterName.IsNone() || !FParticleBeamEmitterInstance::IsRegisteredObject(Actor)) return false;
+	EnsureEmitterInstances();
+	bool bDelivered = false;
+	for (auto* Instance : EmitterInstances)
+		if (auto* Beam = dynamic_cast<FParticleBeamEmitterInstance*>(Instance))
+			bDelivered |= Beam->SetActorParameter(ParameterName, Actor);
+	return bDelivered;
+}
+
+bool UParticleSystemComponent::SetBeamComponentParameter(const FString& Name, USceneComponent* SceneComponent)
+{
+	const FName ParameterName(Name);
+	if (Name.empty() || ParameterName.IsNone() || !FParticleBeamEmitterInstance::IsRegisteredObject(SceneComponent)) return false;
+	EnsureEmitterInstances();
+	bool bDelivered = false;
+	for (auto* Instance : EmitterInstances)
+		if (auto* Beam = dynamic_cast<FParticleBeamEmitterInstance*>(Instance))
+			bDelivered |= Beam->SetComponentParameter(ParameterName, SceneComponent);
+	return bDelivered;
+}
+
+bool UParticleSystemComponent::ClearBeamParameter(const FString& Name)
+{
+	const FName ParameterName(Name);
+	if (Name.empty() || ParameterName.IsNone()) return false;
+	EnsureEmitterInstances();
+	bool bDelivered = false;
+	for (auto* Instance : EmitterInstances)
+		if (auto* Beam = dynamic_cast<FParticleBeamEmitterInstance*>(Instance))
+		{
+			Beam->ClearParameter(ParameterName);
+			bDelivered = true;
+		}
+	return bDelivered;
 }
 
 UParticleSystemComponent::UParticleSystemComponent()
@@ -294,7 +370,9 @@ void UParticleSystemComponent::InitParticles()
 		return;
 	}
 
-	ResetParticles();
+	// Reuse matching beam instances so their external inputs survive a restart.
+	TArray<FParticleEmitterInstance*> PreviousInstances = std::move(EmitterInstances);
+	EmitterInstances.Empty();
 	LODLevel = ClampLODLevel(LODLevel);
 
 	for (auto* Emitter : Template->Emitters)
@@ -320,8 +398,17 @@ void UParticleSystemComponent::InitParticles()
 			break;
 
 		case EDynamicEmitterType::Beam:
-			ParticleEmitterInstance =
-			    new FParticleBeamEmitterInstance();
+			for (auto*& Previous : PreviousInstances)
+			{
+				if (Previous && Previous->SpriteTemplate == Emitter &&
+				    dynamic_cast<FParticleBeamEmitterInstance*>(Previous))
+				{
+					ParticleEmitterInstance = Previous;
+					Previous = nullptr;
+					break;
+				}
+			}
+			if (!ParticleEmitterInstance) ParticleEmitterInstance = new FParticleBeamEmitterInstance();
 			break;
 
 		case EDynamicEmitterType::Ribbon:
@@ -335,8 +422,10 @@ void UParticleSystemComponent::InitParticles()
 
 		ParticleEmitterInstance->InitParameters(Emitter, this);
 		ParticleEmitterInstance->SetCurrentLODIndex(LODLevel);
+		ParticleEmitterInstance->bHaltSpawning |= !IsActive() || bSystemDeactivated;
 		EmitterInstances.Add(ParticleEmitterInstance);
 	}
+	for (auto* Previous : PreviousInstances) delete Previous;
 }
 
 void UParticleSystemComponent::ResetParticles()
@@ -351,8 +440,6 @@ void UParticleSystemComponent::ResetParticles()
 void UParticleSystemComponent::SetTemplate(UParticleSystem* InTemplate)
 {
 	ResetParticles();
-	BeamSourceOverrides.Empty();
-	BeamTargetOverrides.Empty();
 	Template = InTemplate;
 }
 
@@ -362,8 +449,6 @@ void UParticleSystemComponent::PostApplyProperties(const FProperty* ChangedPrope
 
 	if (ChangedProperty && ChangedProperty->Name == FName("Template"))
 	{
-		BeamSourceOverrides.Empty();
-		BeamTargetOverrides.Empty();
 		ResetParticles();
 		if (IsActive() && Template)
 		{
@@ -389,6 +474,7 @@ void UParticleSystemComponent::SetActive(bool bNewActive)
 
 void UParticleSystemComponent::ActivateSystem(bool bReset)
 {
+	bSystemDeactivated = false;
 	if (!Template)
 	{
 		return;
@@ -413,6 +499,7 @@ void UParticleSystemComponent::ActivateSystem(bool bReset)
 
 void UParticleSystemComponent::DeactivateSystem()
 {
+	bSystemDeactivated = true;
 	for (FParticleEmitterInstance* EmitterInstance : EmitterInstances)
 	{
 		EmitterInstance->bHaltSpawning = true;
@@ -421,6 +508,7 @@ void UParticleSystemComponent::DeactivateSystem()
 
 void UParticleSystemComponent::ResetSystem()
 {
+	bSystemDeactivated = false;
 	for (FParticleEmitterInstance* EmitterInstance : EmitterInstances)
 	{
 		EmitterInstance->KillParticlesForced();

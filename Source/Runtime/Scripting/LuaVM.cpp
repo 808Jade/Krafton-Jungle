@@ -984,7 +984,16 @@ void FLuaVM::BindEngineAPI()
 	    "SetBeamSourcePoint", &UParticleSystemComponent::SetBeamSourcePoint,
 	    "SetBeamTargetPoint", &UParticleSystemComponent::SetBeamTargetPoint,
 	    "ClearBeamSourcePoint", &UParticleSystemComponent::ClearBeamSourcePoint,
-	    "ClearBeamTargetPoint", &UParticleSystemComponent::ClearBeamTargetPoint);
+	    "ClearBeamTargetPoint", &UParticleSystemComponent::ClearBeamTargetPoint,
+	    "SetBeamActorParameter", [](UParticleSystemComponent& PSC, const FString& Name, sol::object Object)
+	    {
+		    return Object.is<AActor*>() && PSC.SetBeamActorParameter(Name, Object.as<AActor*>());
+	    },
+	    "SetBeamComponentParameter", [](UParticleSystemComponent& PSC, const FString& Name, sol::object Object)
+	    {
+		    return Object.is<USceneComponent*>() && PSC.SetBeamComponentParameter(Name, Object.as<USceneComponent*>());
+	    },
+	    "ClearBeamParameter", &UParticleSystemComponent::ClearBeamParameter);
 	BindAnimationAPI(*State);
 	BindActorAPI(*State);
 	BindMovementAPI(*State);

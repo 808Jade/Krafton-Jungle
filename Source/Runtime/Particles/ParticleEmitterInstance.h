@@ -6,6 +6,8 @@
 #include "ParticleRibbonData.h"
 #include "Math/Box.h"
 #include "Math/Matrix.h"
+#include "Containers/Map.h"
+#include "Core/NameTypes.h"
 
 class UParticleSystemComponent;
 class UParticleEmitter;
@@ -18,6 +20,9 @@ class UParticleModuleBeamSource;
 class UParticleModuleBeamNoise;
 class UMaterialInterface;
 class UStaticMesh;
+class AActor;
+class USceneComponent;
+class UObject;
 
 struct FParticleEmitterInstance
 {
@@ -145,6 +150,14 @@ struct FParticleBeamEmitterInstance
     : public FParticleEmitterInstance
 {
 public:
+	bool SetSourcePoint(const FVector& Position);
+	bool SetTargetPoint(const FVector& Position);
+	void ClearSourcePoint() { bHasSourcePoint = false; }
+	void ClearTargetPoint() { bHasTargetPoint = false; }
+	bool SetActorParameter(FName Name, AActor* Actor);
+	bool SetComponentParameter(FName Name, USceneComponent* SceneComponent);
+	void ClearParameter(FName Name) { ObjectParameters.Remove(Name); }
+	static bool IsRegisteredObject(const UObject* Object);
 	void InitParameters(
 	    UParticleEmitter* InTemplate,
 	    UParticleSystemComponent* InComponent) override;
@@ -170,6 +183,20 @@ protected:
 	    float SpawnTime) override;
 
 private:
+	struct FObjectParameter
+	{
+		UObject* Object = nullptr;
+		uint32 UUID = 0;
+		EBeamEndpointMethod Method = EBeamEndpointMethod::Actor;
+	};
+	TMap<FName, FObjectParameter, FNameHash> ObjectParameters;
+	FVector SourcePoint = FVector::ZeroVector;
+	FVector TargetPoint = FVector::ZeroVector;
+	bool bHasSourcePoint = false;
+	bool bHasTargetPoint = false;
+	FVector ResolveEndpoint(bool bSource) const;
+	bool TryToSimulationPosition(const FVector& Position, bool bWorldSpace, FVector& OutPosition) const;
+
 	void CacheBeamModules();
 	bool HasValidBeamSetup() const;
 	bool HasValidNoiseSetup() const;
@@ -177,9 +204,6 @@ private:
 	void BuildBeamPoints(
 	    const FBaseParticle& Particle,
 	    TArray<FParticleStripPoint>& OutPoints) const;
-
-	FVector ToSimulationPosition(
-	    const FVector& ComponentLocalPosition) const;
 
 	FBeamParticlePayload ReadBeamPayload(
 	    const FBaseParticle& Particle) const;

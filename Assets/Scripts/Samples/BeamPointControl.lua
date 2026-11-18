@@ -1,6 +1,8 @@
 -- Attach to an actor with a ParticleSystemComponent and a Beam emitter at index 0.
+-- Use Assets/Particles/BeamParticle.particle (Source/Target Method = UserSet).
 -- Disable LockOnSpawn on both Source and Target modules for continuous movement.
--- All points are component-local. Overrides affect every beam in this emitter.
+-- With Absolute disabled, all points are component-local.
+-- SetBeam*Point only stores a value; it does not change the module Method.
 local Particles = nil
 local Elapsed = 0
 local EmitterIndex = 0
