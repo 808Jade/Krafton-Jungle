@@ -25,7 +25,7 @@ void UParticleModuleEventReceiverSpawn::Update(FParticleEmitterInstance& Owner, 
 
 	for (const FParticleCollisionEvent& Event : Events)
 	{
-		if (!EventName.empty() && EventName != Event.EventName)
+		if (!ParticleEventNameMatches(EventName, Event.EventName))
 		{
 			continue;
 		}

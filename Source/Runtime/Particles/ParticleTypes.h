@@ -114,3 +114,40 @@ struct FParticleCollisionEvent
 	UPrimitiveComponent* HitComponent = nullptr;
 	AActor* HitActor = nullptr;
 };
+
+// Event Receiver가 이벤트 이름을 맞춰 보는 규칙. Filter가 비어 있으면 모두 맞고,
+// ';'로 여러 이름을 이어 쓰면 그중 하나만 같아도 맞다. (예: "Shell.Peony;Shell.Ring")
+inline bool ParticleEventNameMatches(const FString& Filter, const FString& Name)
+{
+	if (Filter.empty())
+	{
+		return true;
+	}
+
+	size_t Start = 0;
+	while (Start <= Filter.size())
+	{
+		size_t End = Filter.find(';', Start);
+		if (End == FString::npos)
+		{
+			End = Filter.size();
+		}
+
+		size_t Begin = Start;
+		size_t Last = End;
+		while (Begin < Last && Filter[Begin] == ' ')
+		{
+			++Begin;
+		}
+		while (Last > Begin && Filter[Last - 1] == ' ')
+		{
+			--Last;
+		}
+		if (Last > Begin && Filter.compare(Begin, Last - Begin, Name) == 0)
+		{
+			return true;
+		}
+		Start = End + 1;
+	}
+	return false;
+}

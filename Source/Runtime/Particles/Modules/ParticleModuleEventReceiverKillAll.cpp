@@ -13,7 +13,7 @@ void UParticleModuleEventReceiverKillAll::Update(FParticleEmitterInstance& Owner
 
 	for (const FParticleCollisionEvent& Event : Component->GetReceivedCollisionEvents())
 	{
-		if (EventName.empty() || EventName == Event.EventName)
+		if (ParticleEventNameMatches(EventName, Event.EventName))
 		{
 			Owner.KillParticlesForced();
 			return;

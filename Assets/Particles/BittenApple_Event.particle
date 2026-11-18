@@ -12,7 +12,7 @@
                                     "Bursts": [],
                                     "ObjectLabel": "UParticleModuleSpawn_0",
                                     "Properties": {
-                                        "SpawnRate": 10.0,
+                                        "SpawnRate": 1000.0,
                                         "bEnabled": true
                                     }
                                 }
@@ -369,8 +369,8 @@
                                     "ObjectLabel": "UParticleModuleLifetime_21",
                                     "Properties": {
                                         "Lifetime": {
-                                            "Max": 0.30000001192092896,
-                                            "Min": 0.30000001192092896
+                                            "Max": 0.5,
+                                            "Min": 0.5
                                         },
                                         "bEnabled": true
                                     }
@@ -602,7 +602,7 @@
                                     "EmitterLoops": 0,
                                     "LockAxis": 0,
                                     "Material": "SubUVMaterial",
-                                    "MaxActiveParticles": 100,
+                                    "MaxActiveParticles": 1960,
                                     "ScreenAlignment": 2,
                                     "SortMode": 0,
                                     "SubImagesHorizontal": 8,
