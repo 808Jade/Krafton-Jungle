@@ -1,4 +1,5 @@
 #include "EnginePCH.h"
+#include "Core/Stats/ParticleStats.h"
 #include "ParticleMeshRenderer.h"
 
 #include "Core/EngineTimer.h"
@@ -157,6 +158,7 @@ bool FParticleMeshRenderer::Draw(
     EViewMode ViewMode,
     bool bDepthOnly)
 {
+	SCOPE_CYCLE_COUNTER(ParticleStats::STAT_RenderSubmitCPU);
 	if (Packet.MeshInstances.Num() == 0)
 		return true;
 
@@ -220,6 +222,7 @@ bool FParticleMeshRenderer::Draw(
 	if (!EnsureCapacity(InstanceCount))
 		return false;
 
+	FScopeCycleCounter UploadTimer(ParticleStats::STAT_UploadCPU);
 	void* Dest = RenderCommand::MapWriteDiscard(InstanceVB.get());
 
 	if (!Dest)
@@ -231,6 +234,8 @@ bool FParticleMeshRenderer::Draw(
 	    InstanceCount * sizeof(FMeshParticleInstanceVertex));
 
 	RenderCommand::Unmap(InstanceVB.get());
+	UploadTimer.Finish();
+	FStatRegistry::AddCounter(ParticleStats::STAT_UploadBytes, uint64(InstanceCount) * sizeof(FMeshParticleInstanceVertex));
 
 	FParticleMeshBatchConstants Batch{};
 	Batch.ReceiveShadow =
@@ -243,7 +248,11 @@ bool FParticleMeshRenderer::Draw(
 	        ? 1u
 	        : 0u;
 
-	RenderCommand::UpdateBufferData(BatchCB.get(), &Batch);
+	{
+		SCOPE_CYCLE_COUNTER(ParticleStats::STAT_UploadCPU);
+		RenderCommand::UpdateBufferData(BatchCB.get(), &Batch);
+		FStatRegistry::AddCounter(ParticleStats::STAT_UploadBytes, BatchCB->GetBufferSize());
+	}
 
 	RenderCommand::BindConstantBuffer(
 	    3,
@@ -264,8 +273,11 @@ bool FParticleMeshRenderer::Draw(
 		Params.Shininess = Material->Shininess;
 		Params.WorldUVTileSize = Material->WorldUVTileSize;
 
-		RenderCommand::UpdateBufferData(
-		    MaterialCB.get(), &Params);
+		{
+			SCOPE_CYCLE_COUNTER(ParticleStats::STAT_UploadCPU);
+			RenderCommand::UpdateBufferData(MaterialCB.get(), &Params);
+			FStatRegistry::AddCounter(ParticleStats::STAT_UploadBytes, MaterialCB->GetBufferSize());
+		}
 
 		// Gouraud 변형 등 VS에서도 참조할 수 있도록 양쪽에 바인딩.
 		RenderCommand::BindConstantBuffer(
@@ -332,6 +344,7 @@ bool FParticleMeshRenderer::Draw(
 
 	RenderCommand::SetDepthStencilState(DepthState);
 
+	FStatRegistry::AddCounter(ParticleStats::STAT_DrawCalls);
 	RenderCommand::DrawIndexedInstanced(
 	    Packet.IndexCount,
 	    InstanceCount,

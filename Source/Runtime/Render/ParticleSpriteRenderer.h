@@ -41,6 +41,16 @@ struct FParticleSpriteView
 class FParticleSpriteRenderer
 {
 public:
+	uint64 GetAllocatedBufferBytes() const
+	{
+		uint64 Bytes = 0;
+		if (QuadVB && QuadVB->GetBuffer()) Bytes += QuadVB->GetBufferSize();
+		if (QuadIB && QuadIB->GetBuffer()) Bytes += QuadIB->GetBufferSize();
+		if (InstanceVB && InstanceVB->GetBuffer()) Bytes += InstanceVB->GetBufferSize();
+		if (ViewCB && ViewCB->GetBuffer()) Bytes += ViewCB->GetBufferSize();
+		return Bytes;
+	}
+
 	bool Init();
 
 	bool Draw(
@@ -48,7 +58,8 @@ public:
 	    UMaterial* Material,
 	    const FParticleSpriteView& View,
 		EParticleScreenAlignment ScreenAlignment,
-		EParticleAxisLock AxisLock);
+		EParticleAxisLock AxisLock,
+		bool bCollectStats = false);
 
 	// 일반 메시 큐에서 Sprite 패킷만 이동해서 분리한다.
 	void CollectPackets(

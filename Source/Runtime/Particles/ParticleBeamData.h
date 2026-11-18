@@ -2,6 +2,21 @@
 
 #include "Particles/ParticleTypes.h"
 
+enum class EBeamEndpointMethod : uint8
+{
+	Distribution,
+	UserSet,
+	Actor,
+	Component,
+};
+
+enum class EBeamDistributionType : uint8
+{
+	Constant,
+	Uniform,
+	ConstantCurve,
+};
+
 // bUseLocalSpace에 따라 로컬 또는 월드 좌표로 저장한다.
 struct FBeamParticlePayload
 {

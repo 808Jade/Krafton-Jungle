@@ -136,6 +136,7 @@ private:
 	UParticleModule* LastSelectedModule = nullptr;
 	// 편집 대상 트랙 인덱스. (Cascade처럼 고른 트랙만 진하게 그리고 키를 잡을 수 있다) -1이면 모든 트랙이 대상이다.
 	int32 ActiveTrack = -1;
+	int32 LastSelectedCurveCount = -1;
 
 	// 보이는 커브 범위. (가로 = 수명 비율 0~1)
 	float ViewMinX = -0.05f, ViewMaxX = 1.05f;

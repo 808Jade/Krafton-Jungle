@@ -1,5 +1,7 @@
 #include "EnginePCH.h"
 #include "Editor/ParticleSystem/ParticleCurveEditorPanel.h"
+#include "Particles/Modules/ParticleModuleBeamSource.h"
+#include "Particles/Modules/ParticleModuleBeamTarget.h"
 #include "Editor/ParticleSystem/ParticleEditorContext.h"
 #include "Editor/HitoriEd/EditorResourcePaths.h"
 #include "Asset/AssetManager.h"
@@ -159,14 +161,19 @@ void FParticleCurveEditorPanel::SyncTracks()
 
 	// 2. 이미터 패널에서 새로 고른 모듈에 커브가 있으면 현재 탭에 올린다. (Cascade에서 모듈의 커브 버튼을 누른 것과 같다)
 	UParticleModule* Selected = Context.SelectedModule;
-	if (Selected == LastSelectedModule)
-		return;
-	LastSelectedModule = Selected;
 	if (!Selected || !IsModuleInAsset(Selected))
+	{
+		LastSelectedModule = nullptr;
+		LastSelectedCurveCount = -1;
 		return;
+	}
 
 	TArray<FParticleCurveRef> Curves;
 	Selected->GetCurves(Curves);
+	// Changing a distribution can expose curves without changing the selection.
+	if (Selected == LastSelectedModule && Curves.Num() == LastSelectedCurveCount) return;
+	LastSelectedModule = Selected;
+	LastSelectedCurveCount = Curves.Num();
 	if (Curves.IsEmpty())
 		return;
 	for (const FTrack& Track : CurrentTab().Tracks)
@@ -805,6 +812,10 @@ void FParticleCurveEditorPanel::DrawGraph()
 	FCurveTab& Tab = CurrentTab();
 
 	// 이번 프레임의 커브 목록. (모듈 포인터 → 커브 참조)
+	const bool bEmitterTime = Cast<UParticleModuleBeamSource>(Context.SelectedModule) ||
+	    Cast<UParticleModuleBeamTarget>(Context.SelectedModule);
+	DrawList->AddText(ImVec2(GraphMin.x + 50.0f, GraphMax.y - ImGui::GetTextLineHeight() - 4.0f),
+	    IM_COL32(220, 220, 220, 230), bEmitterTime ? "X: Emitter time (seconds)" : "X: Relative time");
 	struct FVisibleCurve
 	{
 		int32 Track;
