@@ -1,0 +1,124 @@
+#pragma once
+#include "Math/Transform.h"
+#include "Mesh.h"
+#include "Shader.h"
+#include "Material.h"
+
+#include <array>
+#include <utility>
+
+#include "Particles/ParticleVertex.h"
+#include "Particles/ParticleTypes.h"
+#include "Particles/ParticleStripData.h"
+
+class FPrimitiveSceneProxy;
+inline constexpr uint32 InvalidObjectSlot = ~0u;
+
+struct FRenderPacket
+{
+    const FPrimitiveSceneProxy* Proxy = nullptr;
+    const FMatrix* Model = nullptr;
+    UStaticMesh* Mesh = nullptr;
+    UMaterial* Material = nullptr;
+    const void* MaterialParamData = nullptr;
+    uint32 MaterialParamDataSize = 0;
+    uint32 StartIndex = 0;
+    uint32 IndexCount = 0; // Zero selects the full index buffer.
+    uint32 Slot = InvalidObjectSlot;
+    uint8 LODIndex = 0;
+    bool bOccludedByGpu = false;
+	EParticleScreenAlignment ParticleScreenAlignment = 
+        EParticleScreenAlignment::Rectangle;
+	EParticleAxisLock ParticleAxisLock = EParticleAxisLock::None;
+
+    // 월드 공간의 대표 중심.
+    // 뷰별 정렬 깊이는 RenderQueueSorting에서 계산한다.
+	FVector TranslucentSortCenter = FVector::ZeroVector;
+
+    // 스켈레탈 메시와 CPU 스키닝 결과는 StaticMesh 에셋 없이 버퍼를 직접 전달한다.
+    FVertexBuffer* VertexBuffer = nullptr;
+    FIndexBuffer* IndexBuffer = nullptr;
+
+    // GPU 스키닝 패킷이면 본 행렬 버퍼(t30, t31)를 가리킨다. VertexBuffer는 바인드 포즈 FSkeletalVertex(96바이트)다.
+    FStructuredBuffer* SkinMatrices = nullptr;
+    FStructuredBuffer* NormalMatrices = nullptr;
+
+    TArray<FParticleSpriteInstanceVertex> SpriteInstances;
+	TArray<FMeshParticleInstanceVertex> MeshInstances;
+	TArray<FParticleStripPoint> StripPoints;
+
+    bool IsGPUSkinned() const { return SkinMatrices != nullptr; }
+	bool IsSpriteParticle() const { return SpriteInstances.Num() > 0; }
+	bool IsMeshParticle() const { return MeshInstances.Num() > 0; }
+	bool IsStripParticle() const { return StripPoints.Num() >= 2; }
+
+    FVertexBuffer* GetVertexBuffer() const
+    {
+        return VertexBuffer ? VertexBuffer : Mesh ? Mesh->GetVertexBuffer(LODIndex) : nullptr;
+    }
+    FIndexBuffer* GetIndexBuffer() const
+    {
+        return IndexBuffer ? IndexBuffer : Mesh ? Mesh->GetIndexBuffer(LODIndex) : nullptr;
+    }
+};
+
+// Shared bindings, with one ordinary indexed draw per item.
+struct FStaticDrawItem
+{
+    const FPrimitiveSceneProxy* Proxy;
+    uint32 Slot;
+    uint32 StartIndex;
+    uint32 IndexCount;
+    uint32 bOccludedByGpu;
+};
+
+struct FStaticDrawGroup
+{
+    UMaterial* Material = nullptr;
+    UStaticMesh* Mesh = nullptr;
+    uint8 LODIndex = 0;
+    std::vector<FStaticDrawItem> Items;
+};
+
+// Owns the current frame's billboard/particle matrices together with their packets.
+// Blocks keep matrix addresses stable when either array grows.
+class FRenderQueue : public TArray<FRenderPacket>
+{
+    using FPackets = TArray<FRenderPacket>;
+    static constexpr uint32 MatricesPerBlock = 256;
+    using FMatrixBlock = std::array<FMatrix, MatricesPerBlock>;
+    TArray<TUniquePtr<FMatrixBlock>> MatrixBlocks;
+    uint32 MatrixCount = 0;
+public:
+    FRenderQueue() = default;
+    FRenderQueue(const FRenderQueue&) = delete;
+    FRenderQueue& operator=(const FRenderQueue&) = delete;
+    FRenderQueue(FRenderQueue&& Other) noexcept
+        : FPackets(std::move(Other)), MatrixBlocks(std::move(Other.MatrixBlocks)),
+          MatrixCount(std::exchange(Other.MatrixCount, 0)) {}
+    FRenderQueue& operator=(FRenderQueue&& Other) noexcept
+    {
+        if (this != &Other)
+        {
+            FPackets::operator=(std::move(Other));
+            MatrixBlocks = std::move(Other.MatrixBlocks);
+            MatrixCount = std::exchange(Other.MatrixCount, 0);
+        }
+        return *this;
+    }
+    const FMatrix* StoreWorldMatrix(const FMatrix& World)
+    {
+        const uint32 BlockIndex = MatrixCount / MatricesPerBlock;
+        if (BlockIndex >= static_cast<uint32>(MatrixBlocks.Num()))
+            MatrixBlocks.Add(MakeUnique<FMatrixBlock>());
+        FMatrix& Stored = (*MatrixBlocks[BlockIndex])[MatrixCount % MatricesPerBlock];
+        Stored = World;
+        ++MatrixCount;
+        return &Stored;
+    }
+    void Reset()
+    {
+        FPackets::Reset();
+        MatrixCount = 0;
+    }
+};

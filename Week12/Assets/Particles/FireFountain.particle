@@ -1,0 +1,2236 @@
+{
+    "System": {
+        "Emitters": [
+            {
+                "LODLevels": [
+                    {
+                        "Level": 0,
+                        "Modules": [
+                            {
+                                "Class": "UParticleModuleSpawn",
+                                "Data": {
+                                    "Bursts": [],
+                                    "ObjectLabel": "UParticleModuleSpawn_FF1",
+                                    "Properties": {
+                                        "SpawnRate": 5.0,
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLifetime",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLifetime_FF2",
+                                    "Properties": {
+                                        "Lifetime": {
+                                            "Max": 1.4,
+                                            "Min": 1.0
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLocation",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLocation_FF3",
+                                    "Properties": {
+                                        "StartLocation": {
+                                            "Max": {
+                                                "X": 0.05,
+                                                "Y": 0.05,
+                                                "Z": 0.3
+                                            },
+                                            "Min": {
+                                                "X": -0.05,
+                                                "Y": -0.05,
+                                                "Z": 0.15
+                                            }
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSize",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSize_FF4",
+                                    "Properties": {
+                                        "StartSize": {
+                                            "Max": {
+                                                "X": 1.9,
+                                                "Y": 1.9,
+                                                "Z": 1.9
+                                            },
+                                            "Min": {
+                                                "X": 1.3,
+                                                "Y": 1.3,
+                                                "Z": 1.3
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseSizeOverLife": true
+                                    },
+                                    "SizeScaleOverLife": {
+                                        "X": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.6
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.35,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.25
+                                                }
+                                            ]
+                                        },
+                                        "Y": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.6
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.35,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.25
+                                                }
+                                            ]
+                                        },
+                                        "Z": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.6
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.35,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.25
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleColor",
+                                "Data": {
+                                    "ColorScaleOverLife": {
+                                        "A": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.2,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.0
+                                                }
+                                            ]
+                                        },
+                                        "B": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.4
+                                                }
+                                            ]
+                                        },
+                                        "G": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.6
+                                                }
+                                            ]
+                                        },
+                                        "R": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "ObjectLabel": "UParticleModuleColor_FF5",
+                                    "Properties": {
+                                        "StartColor": {
+                                            "Max": {
+                                                "A": 0.4,
+                                                "B": 0.2,
+                                                "G": 0.6,
+                                                "R": 1.0
+                                            },
+                                            "Min": {
+                                                "A": 0.3,
+                                                "B": 0.12,
+                                                "G": 0.45,
+                                                "R": 1.0
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseColorOverLife": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleRotation",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleRotation_FF6",
+                                    "Properties": {
+                                        "StartRotation": {
+                                            "Max": 6.28,
+                                            "Min": 0.0
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleRotationRate",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleRotationRate_FF7",
+                                    "Properties": {
+                                        "StartRotationRate": {
+                                            "Max": 0.6,
+                                            "Min": -0.6
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 0.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.25,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 0.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF67",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 5.0,
+                                        "MaxLights": 3,
+                                        "MaxRadius": 7.0,
+                                        "RadiusScale": 4.0,
+                                        "SpawnFraction": 1.0,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": false,
+                                        "bUseBrightnessOverLife": true,
+                                        "bUseParticleColor": true
+                                    }
+                                }
+                            }
+                        ],
+                        "ObjectLabel": "UParticleLODLevel_FF9",
+                        "Properties": {},
+                        "Required": {
+                            "Class": "UParticleModuleRequired",
+                            "Data": {
+                                "ObjectLabel": "UParticleModuleRequired_FF8",
+                                "Properties": {
+                                    "EmitterDuration": 1.0,
+                                    "EmitterLoops": 0,
+                                    "LockAxis": 0,
+                                    "Material": "SubUVMaterial",
+                                    "MaxActiveParticles": 40,
+                                    "ScreenAlignment": 1,
+                                    "SortMode": 0,
+                                    "SubImagesHorizontal": 8,
+                                    "SubImagesVertical": 8,
+                                    "bEnabled": true,
+                                    "bUseLocalSpace": false
+                                }
+                            }
+                        },
+                        "bEnabled": true
+                    }
+                ],
+                "ObjectLabel": "UParticleEmitter_FF_CoreGlow",
+                "Properties": {}
+            },
+            {
+                "LODLevels": [
+                    {
+                        "Level": 0,
+                        "Modules": [
+                            {
+                                "Class": "UParticleModuleSpawn",
+                                "Data": {
+                                    "Bursts": [],
+                                    "ObjectLabel": "UParticleModuleSpawn_FF10",
+                                    "Properties": {
+                                        "SpawnRate": 24.0,
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLifetime",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLifetime_FF11",
+                                    "Properties": {
+                                        "Lifetime": {
+                                            "Max": 1.2,
+                                            "Min": 0.7
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLocation",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLocation_FF12",
+                                    "Properties": {
+                                        "StartLocation": {
+                                            "Max": {
+                                                "X": 0.12,
+                                                "Y": 0.12,
+                                                "Z": 0.15
+                                            },
+                                            "Min": {
+                                                "X": -0.12,
+                                                "Y": -0.12,
+                                                "Z": 0.05
+                                            }
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleVelocity",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleVelocity_FF13",
+                                    "Properties": {
+                                        "StartVelocity": {
+                                            "Max": {
+                                                "X": 0.25,
+                                                "Y": 0.25,
+                                                "Z": 2.6
+                                            },
+                                            "Min": {
+                                                "X": -0.25,
+                                                "Y": -0.25,
+                                                "Z": 1.2
+                                            }
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleAccelerationConstant",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleAccelerationConstant_FF14",
+                                    "Properties": {
+                                        "Acceleration": {
+                                            "X": 0.0,
+                                            "Y": 0.0,
+                                            "Z": 1.5
+                                        },
+                                        "bAlwaysInWorldSpace": true,
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSize",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSize_FF15",
+                                    "Properties": {
+                                        "StartSize": {
+                                            "Max": {
+                                                "X": 0.9,
+                                                "Y": 0.9,
+                                                "Z": 0.9
+                                            },
+                                            "Min": {
+                                                "X": 0.55,
+                                                "Y": 0.55,
+                                                "Z": 0.55
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseSizeOverLife": true
+                                    },
+                                    "SizeScaleOverLife": {
+                                        "X": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.25
+                                                }
+                                            ]
+                                        },
+                                        "Y": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.25
+                                                }
+                                            ]
+                                        },
+                                        "Z": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.25
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleColor",
+                                "Data": {
+                                    "ColorScaleOverLife": {
+                                        "A": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.15,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.0
+                                                }
+                                            ]
+                                        },
+                                        "B": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.3
+                                                }
+                                            ]
+                                        },
+                                        "G": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.45
+                                                }
+                                            ]
+                                        },
+                                        "R": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "ObjectLabel": "UParticleModuleColor_FF16",
+                                    "Properties": {
+                                        "StartColor": {
+                                            "Max": {
+                                                "A": 0.7,
+                                                "B": 0.3,
+                                                "G": 0.8,
+                                                "R": 1.0
+                                            },
+                                            "Min": {
+                                                "A": 0.55,
+                                                "B": 0.18,
+                                                "G": 0.62,
+                                                "R": 1.0
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseColorOverLife": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleRotation",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleRotation_FF17",
+                                    "Properties": {
+                                        "StartRotation": {
+                                            "Max": 6.28,
+                                            "Min": 0.0
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleRotationRate",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleRotationRate_FF18",
+                                    "Properties": {
+                                        "StartRotationRate": {
+                                            "Max": 1.5,
+                                            "Min": -1.5
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSubUVMovie",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSubUVMovie_FF19",
+                                    "Properties": {
+                                        "FrameRate": 10.0,
+                                        "StartFrame": 0.0,
+                                        "bEnabled": true,
+                                        "bLoop": true,
+                                        "bRandomStartFrame": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF68",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 2.5,
+                                        "MaxLights": 3,
+                                        "MaxRadius": 4.0,
+                                        "RadiusScale": 5.0,
+                                        "SpawnFraction": 0.15,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": true,
+                                        "bUseBrightnessOverLife": false,
+                                        "bUseParticleColor": true
+                                    }
+                                }
+                            }
+                        ],
+                        "ObjectLabel": "UParticleLODLevel_FF21",
+                        "Properties": {},
+                        "Required": {
+                            "Class": "UParticleModuleRequired",
+                            "Data": {
+                                "ObjectLabel": "UParticleModuleRequired_FF20",
+                                "Properties": {
+                                    "EmitterDuration": 1.0,
+                                    "EmitterLoops": 0,
+                                    "LockAxis": 0,
+                                    "Material": "SubUVMaterial",
+                                    "MaxActiveParticles": 80,
+                                    "ScreenAlignment": 1,
+                                    "SortMode": 0,
+                                    "SubImagesHorizontal": 8,
+                                    "SubImagesVertical": 8,
+                                    "bEnabled": true,
+                                    "bUseLocalSpace": false
+                                }
+                            }
+                        },
+                        "bEnabled": true
+                    }
+                ],
+                "ObjectLabel": "UParticleEmitter_FF_FlamePlume",
+                "Properties": {}
+            },
+            {
+                "LODLevels": [
+                    {
+                        "Level": 0,
+                        "Modules": [
+                            {
+                                "Class": "UParticleModuleSpawn",
+                                "Data": {
+                                    "Bursts": [
+                                        {
+                                            "Count": 90,
+                                            "Time": 0.0
+                                        }
+                                    ],
+                                    "ObjectLabel": "UParticleModuleSpawn_FF22",
+                                    "Properties": {
+                                        "SpawnRate": 70.0,
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLifetime",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLifetime_FF23",
+                                    "Properties": {
+                                        "Lifetime": {
+                                            "Max": 2.2,
+                                            "Min": 1.4
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLocation",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLocation_FF24",
+                                    "Properties": {
+                                        "StartLocation": {
+                                            "Max": {
+                                                "X": 0.08,
+                                                "Y": 0.08,
+                                                "Z": 0.05
+                                            },
+                                            "Min": {
+                                                "X": -0.08,
+                                                "Y": -0.08,
+                                                "Z": 0.05
+                                            }
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleVelocity",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleVelocity_FF25",
+                                    "Properties": {
+                                        "StartVelocity": {
+                                            "Max": {
+                                                "X": 1.4,
+                                                "Y": 1.4,
+                                                "Z": 8.5
+                                            },
+                                            "Min": {
+                                                "X": -1.4,
+                                                "Y": -1.4,
+                                                "Z": 5.5
+                                            }
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleAccelerationConstant",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleAccelerationConstant_FF26",
+                                    "Properties": {
+                                        "Acceleration": {
+                                            "X": 0.0,
+                                            "Y": 0.0,
+                                            "Z": -9.81
+                                        },
+                                        "bAlwaysInWorldSpace": true,
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSize",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSize_FF27",
+                                    "Properties": {
+                                        "StartSize": {
+                                            "Max": {
+                                                "X": 0.22,
+                                                "Y": 0.32,
+                                                "Z": 0.22
+                                            },
+                                            "Min": {
+                                                "X": 0.1,
+                                                "Y": 0.18,
+                                                "Z": 0.1
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseSizeOverLife": true
+                                    },
+                                    "SizeScaleOverLife": {
+                                        "X": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.35
+                                                }
+                                            ]
+                                        },
+                                        "Y": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.5
+                                                }
+                                            ]
+                                        },
+                                        "Z": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.35
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSizeScaleBySpeed",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSizeScaleBySpeed_FF28",
+                                    "Properties": {
+                                        "LengthPerSpeed": 0.035,
+                                        "MaxLength": 0.7,
+                                        "MaxScale": {
+                                            "X": 5.0,
+                                            "Y": 5.0,
+                                            "Z": 5.0
+                                        },
+                                        "SpeedScale": {
+                                            "X": 0.0,
+                                            "Y": 0.0,
+                                            "Z": 0.0
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleColor",
+                                "Data": {
+                                    "ColorScaleOverLife": {
+                                        "A": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.7,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.0
+                                                }
+                                            ]
+                                        },
+                                        "B": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.5,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.4
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.1
+                                                }
+                                            ]
+                                        },
+                                        "G": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.5,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.55
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.25
+                                                }
+                                            ]
+                                        },
+                                        "R": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "ObjectLabel": "UParticleModuleColor_FF29",
+                                    "Properties": {
+                                        "StartColor": {
+                                            "Max": {
+                                                "A": 1.0,
+                                                "B": 0.7,
+                                                "G": 1.0,
+                                                "R": 1.0
+                                            },
+                                            "Min": {
+                                                "A": 1.0,
+                                                "B": 0.35,
+                                                "G": 0.75,
+                                                "R": 1.0
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseColorOverLife": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSubUVMovie",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSubUVMovie_FF30",
+                                    "Properties": {
+                                        "FrameRate": 14.0,
+                                        "StartFrame": 0.0,
+                                        "bEnabled": true,
+                                        "bLoop": true,
+                                        "bRandomStartFrame": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleCollision",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleCollision_FF31",
+                                    "Properties": {
+                                        "CollisionCompletionOption": 0,
+                                        "DampingFactor": 0.45,
+                                        "EventName": "SparkHit",
+                                        "MaxCollisions": 4,
+                                        "MaxEventsPerFrame": 48,
+                                        "ParticleRadiusScale": 0.15,
+                                        "bEnabled": true,
+                                        "bGenerateEvents": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF69",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 2.0,
+                                        "MaxLights": 10,
+                                        "MaxRadius": 3.0,
+                                        "RadiusScale": 9.0,
+                                        "SpawnFraction": 0.08,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": true,
+                                        "bUseBrightnessOverLife": false,
+                                        "bUseParticleColor": true
+                                    }
+                                }
+                            }
+                        ],
+                        "ObjectLabel": "UParticleLODLevel_FF33",
+                        "Properties": {},
+                        "Required": {
+                            "Class": "UParticleModuleRequired",
+                            "Data": {
+                                "ObjectLabel": "UParticleModuleRequired_FF32",
+                                "Properties": {
+                                    "EmitterDuration": 2.5,
+                                    "EmitterLoops": 0,
+                                    "LockAxis": 0,
+                                    "Material": "SubUVMaterial",
+                                    "MaxActiveParticles": 700,
+                                    "ScreenAlignment": 3,
+                                    "SortMode": 0,
+                                    "SubImagesHorizontal": 8,
+                                    "SubImagesVertical": 8,
+                                    "bEnabled": true,
+                                    "bUseLocalSpace": false
+                                }
+                            }
+                        },
+                        "bEnabled": true
+                    }
+                ],
+                "ObjectLabel": "UParticleEmitter_FF_FountainSparks",
+                "Properties": {}
+            },
+            {
+                "LODLevels": [
+                    {
+                        "Level": 0,
+                        "Modules": [
+                            {
+                                "Class": "UParticleModuleSpawn",
+                                "Data": {
+                                    "Bursts": [],
+                                    "ObjectLabel": "UParticleModuleSpawn_FF34",
+                                    "Properties": {
+                                        "SpawnRate": 0.0,
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLifetime",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLifetime_FF35",
+                                    "Properties": {
+                                        "Lifetime": {
+                                            "Max": 0.8,
+                                            "Min": 0.35
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleVelocity",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleVelocity_FF36",
+                                    "Properties": {
+                                        "StartVelocity": {
+                                            "Max": {
+                                                "X": 1.6,
+                                                "Y": 1.6,
+                                                "Z": 1.5
+                                            },
+                                            "Min": {
+                                                "X": -1.6,
+                                                "Y": -1.6,
+                                                "Z": 0.3
+                                            }
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleAccelerationConstant",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleAccelerationConstant_FF37",
+                                    "Properties": {
+                                        "Acceleration": {
+                                            "X": 0.0,
+                                            "Y": 0.0,
+                                            "Z": -9.81
+                                        },
+                                        "bAlwaysInWorldSpace": true,
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSize",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSize_FF38",
+                                    "Properties": {
+                                        "StartSize": {
+                                            "Max": {
+                                                "X": 0.1,
+                                                "Y": 0.2,
+                                                "Z": 0.1
+                                            },
+                                            "Min": {
+                                                "X": 0.05,
+                                                "Y": 0.1,
+                                                "Z": 0.05
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseSizeOverLife": true
+                                    },
+                                    "SizeScaleOverLife": {
+                                        "X": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.3
+                                                }
+                                            ]
+                                        },
+                                        "Y": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.5
+                                                }
+                                            ]
+                                        },
+                                        "Z": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.3
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSizeScaleBySpeed",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSizeScaleBySpeed_FF39",
+                                    "Properties": {
+                                        "LengthPerSpeed": 0.03,
+                                        "MaxLength": 0.35,
+                                        "MaxScale": {
+                                            "X": 5.0,
+                                            "Y": 5.0,
+                                            "Z": 5.0
+                                        },
+                                        "SpeedScale": {
+                                            "X": 0.0,
+                                            "Y": 0.0,
+                                            "Z": 0.0
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleColor",
+                                "Data": {
+                                    "ColorScaleOverLife": {
+                                        "A": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.6,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.0
+                                                }
+                                            ]
+                                        },
+                                        "B": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.5,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.3
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.05
+                                                }
+                                            ]
+                                        },
+                                        "G": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.5,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.5
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.2
+                                                }
+                                            ]
+                                        },
+                                        "R": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "ObjectLabel": "UParticleModuleColor_FF40",
+                                    "Properties": {
+                                        "StartColor": {
+                                            "Max": {
+                                                "A": 1.0,
+                                                "B": 0.8,
+                                                "G": 1.0,
+                                                "R": 1.0
+                                            },
+                                            "Min": {
+                                                "A": 1.0,
+                                                "B": 0.45,
+                                                "G": 0.85,
+                                                "R": 1.0
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseColorOverLife": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSubUVMovie",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSubUVMovie_FF41",
+                                    "Properties": {
+                                        "FrameRate": 12.0,
+                                        "StartFrame": 0.0,
+                                        "bEnabled": true,
+                                        "bLoop": true,
+                                        "bRandomStartFrame": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleCollision",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleCollision_FF42",
+                                    "Properties": {
+                                        "CollisionCompletionOption": 0,
+                                        "DampingFactor": 0.35,
+                                        "EventName": "ImpactCollision",
+                                        "MaxCollisions": 2,
+                                        "MaxEventsPerFrame": 0,
+                                        "ParticleRadiusScale": 0.15,
+                                        "bEnabled": true,
+                                        "bGenerateEvents": false
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleEventReceiverSpawn",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleEventReceiverSpawn_FF43",
+                                    "Properties": {
+                                        "EventName": "SparkHit",
+                                        "NormalSpeed": {
+                                            "Max": 3.5,
+                                            "Min": 1.2
+                                        },
+                                        "SpawnCount": 2,
+                                        "SurfaceOffset": 0.02,
+                                        "bEnabled": true,
+                                        "bSpawnAtEventLocation": true
+                                    }
+                                }
+                            }
+                        ],
+                        "ObjectLabel": "UParticleLODLevel_FF45",
+                        "Properties": {},
+                        "Required": {
+                            "Class": "UParticleModuleRequired",
+                            "Data": {
+                                "ObjectLabel": "UParticleModuleRequired_FF44",
+                                "Properties": {
+                                    "EmitterDuration": 1.0,
+                                    "EmitterLoops": 0,
+                                    "LockAxis": 0,
+                                    "Material": "SubUVMaterial",
+                                    "MaxActiveParticles": 600,
+                                    "ScreenAlignment": 3,
+                                    "SortMode": 0,
+                                    "SubImagesHorizontal": 8,
+                                    "SubImagesVertical": 8,
+                                    "bEnabled": true,
+                                    "bUseLocalSpace": false
+                                }
+                            }
+                        },
+                        "bEnabled": true
+                    }
+                ],
+                "ObjectLabel": "UParticleEmitter_FF_ImpactSparks",
+                "Properties": {}
+            },
+            {
+                "LODLevels": [
+                    {
+                        "Level": 0,
+                        "Modules": [
+                            {
+                                "Class": "UParticleModuleSpawn",
+                                "Data": {
+                                    "Bursts": [],
+                                    "ObjectLabel": "UParticleModuleSpawn_FF46",
+                                    "Properties": {
+                                        "SpawnRate": 0.0,
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLifetime",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLifetime_FF47",
+                                    "Properties": {
+                                        "Lifetime": {
+                                            "Max": 0.22,
+                                            "Min": 0.15
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSize",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSize_FF48",
+                                    "Properties": {
+                                        "StartSize": {
+                                            "Max": {
+                                                "X": 0.45,
+                                                "Y": 0.45,
+                                                "Z": 0.45
+                                            },
+                                            "Min": {
+                                                "X": 0.3,
+                                                "Y": 0.3,
+                                                "Z": 0.3
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseSizeOverLife": true
+                                    },
+                                    "SizeScaleOverLife": {
+                                        "X": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.5
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.7
+                                                }
+                                            ]
+                                        },
+                                        "Y": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.5
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.7
+                                                }
+                                            ]
+                                        },
+                                        "Z": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.5
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.7
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleColor",
+                                "Data": {
+                                    "ColorScaleOverLife": {
+                                        "A": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.0
+                                                }
+                                            ]
+                                        },
+                                        "B": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.2
+                                                }
+                                            ]
+                                        },
+                                        "G": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.5
+                                                }
+                                            ]
+                                        },
+                                        "R": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "ObjectLabel": "UParticleModuleColor_FF49",
+                                    "Properties": {
+                                        "StartColor": {
+                                            "Max": {
+                                                "A": 0.9,
+                                                "B": 0.65,
+                                                "G": 0.95,
+                                                "R": 1.0
+                                            },
+                                            "Min": {
+                                                "A": 0.75,
+                                                "B": 0.45,
+                                                "G": 0.85,
+                                                "R": 1.0
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseColorOverLife": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleRotation",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleRotation_FF50",
+                                    "Properties": {
+                                        "StartRotation": {
+                                            "Max": 6.28,
+                                            "Min": 0.0
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleEventReceiverSpawn",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleEventReceiverSpawn_FF51",
+                                    "Properties": {
+                                        "EventName": "SparkHit",
+                                        "NormalSpeed": {
+                                            "Max": 0.0,
+                                            "Min": 0.0
+                                        },
+                                        "SpawnCount": 1,
+                                        "SurfaceOffset": 0.03,
+                                        "bEnabled": true,
+                                        "bSpawnAtEventLocation": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF70",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 6.0,
+                                        "MaxLights": 8,
+                                        "MaxRadius": 3.0,
+                                        "RadiusScale": 6.0,
+                                        "SpawnFraction": 1.0,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": true,
+                                        "bUseBrightnessOverLife": false,
+                                        "bUseParticleColor": true
+                                    }
+                                }
+                            }
+                        ],
+                        "ObjectLabel": "UParticleLODLevel_FF53",
+                        "Properties": {},
+                        "Required": {
+                            "Class": "UParticleModuleRequired",
+                            "Data": {
+                                "ObjectLabel": "UParticleModuleRequired_FF52",
+                                "Properties": {
+                                    "EmitterDuration": 1.0,
+                                    "EmitterLoops": 0,
+                                    "LockAxis": 0,
+                                    "Material": "SubUVMaterial",
+                                    "MaxActiveParticles": 160,
+                                    "ScreenAlignment": 1,
+                                    "SortMode": 0,
+                                    "SubImagesHorizontal": 8,
+                                    "SubImagesVertical": 8,
+                                    "bEnabled": true,
+                                    "bUseLocalSpace": false
+                                }
+                            }
+                        },
+                        "bEnabled": true
+                    }
+                ],
+                "ObjectLabel": "UParticleEmitter_FF_ImpactFlash",
+                "Properties": {}
+            },
+            {
+                "LODLevels": [
+                    {
+                        "Level": 0,
+                        "Modules": [
+                            {
+                                "Class": "UParticleModuleSpawn",
+                                "Data": {
+                                    "Bursts": [],
+                                    "ObjectLabel": "UParticleModuleSpawn_FF54",
+                                    "Properties": {
+                                        "SpawnRate": 30.0,
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLifetime",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLifetime_FF55",
+                                    "Properties": {
+                                        "Lifetime": {
+                                            "Max": 6.0,
+                                            "Min": 4.0
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLocation",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleLocation_FF56",
+                                    "Properties": {
+                                        "StartLocation": {
+                                            "Max": {
+                                                "X": 1.2,
+                                                "Y": 1.2,
+                                                "Z": 0.4
+                                            },
+                                            "Min": {
+                                                "X": -1.2,
+                                                "Y": -1.2,
+                                                "Z": 0.1
+                                            }
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleVelocity",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleVelocity_FF57",
+                                    "Properties": {
+                                        "StartVelocity": {
+                                            "Max": {
+                                                "X": 0.4,
+                                                "Y": 0.4,
+                                                "Z": 1.8
+                                            },
+                                            "Min": {
+                                                "X": -0.4,
+                                                "Y": -0.4,
+                                                "Z": 0.8
+                                            }
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleAccelerationConstant",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleAccelerationConstant_FF58",
+                                    "Properties": {
+                                        "Acceleration": {
+                                            "X": 0.0,
+                                            "Y": 0.0,
+                                            "Z": 0.5
+                                        },
+                                        "bAlwaysInWorldSpace": true,
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleAttractorPoint",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleAttractorPoint_FF59",
+                                    "Properties": {
+                                        "Position": {
+                                            "X": 0.0,
+                                            "Y": 0.0,
+                                            "Z": 2.0
+                                        },
+                                        "Range": 4.0,
+                                        "Strength": 7.0,
+                                        "bEnabled": true,
+                                        "bStrengthByDistance": true,
+                                        "bUseWorldSpacePosition": false
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSize",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSize_FF60",
+                                    "Properties": {
+                                        "StartSize": {
+                                            "Max": {
+                                                "X": 0.09,
+                                                "Y": 0.09,
+                                                "Z": 0.09
+                                            },
+                                            "Min": {
+                                                "X": 0.04,
+                                                "Y": 0.04,
+                                                "Z": 0.04
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseSizeOverLife": true
+                                    },
+                                    "SizeScaleOverLife": {
+                                        "X": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.5
+                                                }
+                                            ]
+                                        },
+                                        "Y": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.5
+                                                }
+                                            ]
+                                        },
+                                        "Z": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.5
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleColor",
+                                "Data": {
+                                    "ColorScaleOverLife": {
+                                        "A": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.1,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.75,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.0
+                                                }
+                                            ]
+                                        },
+                                        "B": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.3
+                                                }
+                                            ]
+                                        },
+                                        "G": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 0.5
+                                                }
+                                            ]
+                                        },
+                                        "R": {
+                                            "Points": [
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 0.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                },
+                                                {
+                                                    "Arrive": 0.0,
+                                                    "In": 1.0,
+                                                    "Leave": 0.0,
+                                                    "Mode": 0,
+                                                    "Out": 1.0
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "ObjectLabel": "UParticleModuleColor_FF61",
+                                    "Properties": {
+                                        "StartColor": {
+                                            "Max": {
+                                                "A": 1.0,
+                                                "B": 0.4,
+                                                "G": 0.85,
+                                                "R": 1.0
+                                            },
+                                            "Min": {
+                                                "A": 1.0,
+                                                "B": 0.15,
+                                                "G": 0.55,
+                                                "R": 1.0
+                                            }
+                                        },
+                                        "bEnabled": true,
+                                        "bUseColorOverLife": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleRotation",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleRotation_FF62",
+                                    "Properties": {
+                                        "StartRotation": {
+                                            "Max": 6.28,
+                                            "Min": 0.0
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleRotationRate",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleRotationRate_FF63",
+                                    "Properties": {
+                                        "StartRotationRate": {
+                                            "Max": 2.0,
+                                            "Min": -2.0
+                                        },
+                                        "bEnabled": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleSubUVMovie",
+                                "Data": {
+                                    "ObjectLabel": "UParticleModuleSubUVMovie_FF64",
+                                    "Properties": {
+                                        "FrameRate": 20.0,
+                                        "StartFrame": 0.0,
+                                        "bEnabled": true,
+                                        "bLoop": true,
+                                        "bRandomStartFrame": true
+                                    }
+                                }
+                            },
+                            {
+                                "Class": "UParticleModuleLight",
+                                "Data": {
+                                    "BrightnessOverLife": {
+                                        "Points": [
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 0.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            },
+                                            {
+                                                "Arrive": 0.0,
+                                                "In": 1.0,
+                                                "Leave": 0.0,
+                                                "Mode": 0,
+                                                "Out": 1.0
+                                            }
+                                        ]
+                                    },
+                                    "ObjectLabel": "UParticleModuleLight_FF71",
+                                    "Properties": {
+                                        "FalloffExponent": 1.0,
+                                        "Intensity": 1.5,
+                                        "MaxLights": 6,
+                                        "MaxRadius": 3.0,
+                                        "RadiusScale": 15.0,
+                                        "SpawnFraction": 0.1,
+                                        "TintColor": {
+                                            "A": 1.0,
+                                            "B": 1.0,
+                                            "G": 1.0,
+                                            "R": 1.0
+                                        },
+                                        "bEnabled": true,
+                                        "bScaleByParticleAlpha": true,
+                                        "bUseBrightnessOverLife": false,
+                                        "bUseParticleColor": true
+                                    }
+                                }
+                            }
+                        ],
+                        "ObjectLabel": "UParticleLODLevel_FF66",
+                        "Properties": {},
+                        "Required": {
+                            "Class": "UParticleModuleRequired",
+                            "Data": {
+                                "ObjectLabel": "UParticleModuleRequired_FF65",
+                                "Properties": {
+                                    "EmitterDuration": 1.0,
+                                    "EmitterLoops": 0,
+                                    "LockAxis": 0,
+                                    "Material": "SubUVMaterial",
+                                    "MaxActiveParticles": 250,
+                                    "ScreenAlignment": 1,
+                                    "SortMode": 0,
+                                    "SubImagesHorizontal": 8,
+                                    "SubImagesVertical": 8,
+                                    "bEnabled": true,
+                                    "bUseLocalSpace": false
+                                }
+                            }
+                        },
+                        "bEnabled": true
+                    }
+                ],
+                "ObjectLabel": "UParticleEmitter_FF_EmberVortex",
+                "Properties": {}
+            }
+        ],
+        "FixedRelativeBoundingBox": {
+            "Max": {
+                "X": 5.0,
+                "Y": 5.0,
+                "Z": 6.0
+            },
+            "Min": {
+                "X": -5.0,
+                "Y": -5.0,
+                "Z": -1.0
+            }
+        },
+        "LODDistanceCheckTime": 0.25,
+        "LODDistances": [
+            0.0
+        ],
+        "LODMethod": 0,
+        "ObjectLabel": "UParticleSystem_FireFountain",
+        "Properties": {},
+        "bUseFixedRelativeBoundingBox": false
+    },
+    "Type": "ParticleSystem",
+    "Version": 1
+}

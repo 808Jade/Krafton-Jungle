@@ -5,7 +5,26 @@
 
 ---
 
-## 주차별 수행 내역 (Week 01 ~ Week 09)
+## 목차
+
+| 주차 | 주제 | 폴더 |
+| --- | --- | --- |
+| Week 01 | 2D 물리 대전 게임 '초능력 알까기' | [Week01](Week01) |
+| Week 02 | 3D 기초 렌더러 & 에디터 | [Week02](Week02) |
+| Week 03 | 에디터 툴 & 경로 추적 | [Week03](Week03) |
+| Week 04 | 멀티 뷰포트 아키텍처 | [Week04](Week04) |
+| Week 05 | 렌더링 최적화 & 오클루전 컬링 | [Week05](Week05) |
+| Week 06 | 포스트 프로세싱 & 컴포넌트 | [Week06](Week06) |
+| Week 07 | 조명 & 노멀 매핑 | [Week07](Week07) |
+| Week 08 | Cascaded Shadow Maps | [Week08](Week08) |
+| Week 09 | 소프트 섀도우 (PCF/PCSS) | [Week09](Week09) |
+| Week 10 | FBX 임포트 & 스켈레탈 메시 뷰어 | [Week10](Week10) |
+| Week 11 | 애니메이션 시퀀스 & 리타게팅 | [Week11](Week11) |
+| Week 12 | 파티클 시스템 | [Week12](Week12) |
+
+---
+
+## 주차별 수행 내역 (Week 01 ~ Week 12)
 
 ### [Week 01] 2D 물리 엔진 및 게임 ('초능력 알까기')
 * **개요**: Win32 API 및 DirectX 11 기반 2D 턴제 물리 대전 게임
@@ -106,10 +125,50 @@
 
 ---
 
+### [Week 10] FBX 임포트 및 스켈레탈 메시 뷰어
+* **개요**: FBX SDK로 스켈레탈 메시를 불러와 엔진 에셋으로 굽고, 본 구조를 살펴보는 전용 뷰어 개발
+* **수행 내역**:
+  * FBX SDK 연동 및 스켈레톤 계층 파싱·덤프
+  * 스켈레탈 메시용 정점/메시 자료구조 정의 및 CPU 측 데이터 파싱
+  * UE 마네킹(UnrealManny) 임포트·렌더링 및 엔진 전용 포맷으로 Bake 후 엔진 통합
+  * Skeletal Mesh Viewer: 본 계층 패널(Bones Panel), 본 피킹 및 기즈모 조작, 뷰어 카메라/조명 제어
+  * Content Drawer에서 뷰어 열기, 스켈레탈 메시 판정 기준을 "본 존재 여부"에서 "스킨된 메시 여부"로 변경
+* **기술 스택**: `FBX SDK`, `Skeletal Mesh`, `Bone Hierarchy`, `Bone Picking`, `ImGui Editor`
+
+---
+
+### [Week 11] 애니메이션 시퀀스 및 리타게팅
+* **개요**: FBX 애니메이션 클립의 에셋화, 재생·타임라인 에디터, 애님 노티파이, 휴머노이드 리타게팅 구현
+* **수행 내역**:
+  * 애니메이션 전용 FBX 임포트 및 클립을 바이너리(`.anim.bin`)로 저장, `UAnimationClip` 에셋 등록·지연 로드
+  * `USkeleton` 에셋(`.skeleton.bin`) 도입: 메시·클립이 스켈레톤을 참조하고 같은 뼈대는 공유, 이전 버전 파일 하위 호환 유지
+  * 단순 리타게팅 및 FBX 임포트 시 Humanoid 리타게팅 적용
+  * Animation 에디터: AnimSequence 패널, 프레임 눈금 타임라인, SequencePlayer 재생 제어 API, UE 방식 레이아웃
+  * AnimNotify 런타임 발동·전달, `SkeletalMeshComponent`의 AnimToPlay 자동 재생 프로퍼티
+  * 철권 캐릭터 모델·애니메이션 매핑 및 루트 본 에셋 수정
+* **기술 스택**: `Animation Sequence`, `Retargeting`, `AnimNotify`, `Timeline Editor`, `Asset Serialization`
+
+---
+
+### [Week 12] 파티클 시스템 (Cascade 스타일)
+* **개요**: 언리얼 Cascade 구조(System → Emitter → LOD → Module)를 따르는 모듈형 파티클 시스템과 데모 씬 제작
+* **수행 내역**:
+  * `UParticleSystem` / `UParticleEmitter` / `UParticleLODLevel` / `UParticleModule` 에셋 골격 설계, `.particle` 저장/불러오기
+  * 파티클 모듈 구현: Lifetime, Spawn, Location, Velocity, Size, Color, Rotation/RotationRate, Acceleration, Collision, PointAttractor, Size by Speed, SubUV, TypeDataMesh, Radial Velocity, Drag, Light
+  * 리플렉션에 파티클 모듈 프로퍼티 등록 (enum/struct 지원), `CacheEmitterModuleInfo`로 이미터 모듈 정보 캐싱
+  * 구 스윕(`SweepSphereSingle`) 기반 파티클 충돌, 충돌 이벤트(`OnParticleCollide`, Lua 콜백, Event Generator/Receiver 모듈)
+  * 파티클 Light 모듈의 라이트 풀 및 그림자 옵션
+  * 폐허 도시 데모 씬: 비, 낙뢰, 모닥불, 전선 스파크 이펙트와 지형 보행, 블렌드 스페이스 재생 속도 동기화
+* **기술 스택**: `Particle System`, `Module Architecture`, `Reflection`, `Sphere Sweep Collision`, `SubUV`, `Lua`
+
+---
+
 ## 기술 스택 요약
 
 * **Language**: C++17, HLSL
 * **Graphics API**: DirectX 11, DirectX 12, Win32 API
 * **Rendering**: Cascaded Shadow Maps (CSM), PCF/PCSS, Normal Mapping, ACES Tone Mapping, Depth Clamping, Texel Snapping
 * **Optimization**: Occlusion Culling, Tile-Based Light Culling, NVAPI GPU Clock Locking, LOD, AABB Caching
-* **Tools & UI**: Multi-Viewport, ImGui, Line Batching, Path Tracker, Scene Serializer
+* **Animation**: FBX SDK, Skeletal Mesh, Animation Sequence, Retargeting, AnimNotify
+* **Effects**: Cascade 스타일 모듈형 Particle System, SubUV, Particle Collision & Events
+* **Tools & UI**: Multi-Viewport, ImGui, Line Batching, Path Tracker, Scene Serializer, Skeletal Mesh Viewer, Animation Timeline Editor

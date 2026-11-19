@@ -1,0 +1,137 @@
+#pragma once
+
+#include "UObject/Object.h"
+#include "UObject/Property.h"
+#include "Render/Renderer.h"
+#include "Asset/LOD/StaticMeshLODGenerator.h"
+
+#include <filesystem>
+#include <functional>
+#include <vector>
+
+#include "AssetManager.generated.h"
+
+enum class EAssetType
+{
+	None,
+	Texture,
+	Font,
+	StaticMesh,
+	SkeletalMesh,
+	Skeleton,
+	Material,
+	AnimSequence,
+	BlendSpace,
+	AnimGraph
+};
+
+class UAnimGraph;
+class UBlendSpace;
+class UStaticMesh;
+class USoundWave;
+struct FSkeletalMaterialSlot;
+struct FImageData;
+
+namespace fs = std::filesystem;
+
+UCLASS()
+class UAssetManager : public UObject
+{
+	GENERATED_BODY()
+private:
+	struct FAssetFile {
+		// 정규화된 에셋 키에 대응하는 실제 로드 대상 파일 경로이다.
+		FString mPath{};
+		// 파일 확장자 또는 FBX 바이너리 메타데이터에서 판별한 에셋 종류이다.
+		EAssetType mType{EAssetType::None};
+	};
+
+private:
+	UAssetManager() = default;
+
+	UAssetManager(const UAssetManager& src) =  delete;
+	UAssetManager& operator= (const UAssetManager& src) = delete;
+
+	using FAssetLoadProgress = std::function<void(int32 Loaded, int32 Total, const FString& Path)>;
+public:
+	static UAssetManager& Get();
+	static void Init(const FAssetLoadProgress& OnProgress = nullptr);
+	static void Shutdown();
+
+	void ScanAssets(const fs::path& AssetRoot, const FAssetLoadProgress& OnProgress);
+	void LoadAsset(const FString& Key, const FString& Path);
+
+	void CreateDefaultTextures();
+	void CreateDefaultMeshes();
+	void CreateDefaultMaterial();
+	void CreateBillboardMaterial();
+	void CreateParticleMaterial();
+	void CreateEditorArrowMaterial();
+
+	// 경로는 "Assets/Models/a.obj"와 "Models/a.obj"를 같은 에셋으로 본다.
+	// 아직 로드되지 않았으면 여기서 로드하므로 GPU 자원을 만들 수 있는 메인 스레드에서만 부른다.
+	template <typename T>
+	static T* GetAssetByPath(const FString& Path)
+	{
+		URenderAsset* Asset = Get().FindOrLoadAsset(Path);
+
+		if (Asset == nullptr || !Asset->IsA<T>())
+		{
+			return nullptr;
+		}
+		return Cast<T>(Asset);
+	}
+
+	// 로드를 일으키지 않고 이미 로드된 에셋만 찾는다
+	static URenderAsset* FindLoadedAsset(const FString& Path);
+
+	// 스캔으로 등록됐지만 아직 로드되지 않은 에셋의 타입. 그 외에는 None
+	static EAssetType GetUnloadedAssetType(const FString& Path);
+	static TArray<FString> GetUnloadedAssetPaths(EAssetType Type);
+	// 로드 여부와 관계없이 애니메이션 에셋 선택기에 사용할 정렬된 키 목록을 제공한다.
+	static std::vector<FString> GetAnimationAssetPaths(EAssetType Type);
+	// 저장 성공 후 캐시된 에셋 내용도 갱신해 편집 결과를 기존 참조에 반영한다.
+	static bool SaveAnimGraph(const FString& Path, UAnimGraph& Graph, FString& OutError);
+	// 축과 샘플 배치를 파일에 기록하고 이미 로드된 Blend Space 객체에도 반영한다.
+	static bool SaveBlendSpace(const FString& Path, UBlendSpace& BlendSpace, FString& OutError);
+
+	void RegisterAsset(const FString& Key, URenderAsset* Asset);
+	TMap<FString, URenderAsset*> PrepareAssetRegistration(const TMap<FString, URenderAsset*>& Replacements) const;
+	void CommitAssetRegistration(TMap<FString, URenderAsset*>& Prepared) noexcept;
+
+	//UStaticMesh* GetMesh(FString InName);
+	//UStaticMesh* GetMesh(EPrimitiveType Type); // 오버로드(수정 중)
+
+	UTexture2D* LoadTexture(const FString& InPath, bool bGenerateMips = true);
+	static UTexture2D* CreateTexture(const FImageData& Data, bool bGenerateMips = true);
+	UFont* LoadFontAtlas(const FString& JsonPath, const FString& AtlasTexturePath);
+	USoundWave* LoadSound(const FString& Path);
+	static UStaticMesh* LoadObjStaticMesh(const FString& Path);
+
+	FLODGenerateResult GenerateStaticMeshLODs(UStaticMesh& Mesh,const FLODGenerateRequest& Request);
+
+	// 원본 좌표축이 엔진과 다른 메시를 로드 후 돌린다 (정점·법선·AABB·삼각형 BVH·GPU 정점 버퍼를 다시 만든다).
+	// LOD는 LOD0에서 만들어지므로 LOD를 만들기 전에만 부를 수 있다. Rotate는 회전(길이·손잡이 보존)이어야 한다.
+	static bool ReorientStaticMesh(UStaticMesh& Mesh, const std::function<FVector(const FVector&)>& Rotate);
+
+	// OBJ 스태틱 메시(키가 .obj로 끝나는 것)마다 부른다. 아직 로드되지 않은 메시는 먼저 로드한다. 기본 도형·기즈모 메시는 제외된다.
+	static void ForEachObjStaticMesh(const std::function<void(const FString& Key, UStaticMesh& Mesh)>& Func);
+	static bool BuildMaterialsFromSlots(const TArray<FStaticMaterialSlot>& Slots, TArray<UMaterial*>& OutMaterials);
+	static bool BuildMaterialsFromSlots(const TArray<FSkeletalMaterialSlot>& Slots, TArray<UMaterial*>& OutMaterials);
+
+private:
+	URenderAsset* FindOrLoadAsset(const FString& Path);
+	// 파일 인덱스를 조회하고 누락된 애니메이션 에셋은 실제 경로에서 발견해 등록한다.
+	const FAssetFile* FindOrDiscoverAssetFile(const FString& Key);
+	// 그래프 또는 Blend Space JSON을 검증한 뒤 로드 캐시에 소유권을 등록한다.
+	void LoadAnimationEditorAsset(const FString& Key, const FString& Path, EAssetType Type);
+
+	TMap<FString, FAssetFile> AssetPathMap;
+	TMap<FString, URenderAsset*> AssetMap;
+	TMap<FString, USoundWave*> SoundMap;
+
+	//TMap<FString, UStaticMesh*> MeshMap;	// KEY: FILE NAME OR 쉐입 첫글자 대문자
+	TMap<FString, TUniquePtr<FShader>> ShaderMap;	// KEY: FILE NAME
+
+	//TMap<FString, UTexture2D*> TextureMap;
+};

@@ -1,0 +1,4 @@
+﻿# 심볼 서버(공유 폴더) 경로. #으로 시작하지 않는 첫 줄을 쓴다.
+# Publish 구성 빌드와 Setup\PublishBuild.ps1이 여기 적힌 곳에 exe·pdb를 올린다.
+# 예: \\192.168.0.15\symbols
+\\DESKTOP-V17LL92\HitoriSymbols
